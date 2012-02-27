@@ -1,0 +1,66 @@
+#!r6rs
+
+(import (rnrs) (racr))
+
+(define init-basic-test
+  (lambda ()
+    (let ((state 0))
+      (with-specification
+       (create-specification)
+       ;;; Specify simple test language:
+       (ast-rule 'S->A)
+       (ast-rule 'A->B-C)
+       (ast-rule 'B->)
+       (ast-rule 'Ba:B->)
+       (ast-rule 'C->D)
+       (ast-rule 'D->terminal)
+       (compile-ast-specifications 'S)
+       
+       (ag-rule
+        att
+        (S
+         0
+         (lambda (n)
+           (set! state (+ state 1))
+           (+ (att-value 'att (ast-child 1 n)) state)))
+        (A
+         0
+         (lambda (n) (att-value 'att (ast-child 1 n))))
+        (A
+         1
+         (lambda (n) (att-value 'att (ast-sibling 2 n))))
+        (Ba
+         0
+         (lambda (n) -1))
+        (A
+         2
+         (lambda (n) (att-value 'att (ast-child 1 n))))
+        (D
+         0
+         (lambda (n) (ast-child 1 n))))
+       (compile-ag-specifications)
+       
+       ;;; Return test AST:
+       (create-ast
+        'S
+        (list
+         (create-ast
+          'A
+          (list
+           (create-ast 'B (list))
+           (create-ast
+            'C
+            (list
+             (create-ast 'D (list 1))))))))))))
+
+(define run-tests
+  (lambda ()
+    (let ((ast (init-basic-test)))
+      (display (att-value 'att ast)) ; 2
+      (display "\n")
+      (display (att-value 'att ast)) ; 2
+      (rewrite-terminal (ast-child 1 (ast-child 2 (ast-child 1 ast))) 1 10)
+      (display (att-value 'att ast))
+      )))
+
+(run-tests)

@@ -1,0 +1,4 @@
+bat
+txt
+bak
+rkt~

@@ -1,0 +1,44 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
+Procedure main() Begin
+	Var b:Boolean;
+	Var i:Integer;
+	Var r:Real;
+	Var p:Pointer(Boolean);
+	
+	b := true;
+	i := 3;
+	r := 3.5;
+	p := Address(b);
+	
+	Write b + i;
+	Write b + r;
+	Write b + p;
+	Write b - i;
+	Write b - r;
+	Write b - p;
+	Write b * i;
+	Write b * r;
+	Write b * p;
+	Write b / i;
+	Write b / r;
+	Write b / p;
+	
+	Write i + b;
+	Write r + b;
+	Write p + b;
+	Write i - b;
+	Write r - b;
+	Write p - b;
+	Write i * b;
+	Write r * b;
+	Write p * b;
+	Write i / b;
+	Write r / b;
+	Write p / b;
+	
+	Write i * ((r + 2) - b) + r;
+End;

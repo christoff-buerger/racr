@@ -1,0 +1,52 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger, S. Karol
+
+Procedure main() Begin
+	Write id(3);
+	Write faculty(12);
+	Write fibonacci(10);
+	mr(10);
+End;
+
+% Identity
+Procedure id(Var n:Integer):Integer Begin
+	Return n;
+End;
+
+% Faculty
+Procedure faculty(Var n:Integer):Integer Begin
+	If n = 0 Then
+		Return 1;
+	Fi;
+	Return n * faculty(n - 1);
+End;
+
+% Fibonacci numbers
+Procedure fibonacci(Var n:Integer):Integer Begin
+	Var result:Integer;
+	If (n > 1) 
+		Then result := fibonacci(n-1) + fibonacci(n-2);
+	Else
+		result := 1;
+	Fi;
+	Return result;
+End;
+
+% Mutual recursive example function
+Procedure mr(Var n:Integer) Begin
+	mr1(n, n);
+End;
+
+Procedure mr1(Var lb:Integer, Var ub:Integer) Begin
+	If lb >= 0 Then
+		Write lb;
+		mr2(lb - 1, ub);
+	Fi;
+End;
+
+Procedure mr2(Var lb:Integer, Var ub:Integer) Begin
+	Write ub;
+	mr1(lb, ub + 1);
+End;

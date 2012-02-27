@@ -1,0 +1,31 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% Program for ad hoc testing from command line.
+% Can be changed arbitrary; is not part of the test-suite.
+
+Procedure main() Begin
+	Var impl:Boolean;
+	Read impl;
+	
+	Var n:Integer;
+	Read n;
+	
+	If impl Then
+		Var res:Integer;
+		res := 1;
+		While n > 0 Do
+			res := n * res;
+			n := n - 1;
+		Od;
+		Write res;
+	Else
+		Procedure faculty(Var n:Integer):Integer Begin
+			If n = 0 Then
+				Return 1;
+			Fi;
+			Return n * faculty(n - 1);
+		End;
+		Write faculty(n);
+	Fi;
+End;

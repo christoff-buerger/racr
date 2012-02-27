@@ -1,0 +1,32 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
+Procedure main() Begin
+	Var i:Integer;
+	Var r:Real;
+	
+	i := 3;
+	r := 3.5;
+	
+	Write i + i;
+	Write i + r;
+	Write i - i;
+	Write i - r;
+	Write i * i;
+	Write i * r;
+	Write i / i;
+	Write i / r;
+	
+	Write r + r;
+	Write r + i;
+	Write r - r;
+	Write r - i;
+	Write r * r;
+	Write r * i;
+	Write r / r;
+	Write r / i;
+	
+	Write i * (r - i) + r;
+End;

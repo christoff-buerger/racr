@@ -1,0 +1,150 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
+Var i1:Integer;
+Var i2:Integer;
+Var p1:Pointer(Integer);
+Var p2:Pointer(Integer);
+Var procp:Procedure (Pointer(Integer), Integer):Integer;
+
+Procedure initialize() Begin
+	i1 := 1;
+	i2 := -1;
+	p1 := Address(i1);
+	p2 := Address(i2);
+End;
+
+Procedure procDummyOne(Var p:Pointer(Integer), Var i:Integer):Integer Begin
+	Return 1;
+End;
+
+Procedure procDummyTwo(Var p:Pointer(Integer), Var i:Integer):Integer Begin
+	Return 2;
+End;
+
+% Swap global pointers p1 and p2:
+Procedure globalSwap() Begin
+	Var tmp:Pointer(Integer);
+	tmp := p1;
+	p1 := p2;
+	p2 := tmp;
+End;
+
+% No effect:
+Procedure swap1(Var i1:Integer, Var i2:Integer) Begin
+	Var tmp:Integer;
+	tmp := i1;
+	i1 := i2;
+	i2 := tmp;
+End;
+
+% No effect:
+Procedure swap2(Var p1:Pointer(Integer), Var i:Pointer(Integer)) Begin
+	Var tmp:Pointer(Integer);
+	tmp := p1;
+	p1 := p2;
+	p2 := p1;
+End;
+
+% Swap referenced values, i.e., two integers:
+Procedure swap3(Var i1:Pointer(Integer), Var i2:Pointer(Integer)) Begin
+	Var tmp:Integer;
+	tmp := Deref(i1);
+	Deref(i1) := Deref(i2);
+	Deref(i2) := tmp;
+End;
+
+% Swap referenced values, i.e., two integer addresses
+Procedure swap4(
+	Var pp1:Pointer(Pointer(Integer)),
+	Var pp2:Pointer(Pointer(Integer)))
+Begin
+	Var tmp:Pointer(Integer);
+	tmp := Deref(pp1);
+	Deref(pp1) := Deref(pp2);
+	Deref(pp2) := tmp;
+End;
+
+Procedure main() Begin
+	initialize(); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BASIC POINTER FUNCTIONALLITIES
+	
+	Write Deref(Address(i1)) = i1; Write Deref(Address(i2)) = i2;
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	globalSwap();
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i2); Write p2 = Address(i1);
+	Write Deref(p1) = i2; Write Deref(p2) = i1;
+	
+	globalSwap();
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	p1 := p2;
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 = p2; Write p1 = Address(i2); Write p2 = Address(i2);
+	Write Deref(p1) = i2; Write Deref(p2) = i2;
+	
+	p1 := Address(i1);
+	p2 := Address(i1);
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 = p2; Write p1 = Address(i1); Write p2 = Address(i1);
+	Write Deref(p1) = i1; Write Deref(p2) = i1;
+	
+	initialize(); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALL BY VALUE
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	swap1(i1, i2);
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	swap2(p1, p2);
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	initialize(); %%%%%%%% FUNCTIONS WITH INDIRECT MANIPULATIONS USING POINTERS
+	
+	Write i1 = 1; Write i2 = -1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	swap3(p1, p2);
+	
+	Write i1 = -1; Write i2 = 1;
+	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
+	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	
+	swap4(Address(p1), Address(p2));
+	
+	Write i1 = -1; Write i2 = 1;
+	Write p1 # p2; Write p1 = Address(i2); Write p2 = Address(i1);
+	Write Deref(p1) = i2; Write Deref(p2) = i1;
+	
+	initialize(); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION POINTERS
+	
+	procp := procDummyOne;
+	Write Call(procp : p1, 1) = 1;
+	
+	procp := procDummyTwo;
+	Write Call(procp : p1, 1) = 2;
+	
+	procp := procDummyOne;
+	Write Call(procp : p1, 1) = 1;
+End;

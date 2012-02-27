@@ -1,0 +1,131 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
+Procedure main() Begin
+	Var i:Integer;
+	i := -1;
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMPLE CLOSURES
+	
+	Procedure c0(Var i:Integer):Procedure ():Integer Begin
+		Procedure anonym():Integer Begin
+			Return i - 3;
+		End;
+		
+		Return anonym;
+	End;
+	
+	Var pc01:Procedure ():Integer;
+	pc01 := c0(-100);
+	Var pc02:Procedure ():Integer;
+	pc02 := c0(100);
+	
+	Write pc01 # pc02;
+	Write pc01() = -103;
+	Write pc02() = 97;
+	
+	pc01 := pc02;
+	
+	Write pc01 = pc02;
+	Write pc01() = 97;
+	Write pc02() = 97;
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMPLE POINTER CLOSURES
+	
+	Procedure c1():Pointer(Integer) Begin
+		Var i:Integer;
+		i := 1;
+		Return Address(i);
+	End;
+	
+	Procedure c2():Pointer(Integer) Begin
+		Var i:Integer;
+		i := 2;
+		Return Address(i);
+	End;
+	
+	Procedure c3(Var i:Integer):Pointer(Integer) Begin
+		Return Address(i);
+	End;
+	
+	Var p1:Pointer(Integer);
+	p1 := c1();
+	Var p2:Pointer(Integer);
+	p2 := c2();
+	Var p3:Pointer(Integer);
+	p3 := c3(i);
+	Var p4:Pointer(Integer);
+	p4 := c3(Deref(c1()));
+	Var p5:Pointer(Integer);
+	p5 := c3(Deref(c2()));
+	Var p6:Pointer(Integer);
+	p6 := c1();
+	
+	Write p1 # p2 And p1 # p3 And p1 # p4 And p1 # p5 And p1 # p6;
+	Write p2 # p3 And p2 # p4 And p2 # p5 And p2 # p6;
+	Write p3 # p4 And p3 # p5 And p3 # p6;
+	Write p4 # p5 And p4 # p6;
+	Write p5 # p6;
+	
+	Write Deref(p1) = 1;
+	Write Deref(p2) = 2;
+	Write Deref(p3) = -1; 
+	Write Deref(p4) = 1;
+	Write Deref(p5) = 2;
+	Write Deref(p6) = 1;
+	
+	Deref(p1) := -Deref(p1);
+	Deref(p2) := -Deref(p2);
+	Deref(p3) := -Deref(p3);
+	Deref(p4) := -Deref(p4);
+	Deref(p5) := -Deref(p5);
+	
+	Write p1 # p2 And p1 # p3 And p1 # p4 And p1 # p5 And p1 # p6;
+	Write p2 # p3 And p2 # p4 And p2 # p5 And p2 # p6;
+	Write p3 # p4 And p3 # p5 And p3 # p6;
+	Write p4 # p5 And p4 # p6;
+	Write p5 # p6;
+	
+	Write Deref(p1) = -1;
+	Write Deref(p2) = -2;
+	Write Deref(p3) = 1; 
+	Write Deref(p4) = -1;
+	Write Deref(p5) = -2;
+	Write Deref(p6) = 1;
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COMPLEX POINTER CLOSURES
+	
+	Procedure c4():Procedure ():Pointer(Integer) Begin
+		Var i:Integer;
+		i := 100;
+		
+		Procedure anonym():Pointer(Integer) Begin
+			Return Address(i);
+		End;
+		
+		Return anonym;
+	End;
+	
+	Var proc:Procedure ():Pointer(Integer);
+	proc := c4();
+	Var ap1:Pointer(Integer);
+	ap1 := proc();
+	Var ap2:Pointer(Integer);
+	ap2 := proc();
+	
+	Write ap1 = ap2;
+	Write Deref(ap1) = 100; Write Deref(ap2) = 100;
+	
+	Deref(ap1) := -99;
+	Deref(ap2) := 99;
+	
+	Write ap1 = ap2;
+	Write Deref(ap1) = 99; Write Deref(ap2) = 99;
+	
+	ap2 := Call(c4());
+	
+	Write ap1 # ap2;
+	Write Deref(ap1) = 99; Write Deref(ap2) = 100;
+End;
