@@ -1989,30 +1989,45 @@
           (flush-attribute-cache dependent-att)) ; ...flush D.
         influenced-atts))))
  
+ ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
  (define add-dependency:att->node
    (lambda (influencing-node)
      (add-dependency:att->node-characteristic influencing-node 0)))
  
+ ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
  (define add-dependency:att->node-num-children
    (lambda (influencing-node)
      (add-dependency:att->node-characteristic influencing-node 1)))
  
+ ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
  (define add-dependency:att->node-type
    (lambda (influencing-node)
      (add-dependency:att->node-characteristic influencing-node 2)))
  
+ ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
  (define add-dependency:att->node-super-type
    (lambda (influencing-node)
      (add-dependency:att->node-characteristic influencing-node 3)))
  
+ ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
  (define add-dependency:att->node-sub-type
    (lambda (influencing-node)
      (add-dependency:att->node-characteristic influencing-node 4)))
  
+ ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
  (define add-dependency:att->node-list?
    (lambda (influencing-node)
      (add-dependency:att->node-characteristic influencing-node 5)))
  
+ ; INTERNAL FUNCTION: Given a node N and an influencing-characteristic C add an dependency-edge marked with C from
+ ; the attribute currently in evaluation (considering the evaluator state of the AST N is part of) to N and an influence-edge
+ ; vice versa. If no attribute is in evaluation no edges are added. The following six influencing-characteristics exist:
+ ;  1) Dependency on the existence of the node (i.e., existence of a node at the same location)
+ ;  2) Dependency on the node's number of children (i.e., existence of a node at the same location and with the same number of children)
+ ;  3) Dependency on the node's type (i.e., existence of a node at the same location and with the same type)
+ ;  4) Dependency on the node's super-type (i.e., existence of a node at the same location which is a super-type)
+ ;  5) Dependency on the node's sub-type (i.e., existence of a node at the same location which is a sub-type)
+ ;  6) Dependency on whether the node is a list-node or not (i.e., existence of a node at the same location which also is a/no list-node)
  (define add-dependency:att->node-characteristic
    (lambda (influencing-node influencing-characteristic)
      (let ((dependent-att
@@ -2038,26 +2053,23 @@
                      (node-attribute-influences influencing-node)))))
              (vector-set! dependency-vector influencing-characteristic #t))))))
  
- (define add-dependency-2:att->att
-   (lambda (dependent-att influencing-att)
-     (if (not (memq influencing-att (attribute-instance-attribute-dependencies dependent-att)))
-         (begin
-           (attribute-instance-attribute-dependencies-set!
-            dependent-att
-            (cons
-             influencing-att
-             (attribute-instance-attribute-dependencies dependent-att)))
-           (attribute-instance-attribute-influences-set!
-            influencing-att
-            (cons
-             dependent-att
-             (attribute-instance-attribute-influences influencing-att)))))))
- 
+ ; INTERNAL FUNCTION: Given an attribute instance A, add an dependency-edge from A to the attribute currently in evaluation (considering
+ ; the evaluator state of the AST A is part of) and an influence-edge vice-versa. If no attribute is in evaluation no edges are added.
  (define add-dependency:att->att
    (lambda (influencing-att)
      (let ((dependent-att
             (and
              (node-evaluator-state (attribute-instance-context influencing-att))
              (evaluator-state-in-evaluation? (node-evaluator-state (attribute-instance-context influencing-att))))))
-       (if dependent-att
-           (add-dependency-2:att->att dependent-att influencing-att))))))
+       (if (and dependent-att (not (memq influencing-att (attribute-instance-attribute-dependencies dependent-att))))
+           (begin
+             (attribute-instance-attribute-dependencies-set!
+              dependent-att
+              (cons
+               influencing-att
+               (attribute-instance-attribute-dependencies dependent-att)))
+             (attribute-instance-attribute-influences-set!
+              influencing-att
+              (cons
+               dependent-att
+               (attribute-instance-attribute-influences influencing-att)))))))))

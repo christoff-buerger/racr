@@ -6,7 +6,8 @@
 ; Unit tests for RACR's rewrite interface. The purpose of the rewrite tests is to verify, that only
 ; attributes influenced by rewrites are flushed. For that purpose we maintain for every attribute-location
 ; an evaluation-counter which states how often the attribute-location has been evaluated (i.e., how often
-; the equations of equally named attributes at the respective location have been applied). The value
+; the equations of equally named attributes at the respective location have been applied / how often the
+; equation of a certain attribute instance at the respective location has been applied). The value
 ; computed by the application of an attribute's equation just is its evaluation-counter. Dependencies to other
 ; nodes and attributes are achieved as usual by calling the respective node or attribute. Given such a setting,
 ; rewrites and required attribute dependency and cache maintainance can be easily tested by simply comparing
@@ -42,31 +43,47 @@
         att
         (S
          0
-         (lambda (n) (att-value 'att (ast-child 1 n)) (next-state 'att 'S)))
+         (lambda (n)
+           (att-value 'att (ast-child 1 n))
+           (next-state 'att 'S)))
         (A
          0
-         (lambda (n) (att-value 'att (ast-child 1 n)) (next-state 'att 'A)))
+         (lambda (n)
+           (att-value 'att (ast-child 1 n))
+           (next-state 'att 'A)))
         (A
          1
-         (lambda (n) (att-value 'att (ast-sibling 2 n)) (next-state 'att 'B)))
+         (lambda (n)
+           (att-value 'att (ast-sibling 2 n))
+           (next-state 'att 'B)))
         (Ba
          0
-         (lambda (n) (ast-child 1 n) (next-state 'att 'B)))
+         (lambda (n)
+           (ast-child 1 n)
+           (next-state 'att 'B)))
         (A
          2
-         (lambda (n) (att-value 'att (ast-child 1 n)) (next-state 'att 'C)))
+         (lambda (n)
+           (att-value 'att (ast-child 1 n))
+           (next-state 'att 'C)))
         (D
          0
-         (lambda (n) (ast-child 1 n) (next-state 'att 'D))))
+         (lambda (n)
+           (ast-child 1 n)
+           (next-state 'att 'D))))
        
        (ag-rule
         att2
         (A
          2
-         (lambda (n) (att-value 'att (ast-sibling 1 n)) (next-state 'att2 'C)))
+         (lambda (n)
+           (att-value 'att (ast-sibling 1 n))
+           (next-state 'att2 'C)))
         (C
          1
-         (lambda (n) (att-value 'att2 (ast-parent n)) (next-state 'att2 'D))))
+         (lambda (n)
+           (att-value 'att2 (ast-parent n))
+           (next-state 'att2 'D))))
        
        (compile-ag-specifications)
        
@@ -169,11 +186,11 @@
         ;        |
         ;  /----\|
         ;  \-i A s--------------------------------------\
-        ;   / \-------------                            |
-        ;  /       \        \                           |
+        ;   / \--------------------------------\        |
+        ;  /       \        \       \           \       |
         ;  i E s   i E s ... i E s   i E s  ...  i E s  |
-        ;   #f |    #f  |     #t |       |           |  |
-        ;      \        \        \       \           \  |
+        ;   #f |    #f  |     #t |                      |
+        ;      \        \        \                      |
         ;       \---------------------------------------/
         (create-ast
          'S
@@ -319,204 +336,180 @@
     
     ;;; List tests:
     (let*-values (((spec ast) (init-list-test))
-                  ((S) ast)
-                  ((A) (lambda () (ast-child 1 S)))
-                  ((A-E-list) (lambda () (ast-child 1 (A))))
-                  ((E) (lambda (i) (ast-child i (A-E-list))))
-                  ((assert-E-list)
-                   (lambda (i-values s-values)
-                     (assert (= (length (ast-children (ast-child 1 (A)))) (length i-values)))
-                     (assert (= (length s-values) (length i-values)))
-                     (let loop ((E-list (ast-children (ast-child 1 (A))))
-                                (i-values i-values)
-                                (s-values s-values))
-                       (if (not (null? E-list))
-                           (begin
-                             (assert (= (att-value 'i (car E-list)) (car i-values)))
-                             (assert (= (car (att-value 's (car E-list))) (car s-values)))
-                             (loop (cdr E-list) (cdr i-values) (cdr s-values)))))))
-                  ((state-table) (make-hashtable equal-hash equal? 50))
-                  ((E2)
-                   (lambda (lb ub)
-                     (ast-children (A-E-list) (cons lb ub)))))
+                  ; AST access functions:
+                  ((S)
+                   (lambda ()
+                     ast))
+                  ((A)
+                   (lambda ()
+                     (ast-child 1 (S))))
+                  ((A-E-list)
+                   (lambda ()
+                     (ast-child 1 (A))))
+                  ((E)
+                   (lambda (lb . ub)
+                     (if (null? ub)
+                         (ast-child lb (A-E-list))
+                         (ast-children (A-E-list) (cons lb (car ub))))))
+                  ; Evaluation state reference table:
+                  ((state-table)
+                   (make-hashtable equal-hash equal? 50))
+                  ; Support function that given a list of attribute contexts checks, that only the given contexts
+                  ; are influenced by the last rewrite:
+                  ((influenced:)
+                   (lambda args
+                     (define evaluation-checker
+                       (lambda (flushed? n att . args)
+                         (cond
+                           ((list? n)
+                            (for-each
+                             (lambda (e)
+                               (evaluation-checker flushed? e att))
+                             n))
+                           (else
+                            (hashtable-update!
+                             state-table
+                             (cons att n)
+                             (lambda (state)
+                               (let ((value (att-value att n))
+                                     (state (if flushed? (+ state 1) state)))
+                                 (assert (= (if (pair? value) (car value) value) state))
+                                 state))
+                             0)))
+                         (if (not (null? args))
+                             (apply evaluation-checker flushed? args))))
+                     ; Ensure, that the specified influenced attributes have been flushed and reevaluated:
+                     (if (not (null? args))
+                         (apply evaluation-checker #t args))
+                     ; Ensure, that no further attributes have been flushed and reevaluated:
+                     (apply
+                      evaluation-checker
+                      #f
+                      (append
+                       (list
+                        (S) 's
+                        (A) 's
+                        (A) 'i
+                        (S) 'A-length
+                        (A) 'A-length)
+                       (if (not (null? (ast-num-children (A-E-list))))
+                           (list
+                            (E 1 (ast-num-children (A-E-list))) 's
+                            (E 1 (ast-num-children (A-E-list))) 'i)
+                           (list)))))))
       (with-specification
        spec
        
-       (define evaluation-checker
-         (lambda (flushed? n att . args)
-           (cond
-             ((list? n)
-              (for-each
-               (lambda (e)
-                 (evaluation-checker flushed? e att))
-               n))
-             (else
-              (hashtable-update!
-               state-table
-               (cons att n)
-               (lambda (state)
-                 (let ((value (att-value att n))
-                       (state (if flushed? (+ state 1) state)))
-                   (assert (= (if (pair? value) (car value) value) state))
-                   state))
-               0)))
-           (if (not (null? args))
-               (apply evaluation-checker (cons flushed? args)))))
-       
-       (define influenced:
-         (lambda args
-           (apply evaluation-checker (cons #t args))))
-       
-       (define not-influenced:
-         (lambda args
-           (apply evaluation-checker (cons #f args))))
-       
-       (define ensure-fixpoint
-         (lambda ()
-           (not-influenced:
-            S 's
-            (A) 's
-            S 'A-length
-            (A) 'A-length
-            (E2 1 (ast-num-children (A-E-list))) 's
-            (E2 1 (ast-num-children (A-E-list))) 'i)))
-       
        (influenced:
-        S 's
+        (S) 's
         (A) 's
-        S 'A-length
+        (A) 'i
+        (S) 'A-length
         (A) 'A-length
-        (E2 1 4) 'i
-        (E2 1 4) 's)
-       (ensure-fixpoint)
-       
-       (assert (= (att-value 's S) 1))
-       (assert (= (att-value 's (A)) 1))
-       (assert (= (att-value 'i (A)) 1))
-       (assert-E-list (list 1 1 1 1) (list 1 1 1 1))
-       (assert (= (att-value 'A-length S) 1))
-       (assert (= (att-value 'A-length (A)) 1))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 1))
-       (assert (= (att-value 's (A)) 1))
-       (assert (= (att-value 'i (A)) 1))
-       (assert-E-list (list 1 1 1 1) (list 1 1 1 1))
-       (assert (= (att-value 'A-length S) 1))
-       (assert (= (att-value 'A-length (A)) 1))
+        (E 1 4) 'i
+        (E 1 4) 's)
        
        ; insert hit:
-       (rewrite-insert (A-E-list) 3 (create-ast 'E (list #t))) ; Influences: A.s, S.s, A.i, E(1-4)-old.i, A.A-length, S.A-length
-       (assert (= (att-value 's S) 2))
-       (assert (= (att-value 's (A)) 2))
-       (assert (= (att-value 'i (A)) 2))
-       (assert-E-list (list 2 2 1 2 2) (list 1 1 1 2 2)) ; TODO: Fix E(3-4)-old.s dependencies
-       (assert (= (att-value 'A-length S) 2))
-       (assert (= (att-value 'A-length (A)) 2))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 2))
-       (assert (= (att-value 's (A)) 2))
-       (assert (= (att-value 'i (A)) 2))
-       (assert-E-list (list 2 2 1 2 2) (list 1 1 1 2 2)) ; TODO: Fix E(3-4)-old.s dependencies
-       (assert (= (att-value 'A-length S) 2))
-       (assert (= (att-value 'A-length (A)) 2))
+       (rewrite-insert (A-E-list) 3 (create-ast 'E (list #t)))
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (S) 'A-length
+        (A) 'A-length
+        (E 1 5) 'i
+        (E 3) 's
+        (E 4 5) 's) ; Fix!
        
        ; add with hit:
-       (rewrite-add (A-E-list) (create-ast 'E (list #f))) ; Influences: A.A-length, S.A-length
-       (assert (= (att-value 's S) 2))
-       (assert (= (att-value 's (A)) 2))
-       (assert (= (att-value 'i (A)) 2))
-       (assert-E-list (list 2 2 1 2 2 1) (list 1 1 1 2 2 1))
-       (assert (= (att-value 'A-length S) 3))
-       (assert (= (att-value 'A-length (A)) 3))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 2))
-       (assert (= (att-value 's (A)) 2))
-       (assert (= (att-value 'i (A)) 2))
-       (assert-E-list (list 2 2 1 2 2 1) (list 1 1 1 2 2 1))
-       (assert (= (att-value 'A-length S) 3))
-       (assert (= (att-value 'A-length (A)) 3))
+       (rewrite-add (A-E-list) (create-ast 'E (list #f)))
+       (influenced:
+        (S) 'A-length
+        (A) 'A-length
+        (E 6) 'i
+        (E 6) 's)
        
        ; delete after hit:
-       (rewrite-delete (E 4)) ; Influences: A.A-length, S.A-length
-       (assert (= (att-value 's S) 2))
-       (assert (= (att-value 's (A)) 2))
-       (assert (= (att-value 'i (A)) 2))
-       (assert-E-list (list 2 2 1 3 2) (list 1 1 1 3 2)) ; TODO: Fix E(5-6)-old.s + E(5-6)-old.i dependencies
-       (assert (= (att-value 'A-length S) 4))
-       (assert (= (att-value 'A-length (A)) 4))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 2))
-       (assert (= (att-value 's (A)) 2))
-       (assert (= (att-value 'i (A)) 2))
-       (assert-E-list (list 2 2 1 3 2) (list 1 1 1 3 2)) ; TODO: Fix E(5-6)-old.s + E(5-6)-old.i dependencies
-       (assert (= (att-value 'A-length S) 4))
-       (assert (= (att-value 'A-length (A)) 4))
+       (rewrite-delete (E 4))
+       (influenced:
+        (S) 'A-length
+        (A) 'A-length
+        (E 4 5) 'i ; Fix!
+        (E 4 5) 's) ; Fix!
        
        ; delete before hit:
-       (rewrite-delete (E 2)) ; Influences: A.s, S.s, A.i, E(1-5)-old.i, A.A-length, S.A-length
-       (assert (= (att-value 's S) 3))
-       (assert (= (att-value 's (A)) 3))
-       (assert (= (att-value 'i (A)) 3))
-       (assert-E-list (list 3 2 4 3) (list 1 2 4 3)) ; TODO: Fix E(4-5)-old.s + E(4-5)-old.i dependencies
-       (assert (= (att-value 'A-length S) 5))
-       (assert (= (att-value 'A-length (A)) 5))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 3))
-       (assert (= (att-value 's (A)) 3))
-       (assert (= (att-value 'i (A)) 3))
-       (assert-E-list (list 3 2 4 3) (list 1 2 4 3)) ; TODO: Fix E(4-5)-old.s + E(4-5)-old.i dependencies
-       (assert (= (att-value 'A-length S) 5))
-       (assert (= (att-value 'A-length (A)) 5))
+       (rewrite-delete (E 2))
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (S) 'A-length
+        (A) 'A-length
+        (E 1 4) 'i
+        (E 2 4) 's) ; Fix!
        
        ; insert after hit:
+       (rewrite-insert (A-E-list) 3 (create-ast 'E (list #f)))
+       (influenced:
+        (S) 'A-length
+        (A) 'A-length
+        (E 3) 'i
+        (E 3) 's
+        (E 4 5) 'i ; Fix!
+        (E 4 5) 's) ; Fix!
+       
        ; insert before hit:
+       (rewrite-insert (A-E-list) 1 (create-ast 'E (list #f)))
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (S) 'A-length
+        (A) 'A-length
+        (E 1 6) 'i
+        (E 1) 's
+        (E 2 6) 's) ; Fix!
        
        ; cancel hit:
-       (rewrite-terminal 1 (E 2) #f) ; Influences: A.s, S.s, E(1-4).i, E(2).s
-       (assert (= (att-value 's S) 4))
-       (assert (= (att-value 's (A)) 4))
-       (assert (= (att-value 'i (A)) 4))
-       (assert-E-list (list 4 3 5 4) (list 1 3 4 3))
-       (assert (= (att-value 'A-length S) 5))
-       (assert (= (att-value 'A-length (A)) 5))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 4))
-       (assert (= (att-value 's (A)) 4))
-       (assert (= (att-value 'i (A)) 4))
-       (assert-E-list (list 4 3 5 4) (list 1 3 4 3))
-       (assert (= (att-value 'A-length S) 5))
-       (assert (= (att-value 'A-length (A)) 5))
+       (rewrite-terminal 1 (E 3) #f)
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (E 1 6) 'i
+        (E 3) 's)
        
        ; add without hit:
-       (rewrite-add (A-E-list) (create-ast 'E (list #f))) ; Influences: A.s, S.s, E(1-4).i, A.A-length, S.A-length
-       (assert (= (att-value 's S) 5))
-       (assert (= (att-value 's (A)) 5))
-       (assert (= (att-value 'i (A)) 5))
-       (assert-E-list (list 5 4 6 5 1) (list 1 3 4 3 1))
-       (assert (= (att-value 'A-length S) 6))
-       (assert (= (att-value 'A-length (A)) 6))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 5))
-       (assert (= (att-value 's (A)) 5))
-       (assert (= (att-value 'i (A)) 5))
-       (assert-E-list (list 5 4 6 5 1) (list 1 3 4 3 1))
-       (assert (= (att-value 'A-length S) 6))
-       (assert (= (att-value 'A-length (A)) 6))
+       (rewrite-add (A-E-list) (create-ast 'E (list #f)))
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (S) 'A-length
+        (A) 'A-length
+        (E 1 7) 'i
+        (E 7) 's)
        
        ; delete without hit:
+       (rewrite-delete (E 4))
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (S) 'A-length
+        (A) 'A-length
+        (E 1 6) 'i
+        (E 4 6) 's) ; Fix!
        
        ; insert without hit:
-       (rewrite-insert (A-E-list) 2 (create-ast 'E (list #f))) ; Influences: A.s, S.s, E(1-5)-old.i, A.A-length, S.A-length
-       (assert (= (att-value 's S) 6))
-       (assert (= (att-value 's (A)) 6))
-       (assert (= (att-value 'i (A)) 6))
-       (assert-E-list (list 6 1 5 7 6 2) (list 1 1 4 5 4 2)) ; TODO: Fix E(2-5)-old.s dependency
-       (assert (= (att-value 'A-length S) 7))
-       (assert (= (att-value 'A-length (A)) 7))
-       ; -----Access Again (by Cache)----- ;
-       (assert (= (att-value 's S) 6))
-       (assert (= (att-value 's (A)) 6))
-       (assert (= (att-value 'i (A)) 6))
-       (assert-E-list (list 6 1 5 7 6 2) (list 1 1 4 5 4 2)) ; TODO: Fix E(2-5)-old.s dependency
-       (assert (= (att-value 'A-length S) 7))
-       (assert (= (att-value 'A-length (A)) 7))))))
+       (rewrite-insert (A-E-list) 2 (create-ast 'E (list #f)))
+       (influenced:
+        (S) 's
+        (A) 's
+        (A) 'i
+        (S) 'A-length
+        (A) 'A-length
+        (E 1 7) 'i
+        (E 2 2) 's
+        (E 3 7) 's) ; Fix!
+       ))))
