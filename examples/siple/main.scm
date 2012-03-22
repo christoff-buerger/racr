@@ -23,6 +23,7 @@
   (siple access-support)
   (siple name-analysis)
   (siple type-analysis)
+  (siple type-coercion)
   (siple well-formedness)
   (siple interpreter))
  
@@ -83,6 +84,7 @@
            (specify-access-support)
            (specify-name-analysis)
            (specify-type-analysis)
+           (specify-type-coercion)
            (specify-well-formedness)
            (compile-ag-specifications siple-specification)))))
  
@@ -100,6 +102,7 @@
               (let* ((lexer (construct-lexer input-file-name input-port 4 k))
                      (parser (construct-parser lexer k))
                      (ast (parser)))
+                (perform-type-coercions ast)
                 (print-ast ast attribute-pretty-printer-list output-port)
                 (k "Input successfully processed."))))))
         (lambda ()
@@ -133,6 +136,7 @@
               (let* ((lexer (construct-lexer input-file-name input-port 4 k))
                      (parser (construct-parser lexer k))
                      (ast (parser)))
+                (perform-type-coercions ast)
                 (weave-interpreter ast)
                 (k (state-std-out ((ast-annotation ast 'interpret)))))))))
         (lambda ()
