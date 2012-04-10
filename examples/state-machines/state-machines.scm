@@ -177,8 +177,8 @@
             sm-spec
             'StateMachine
             (list
-             (list (create-ast sm-spec 'State (list 'state)) ...)
-             (list (create-ast sm-spec 'Transition (list 'source 'target)) ...)
+             (create-ast-list (list (create-ast sm-spec 'State (list 'state)) ...))
+             (create-ast-list (list (create-ast sm-spec 'Transition (list 'source 'target)) ...))
              'initial
              (list 'final ...))))))))
 

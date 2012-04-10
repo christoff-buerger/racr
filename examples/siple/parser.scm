@@ -51,7 +51,7 @@
                 (lambda ()
                   (let loop ((decls (list)))
                     (if (match-token? '*eoi*)
-                        (create-ast 'CompilationUnit (list (reverse decls)))
+                        (create-ast 'CompilationUnit (list (create-ast-list (reverse decls))))
                         (loop (cons (parse-declaration) decls))))))
                
                (parse-declaration
@@ -85,7 +85,7 @@
                         (begin
                           (read-next-token) ; Consume the ":"
                           (set! r-type (parse-type))))
-                    (create-ast 'ProcedureDeclaration (list name paras r-type (parse-block))))))
+                    (create-ast 'ProcedureDeclaration (list name (create-ast-list paras) r-type (parse-block))))))
                
                (parse-variable-decl
                 (lambda ()
@@ -110,7 +110,7 @@
                          (lambda (delimiter)
                            (match-token? delimiter))
                          end-delimiters)
-                        (create-ast 'Block (list (reverse content)))
+                        (create-ast 'Block (list (create-ast-list (reverse content))))
                         (loop (cons (parse-statement) content))))))
                
                (parse-statement
@@ -134,7 +134,7 @@
                                         (read-next-token) ; Consume the "Else"
                                         (set! else (list (parse-block-content (list 'Fi))))))
                                   (match-token! 'Fi "Malformed if. If not properly finished; Missing [Fi].")
-                                  (create-ast 'If (list cond then else))))
+                                  (create-ast 'If (list cond then (create-ast-list else)))))
                                ((match-token? 'While)
                                 (let ((cond #f)
                                       (body #f))
@@ -160,8 +160,8 @@
                                ((match-token? 'Return)
                                 (read-next-token) ; Consume the "Return"
                                 (if (not (match-token? 'SEMICOLON))
-                                    (create-ast 'ProcedureReturn (list (list (parse-expression))))
-                                    (create-ast 'ProcedureReturn (list (list)))))
+                                    (create-ast 'ProcedureReturn (list (create-ast-list (list (parse-expression)))))
+                                    (create-ast 'ProcedureReturn (list (create-ast-list (list))))))
                                ((match-token? 'Write)
                                 (read-next-token) ; Consume the "Write"
                                 (create-ast 'Write (list (parse-expression))))
@@ -191,7 +191,7 @@
                           (read-next-token) ; Consume the ":"
                           (set! args (parse-procedure-call-arguments))))
                     (match-token! 'PARENTHESIS-CLOSE "Malformed explicit procedure call. Explicit procedure call not properly finished; Missing [)].")
-                    (create-ast 'ProcedureCall (list proc-expr args)))))
+                    (create-ast 'ProcedureCall (list proc-expr (create-ast-list args))))))
                
                (parse-procedure-call-by-name
                 (lambda (procedure-reference)
@@ -199,7 +199,7 @@
                     (match-token! 'PARENTHESIS-OPEN "Malformed procedure call. Missing argument list start delimiter [(].")
                     (set! args (parse-procedure-call-arguments))
                     (match-token! 'PARENTHESIS-CLOSE "Malformed procedure call. Argument list not properly finished; Missing [)].")
-                    (create-ast 'ProcedureCall (list procedure-reference args)))))
+                    (create-ast 'ProcedureCall (list procedure-reference (create-ast-list args))))))
                
                (parse-procedure-call-arguments
                 (lambda ()
@@ -254,7 +254,6 @@
                        (loop (create-ast 'Equal (list operand1 (parse-rel-expression)))))
                       ((match-token? 'NOT-EQUAL)
                        (read-next-token) ; Consume the "#"
-                       ;(create-ast 'Not (list (create-ast 'Equal (list operand1 (parse-eq-expression)))))
                        (loop (create-ast 'Not (list (create-ast 'Equal (list operand1 (parse-rel-expression)))))))
                       (else operand1)))))
                

@@ -25,6 +25,7 @@
   ast-annotation-remove!
   ; AST & attribute access interface:
   create-ast
+  create-ast-list
   ast-node-type
   ast-list-node?
   ast-subtype?
@@ -795,7 +796,7 @@
  ;  - Automatic quoting of the attribute's name (thus, the given name must be an ordinary identifier)
  ;  - Automatic quoting of non-terminal names representing attribute contexts (thus, contexts must be ordinary identifiers)
  ;  - Optional caching and circularity information (by default caching is enabled and attribute definitions are non-circular)
- ; For details about attribute specifications see "specify-attribute*".
+ ; For details about attribute specifications see "specify-attribute".
  (define-syntax specify-ag-rule
    (lambda (x)
      (syntax-case x ()
@@ -1491,19 +1492,7 @@
                   (if (cadr symb*) ; ...check if the next expected child is a non-terminal....
                       (let ((ensure-child-fits ; ...If we expect a non-terminal we need a function which ensures, that...
                              (lambda (child)
-                               (if (not (node? child)) ; ...a given child is a node,...
-                                   (assertion-violation
-                                    'create-ast
-                                    (string-append
-                                     "Cannot construct ["
-                                     (symbol->string rule)
-                                     "] fragment. Expected a ["
-                                     (symbol->string (car symb*))
-                                     "] node as ["
-                                     (number->string pos)
-                                     "]'th child, not a terminal.")
-                                    (list spec rule children)))
-                               ; ...its type is the one of the expected non-terminal or a sub-type...
+                               ; ...its type is the one of the expected non-terminal or a sub-type....
                                (if (not (memq (node-ast-rule child) (cons (cadr symb*) (ast-rule-subtypes (cadr symb*)))))
                                    (assertion-violation
                                     'create-ast
@@ -1517,39 +1506,38 @@
                                      "]'th child, not a ["
                                      (symbol->string (ast-node-type child))
                                      "].")
-                                    (list spec rule children)))
-                               ; ...and it is not already part of another AST fragment....
-                               (if (node-parent child)
-                                   (assertion-violation
-                                    'create-ast
-                                    (string-append
-                                     "Cannot construct ["
-                                     (symbol->string rule)
-                                     "] fragment. The given ["
-                                     (number->string pos)
-                                     "]'th child already is part of another AST fragment.")
                                     (list spec rule children))))))
+                        (if (not (node? child)) ; ...Then, check that the given child is an AST node and...
+                            (assertion-violation
+                             'create-ast
+                             (string-append
+                              "Cannot construct ["
+                              (symbol->string rule)
+                              "] fragment. Expected a ["
+                              (symbol->string (car symb*))
+                              "] node as ["
+                              (number->string pos)
+                              "]'th child, not a terminal.")
+                             (list spec rule children)))
+                        (if (node-parent child) ; ...does not already belong to another AST....
+                            (assertion-violation
+                             'create-ast
+                             (string-append
+                              "Cannot construct ["
+                              (symbol->string rule)
+                              "] fragment. The given ["
+                              (number->string pos)
+                              "]'th child already is part of another AST fragment.")
+                             (list spec rule children)))
                         (if (caddr symb*) ; ...Now, check if we expect a list of non-terminals...
-                            (if (list? child) ; ...If we expect a list, ensure the given child is a list....
-                                (begin
-                                  (for-each ensure-child-fits child) ; ...and all its elements fit....
-                                  (let ((list-node ; ...Further, we have to insert a list-node. Therefore,...
-                                         (make-node ; ...construct one and...
-                                          'list-node
-                                          root
-                                          child)))
-                                    (for-each ; ...set it as the given list elements' parent....
-                                     (lambda (child) (node-parent-set! child list-node))
-                                     child)
-                                    (cons ; ...Finally,...
-                                     list-node ; ...add the constructed list-node to the root's children and...
-                                     (loop (+ pos 1) (cdr symbols) (cdr children))))) ; ...process the next expected child.
+                            (if (ast-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
+                                (for-each ensure-child-fits (node-children child)) ; ...all its elements fit....
                                 (assertion-violation
                                  'create-ast
                                  (string-append
                                   "Cannot construct ["
                                   (symbol->string rule)
-                                  "] fragment. Expected a list as ["
+                                  "] fragment. Expected a list-node as ["
                                   (number->string pos)
                                   "]'th child, not a "
                                   (if (node? child)
@@ -1557,12 +1545,11 @@
                                       "terminal")
                                   ".")
                                  (list spec rule children)))
-                            (begin ; If we expect a single non-terminal child,...
-                              (ensure-child-fits child) ; ...just ensure that the child fits,...
-                              (node-parent-set! child root) ; ...set the root as its parent,...
-                              (cons
-                               child ; ...add it to the root's children and...
-                               (loop (+ pos 1) (cdr symbols) (cdr children)))))) ; ...process the next expected child.
+                            (ensure-child-fits child)) ; ...If we expect a single non-terminal child, just ensure that the child fits....
+                        (node-parent-set! child root) ; ...Finally, set the root as the child's parent,...
+                        (cons
+                         child ; ...add the child to the root's children and...
+                         (loop (+ pos 1) (cdr symbols) (cdr children)))) ; ...process the next expected child.
                       (cons ; If we expect a terminal,...
                        (make-node ; ...add a terminal node encapsulating the given value to the root's children and...
                         'terminal
@@ -1581,6 +1568,55 @@
          (if (eq? (caar (ast-rule-production ast-rule*)) (racr-specification-start-symbol spec))
              (distribute-evaluator-state (make-evaluator-state) root)) ; ...Iff so, construct and distribute the AST's evaluator state.
          root)))) ; Return the constructed fragment.
+ 
+ ; Given a list l of non-terminal nodes that are not list-nodes construct a list-node whose elements are the elements of l.
+ ; An exception is thrown, iff an element of l is not an AST node, is a list-node, is a terminal node, already belongs to
+ ; another AST or at least two elements of l are instances of different RACR specifications.
+ (define create-ast-list
+   (lambda (children)
+     (let loop ((children children) ; For every child, ensure, that...
+                (pos 1))
+       (if (not (null? children))
+           (begin
+             ; ...the child is a non-terminal, non-list node and...
+             (if (or (not (node? (car children))) (ast-list-node? (car children)) (node-terminal? (car children)))
+                 (assertion-violation
+                  'create-ast-list
+                  (string-append
+                   "Cannot construct list-node. Unexpected ["
+                   (number->string pos)
+                   "]'th child; Only non-terminal, non-list nodes are permitted as list elements.")
+                  children))
+             ; ...is not already part of another AST. Further,...
+             (if (node-parent (car children))
+                 (assertion-violation
+                  'create-ast
+                  (string-append
+                   "Cannot construct list-node. The given ["
+                   (number->string pos)
+                   "]'th child already is part of another AST fragment.")
+                  children))
+             (loop (cdr children) (+ pos 1)))))
+     (if (not (null? children)) ; ...ensure, that all children are instances of the same RACR specification....
+         (let ((spec (ast-rule-specification (node-ast-rule (car children)))))
+           (for-each
+            (lambda (child)
+              (if (not (eq? (ast-rule-specification (node-ast-rule child)) spec))
+                  (assertion-violation
+                   'create-ast-list
+                   "Cannot construct list-node. The given children are instances of different RACR specifications."
+                   children)))
+            children)))
+     (let ((list-node ; ...Finally, construct the list-node,...
+            (make-node
+             'list-node
+             #f
+             children)))
+       (for-each ; ...set it as parent for every of its elements and...
+        (lambda (child)
+          (node-parent-set! child list-node))
+        children)
+       list-node))) ; ...return it.
  
  ; INTERNAL FUNCTION: Given an AST node initialize its synthesized attribute instances (i.e., add the synthesized attributes
  ; defined for it). Respective attributes are only added, iff the node does not already have equally named attributes.

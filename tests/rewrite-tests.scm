@@ -198,19 +198,20 @@
           (create-ast
            'A
            (list
-            (list
-             (create-ast
-              'E
-              (list #f))
-             (create-ast
-              'E
-              (list #f))
-             (create-ast
-              'E
-              (list #f))
-             (create-ast
-              'E
-              (list #f))))))))))))
+            (create-ast-list
+             (list
+              (create-ast
+               'E
+               (list #f))
+              (create-ast
+               'E
+               (list #f))
+              (create-ast
+               'E
+               (list #f))
+              (create-ast
+               'E
+               (list #f)))))))))))))
 
 (define run-tests
   (lambda ()
