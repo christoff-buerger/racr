@@ -72,7 +72,8 @@
  
  ; Record type for AST specifcation rules; An AST rule has a reference to the RACR specification it belongs to and consist of
  ; its symbolic encoding, a production (i.e., a list of its symbols), an optional super-type, a list of its sub-types and a list
- ; of its attribute definitions, whereupon symbols are (symbol-name-as-scheme-symbol non-terminal? klenee?) triples.
+ ; of its attribute definitions, whereupon symbols are (name-as-scheme-symbol non-terminal? klenee? context-name-as-scheme-symbol)
+ ; quadrupel.
  (define-record-type ast-rule
    (fields specification as-symbol (mutable production) (mutable supertype) (mutable subtypes) (mutable attributes)))
  
@@ -433,90 +434,103 @@
                                      (string (my-peek-char))
                                      "] character.")
                                     (list spec rule))))))
-                        ; Support function parsing a symbol, i.e., retrieving its name, type and if it is a list.
-                        ; It returns a (symbol-name-as-scheme-symbol terminal? klenee?) triple:
+                        ; Support function parsing a symbol, i.e., retrieving its name, type, if it is a list and optional context-name.
+                        ; It returns a (name-as-scheme-symbol terminal? klenee? context-name-as-scheme-symbol?) quadrupel:
                         (parse-symbol
-                         (lambda ()
-                           (let ((name
-                                  (let loop ((chars (list)))
-                                    (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
-                                        (loop (cons (my-read-char) chars))
-                                        (reverse chars)))))
-                             (if (= (length name) 0)
-                                 (if (eos?)
-                                     (assertion-violation
-                                      'ast-rule
-                                      (string-append
-                                       "Invalid AST rule ["
-                                       (symbol->string rule)
-                                       "]. Unexpected end; Expected (non-)terminal symbol.")
-                                      (list spec rule))
-                                     (assertion-violation
-                                      'ast-rule
-                                      (string-append
-                                       "Invalid AST rule ["
-                                       (symbol->string rule)
-                                       "]. Unexpected ["
-                                       (string (my-peek-char))
-                                       "] character; Expected (non-)terminal symbol.")
-                                      (list spec rule)))
-                                 (let ((non-terminal? (char-upper-case? (car name)))
-                                       (klenee? (if (and (not (eos?)) (char=? (my-peek-char) #\*))
-                                                    (begin
-                                                      (my-read-char)
-                                                      #t)
-                                                    #f)))
-                                   (if (and (not non-terminal?) klenee?)
+                         (lambda (type location) ; type: non-terminal, symbol; location: l-hand, r-hand 
+                           (if (eos?)
+                               (assertion-violation
+                                'ast-rule
+                                (string-append
+                                 "Invalid AST rule ["
+                                 (symbol->string rule)
+                                 "]. Unexpected end; Expected "
+                                 (symbol->string type)
+                                 ".")
+                                (list spec rule)))
+                           (let* ((terminal? (char-lower-case? (my-peek-char)))
+                                  (name
+                                   (let loop ((chars (list)))
+                                     (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
+                                         (begin
+                                           (if (and terminal? (not (char-lower-case? (my-peek-char))))
+                                               (assertion-violation
+                                                'ast-rule
+                                                (string-append
+                                                 "Invalid AST rule ["
+                                                 (symbol->string rule)
+                                                 "]. Invalid terminal; Terminals must consist only of lower-case characters.")
+                                                (list spec rule)))
+                                           (loop (cons (my-read-char) chars)))
+                                         (reverse chars)))))
+                             (if (null? name)
+                                 (assertion-violation
+                                  'ast-rule
+                                  (string-append
+                                   "Invalid AST rule ["
+                                   (symbol->string rule)
+                                   "]. Unexpected ["
+                                   (string (my-peek-char))
+                                   "] character; Expected "
+                                   (symbol->string type)
+                                   ".")
+                                  (list spec rule)))
+                             (let* ((klenee? (and (not terminal?) (eq? location 'r-hand) (not (eos?)) (char=? (my-peek-char) #\*) (my-read-char)))
+                                    (context-name?
+                                     (and
+                                      (not terminal?)
+                                      (eq? location 'r-hand)
+                                      (not (eos?))
+                                      (char=? (my-peek-char) #\<)
+                                      (my-read-char)
+                                      (append
+                                       (let loop ((chars (list)))
+                                         (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
+                                             (loop (cons (my-read-char) chars))
+                                             (reverse chars)))
+                                       (let loop ((chars (list)))
+                                         (if (and (not (eos?)) (char-numeric? (my-peek-char)))
+                                             (loop (cons (my-read-char) chars))
+                                             (reverse chars)))))))
+                               (if (and (eq? type 'non-terminal) terminal?)
+                                   (assertion-violation
+                                    'ast-rule
+                                    (string-append
+                                     "Invalid AST rule ["
+                                     (symbol->string rule)
+                                     "]. Unexpected terminal; Left hand side symbols must be non-terminals.")
+                                    (list spec rule)))
+                               (if context-name?
+                                   (if (null? context-name?)
                                        (assertion-violation
                                         'ast-rule
                                         (string-append
                                          "Invalid AST rule ["
                                          (symbol->string rule)
-                                         "]. Terminal lists are not permitted.")
-                                        (list spec rule)))
-                                   (list (string->symbol (list->string name)) non-terminal? klenee?)))))))
-                 (let* ((l-hand ; The rule's l-hand
-                         (let ((symb* (parse-symbol)))
-                           (if (not (cadr symb*))
-                               (assertion-violation
-                                'ast-rule
-                                (string-append
-                                 "Invalid AST rule ["
-                                 (symbol->string rule)
-                                 "]. L-hand side must be a non-terminal.")
-                                (list spec rule)))
-                           (if (caddr symb*)
-                               (assertion-violation
-                                'ast-rule
-                                (string-append
-                                 "Invalid AST rule ["
-                                 (symbol->string rule)
-                                 "]. Unexpected [*] character.")
-                                (list spec rule)))
-                           symb*))
+                                         "]. Missing context-name.")
+                                        (list spec rule))
+                                       (if (not (char-alphabetic? (car context-name?)))
+                                           (assertion-violation
+                                            'ast-rule
+                                            (string-append
+                                             "Invalid AST rule ["
+                                             (symbol->string rule)
+                                             "]. Malformed context-name; Context-names must start with a letter.")
+                                            (list spec rule)))))
+                               (let* ((name-string (list->string name))
+                                      (name-symbol (string->symbol name-string)))
+                                 (list
+                                  name-symbol
+                                  (not terminal?)
+                                  klenee?
+                                  (if context-name?
+                                      (string->symbol (list->string context-name?))
+                                      (if klenee?
+                                          (string->symbol (string-append name-string "*"))
+                                          name-symbol)))))))))
+                 (let* ((l-hand (parse-symbol 'non-terminal 'l-hand)); The rule's l-hand
                         (supertype ; The rule's super-type
-                         (if (and (not (eos?)) (char=? (my-peek-char) #\:))
-                             (begin
-                               (my-read-char)
-                               (let ((symb* (parse-symbol)))
-                                 (if (not (cadr symb*))
-                                     (assertion-violation
-                                      'ast-rule
-                                      (string-append
-                                       "Invalid AST rule ["
-                                       (symbol->string rule)
-                                       "]. Supertype must be a non-terminal.")
-                                      (list spec rule)))
-                                 (if (caddr symb*)
-                                     (assertion-violation
-                                      'ast-rule
-                                      (string-append
-                                       "Invalid AST rule ["
-                                       (symbol->string rule)
-                                       "]. Unexpected [*] character.")
-                                      (list spec rule)))
-                                 (car symb*)))
-                             #f)))
+                         (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (parse-symbol 'non-terminal 'l-hand))))
                    (match-char! #\-)
                    (match-char! #\>)
                    (make-ast-rule
@@ -526,13 +540,13 @@
                      (list l-hand)
                      (let loop ((r-hand
                                  (if (not (eos?))
-                                     (list (parse-symbol))
+                                     (list (parse-symbol 'symbol 'r-hand))
                                      (list))))
                        (if (eos?)
                            (reverse r-hand)
                            (begin
                              (match-char! #\-)
-                             (loop (cons (parse-symbol) r-hand))))))
+                             (loop (cons (parse-symbol 'symbol 'r-hand) r-hand))))))
                     supertype
                     (list)
                     (list))))))
@@ -615,7 +629,7 @@
                          (symbol->string (car symb*))
                          "] is not defined.")
                         rules-table))
-                   (set-cdr! symb* (list symb-definition (caddr symb*))))))
+                   (set-car! (cdr symb*) symb-definition))))
            (cdr (ast-rule-production rule*))))
         rules-list)
        
@@ -718,6 +732,28 @@
             (list (car (ast-rule-production rule*)))
             (cdr (ast-rule-production (ast-rule-supertype rule*)))
             (cdr (ast-rule-production rule*)))))
+        rules-list)
+       
+       ;;; Ensure context-names are unique:
+       (for-each
+        (lambda (rule*)
+          (let loop ((rest-production (cdr (ast-rule-production rule*))))
+            (if (not (null? rest-production))
+                (let ((current-context-name (cadddr (car rest-production))))
+                  (if (find
+                       (lambda (symb*)
+                         (eq? (cadddr symb*) current-context-name))
+                       (cdr rest-production))
+                      (assertion-violation
+                       'compile-ast-specifications
+                       (string-append
+                        "Invalid AST grammar. The context-name ["
+                        (symbol->string current-context-name)
+                        "] is not unique for rule ["
+                        (symbol->string (ast-rule-as-symbol rule*))
+                        "].")
+                       rules-table))
+                  (loop (cdr rest-production))))))
         rules-list)
        
        ;;; Ensure, that all non-terminals can be derived from the start symbol:
@@ -1295,24 +1331,46 @@
      (if (node-terminal? n)
          (assertion-violation
           'ast-child
-          (string-append
-           "RACR system runtime error (ast-child): Cannot access ["
-           (number->string i)
-           "]'th child; Terminals have no children.")
+          "RACR system runtime error (ast-child): Cannot access child; Terminals have no children."
           n))
-     (if (and (>= i 1) (>= (length (node-children n)) i))
-         (let ((child (list-ref (node-children n) (- i 1))))
-           (add-dependency:att->node child)
-           (if (node-terminal? child)
-               (node-children child)
-               child))
-         (assertion-violation
-          'ast-child
-          (string-append
-           "RACR system runtime error (ast-child): Cannot access non existent ["
-           (number->string i)
-           "]'th child.")
-          n))))
+     (cond
+       ((symbol? i)
+        (if (ast-list-node? n)
+            (assertion-violation
+             'ast-child
+             "RACR system runtime error (ast-child): Cannot access list element by context-name; List-nodes define no context-names."
+             n))
+        (let loop ((contexts (cdr (ast-rule-production (node-ast-rule n))))
+                   (children (node-children n)))
+          (if (null? contexts)
+              (assertion-violation
+               'ast-child
+               (string-append
+                "RACR system runtime error (ast-child): Cannot access non-existent ["
+                (symbol->string i)
+                "] child.")
+               n)
+              (if (eq? (cadddr (car contexts)) i)
+                  (let ((child (car children)))
+                    (add-dependency:att->node child)
+                    (if (node-terminal? child)
+                        (node-children child)
+                        child))
+                  (loop (cdr contexts) (cdr children))))))
+       (else
+        (if (and (>= i 1) (>= (length (node-children n)) i))
+            (let ((child (list-ref (node-children n) (- i 1))))
+              (add-dependency:att->node child)
+              (if (node-terminal? child)
+                  (node-children child)
+                  child))
+            (assertion-violation
+             'ast-child
+             (string-append
+              "RACR system runtime error (ast-child): Cannot access non existent ["
+              (number->string i)
+              "]'th child.")
+             n))))))
  
  ; Given a node C, child of another node P, return P's i'th child S (thus, S is a sibling of C or C)
  ; DEPENDENCIES:

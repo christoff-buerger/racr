@@ -31,11 +31,11 @@
    (StateMachine
     1
     (lambda (n)
-      (let ((name (ast-child 1 n)))
+      (let ((name (ast-child 'name n)))
         (find
          (lambda (final)
            (eq? name final))
-         (ast-child 4 (ast-parent (ast-parent n))))))))
+         (ast-child 'finals (ast-parent (ast-parent n))))))))
   
   ;;; Name analysis
   (ag-rule
@@ -45,15 +45,15 @@
     (lambda (n name)
       (ast-find-child
        (lambda (i state)
-         (eq? (ast-child 1 state) name))
-       (ast-child 1 n)))))
+         (eq? (ast-child 'name state) name))
+       (ast-child 'State* n)))))
   
   (ag-rule
    initial-state ; Return the state machine's initial state.
    (StateMachine
     0
     (lambda (n)
-      (att-value 'lookup-state n (ast-child 3 n)))))
+      (att-value 'lookup-state n (ast-child 'initial n)))))
   
   (ag-rule
    filter-transitions ; Return all transitions satisfying a given filter.
@@ -63,7 +63,7 @@
     (lambda (n filter-function)
       (filter
        filter-function
-       (ast-children (ast-child 2 n))))))
+       (ast-children (ast-child 'Transition* n))))))
   
   ;;; Reachability
   (ag-rule
@@ -73,12 +73,12 @@
     (lambda (n)
       (map
        (lambda (trans)
-         (att-value 'lookup-state n (ast-child 2 trans)))
+         (att-value 'lookup-state n (ast-child 'target trans)))
        (att-value
         'filter-transitions
         n
         (lambda (trans)
-          (eq? (ast-child 1 trans) (ast-child 1 n))))))))
+          (eq? (ast-child 'source trans) (ast-child 'name n))))))))
   
   (ag-rule
    reachable ; Compute all states reachable from a state.
@@ -105,7 +105,7 @@
        (ast-find-child
         (lambda (i state)
           (not (att-value 'correct? state)))
-        (ast-child 1 n)))))
+        (ast-child 'State* n)))))
    (State
     0
     (lambda (n)
