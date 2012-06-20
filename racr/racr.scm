@@ -530,7 +530,7 @@
                                           name-symbol)))))))))
                  (let* ((l-hand (parse-symbol 'non-terminal 'l-hand)); The rule's l-hand
                         (supertype ; The rule's super-type
-                         (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (parse-symbol 'non-terminal 'l-hand))))
+                         (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (car (parse-symbol 'non-terminal 'l-hand)))))
                    (match-char! #\-)
                    (match-char! #\>)
                    (make-ast-rule
