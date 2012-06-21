@@ -52,7 +52,7 @@
        (CompilationUnit
         0
         (lambda (n)
-          (list:find-integer->real-coercion (ast-child 1 n))))
+          (list:find-integer->real-coercion (ast-child 'Declaration* n))))
        
        (Statement
         0
@@ -62,51 +62,51 @@
        (Block
         0
         (lambda (n)
-          (list:find-integer->real-coercion (ast-child 1 n))))
+          (list:find-integer->real-coercion (ast-child 'Statement* n))))
        
        (If
         0
         (lambda (n)
-          (or (att-value 'find-integer->real-coercion (ast-child 1 n))
-              (att-value 'find-integer->real-coercion (ast-child 2 n))
-              (list:find-integer->real-coercion (ast-child 3 n)))))
+          (or (att-value 'find-integer->real-coercion (ast-child 'Condition n))
+              (att-value 'find-integer->real-coercion (ast-child 'Body n))
+              (list:find-integer->real-coercion (ast-child 'Alternative n)))))
        
        (While
         0
         (lambda (n)
-          (or (att-value 'find-integer->real-coercion (ast-child 1 n))
-              (att-value 'find-integer->real-coercion (ast-child 2 n)))))
+          (or (att-value 'find-integer->real-coercion (ast-child 'Condition n))
+              (att-value 'find-integer->real-coercion (ast-child 'Body n)))))
        
        (VariableAssignment
         0
         (lambda (n)
-          (let ((l-type (att-value 'type (ast-child 1 n))))
+          (let ((l-type (att-value 'type (ast-child 'LHand n))))
             (cond
               ((and (type-pointer? l-type)
                     (type-real? (type-rtype l-type))
-                    (type-integer? (att-value 'type (ast-child 2 n))))
-               (ast-child 2 n))
-              (else (att-value 'find-integer->real-coercion (ast-child 2 n)))))))
+                    (type-integer? (att-value 'type (ast-child 'RHand n))))
+               (ast-child 'LHand n))
+              (else (att-value 'find-integer->real-coercion (ast-child 'RHand n)))))))
        
        (ProcedureReturn
         0
         (lambda (n)
-          (list:find-integer->real-coercion (ast-child 1 n))))
+          (list:find-integer->real-coercion (ast-child 'Expression* n))))
        
        (Write
         0
         (lambda (n)
-          (att-value 'find-integer->real-coercion (ast-child 1 n))))
+          (att-value 'find-integer->real-coercion (ast-child 'Expression n))))
        
        (Read
         0
         (lambda (n)
-          (att-value 'find-integer->real-coercion (ast-child 1 n))))
+          (att-value 'find-integer->real-coercion (ast-child 'Expression n))))
        
        (ProcedureDeclaration
         0
         (lambda (n)
-          (att-value 'find-integer->real-coercion (ast-child 4 n))))
+          (att-value 'find-integer->real-coercion (ast-child 'Body n))))
        
        (Expression
         0
@@ -116,24 +116,24 @@
        (ProcedureCall
         0
         (lambda (n)
-          (or (att-value 'find-integer->real-coercion (ast-child 1 n))
-              (list:find-integer->real-coercion (ast-child 2 n)))))
+          (or (att-value 'find-integer->real-coercion (ast-child 'Procedure n))
+              (list:find-integer->real-coercion (ast-child 'Arguments n)))))
        
        (UnaryExpression
         0
         (lambda (n)
-          (att-value 'find-integer->real-coercion (ast-child 1 n))))
+          (att-value 'find-integer->real-coercion (ast-child 'Operand n))))
        
        (BinaryExpression
         0
         (lambda (n)
           (cond
-            ((and (type-integer? (att-value 'type (ast-child 1 n)))
-                  (type-real? (att-value 'type (ast-child 2 n))))
-             (ast-child 1 n))
-            ((and (type-real? (att-value 'type (ast-child 1 n)))
-                  (type-integer? (att-value 'type (ast-child 2 n))))
-             (ast-child 2 n))
+            ((and (type-integer? (att-value 'type (ast-child 'Operand1 n)))
+                  (type-real? (att-value 'type (ast-child 'Operand2 n))))
+             (ast-child 'Operand1 n))
+            ((and (type-real? (att-value 'type (ast-child 'Operand1 n)))
+                  (type-integer? (att-value 'type (ast-child 'Operand2 n))))
+             (ast-child 'Operand2 n))
             (else
-             (or (att-value 'find-integer->real-coercion (ast-child 1 n))
-                 (att-value 'find-integer->real-coercion (ast-child 2 n))))))))))))
+             (or (att-value 'find-integer->real-coercion (ast-child 'Operand1 n))
+                 (att-value 'find-integer->real-coercion (ast-child 'Operand2 n))))))))))))

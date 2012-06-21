@@ -25,8 +25,8 @@
             (and
              main-decl
              (ast-subtype? main-decl 'ProcedureDeclaration)
-             (= (ast-num-children (ast-child 2 main-decl)) 0)
-             (type-undefined? (ast-child 3 main-decl))))))
+             (= (ast-num-children (ast-child 'Parameters main-decl)) 0)
+             (type-undefined? (ast-child 'returntype main-decl))))))
        
        (Statement
         0
@@ -38,27 +38,27 @@
         (lambda (n)
           (and
            (or
-            (type-undefined? (ast-child 3 n))
-            (let ((statement-list (ast-child 1 (ast-child 4 n))))
+            (type-undefined? (ast-child 'returntype n))
+            (let ((statement-list (ast-child 1 (ast-child 'Body n))))
               (and
                (> (ast-num-children statement-list) 0)
                (ast-subtype? (ast-child (ast-num-children statement-list) statement-list) 'ProcedureReturn))))
-           (<= (length (att-value 'lookup n (ast-child 1 n))) 1))))
+           (<= (length (att-value 'lookup n (ast-child 'name n))) 1))))
        
        (VariableDeclaration
         0
         (lambda (n)
-          (<= (length (att-value 'lookup n (ast-child 1 n))) 1)))
+          (<= (length (att-value 'lookup n (ast-child 'name n))) 1)))
        
        (If
         0
         (lambda (n)
-          (type-boolean? (att-value 'type (ast-child 1 n)))))
+          (type-boolean? (att-value 'type (ast-child 'Condition n)))))
        
        (While
         0
         (lambda (n)
-          (type-boolean? (att-value 'type (ast-child 1 n)))))
+          (type-boolean? (att-value 'type (ast-child 'Condition n)))))
        
        (VariableAssignment
         0

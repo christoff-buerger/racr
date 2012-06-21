@@ -59,7 +59,7 @@
        (Constant
         0
         (lambda (n)
-          (let ((lexem (ast-child 1 n)))
+          (let ((lexem (ast-child 'lexem n)))
             (cond
               ((string=? lexem "true") #t)
               ((string=? lexem "false") #f)
@@ -70,7 +70,7 @@
        (Constant
         0
         (lambda (n)
-          (let ((number (string->number (ast-child 1 n))))
+          (let ((number (string->number (ast-child 'lexem n))))
             (if number number 'siple:nil)))))
       
       (ag-rule
@@ -80,7 +80,7 @@
         (lambda (n)
           (if (not (find
                     (lambda (c) (char=? c #\.))
-                    (string->list (ast-child 1 n))))
+                    (string->list (ast-child 'lexem n))))
               (att-value 'as-number n)
               'siple:nil))))
       
@@ -91,6 +91,6 @@
         (lambda (n)
           (if (find
                (lambda (c) (char=? c #\.))
-               (string->list (ast-child 1 n)))
+               (string->list (ast-child 'lexem n)))
               (att-value 'as-number n)
               'siple:nil))))))))

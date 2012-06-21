@@ -9,7 +9,7 @@
  (siple ast)
  (export
   siple-specification
- specify-ast)
+  specify-ast)
  (import (rnrs) (racr))
  
  (define siple-specification (create-specification))
@@ -24,31 +24,31 @@
   (ast-rule 'Statement->)
   
   (ast-rule 'Block:Statement->Statement*)
-  (ast-rule 'If:Statement->Expression-Block-Block*)
-  (ast-rule 'While:Statement->Expression-Block)
-  (ast-rule 'VariableAssignment:Statement->Expression-Expression)
+  (ast-rule 'If:Statement->Expression<Condition-Block<Body-Block*<Alternative)
+  (ast-rule 'While:Statement->Expression<Condition-Block<Body)
+  (ast-rule 'VariableAssignment:Statement->Expression<LHand-Expression<RHand)
   (ast-rule 'ProcedureReturn:Statement->Expression*)
   (ast-rule 'Write:Statement->Expression)
   (ast-rule 'Read:Statement->Expression)
   
   (ast-rule 'Declaration:Statement->name)
-  (ast-rule 'ProcedureDeclaration:Declaration->VariableDeclaration*-returnType-Block)
-  (ast-rule 'VariableDeclaration:Declaration->declaredType)
+  (ast-rule 'ProcedureDeclaration:Declaration->VariableDeclaration*<Parameters-returntype-Block<Body)
+  (ast-rule 'VariableDeclaration:Declaration->declaredtype)
   
   (ast-rule 'Expression:Statement->)
   
   (ast-rule 'Constant:Expression->lexem)
   (ast-rule 'Reference:Expression->name)
-  (ast-rule 'ProcedureCall:Expression->Expression-Expression*)
+  (ast-rule 'ProcedureCall:Expression->Expression<Procedure-Expression*<Arguments)
   
-  (ast-rule 'UnaryExpression:Expression->Expression)
+  (ast-rule 'UnaryExpression:Expression->Expression<Operand)
   
   (ast-rule 'Not:UnaryExpression->)
   (ast-rule 'UMinus:UnaryExpression->)
   (ast-rule 'RealCoercion:UnaryExpression->)
   (ast-rule 'Dereference:UnaryExpression->)
   
-  (ast-rule 'BinaryExpression:Expression->Expression-Expression)
+  (ast-rule 'BinaryExpression:Expression->Expression<Operand1-Expression<Operand2)
   
   (ast-rule 'LogicExpression:BinaryExpression->)
   

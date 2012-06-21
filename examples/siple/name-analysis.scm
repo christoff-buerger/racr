@@ -24,9 +24,9 @@
           (let ((result (list)))
             (ast-for-each-child
              (lambda (i n)
-               (if (string=? (ast-child 1 n) name)
+               (if (string=? (ast-child 'name n) name)
                    (set! result (cons n result))))
-             (ast-child 1 n))
+             (ast-child 'Declaration* n))
             result)))
        
        (Block
@@ -38,12 +38,12 @@
             (if (att-value 'is-procedure-body block)
                 (ast-for-each-child
                  (lambda (i n)
-                   (if (string=? (ast-child 1 n) name)
+                   (if (string=? (ast-child 'name n) name)
                        (set! result (cons n result))))
-                 (ast-child 2 (att-value 'is-procedure-body block))))
+                 (ast-child 'Parameters (att-value 'is-procedure-body block))))
             (ast-for-each-child
              (lambda (i n)
-               (if (and (ast-subtype? n 'Declaration) (string=? (ast-child 1 n) name))
+               (if (and (ast-subtype? n 'Declaration) (string=? (ast-child 'name n) name))
                    (set! result (cons n result))))
              statement-list
              (cons 1 (ast-child-index n)))
@@ -66,7 +66,7 @@
        (Reference
         0
         (lambda (n)
-          (let ((result (att-value 'lookup n (ast-child 1 n))))
+          (let ((result (att-value 'lookup n (ast-child 'name n))))
             (if (= (length result) 1)
                 (car result)
                 #f)))))))))
