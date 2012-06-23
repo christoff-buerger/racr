@@ -29,7 +29,7 @@
   (ag-rule
    final? ; Return, whether a state is a final state or not.
    (StateMachine
-    1
+    State*
     (lambda (n)
       (let ((name (ast-child 'name n)))
         (find
@@ -41,7 +41,6 @@
   (ag-rule
    lookup-state ; Find a certain state by its name.
    (StateMachine
-    0
     (lambda (n name)
       (ast-find-child
        (lambda (i state)
@@ -51,14 +50,12 @@
   (ag-rule
    initial-state ; Return the state machine's initial state.
    (StateMachine
-    0
     (lambda (n)
       (att-value 'lookup-state n (ast-child 'initial n)))))
   
   (ag-rule
    filter-transitions ; Return all transitions satisfying a given filter.
    (StateMachine
-    0
     #f ; Don't cache the attribute (high chance filter function arguments are anonymous and just clutter cache memory)
     (lambda (n filter-function)
       (filter
@@ -69,7 +66,6 @@
   (ag-rule
    successors ; Compute a state's successor states.
    (State
-    0
     (lambda (n)
       (map
        (lambda (trans)
@@ -83,7 +79,6 @@
   (ag-rule
    reachable ; Compute all states reachable from a state.
    (State
-    0
     (lambda (n)
       (let ((successors (att-value 'successors n)))
         (fold-left
@@ -99,7 +94,6 @@
   (ag-rule
    correct? ; Check well-formedness semantics.
    (StateMachine ; The state machine is correct, iff all states are correct.
-    0
     (lambda (n)
       (not
        (ast-find-child
@@ -107,7 +101,6 @@
           (not (att-value 'correct? state)))
         (ast-child 'State* n)))))
    (State
-    0
     (lambda (n)
       (and
        (or ; From every state, except final states, a final state must be reachable.
