@@ -267,7 +267,10 @@
                     (create-ast spec* rule children)))
                  (#,(datum->syntax #'k 'specification-phase)
                   (lambda ()
-                    (racr-specification-specification-phase spec*))))
+                    (racr-specification-specification-phase spec*)))
+                 (#,(datum->syntax #'k 'specify-attribute)
+                  (lambda (attribute-name non-terminal context-name-or-position cached? equation circularity-definition)
+                    (specify-attribute spec* attribute-name non-terminal context-name-or-position cached? equation circularity-definition))))
             (let-syntax ((#,(datum->syntax #'k 'ag-rule)
                           (syntax-rules ()
                             ((_ attribute-name definition (... ...))
@@ -831,12 +834,9 @@
  ;     the attribute's name
  ;  2) Automatic quoting of the attribute's name (thus, the given name must be an ordinary identifier)
  ;  3) Automatic quoting of non-terminals and context-names (thus, contexts must be ordinary identifiers)
- ;  4) No need to specify 0 as position value to denote synthesized attributes
- ;  5) Optional caching and circularity information (by default caching is enabled and attribute definitions are non-circular)
- ;  6) To explicitly enabled/disabled caching, boolean values must be used (i.e., to denote true, only #t is permitted and not integers,
- ;     functions or any other Scheme entity)
- ; Note, that (3) and (4) prohibit the specification of contexts using positions within productions. (6) ensures, that it is not possible
- ; to specify cache behaviour by accident. For details about attribute specifications see "specify-attribute".
+ ;  4) Optional caching and circularity information (by default caching is enabled and attribute definitions are non-circular)
+ ; Note, that (3) prohibits the specification of contexts using positions within productions. For details about attribute
+ ; specifications see "specify-attribute".
  (define-syntax specify-ag-rule
    (lambda (x)
      (syntax-case x ()
@@ -844,52 +844,58 @@
         (and (identifier? #'attribute-name) (not (null? #'(definition ...))))
         #'(let ((spec* spec)
                 (attribute-name* 'attribute-name))
-            (letrec-syntax
-                ((proper-cached?
-                  (syntax-rules ()
-                    ((_ spec* attribute-name* non-terminal position cached? equation circularity-definition)
-                     (let ((cached?* cached?))
-                       (if (not (boolean? cached?*))
-                           (assertion-violation
-                            'ag-rule
-                            "Invalid attribute definition. Attribute caches must be explicitly enabled/disabled using #t or #f."
-                            (list cached?*)))
-                       (specify-attribute spec* attribute-name* non-terminal position cached?* equation circularity-definition)))))
-                 (specify-attribute*
+            (let-syntax
+                ((specify-attribute*
                   (lambda (x)
                     (syntax-case x ()
                       ((_ spec* attribute-name* (non-terminal position equation))
                        (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(specify-attribute spec* attribute-name* 'non-terminal 'position #t equation #f))
+                       #'(specify-attribute
+                          spec*
+                          attribute-name*
+                          'non-terminal
+                          'position
+                          #t
+                          equation
+                          #f))
                       ((_ spec* attribute-name* (non-terminal position cached? equation))
                        (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(proper-cached? spec* attribute-name* 'non-terminal 'position cached? equation #f))
+                       #'(specify-attribute
+                          spec*
+                          attribute-name*
+                          'non-terminal
+                          'position
+                          cached?
+                          equation
+                          #f))
                       ((_ spec* attribute-name* (non-terminal position equation bottom-value equivalence-function))
                        (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(specify-attribute spec* attribute-name* 'non-terminal 'position #t equation (cons bottom-value equivalence-function)))
+                       #'(specify-attribute
+                          spec*
+                          attribute-name*
+                          'non-terminal
+                          'position
+                          #t
+                          equation
+                          (cons bottom-value equivalence-function)))
                       ((_ spec* attribute-name* (non-terminal position cached? equation bottom-value equivalence-function))
                        (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(proper-cached? spec* attribute-name* 'non-terminal 'position cached? equation (cons bottom-value equivalence-function)))
-                      ((_ spec* attribute-name* (non-terminal equation))
-                       (and (identifier? #'non-terminal) (not (identifier? #'equation)))
-                       #'(specify-attribute spec* attribute-name* 'non-terminal 0 #t equation #f))
-                      ((_ spec* attribute-name* (non-terminal cached? equation))
-                       (and (identifier? #'non-terminal) (not (identifier? #'cached?)))
-                       #'(proper-cached? spec* attribute-name* 'non-terminal 0 cached? equation #f))
-                      ((_ spec* attribute-name* (non-terminal equation bottom-value equivalence-function))
-                       (and (identifier? #'non-terminal) (not (identifier? #'equation)))
-                       #'(specify-attribute spec* attribute-name* 'non-terminal 0 #t equation (cons bottom-value equivalence-function)))
-                      ((_ spec* attribute-name* (non-terminal cached? equation bottom-value equivalence-function))
-                       (and (identifier? #'non-terminal) (not (identifier? #'cached?)))
-                       #'(proper-cached? spec* attribute-name* 'non-terminal 0 cached? equation (cons bottom-value equivalence-function)))))))
+                       #'(specify-attribute
+                          spec*
+                          attribute-name*
+                          'non-terminal
+                          'position
+                          cached?
+                          equation
+                          (cons bottom-value equivalence-function)))))))
               (specify-attribute* spec* attribute-name* definition) ...))))))
  
  ; Calling this function adds to the given RACR specification the given attribute definition. To this end, the given definition's
  ; representation is internally stored, after checking, that (1) it is properly encoded (syntax check), (2) its context is defined,
  ; (3) the context is a non-terminal and (4) the definition is unique (no redefinition error). In case of any violation, an exception
  ; is thrown. The context of an attribute definition can be given by either, a context-name denoting a certain child of a non-terminal
- ; (inherited attribute definition) or a position within the production of a non-terminal (position > 0: inherited attribute definition |
- ; position = 0: synthesized attribute definition).
+ ; (inherited attribute definition), the symbol '* denoting a synthesized attribute definition or a position within the production
+ ; of a non-terminal (position > 0: inherited attribute definition | position = 0: synthesized attribute definition).
  (define specify-attribute
    (lambda (spec attribute-name non-terminal context-name-or-position cached? equation circularity-definition)
      ;;; Ensure correct argument types:
@@ -948,35 +954,35 @@
             (list attribute-name non-terminal context-name-or-position)))
        
        (let ((position ;;; Ensure, that the given context exists:
-              (cond
-                ((symbol? context-name-or-position)
-                 (let loop ((pos 1)
-                            (rest-production (cdr (ast-rule-production ast-rule))))
-                   (if (null? rest-production)
-                       (assertion-violation
-                        'ag-rule
-                        (string-append
-                         "Invalid attribute definition. The non-terminal ["
-                         (symbol->string non-terminal)
-                         "] has no ["
-                         (symbol->string context-name-or-position)
-                         "] context.")
-                        (list attribute-name non-terminal context-name-or-position))
-                       (if (eq? (cadddr (car rest-production)) context-name-or-position)
-                           pos
-                           (loop (+ pos 1) (cdr rest-production))))))
-                (else
-                 (if (>= context-name-or-position (length (ast-rule-production ast-rule)))
-                     (assertion-violation
-                      'ag-rule
-                      (string-append
-                       "Invalid attribute definition. There exists no ["
-                       (number->string context-name-or-position)
-                       "]'th position in the context of ["
-                       (symbol->string non-terminal)
-                       "].")
-                      (list attribute-name non-terminal context-name-or-position))
-                     context-name-or-position)))))
+              (if (symbol? context-name-or-position)
+                  (if (eq? context-name-or-position '*)
+                      0
+                      (let loop ((pos 1)
+                                 (rest-production (cdr (ast-rule-production ast-rule))))
+                        (if (null? rest-production)
+                            (assertion-violation
+                             'ag-rule
+                             (string-append
+                              "Invalid attribute definition. The non-terminal ["
+                              (symbol->string non-terminal)
+                              "] has no ["
+                              (symbol->string context-name-or-position)
+                              "] context.")
+                             (list attribute-name non-terminal context-name-or-position))
+                            (if (eq? (cadddr (car rest-production)) context-name-or-position)
+                                pos
+                                (loop (+ pos 1) (cdr rest-production))))))
+                  (if (>= context-name-or-position (length (ast-rule-production ast-rule)))
+                      (assertion-violation
+                       'ag-rule
+                       (string-append
+                        "Invalid attribute definition. There exists no ["
+                        (number->string context-name-or-position)
+                        "]'th position in the context of ["
+                        (symbol->string non-terminal)
+                        "].")
+                       (list attribute-name non-terminal context-name-or-position))
+                      context-name-or-position))))
          
          ;;; Ensure, that the given context is a non-terminal:
          (if (not (cadr (list-ref (ast-rule-production ast-rule) position)))

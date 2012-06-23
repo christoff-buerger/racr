@@ -26,7 +26,7 @@
  
  (ast-rule 'N->L)
  (ast-rule 'Ni:N->) ; integer number
- (ast-rule 'Nr:N->L) ; rational number
+ (ast-rule 'Nr:N->L<L2) ; rational number
  
  (ast-rule 'L->)
  (ast-rule 'Ll:L->B) ; numbers list leaf
@@ -44,27 +44,27 @@
  
  (ag-rule
   v
-  (S 0 (lambda (n) (att-value 'v (ast-child 1 n))))
-  (Bz 0 (lambda (n) 0))
-  (Bo 0 (lambda (n) (expt 2 (att-value 's n))))
-  (Ll 0 (lambda (n) (att-value 'v (ast-child 1 n))))
-  (Ln 0 (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n)))))
-  (Ni 0 (lambda (n) (att-value 'v (ast-child 1 n))))
-  (Nr 0 (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n))))))
+  (S * (lambda (n) (att-value 'v (ast-child 1 n))))
+  (Bz * (lambda (n) 0))
+  (Bo * (lambda (n) (expt 2 (att-value 's n))))
+  (Ll * (lambda (n) (att-value 'v (ast-child 1 n))))
+  (Ln * (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n)))))
+  (Ni * (lambda (n) (att-value 'v (ast-child 1 n))))
+  (Nr * (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n))))))
  
  (ag-rule
  l
- (Ll 0 (lambda (n) 1))
- (Ln 0 (lambda (n) (+ (att-value 'l (ast-child 1 n)) 1))))
+ (Ll * (lambda (n) 1))
+ (Ln * (lambda (n) (+ (att-value 'l (ast-child 1 n)) 1))))
 
 (ag-rule
  s
- (Ll 1 (lambda (n) (att-value 's (ast-parent n))))
- (Ln 1 (lambda (n) (+ (att-value 's (ast-parent n)) 1)))
- (Ln 2 (lambda (n) (att-value 's (ast-parent n))))
- (Ni 1 (lambda (n) 0))
- (Nr 1 (lambda (n) 0))
- (Nr 2 (lambda (n) (- (att-value 'l n)))))
+ (Ll B (lambda (n) (att-value 's (ast-parent n))))
+ (Ln L (lambda (n) (+ (att-value 's (ast-parent n)) 1)))
+ (Ln B (lambda (n) (att-value 's (ast-parent n))))
+ (Ni L (lambda (n) 0))
+ (Nr L (lambda (n) 0))
+ (Nr L2 (lambda (n) (- (att-value 'l n)))))
 
 (compile-ag-specifications))
 

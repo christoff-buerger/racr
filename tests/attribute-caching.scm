@@ -26,7 +26,7 @@
        (ag-rule
         test-attribute
         (S
-         0
+         *
          cached?
          (lambda (n)
            (begin
@@ -49,7 +49,7 @@
        (ag-rule
         cyclic-att
         (S
-         0
+         *
          cached?
          (lambda (n)
            (let ((result (att-value 'cyclic-att (ast-child 1 n))))
@@ -58,7 +58,7 @@
          1
          =)
         (S
-         1
+         A
          cached?
          (lambda (n)
            (let ((result (att-value 'cyclic-att (ast-parent n))))

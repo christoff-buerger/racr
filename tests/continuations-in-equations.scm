@@ -26,19 +26,19 @@
  (ag-rule
   non-local
   (S
-   0
+   *
    (lambda (n c)
      (att-value 'non-local (ast-child 1 n) c)))
   (NonLocalContinuation
-   0
+   *
    (lambda (n c)
      (att-value 'non-local (ast-child 1 n) c)))
   (NonLocalContinuation
-   1
+   A
    (lambda (n c)
      (+ (att-value 'non-local (ast-child 2 (ast-parent n)) c) 1)))
   (NonLocalContinuation
-   2
+   B
    (lambda (n c)
      (if c
          (c 10)

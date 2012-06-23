@@ -42,32 +42,32 @@
        (ag-rule
         att
         (S
-         0
+         *
          (lambda (n)
            (att-value 'att (ast-child 1 n))
            (next-state 'att 'S)))
         (A
-         0
+         *
          (lambda (n)
            (att-value 'att (ast-child 1 n))
            (next-state 'att 'A)))
         (A
-         1
+         B
          (lambda (n)
            (att-value 'att (ast-sibling 2 n))
            (next-state 'att 'B)))
         (Ba
-         0
+         *
          (lambda (n)
            (ast-child 1 n)
            (next-state 'att 'B)))
         (A
-         2
+         C
          (lambda (n)
            (att-value 'att (ast-child 1 n))
            (next-state 'att 'C)))
         (D
-         0
+         *
          (lambda (n)
            (ast-child 1 n)
            (next-state 'att 'D))))
@@ -75,12 +75,12 @@
        (ag-rule
         att2
         (A
-         2
+         C
          (lambda (n)
            (att-value 'att (ast-sibling 1 n))
            (next-state 'att2 'C)))
         (C
-         1
+         D
          (lambda (n)
            (att-value 'att2 (ast-parent n))
            (next-state 'att2 'D))))
@@ -133,12 +133,12 @@
        (ag-rule
         s
         (S
-         0
+         *
          (lambda (n)
            (att-value 's (ast-child 1 n))
            (next-state 's n)))
         (A
-         0
+         *
          (lambda (n)
            (ast-find-child
             (lambda (i e)
@@ -146,19 +146,19 @@
             (ast-child 1 n))
            (next-state 's n)))
         (E
-         0
+         *
          (lambda (n)
            (cons (next-state 's n) (ast-child 1 n)))))
        
        (ag-rule
         i
         (S
-         1
+         A
          (lambda (n)
            (att-value 's n)
            (next-state 'i n)))
         (A
-         1
+         E*
          (lambda (n)
            (att-value 'i (ast-parent n))
            (next-state 'i n))))
@@ -166,12 +166,12 @@
        (ag-rule
         A-length
         (A
-         0
+         *
          (lambda (n)
            (ast-num-children (ast-child 1 n))
            (next-state 'A-length n)))
         (S
-         0
+         *
          (lambda (n)
            (att-value 'A-length (ast-child 1 n))
            (next-state 'A-length n))))
