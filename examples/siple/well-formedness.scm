@@ -19,7 +19,6 @@
       (ag-rule
        local-correct?
        (CompilationUnit
-        0
         (lambda (n)
           (let ((main-decl (att-value 'main-procedure n)))
             (and
@@ -29,12 +28,10 @@
              (type-undefined? (ast-child 'returntype main-decl))))))
        
        (Statement
-        0
         (lambda (n)
           #t))
        
        (ProcedureDeclaration
-        0
         (lambda (n)
           (and
            (or
@@ -46,41 +43,33 @@
            (<= (length (att-value 'lookup n (ast-child 'name n))) 1))))
        
        (VariableDeclaration
-        0
         (lambda (n)
           (<= (length (att-value 'lookup n (ast-child 'name n))) 1)))
        
        (If
-        0
         (lambda (n)
           (type-boolean? (att-value 'type (ast-child 'Condition n)))))
        
        (While
-        0
         (lambda (n)
           (type-boolean? (att-value 'type (ast-child 'Condition n)))))
        
        (VariableAssignment
-        0
         (lambda (n)
           (not (type-error-type? (att-value 'type n)))))
        
        (ProcedureReturn
-        0
         (lambda (n)
           (not (type-error-type? (att-value 'type n)))))
        
        (Write
-        0
         (lambda (n)
           (not (type-error-type? (att-value 'type n)))))
        
        (Read
-        0
         (lambda (n)
           (not (type-error-type? (att-value 'type n)))))
        
        (Expression
-        0
         (lambda (n)
           (not (type-error-type? (att-value 'type n))))))))))

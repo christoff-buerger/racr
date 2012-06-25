@@ -19,11 +19,9 @@
       (ag-rule
        dewey-address
        (CompilationUnit
-        0
         (lambda (n)
           (list 1)))
        (Statement
-        0
         (lambda (n)
           (append
            (att-value 'dewey-address (ast-parent n))
@@ -34,30 +32,25 @@
       
       (ag-rule
        is-procedure-body
-       (Block
-        1
+       ((Block Statement*)
         (lambda (n)
           #f))
-       (ProcedureDeclaration
-        4
+       ((ProcedureDeclaration Body)
         (lambda (n)
           (ast-parent n))))
       
       (ag-rule
        procedure-in-context
        (CompilationUnit
-        0
         (lambda (n)
           #f))
-       (ProcedureDeclaration
-        4
+       ((ProcedureDeclaration Body)
         (lambda (n)
           (ast-parent n))))
       
       (ag-rule
        as-boolean
        (Constant
-        0
         (lambda (n)
           (let ((lexem (ast-child 'lexem n)))
             (cond
@@ -68,7 +61,6 @@
       (ag-rule
        as-number
        (Constant
-        0
         (lambda (n)
           (let ((number (string->number (ast-child 'lexem n))))
             (if number number 'siple:nil)))))
@@ -76,7 +68,6 @@
       (ag-rule
        as-integer
        (Constant
-        0
         (lambda (n)
           (if (not (find
                     (lambda (c) (char=? c #\.))
@@ -87,7 +78,6 @@
       (ag-rule
        as-real
        (Constant
-        0
         (lambda (n)
           (if (find
                (lambda (c) (char=? c #\.))

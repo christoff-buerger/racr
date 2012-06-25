@@ -19,7 +19,6 @@
       (ag-rule
        lookup
        (CompilationUnit
-        0
         (lambda (n name)
           (let ((result (list)))
             (ast-for-each-child
@@ -29,8 +28,7 @@
              (ast-child 'Declaration* n))
             result)))
        
-       (Block
-        1
+       ((Block Statement*)
         (lambda (n name)
           (let* ((statement-list (ast-parent n))
                  (block (ast-parent statement-list))
@@ -54,7 +52,6 @@
       (ag-rule
        main-procedure
        (CompilationUnit
-        0
         (lambda (n)
           (let ((result (att-value 'lookup n "main")))
             (if (and (= (length result) 1) (ast-subtype? (car result) 'ProcedureDeclaration))
@@ -64,7 +61,6 @@
       (ag-rule
        declaration
        (Reference
-        0
         (lambda (n)
           (let ((result (att-value 'lookup n (ast-child 'name n))))
             (if (= (length result) 1)

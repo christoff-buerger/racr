@@ -50,35 +50,29 @@
        find-integer->real-coercion
        
        (CompilationUnit
-        0
         (lambda (n)
           (list:find-integer->real-coercion (ast-child 'Declaration* n))))
        
        (Statement
-        0
         (lambda (n)
           #f))
        
        (Block
-        0
         (lambda (n)
           (list:find-integer->real-coercion (ast-child 'Statement* n))))
        
        (If
-        0
         (lambda (n)
           (or (att-value 'find-integer->real-coercion (ast-child 'Condition n))
               (att-value 'find-integer->real-coercion (ast-child 'Body n))
               (list:find-integer->real-coercion (ast-child 'Alternative n)))))
        
        (While
-        0
         (lambda (n)
           (or (att-value 'find-integer->real-coercion (ast-child 'Condition n))
               (att-value 'find-integer->real-coercion (ast-child 'Body n)))))
        
        (VariableAssignment
-        0
         (lambda (n)
           (let ((l-type (att-value 'type (ast-child 'LHand n))))
             (cond
@@ -89,43 +83,35 @@
               (else (att-value 'find-integer->real-coercion (ast-child 'RHand n)))))))
        
        (ProcedureReturn
-        0
         (lambda (n)
           (list:find-integer->real-coercion (ast-child 'Expression* n))))
        
        (Write
-        0
         (lambda (n)
           (att-value 'find-integer->real-coercion (ast-child 'Expression n))))
        
        (Read
-        0
         (lambda (n)
           (att-value 'find-integer->real-coercion (ast-child 'Expression n))))
        
        (ProcedureDeclaration
-        0
         (lambda (n)
           (att-value 'find-integer->real-coercion (ast-child 'Body n))))
        
        (Expression
-        0
         (lambda (n)
           #f))
        
        (ProcedureCall
-        0
         (lambda (n)
           (or (att-value 'find-integer->real-coercion (ast-child 'Procedure n))
               (list:find-integer->real-coercion (ast-child 'Arguments n)))))
        
        (UnaryExpression
-        0
         (lambda (n)
           (att-value 'find-integer->real-coercion (ast-child 'Operand n))))
        
        (BinaryExpression
-        0
         (lambda (n)
           (cond
             ((and (type-integer? (att-value 'type (ast-child 'Operand1 n)))
