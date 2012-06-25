@@ -835,6 +835,7 @@
  ;  2) Automatic quoting of the attribute's name (thus, the given name must be an ordinary identifier)
  ;  3) Automatic quoting of non-terminals and context-names (thus, contexts must be ordinary identifiers)
  ;  4) Optional caching and circularity information (by default caching is enabled and attribute definitions are non-circular)
+ ;  5) Context-names of synthesized attribute definitions can be left
  ; Note, that (3) prohibits the specification of contexts using positions within productions. For details about attribute
  ; specifications see "specify-attribute".
  (define-syntax specify-ag-rule
@@ -846,48 +847,23 @@
                 (attribute-name* 'attribute-name))
             (let-syntax
                 ((specify-attribute*
-                  (lambda (x)
-                    (syntax-case x ()
-                      ((_ spec* attribute-name* (non-terminal position equation))
-                       (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(specify-attribute
-                          spec*
-                          attribute-name*
-                          'non-terminal
-                          'position
-                          #t
-                          equation
-                          #f))
-                      ((_ spec* attribute-name* (non-terminal position cached? equation))
-                       (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(specify-attribute
-                          spec*
-                          attribute-name*
-                          'non-terminal
-                          'position
-                          cached?
-                          equation
-                          #f))
-                      ((_ spec* attribute-name* (non-terminal position equation bottom-value equivalence-function))
-                       (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(specify-attribute
-                          spec*
-                          attribute-name*
-                          'non-terminal
-                          'position
-                          #t
-                          equation
-                          (cons bottom-value equivalence-function)))
-                      ((_ spec* attribute-name* (non-terminal position cached? equation bottom-value equivalence-function))
-                       (and (identifier? #'non-terminal) (identifier? #'position))
-                       #'(specify-attribute
-                          spec*
-                          attribute-name*
-                          'non-terminal
-                          'position
-                          cached?
-                          equation
-                          (cons bottom-value equivalence-function)))))))
+                  (syntax-rules ()
+                    ((_ spec* attribute-name* ((non-terminal position) equation))
+                     (specify-attribute spec* attribute-name* 'non-terminal 'position #t equation #f))
+                    ((_ spec* attribute-name* ((non-terminal position) cached? equation))
+                     (specify-attribute spec* attribute-name* 'non-terminal 'position cached? equation #f))
+                    ((_ spec* attribute-name* ((non-terminal position) equation bottom-value equivalence-function))
+                     (specify-attribute spec* attribute-name* 'non-terminal 'position #t equation (cons bottom-value equivalence-function)))
+                    ((_ spec* attribute-name* ((non-terminal position) cached? equation bottom-value equivalence-function))
+                     (specify-attribute spec* attribute-name* 'non-terminal 'position cached? equation (cons bottom-value equivalence-function)))
+                    ((_ spec* attribute-name* (non-terminal equation))
+                     (specify-attribute spec* attribute-name* 'non-terminal 0 #t equation #f))
+                    ((_ spec* attribute-name* (non-terminal cached? equation))
+                     (specify-attribute spec* attribute-name* 'non-terminal 0 cached? equation #f))
+                    ((_ spec* attribute-name* (non-terminal equation bottom-value equivalence-function))
+                     (specify-attribute spec* attribute-name* 'non-terminal 0 #t equation (cons bottom-value equivalence-function)))
+                    ((_ spec* attribute-name* (non-terminal cached? equation bottom-value equivalence-function))
+                     (specify-attribute spec* attribute-name* 'non-terminal 0 cached? equation (cons bottom-value equivalence-function))))))
               (specify-attribute* spec* attribute-name* definition) ...))))))
  
  ; Calling this function adds to the given RACR specification the given attribute definition. To this end, the given definition's

@@ -44,27 +44,27 @@
  
  (ag-rule
   v
-  (S * (lambda (n) (att-value 'v (ast-child 1 n))))
-  (Bz * (lambda (n) 0))
-  (Bo * (lambda (n) (expt 2 (att-value 's n))))
-  (Ll * (lambda (n) (att-value 'v (ast-child 1 n))))
-  (Ln * (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n)))))
-  (Ni * (lambda (n) (att-value 'v (ast-child 1 n))))
-  (Nr * (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n))))))
+  (S (lambda (n) (att-value 'v (ast-child 1 n))))
+  (Bz (lambda (n) 0))
+  (Bo (lambda (n) (expt 2 (att-value 's n))))
+  (Ll (lambda (n) (att-value 'v (ast-child 1 n))))
+  (Ln (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n)))))
+  (Ni (lambda (n) (att-value 'v (ast-child 1 n))))
+  (Nr (lambda (n) (+ (att-value 'v (ast-child 1 n)) (att-value 'v (ast-child 2 n))))))
  
  (ag-rule
  l
- (Ll * (lambda (n) 1))
- (Ln * (lambda (n) (+ (att-value 'l (ast-child 1 n)) 1))))
+ (Ll (lambda (n) 1))
+ (Ln (lambda (n) (+ (att-value 'l (ast-child 1 n)) 1))))
 
 (ag-rule
  s
- (Ll B (lambda (n) (att-value 's (ast-parent n))))
- (Ln L (lambda (n) (+ (att-value 's (ast-parent n)) 1)))
- (Ln B (lambda (n) (att-value 's (ast-parent n))))
- (Ni L (lambda (n) 0))
- (Nr L (lambda (n) 0))
- (Nr L2 (lambda (n) (- (att-value 'l n)))))
+ ((Ll B) (lambda (n) (att-value 's (ast-parent n))))
+ ((Ln L) (lambda (n) (+ (att-value 's (ast-parent n)) 1)))
+ ((Ln B) (lambda (n) (att-value 's (ast-parent n))))
+ ((Ni L) (lambda (n) 0))
+ ((Nr L) (lambda (n) 0))
+ ((Nr L2) (lambda (n) (- (att-value 'l n)))))
 
 (compile-ag-specifications))
 
