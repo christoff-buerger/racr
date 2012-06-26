@@ -72,7 +72,7 @@
  
  ; Record type for AST specifcation rules; An AST rule has a reference to the RACR specification it belongs to and consist of
  ; its symbolic encoding, a production (i.e., a list of its symbols), an optional super-type, a list of its sub-types and a list
- ; of its attribute definitions, whereupon symbols are (name-as-scheme-symbol non-terminal? klenee? context-name-as-scheme-symbol)
+ ; of its attribute definitions, whereupon symbols are #(name-as-scheme-symbol non-terminal? klenee? context-name-as-scheme-symbol)
  ; quadrupel.
  (define-record-type ast-rule
    (fields specification as-symbol (mutable production) (mutable supertype) (mutable subtypes) (mutable attributes)))
@@ -211,10 +211,11 @@
             (my-display "-* ")
             (my-display
              (symbol->string
-              (car
+              (vector-ref
                (list-ref
                 (ast-rule-production (node-ast-rule (node-parent ast)))
-                (ast-child-index ast)))))
+                (ast-child-index ast))
+               0)))
             (for-each
              (lambda (element)
                (loop (+ ast-depth 1) element))
@@ -522,7 +523,7 @@
                                             (list spec rule)))))
                                (let* ((name-string (list->string name))
                                       (name-symbol (string->symbol name-string)))
-                                 (list
+                                 (vector
                                   name-symbol
                                   (not terminal?)
                                   klenee?
@@ -533,7 +534,7 @@
                                           name-symbol)))))))))
                  (let* ((l-hand (parse-symbol 'non-terminal 'l-hand)); The rule's l-hand
                         (supertype ; The rule's super-type
-                         (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (car (parse-symbol 'non-terminal 'l-hand)))))
+                         (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (vector-ref (parse-symbol 'non-terminal 'l-hand) 0))))
                    (match-char! #\-)
                    (match-char! #\>)
                    (make-ast-rule
@@ -554,7 +555,7 @@
                     (list)
                     (list))))))
             (rule* (parse-rule rule)) ; Representation of the parsed rule
-            (l-hand (caar (ast-rule-production rule*)))) ; The rule's l-hand
+            (l-hand (vector-ref (car (ast-rule-production rule*)) 0))) ; The rule's l-hand
        (if (hashtable-contains? (racr-specification-rules spec) l-hand) ; Check, that the rule's l-hand is not already defined.
            (assertion-violation
             'ast-rule
@@ -596,8 +597,8 @@
              (lambda (rule*)
                (fold-left
                 (lambda (result symb*)
-                  (if (cadr symb*)
-                      (append result (list (cadr symb*)) (ast-rule-subtypes (cadr symb*)))
+                  (if (vector-ref symb* 1)
+                      (append result (list (vector-ref symb* 1)) (ast-rule-subtypes (vector-ref symb* 1)))
                       result))
                 (list)
                 (cdr (ast-rule-production rule*))))))
@@ -620,8 +621,8 @@
                     (ast-rule-supertype-set! rule* supertype-entry))))
           (for-each
            (lambda (symb*)
-             (if (cadr symb*)
-                 (let ((symb-definition (hashtable-ref rules-table (car symb*) #f)))
+             (if (vector-ref symb* 1)
+                 (let ((symb-definition (hashtable-ref rules-table (vector-ref symb* 0) #f)))
                    (if (not symb-definition)
                        (assertion-violation
                         'compile-ast-specifications
@@ -629,10 +630,10 @@
                          "Invalid AST rule ["
                          (symbol->string (ast-rule-as-symbol rule*))
                          "]. Non-terminal ["
-                         (symbol->string (car symb*))
+                         (symbol->string (vector-ref symb* 0))
                          "] is not defined.")
                         rules-table))
-                   (set-car! (cdr symb*) symb-definition))))
+                   (vector-set! symb* 1 symb-definition))))
            (cdr (ast-rule-production rule*))))
         rules-list)
        
@@ -667,7 +668,7 @@
                'compile-ast-specifications
                (string-append
                 "Invalid AST grammar. The definition of ["
-                (symbol->string (caar (ast-rule-production rule*)))
+                (symbol->string (vector-ref (car (ast-rule-production rule*)) 0))
                 "] depends on itself (cyclic inheritance).")
                rules-table)))
         rules-list)
@@ -691,7 +692,7 @@
                "Invalid AST grammar. The start symbol ["
                (symbol->string start-symbol)
                "] inherits from ["
-               (symbol->string (caar (ast-rule-production supertype)))
+               (symbol->string (vector-ref (car (ast-rule-production supertype)) 0))
                "]; The start symbol must not inherit.")
               rules-table)))
        (let ((subtypes (ast-rule-subtypes (hashtable-ref rules-table start-symbol #f))))
@@ -742,10 +743,10 @@
         (lambda (rule*)
           (let loop ((rest-production (cdr (ast-rule-production rule*))))
             (if (not (null? rest-production))
-                (let ((current-context-name (cadddr (car rest-production))))
+                (let ((current-context-name (vector-ref (car rest-production) 3)))
                   (if (find
                        (lambda (symb*)
-                         (eq? (cadddr symb*) current-context-name))
+                         (eq? (vector-ref symb* 3) current-context-name))
                        (cdr rest-production))
                       (assertion-violation
                        'compile-ast-specifications
@@ -787,7 +788,7 @@
                  "Invalid AST grammar. The non-terminals ["
                  (fold-left
                   (lambda (result rule*)
-                    (string-append result " " (symbol->string (caar (ast-rule-production rule*)))))
+                    (string-append result " " (symbol->string (vector-ref (car (ast-rule-production rule*)) 0))))
                   ""
                   non-derivable-rules)
                  " ] cannot be derived.")
@@ -801,8 +802,8 @@
                  (not (find
                        (lambda (symb*)
                          (and
-                          (cadr symb*)
-                          (not (memq (cadr symb*) productive-rules))))
+                          (vector-ref symb* 1)
+                          (not (memq (vector-ref symb* 1) productive-rules))))
                        (cdr (ast-rule-production rule*)))))))
          (let loop ()
            (let ((productive-rule
@@ -819,7 +820,7 @@
                "Invalid AST grammar. The non-terminals ["
                (fold-left
                 (lambda (result rule*)
-                  (string-append result " " (symbol->string (caar (ast-rule-production rule*)))))
+                  (string-append result " " (symbol->string (vector-ref (car (ast-rule-production rule*)) 0))))
                 ""
                 to-check)
                " ] are not productive.")
@@ -945,7 +946,7 @@
                               (symbol->string context-name-or-position)
                               "] context.")
                              (list attribute-name non-terminal context-name-or-position))
-                            (if (eq? (cadddr (car rest-production)) context-name-or-position)
+                            (if (eq? (vector-ref (car rest-production) 3) context-name-or-position)
                                 pos
                                 (loop (+ pos 1) (cdr rest-production))))))
                   (if (>= context-name-or-position (length (ast-rule-production ast-rule)))
@@ -961,7 +962,7 @@
                       context-name-or-position))))
          
          ;;; Ensure, that the given context is a non-terminal:
-         (if (not (cadr (list-ref (ast-rule-production ast-rule) position)))
+         (if (not (vector-ref (list-ref (ast-rule-production ast-rule) position) 1))
              (assertion-violation
               'ag-rule
               (string-append
@@ -1289,7 +1290,7 @@
           "RACR system runtime exception (ast-type): Cannot access type; List nodes and terminals have no type."
           n))
      (add-dependency:att->node-type n)
-     (caar (ast-rule-production (node-ast-rule n)))))
+     (vector-ref (car (ast-rule-production (node-ast-rule n))) 0)))
  
  ; Given a node n, return whether it represents a list of children, i.e., is a list node, or not.
  ; DEPENDENCIES:
@@ -1390,7 +1391,7 @@
                 (symbol->string i)
                 "] child.")
                n)
-              (if (eq? (cadddr (car contexts)) i)
+              (if (eq? (vector-ref (car contexts) 3) i)
                   (let ((child (car children)))
                     (add-dependency:att->node child)
                     (if (node-terminal? child)
@@ -1587,18 +1588,18 @@
                 (list) ; ...we are done, otherwise...
                 (let ((symb* (car symbols))
                       (child (car children)))
-                  (if (cadr symb*) ; ...check if the next expected child is a non-terminal....
+                  (if (vector-ref symb* 1) ; ...check if the next expected child is a non-terminal....
                       (let ((ensure-child-fits ; ...If we expect a non-terminal we need a function which ensures, that...
                              (lambda (child)
                                ; ...its type is the one of the expected non-terminal or a sub-type....
-                               (if (not (memq (node-ast-rule child) (cons (cadr symb*) (ast-rule-subtypes (cadr symb*)))))
+                               (if (not (memq (node-ast-rule child) (cons (vector-ref symb* 1) (ast-rule-subtypes (vector-ref symb* 1)))))
                                    (assertion-violation
                                     'create-ast
                                     (string-append
                                      "Cannot construct ["
                                      (symbol->string rule)
                                      "] fragment. Expected a ["
-                                     (symbol->string (car symb*))
+                                     (symbol->string (vector-ref symb* 0))
                                      "] node as ["
                                      (number->string pos)
                                      "]'th child, not a ["
@@ -1612,7 +1613,7 @@
                               "Cannot construct ["
                               (symbol->string rule)
                               "] fragment. Expected a ["
-                              (symbol->string (car symb*))
+                              (symbol->string (vector-ref symb* 0))
                               "] node as ["
                               (number->string pos)
                               "]'th child, not a terminal.")
@@ -1627,7 +1628,7 @@
                               (number->string pos)
                               "]'th child already is part of another AST fragment.")
                              (list spec rule children)))
-                        (if (caddr symb*) ; ...Now, check if we expect a list of non-terminals...
+                        (if (vector-ref symb* 2) ; ...Now, check if we expect a list of non-terminals...
                             (if (ast-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
                                 (for-each ensure-child-fits (node-children child)) ; ...all its elements fit....
                                 (assertion-violation
@@ -1663,7 +1664,7 @@
           (node-children root))
          
          ;;; Finally, check iff the constructed fragment represents a derivation w.r.t. the start symbol....
-         (if (eq? (caar (ast-rule-production ast-rule*)) (racr-specification-start-symbol spec))
+         (if (eq? (vector-ref (car (ast-rule-production ast-rule*)) 0) (racr-specification-start-symbol spec))
              (distribute-evaluator-state (make-evaluator-state) root)) ; ...Iff so, construct and distribute the AST's evaluator state.
          root)))) ; Return the constructed fragment.
  
@@ -1805,15 +1806,17 @@
                ((node-terminal? old-fragment)
                 #f)
                ((ast-list-node? (node-parent old-fragment))
-                (cadr
+                (vector-ref
                  (list-ref
                   (ast-rule-production (node-ast-rule (node-parent (node-parent old-fragment))))
-                  (ast-child-index (node-parent old-fragment)))))
+                  (ast-child-index (node-parent old-fragment)))
+                 1))
                (else
-                (cadr
+                (vector-ref
                  (list-ref
                   (ast-rule-production (node-ast-rule (node-parent old-fragment)))
-                  (ast-child-index old-fragment))))))
+                  (ast-child-index old-fragment))
+                 1))))
             (valid-types
              (and expected-type (cons expected-type (ast-rule-subtypes expected-type))))
             ; Support function to throw replacement exceptions incorporating a given error message:
@@ -1826,18 +1829,18 @@
                  (symbol->string
                   (if (or (ast-list-node? old-fragment) (node-terminal? old-fragment))
                       (node-ast-rule old-fragment)
-                      (caar (ast-rule-production (node-ast-rule old-fragment)))))
+                      (vector-ref (car (ast-rule-production (node-ast-rule old-fragment))) 0)))
                  " | new: "
                  (symbol->string
                   (if (or (ast-list-node? new-fragment) (node-terminal? new-fragment))
                       (node-ast-rule new-fragment)
-                      (caar (ast-rule-production (node-ast-rule new-fragment)))))
+                      (vector-ref (car (ast-rule-production (node-ast-rule new-fragment))) 0)))
                  " | expected: "
                  (if (ast-list-node? old-fragment)
                      "list of "
                      "")
                  (if expected-type
-                     (symbol->string (caar (ast-rule-production expected-type)))
+                     (symbol->string (vector-ref (car (ast-rule-production expected-type)) 0))
                      "terminal")
                  "]; "
                  cause)
@@ -1876,7 +1879,7 @@
        (if (and
             expected-type
             (eq?
-             (caar (ast-rule-production expected-type))
+             (vector-ref (car (ast-rule-production expected-type)) 0)
              (racr-specification-start-symbol (ast-rule-specification (node-ast-rule old-fragment)))))
            (error "Replacement of start symbol fragments not permitted."))
        (if (node-parent new-fragment)
@@ -1937,10 +1940,11 @@
           (list l i e)))
      (letrec* (; Support variable constraining the type of the element to insert:
                (expected-type
-                (cadr
+                (vector-ref
                  (list-ref
                   (ast-rule-production (node-ast-rule (node-parent l)))
-                  (ast-child-index l))))
+                  (ast-child-index l))
+                 1))
                (valid-types (cons expected-type (ast-rule-subtypes expected-type)))
                ; Support function to throw insertion exceptions incorporating a given error message:
                (error
@@ -1954,9 +1958,9 @@
                     (symbol->string
                      (if (or (ast-list-node? e) (node-terminal? e))
                          (node-ast-rule e)
-                         (caar (ast-rule-production (node-ast-rule e)))))
+                         (vector-ref (car (ast-rule-production (node-ast-rule e))) 0)))
                     " | expected: "
-                    (symbol->string (caar (ast-rule-production expected-type)))
+                    (symbol->string (vector-ref (car (ast-rule-production expected-type)) 0))
                     "]; "
                     cause)
                    (list l i e))))
@@ -2070,10 +2074,11 @@
           "RACR system runtime exception (rewrite-add): Cannot add list element; The given replacement already is part of another AST."
           (list l e)))
      (let* ((expected-type
-             (cadr
+             (vector-ref
               (list-ref
                (ast-rule-production (node-ast-rule (node-parent l)))
-               (ast-child-index l))))
+               (ast-child-index l))
+              1))
             (valid-types (cons expected-type (ast-rule-subtypes expected-type))))
        (if (not (memq (node-ast-rule e) valid-types)) ; ...can be a child of the list-node....
            (assertion-violation
