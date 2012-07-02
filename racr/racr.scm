@@ -309,10 +309,18 @@
  ;;                                                         Abstract Syntax Tree Annotations                                                       ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; Given an AST fragment, a node type T and an annotation name and value, add to each node of type T of the fragment
- ; the given annotation, iff it does not yet have an equally named one.
+ ; Given an AST fragment, a node type T and an annotation name and value, add to each node of type T of the fragment the given
+ ; annotation, iff it does not yet have an equally named one. An exception is thrown, if any attributes of the AST the given
+ ; node is part of are in evaluation.
  (define ast-weave-annotations
    (lambda (node type name value)
+     (if (and
+          (node-evaluator-state node)
+          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+         (assertion-violation
+          'ast-weave-annotations
+          "RCAR system runtime error (ast-weave-annotations): Cannot weave annotations; There are attributes in evaluation."
+          (list node name value)))
      (if (not (node-terminal? node))
          (begin
            (if (and
@@ -325,14 +333,30 @@
               (ast-weave-annotations child type name value))
             (node-children node))))))
  
- ; Given a node and an annotation name, return whether the node has an annotation with the given name or not.
+ ; Given a node and an annotation name, return whether the node has an annotation with the given name or not. An exception is
+ ; thrown, if any attributes of the AST the given node is part of are in evaluation.
  (define ast-annotation?
    (lambda (node name)
+     (if (and
+          (node-evaluator-state node)
+          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+         (assertion-violation
+          'ast-annotation?
+          "RCAR system runtime error (ast-annotation?): Cannot check for certain annotation; There are attributes in evaluation."
+          (list node name)))
      (assq name (node-annotations node))))
  
- ; Given a node return the value of a certain annotation associated with it. If the node has no such annotation, throw an exception.
+ ; Given a node return the value of a certain annotation associated with it. An exception is thrown, if the node has no such
+ ; annotation or any attributes of the AST it is part of are in evaluation.
  (define ast-annotation
    (lambda (node name)
+     (if (and
+          (node-evaluator-state node)
+          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+         (assertion-violation
+          'ast-annotation
+          "RCAR system runtime error (ast-annotation): Cannot access annotation; There are attributes in evaluation."
+          (list node name)))
      (let ((annotation (ast-annotation? node name)))
        (if annotation
            (cdr annotation)
@@ -347,13 +371,26 @@
  ; Given a node and an annotation name N and value V, add an annotation with name N and value V to the node. If the node already has
  ; an annotation named N, set its value to V. If V is a procedure, the annotation's value is a procedure P calling V with the node
  ; the annotation is associated with as first argument and arbitrary many further given arguments. The annotation of list nodes and
- ; terminals is not permitted and yields a runtime exception!
+ ; terminals is not permitted and yields a runtime exception! Additionally, an exception is thrown, if any attributes of the AST the
+ ; given node is part of are in evaluation.
  (define ast-annotation-set!
    (lambda (node name value)
+     (if (and
+          (node-evaluator-state node)
+          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+         (assertion-violation
+          'ast-annotation-set!
+          "RCAR system runtime error (ast-annotation-set!): Cannot set annotation; There are attributes in evaluation."
+          (list node name value)))
      (if (or (ast-list-node? node) (node-terminal? node))
          (assertion-violation
           'ast-annotation-set!
           "RACR system runtime error (ast-annotation-set!): List nodes and terminals cannot be annotated."
+          (list node name value)))
+     (if (not (symbol? name))
+         (assertion-violation
+          'ast-annotation-set!
+          "RACR system runtime error (ast-annotation-set!): Annotation names must be Scheme symbols."
           (list node name value)))
      (let ((annotation (ast-annotation? node name))
            (value
@@ -365,9 +402,17 @@
            (set-cdr! annotation value)
            (node-annotations-set! node (cons (cons name value) (node-annotations node)))))))
  
- ; Given a node and an annotation name, remove any equally named annotation associated with the node.
+ ; Given a node and an annotation name, remove any equally named annotation associated with the node. An exception is thrown,
+ ; if any attributes of the AST the given node is part of are in evaluation.
  (define ast-annotation-remove!
    (lambda (node name)
+     (if (and
+          (node-evaluator-state node)
+          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+         (assertion-violation
+          'ast-annotation-remove!
+          "RCAR system runtime error (ast-annotation-remove!): Cannot remove annotation; There are attributes in evaluation."
+          (list node name)))
      (node-annotations-set!
       node
       (remp
@@ -568,12 +613,12 @@
             (list spec rule)))
        (hashtable-set! (racr-specification-rules spec) l-hand rule*)))) ; Add the rule to the RACR system.
  
- ; Calling this function finishes the given RACR specification's AST specification, whereby the given symbol will be the start symbol. The AST
- ; specifications are checked for completeness and correctness, i.e., (1) all non-terminals are defined, (2) rule inheritance is cycle-free,
- ; (3) the start symbol is defined, (4) the start symbol is start separated, (5) no non-terminal inherits from the start symbol, (6) the start
- ; symbol does not inherite from any non-terminal and (7) all non-terminals are reachable and (8) productive. In case of any violation, an
- ; exception is thrown. Further, super-types and production symbols are resolved and inherited production symbols are added to their
- ; respective heirs.
+ ; Calling this function finishes the AST specification phase of the given RACR specification, whereby the given symbol becomes the start
+ ; symbol. The AST specification is checked for completeness and correctness, i.e., (1) all non-terminals are defined, (2) rule inheritance
+ ; is cycle-free, (3) the start symbol is defined, (4) the start symbol is start separated, (5) no non-terminal inherits from the start
+ ; symbol, (6) the start symbol does not inherit from any non-terminal and (7) all non-terminals are reachable and (8) productive. Further,
+ ; it is ensured, that (9) for every rule the context-names of its children are unique. In case of any violation, an exception is thrown.
+ ; Further, super-types and production symbols are resolved and inherited production symbols are added to their respective heirs.
  (define compile-ast-specifications
    (lambda (spec start-symbol)
      ;;; Ensure, that the RACR system is in the correct specification phase and...
@@ -832,8 +877,8 @@
  
  ; Syntax definition which eases the specification of attributes by:
  ;  1) Permitting the specification of arbitrary many definitions for a certain attribute for different contexts without the need to repeat
- ;     the attribute's name
- ;  2) Automatic quoting of the attribute's name (thus, the given name must be an ordinary identifier)
+ ;     the attribute name several times
+ ;  2) Automatic quoting of attribute names (thus, the given name must be an ordinary identifier)
  ;  3) Automatic quoting of non-terminals and context-names (thus, contexts must be ordinary identifiers)
  ;  4) Optional caching and circularity information (by default caching is enabled and attribute definitions are non-circular)
  ;  5) Context-names of synthesized attribute definitions can be left
