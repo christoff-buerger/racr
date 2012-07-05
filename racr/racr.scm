@@ -45,7 +45,8 @@
   rewrite-add
   rewrite-delete
   ; Utility interface:
-  print-ast)
+  print-ast
+  racr-exception?)
  (import (rnrs) (rnrs mutable-pairs))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -185,6 +186,59 @@
  ;;                                                                      Utility                                                                   ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
+ (define object->string
+   (lambda (x)
+     (call-with-string-output-port
+      (lambda (port)
+        (display x port)))))
+ 
+ (define-condition-type racr-exception &non-continuable make-racr-exception racr-exception?)
+ 
+ (define-syntax throw-exception
+   (syntax-rules ()
+     ((_ m-part ...)
+      (raise
+       (condition
+        (make-racr-exception)
+        (make-message-condition
+         (string-append
+          "RACR exception: "
+          (let ((m-part* m-part))
+            (if (string? m-part*)
+                m-part*
+                (string-append "[" (object->string m-part*) "]"))) ...)))))))
+ 
+ ; INTERNAL FUNCTION: Procedure sequentially applying a function on all the AST rules of a set of rules which inherit,
+ ; whereby super-types are processed before their sub-types.
+ (define apply-wrt-ast-inheritance
+   (lambda (func rules)
+     (let* ((resolved ; The set of all AST rules that are already processed....
+             (filter ; ...Initially it consists of all the rules that have no super-types.
+              (lambda (rule*)
+                (not (ast-rule-supertype rule*)))
+              rules))
+            (to-check ; The set of all AST rules that still must be processed....
+             (filter ; ...Initially it consists of all the rules that have super-types.
+              (lambda (rule*)
+                (ast-rule-supertype rule*))
+              rules)))
+       (let loop ()
+         (let ((to-resolve ; ...Find a rule that still must be processed and...
+                (find
+                 (lambda (rule*)
+                   (memq (ast-rule-supertype rule*) resolved)) ; ...whose super-type already has been processed....
+                 to-check)))
+           (if to-resolve ; ...Iff such a rule exists,...
+               (begin
+                 (func to-resolve) ; ...process it,...
+                 (set! resolved (cons to-resolve resolved)) ; ...add it to the set of processed rules,...
+                 (set! to-check (remq to-resolve to-check)) ; ...remove it from the set of rules to process and...
+                 (loop)))))))) ; ...recur.
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;                                                                   Support API                                                                  ;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
  ; Given an AST, an association list L of attribute pretty-printers and an output port, print a human-readable ASCII representation of
  ; the AST on the output port. The elements of the association list L are (attribute-name pretty-printing-function) pairs. Every attribute
  ; for which L contains an entry is printed when the AST node it is associated with is printed. Thereby, the given pretty printing function
@@ -278,33 +332,6 @@
                              (specify-ag-rule spec* attribute-name definition (... ...))))))
               body ...))))))
  
- ; INTERNAL FUNCTION: Procedure sequentially applying a function on all the AST rules of a set of rules which inherit,
- ; whereby super-types are processed before their sub-types.
- (define apply-wrt-ast-inheritance
-   (lambda (func rules)
-     (let* ((resolved ; The set of all AST rules that are already processed....
-             (filter ; ...Initially it consists of all the rules that have no super-types.
-              (lambda (rule*)
-                (not (ast-rule-supertype rule*)))
-              rules))
-            (to-check ; The set of all AST rules that still must be processed....
-             (filter ; ...Initially it consists of all the rules that have super-types.
-              (lambda (rule*)
-                (ast-rule-supertype rule*))
-              rules)))
-       (let loop ()
-         (let ((to-resolve ; ...Find a rule that still must be processed and...
-                (find
-                 (lambda (rule*)
-                   (memq (ast-rule-supertype rule*) resolved)) ; ...whose super-type already has been processed....
-                 to-check)))
-           (if to-resolve ; ...Iff such a rule exists,...
-               (begin
-                 (func to-resolve) ; ...process it,...
-                 (set! resolved (cons to-resolve resolved)) ; ...add it to the set of processed rules,...
-                 (set! to-check (remq to-resolve to-check)) ; ...remove it from the set of rules to process and...
-                 (loop)))))))) ; ...recur.
- 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;                                                         Abstract Syntax Tree Annotations                                                       ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -317,10 +344,7 @@
      (if (and
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
-         (assertion-violation
-          'ast-weave-annotations
-          "RCAR system runtime error (ast-weave-annotations): Cannot weave annotations; There are attributes in evaluation."
-          (list node name value)))
+         (throw-exception "Cannot weave " name " annotation; There are attributes in evaluation."))
      (if (not (node-terminal? node))
          (begin
            (if (and
@@ -340,10 +364,7 @@
      (if (and
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
-         (assertion-violation
-          'ast-annotation?
-          "RCAR system runtime error (ast-annotation?): Cannot check for certain annotation; There are attributes in evaluation."
-          (list node name)))
+         (throw-exception "Cannot check for " name " annotation; There are attributes in evaluation."))
      (assq name (node-annotations node))))
  
  ; Given a node return the value of a certain annotation associated with it. An exception is thrown, if the node has no such
@@ -353,20 +374,11 @@
      (if (and
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
-         (assertion-violation
-          'ast-annotation
-          "RCAR system runtime error (ast-annotation): Cannot access annotation; There are attributes in evaluation."
-          (list node name)))
+         (throw-exception "Cannot access " name " annotation; There are attributes in evaluation."))
      (let ((annotation (ast-annotation? node name)))
        (if annotation
            (cdr annotation)
-           (assertion-violation
-            'ast-annotation
-            (string-append
-             "RACR system runtime error (ast-annotation): Cannot access ["
-             (symbol->string name)
-             "] annotation; The given node has no such annotation.")
-            node)))))
+           (throw-exception "Cannot access " name " annotation; The given node has no such annotation.")))))
  
  ; Given a node and an annotation name N and value V, add an annotation with name N and value V to the node. If the node already has
  ; an annotation named N, set its value to V. If V is a procedure, the annotation's value is a procedure P calling V with the node
@@ -378,20 +390,11 @@
      (if (and
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
-         (assertion-violation
-          'ast-annotation-set!
-          "RCAR system runtime error (ast-annotation-set!): Cannot set annotation; There are attributes in evaluation."
-          (list node name value)))
+         (throw-exception "Cannot set " name " annotation; There are attributes in evaluation."))
      (if (or (ast-list-node? node) (node-terminal? node))
-         (assertion-violation
-          'ast-annotation-set!
-          "RACR system runtime error (ast-annotation-set!): List nodes and terminals cannot be annotated."
-          (list node name value)))
+         (throw-exception "Cannot set " name " annotation; List nodes and terminals cannot be annotated."))
      (if (not (symbol? name))
-         (assertion-violation
-          'ast-annotation-set!
-          "RACR system runtime error (ast-annotation-set!): Annotation names must be Scheme symbols."
-          (list node name value)))
+         (throw-exception "Cannot set " name " annotation; Annotation names must be Scheme symbols."))
      (let ((annotation (ast-annotation? node name))
            (value
             (if (procedure? value)
@@ -409,10 +412,7 @@
      (if (and
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
-         (assertion-violation
-          'ast-annotation-remove!
-          "RCAR system runtime error (ast-annotation-remove!): Cannot remove annotation; There are attributes in evaluation."
-          (list node name)))
+         (throw-exception "Cannot remove " name " annotation; There are attributes in evaluation."))
      (node-annotations-set!
       node
       (remp
@@ -432,13 +432,7 @@
    (lambda (spec rule)
      ;;; Ensure, that the RACR system is in the correct specification phase:
      (if (> (racr-specification-specification-phase spec) 1)
-         (assertion-violation
-          'ast-rule
-          (string-append
-           "Invalid specification. Unexpected AST rule ["
-           (symbol->string rule)
-           "]; After compiling AST specifications the specification of further AST rules is not permitted.")
-          (list spec rule)))
+         (throw-exception "Unexpected AST rule " rule "; AST rules can only be defined in the AST specification phase."))
      
      (let* (; Support function, that given a symbol S encoding an AST rule, parses S and returns an appropriate rule representation.
             (parse-rule
@@ -463,67 +457,27 @@
                         (match-char!
                          (lambda (c)
                            (if (eos?)
-                               (assertion-violation
-                                'ast-rule
-                                (string-append
-                                 "Invalid AST rule ["
-                                 (symbol->string rule)
-                                 "]. Unexpected end; Expected ["
-                                 (string c)
-                                 "] character.")
-                                (list spec rule))
+                               (throw-exception "Unexpected end of AST rule " rule "; Expected " c " character.")
                                (if (char=? (my-peek-char) c)
                                    (set! pos (+ pos 1))
-                                   (assertion-violation
-                                    'ast-rule
-                                    (string-append
-                                     "Invalid AST rule ["
-                                     (symbol->string rule)
-                                     "]. Unexpected ["
-                                     (string (my-peek-char))
-                                     "] character.")
-                                    (list spec rule))))))
+                                   (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character.")))))
                         ; Support function parsing a symbol, i.e., retrieving its name, type, if it is a list and optional context-name.
                         ; It returns a (name-as-scheme-symbol terminal? klenee? context-name-as-scheme-symbol?) quadrupel:
                         (parse-symbol
                          (lambda (type location) ; type: non-terminal, symbol; location: l-hand, r-hand 
                            (if (eos?)
-                               (assertion-violation
-                                'ast-rule
-                                (string-append
-                                 "Invalid AST rule ["
-                                 (symbol->string rule)
-                                 "]. Unexpected end; Expected "
-                                 (symbol->string type)
-                                 ".")
-                                (list spec rule)))
+                               (throw-exception "Unexpected end of AST rule " rule "; Expected " type "."))
                            (let* ((terminal? (char-lower-case? (my-peek-char)))
                                   (name
                                    (let loop ((chars (list)))
                                      (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
                                          (begin
                                            (if (and terminal? (not (char-lower-case? (my-peek-char))))
-                                               (assertion-violation
-                                                'ast-rule
-                                                (string-append
-                                                 "Invalid AST rule ["
-                                                 (symbol->string rule)
-                                                 "]. Invalid terminal; Terminals must consist only of lower-case characters.")
-                                                (list spec rule)))
+                                               (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character."))
                                            (loop (cons (my-read-char) chars)))
                                          (reverse chars)))))
                              (if (null? name)
-                                 (assertion-violation
-                                  'ast-rule
-                                  (string-append
-                                   "Invalid AST rule ["
-                                   (symbol->string rule)
-                                   "]. Unexpected ["
-                                   (string (my-peek-char))
-                                   "] character; Expected "
-                                   (symbol->string type)
-                                   ".")
-                                  (list spec rule)))
+                                 (throw-exception "Unexpected " (my-peek-char) " character in AST rule " rule "; Expected " type "."))
                              (let* ((klenee? (and (not terminal?) (eq? location 'r-hand) (not (eos?)) (char=? (my-peek-char) #\*) (my-read-char)))
                                     (context-name?
                                      (and
@@ -542,30 +496,12 @@
                                              (loop (cons (my-read-char) chars))
                                              (reverse chars)))))))
                                (if (and (eq? type 'non-terminal) terminal?)
-                                   (assertion-violation
-                                    'ast-rule
-                                    (string-append
-                                     "Invalid AST rule ["
-                                     (symbol->string rule)
-                                     "]. Unexpected terminal; Left hand side symbols must be non-terminals.")
-                                    (list spec rule)))
+                                   (throw-exception "Unexpected terminal in AST rule " rule "; Left hand side symbols must be non-terminals."))
                                (if context-name?
                                    (if (null? context-name?)
-                                       (assertion-violation
-                                        'ast-rule
-                                        (string-append
-                                         "Invalid AST rule ["
-                                         (symbol->string rule)
-                                         "]. Missing context-name.")
-                                        (list spec rule))
+                                       (throw-exception "Invalid AST rule " rule "; Missing context-name.")
                                        (if (not (char-alphabetic? (car context-name?)))
-                                           (assertion-violation
-                                            'ast-rule
-                                            (string-append
-                                             "Invalid AST rule ["
-                                             (symbol->string rule)
-                                             "]. Malformed context-name; Context-names must start with a letter.")
-                                            (list spec rule)))))
+                                           (throw-exception "Malformed context-name in AST rule " rule "; Context-names must start with a letter."))))
                                (let* ((name-string (list->string name))
                                       (name-symbol (string->symbol name-string)))
                                  (vector
@@ -602,15 +538,7 @@
             (rule* (parse-rule rule)) ; Representation of the parsed rule
             (l-hand (vector-ref (car (ast-rule-production rule*)) 0))) ; The rule's l-hand
        (if (hashtable-contains? (racr-specification-rules spec) l-hand) ; Check, that the rule's l-hand is not already defined.
-           (assertion-violation
-            'ast-rule
-            (string-append
-             "Invalid AST rule ["
-             (symbol->string rule)
-             "]. Redefinition of ["
-             (symbol->string l-hand)
-             "].")
-            (list spec rule)))
+           (throw-exception "Invalid AST rule " rule "; Redefinition of " l-hand "."))
        (hashtable-set! (racr-specification-rules spec) l-hand rule*)))) ; Add the rule to the RACR system.
  
  ; Calling this function finishes the AST specification phase of the given RACR specification, whereby the given symbol becomes the start
@@ -624,10 +552,7 @@
      ;;; Ensure, that the RACR system is in the correct specification phase and...
      (let ((current-phase (racr-specification-specification-phase spec)))
        (if (> current-phase 1)
-           (assertion-violation
-            'compile-ast-specifications
-            "Unexpected AST compilation. The RACR specification's AST already have been compiled."
-            spec)
+           (throw-exception "Unexpected AST compilation; The AST specifications already have been compiled.")
            (racr-specification-specification-phase-set! spec (+ current-phase 1)))) ; ...iff so proceed to the next specification phase.
      
      (racr-specification-start-symbol-set! spec start-symbol)
@@ -654,30 +579,14 @@
           (if (ast-rule-supertype rule*)
               (let ((supertype-entry (hashtable-ref rules-table (ast-rule-supertype rule*) #f)))
                 (if (not supertype-entry)
-                    (assertion-violation
-                     'compile-ast-specifications
-                     (string-append
-                      "Invalid AST rule ["
-                      (symbol->string (ast-rule-as-symbol rule*))
-                      "]. The supertype ["
-                      (symbol->string (ast-rule-supertype rule*))
-                      "] is not defined.")
-                     rules-table)
+                    (throw-exception "Invalid AST rule " (ast-rule-as-symbol rule*) "; The supertype " (ast-rule-supertype rule*) " is not defined.")
                     (ast-rule-supertype-set! rule* supertype-entry))))
           (for-each
            (lambda (symb*)
              (if (vector-ref symb* 1)
                  (let ((symb-definition (hashtable-ref rules-table (vector-ref symb* 0) #f)))
                    (if (not symb-definition)
-                       (assertion-violation
-                        'compile-ast-specifications
-                        (string-append
-                         "Invalid AST rule ["
-                         (symbol->string (ast-rule-as-symbol rule*))
-                         "]. Non-terminal ["
-                         (symbol->string (vector-ref symb* 0))
-                         "] is not defined.")
-                        rules-table))
+                       (throw-exception "Invalid AST rule " (ast-rule-as-symbol rule*) "; Non-terminal " (vector-ref symb* 0) " is not defined."))
                    (vector-set! symb* 1 symb-definition))))
            (cdr (ast-rule-production rule*))))
         rules-list)
@@ -709,67 +618,37 @@
        (for-each
         (lambda (rule*)
           (if (memq rule* (ast-rule-subtypes rule*))
-              (assertion-violation
-               'compile-ast-specifications
-               (string-append
-                "Invalid AST grammar. The definition of ["
-                (symbol->string (vector-ref (car (ast-rule-production rule*)) 0))
-                "] depends on itself (cyclic inheritance).")
-               rules-table)))
+              (throw-exception "Invalid AST grammar; The definition of " (ast-rule-as-symbol rule*) " depends on itself (cyclic inheritance).")))
         rules-list)
        
        ;;; Ensure, that the start symbol is defined:
        (if (not (hashtable-contains? rules-table start-symbol))
-           (assertion-violation
-            'compile-ast-specifications
-            (string-append
-             "Invalid AST grammar. The start symbol ["
-             (symbol->string start-symbol)
-             "] is not defined.")
-            rules-table))
+           (throw-exception "Invalid AST grammar; The start symbol " start-symbol " is not defined."))
        
        ;;; Ensure, that the start symbol has no super- and sub-type:
        (let ((supertype (ast-rule-supertype (hashtable-ref rules-table start-symbol #f))))
          (if supertype
-             (assertion-violation
-              'compile-ast-specifications
-              (string-append
-               "Invalid AST grammar. The start symbol ["
-               (symbol->string start-symbol)
-               "] inherits from ["
-               (symbol->string (vector-ref (car (ast-rule-production supertype)) 0))
-               "]; The start symbol must not inherit.")
-              rules-table)))
+             (throw-exception "Invalid AST grammar; The start symbol " start-symbol " inherits from " (ast-rule-as-symbol supertype) ".")))
        (let ((subtypes (ast-rule-subtypes (hashtable-ref rules-table start-symbol #f))))
          (if (not (null? subtypes))
-             (assertion-violation
-              'compile-ast-specifications
-              (string-append
-               "Invalid AST grammar. The non-terminals ["
-               (fold-left
-                (lambda (result name)
-                  (string-append result " " name))
-                ""
-                (map symbol->string subtypes))
-               " ] directly inherit from the start symbol ["
-               (symbol->string start-symbol)
-               "]; Inheritance from the start symbol is not permitted.")
-              rules-table)))
+             (throw-exception
+              "Invalid AST grammar; The rules "
+              (map ast-rule-as-symbol subtypes)
+              " inherit from the start symbol "
+              start-symbol
+              ".")))
        
        ;;; Ensure, that the CFG is start separated:
        (let ((start-rule (hashtable-ref rules-table start-symbol #f)))
          (for-each
           (lambda (rule*)
             (if (memq start-rule (derivable-rules rule*))
-                (assertion-violation
-                 'compile-ast-specifications
-                 (string-append
-                  "Invalid AST grammar. The start symbol ["
-                  (symbol->string start-symbol)
-                  "] is not start separated because of rule ["
-                  (symbol->string (ast-rule-as-symbol rule*))
-                  "].")
-                 rules-table)))
+                (throw-exception
+                 "Invalid AST grammar; The start symbol "
+                 start-symbol
+                 " is not start separated because of rule "
+                 (ast-rule-as-symbol rule*)
+                 ".")))
           rules-list))
        
        ;;; Resolve inherited production symbols:
@@ -793,15 +672,12 @@
                        (lambda (symb*)
                          (eq? (vector-ref symb* 3) current-context-name))
                        (cdr rest-production))
-                      (assertion-violation
-                       'compile-ast-specifications
-                       (string-append
-                        "Invalid AST grammar. The context-name ["
-                        (symbol->string current-context-name)
-                        "] is not unique for rule ["
-                        (symbol->string (ast-rule-as-symbol rule*))
-                        "].")
-                       rules-table))
+                      (throw-exception
+                       "Invalid AST grammar; The context-name "
+                       current-context-name
+                       " is not unique for rule "
+                       (ast-rule-as-symbol rule*)
+                       "."))
                   (loop (cdr rest-production))))))
         rules-list)
        
@@ -827,17 +703,7 @@
                    (not (memq rule* checked)))
                  rules-list)))
            (if (> (length non-derivable-rules) 0)
-               (assertion-violation
-                'compile-ast-specifications
-                (string-append
-                 "Invalid AST grammar. The non-terminals ["
-                 (fold-left
-                  (lambda (result rule*)
-                    (string-append result " " (symbol->string (vector-ref (car (ast-rule-production rule*)) 0))))
-                  ""
-                  non-derivable-rules)
-                 " ] cannot be derived.")
-                rules-table))))
+               (throw-exception "Invalid AST grammar; The rules " (map ast-rule-as-symbol non-derivable-rules) " cannot be derived."))))
        
        ;;; Ensure, that all non-terminals are productive:
        (let* ((productive-rules (list))
@@ -859,17 +725,7 @@
                    (set! productive-rules (cons productive-rule productive-rules))
                    (loop)))))
          (if (> (length to-check) 0)
-             (assertion-violation
-              'compile-ast-specifications
-              (string-append
-               "Invalid AST grammar. The non-terminals ["
-               (fold-left
-                (lambda (result rule*)
-                  (string-append result " " (symbol->string (vector-ref (car (ast-rule-production rule*)) 0))))
-                ""
-                to-check)
-               " ] are not productive.")
-              rules-table))))))
+             (throw-exception "Invalid AST grammar; The rules " (map ast-rule-as-symbol to-check) " are not productive."))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;                                                       Attribute Grammar Specifications                                                         ;;;
@@ -937,43 +793,16 @@
                   (not (procedure? (cdr circularity-definition)))
                   "Circularity definition : #f or (bottom-value equivalence-function) pair"))))
        (if wrong-argument-type
-           (assertion-violation
-            'ag-rule
-            (string-append
-             "Invalid attribute definition. Wrong argument type ("
-             wrong-argument-type
-             ").")
-            (list attribute-name non-terminal context-name-or-position))))
+           (throw-exception "Invalid attribute definition; Wrong argument type (" wrong-argument-type ").")))
      
      ;;; Ensure, that the RACR system is in the correct specification phase:
-     (let ((current-phase (racr-specification-specification-phase spec)))
-       (if (< current-phase 2)
-           (assertion-violation
-            'ag-rule
-            (string-append
-             "Invalid specification. Unexpected AG rule for ["
-             (symbol->string attribute-name)
-             "]; To specify AG rules before the AST specifications are compiled is not permitted.")
-            (list attribute-name non-terminal context-name-or-position)))
-       (if (> current-phase 2)
-           (assertion-violation
-            'ag-rule
-            (string-append
-             "Invalid specification. Unexpected AG rule for ["
-             (symbol->string attribute-name)
-             "]; After compiling AG specifications the specification of further AG rules is not permitted.")
-            (list attribute-name non-terminal context-name-or-position))))
+     (if (not (= (racr-specification-specification-phase spec) 2))
+         (throw-exception "Unexpected " attribute-name " attribute definition; Attributes can only be defined in the AG specification phase."))
      
      (let ((ast-rule (hashtable-ref (racr-specification-rules spec) non-terminal #f)))
        ;;; Ensure, that the given AST rule is defined:
        (if (not ast-rule)
-           (assertion-violation
-            'ag-rule
-            (string-append
-             "Invalid attribute definition. The non-terminal ["
-             (symbol->string non-terminal)
-             "] is not defined.")
-            (list attribute-name non-terminal context-name-or-position)))
+           (throw-exception "Invalid attribute definition; The non-terminal " non-terminal " is not defined."))
        
        (let ((position ;;; Ensure, that the given context exists:
               (if (symbol? context-name-or-position)
@@ -982,58 +811,39 @@
                       (let loop ((pos 1)
                                  (rest-production (cdr (ast-rule-production ast-rule))))
                         (if (null? rest-production)
-                            (assertion-violation
-                             'ag-rule
-                             (string-append
-                              "Invalid attribute definition. The non-terminal ["
-                              (symbol->string non-terminal)
-                              "] has no ["
-                              (symbol->string context-name-or-position)
-                              "] context.")
-                             (list attribute-name non-terminal context-name-or-position))
+                            (throw-exception
+                             "Invalid attribute definition; The non-terminal "
+                             non-terminal
+                             " has no "
+                             context-name-or-position
+                             " context.")
                             (if (eq? (vector-ref (car rest-production) 3) context-name-or-position)
                                 pos
                                 (loop (+ pos 1) (cdr rest-production))))))
                   (if (>= context-name-or-position (length (ast-rule-production ast-rule)))
-                      (assertion-violation
-                       'ag-rule
-                       (string-append
-                        "Invalid attribute definition. There exists no ["
-                        (number->string context-name-or-position)
-                        "]'th position in the context of ["
-                        (symbol->string non-terminal)
-                        "].")
-                       (list attribute-name non-terminal context-name-or-position))
+                      (throw-exception
+                       "Invalid attribute definition; There exists no "
+                       context-name-or-position
+                       "'th position in the context of "
+                       non-terminal
+                       "].")
                       context-name-or-position))))
          
          ;;; Ensure, that the given context is a non-terminal:
          (if (not (vector-ref (list-ref (ast-rule-production ast-rule) position) 1))
-             (assertion-violation
-              'ag-rule
-              (string-append
-               "Invalid attribute definition. The ["
-               (number->string position)
-               "]'th position in the context of ["
-               (symbol->string non-terminal)
-               "] is a terminal; Attributes can only be defined for non-terminals.")
-              (list attribute-name non-terminal position)))
+             (throw-exception
+              "Invalid attribute definition; The "
+              position
+              "'th position in the context of "
+              non-terminal
+              " is a terminal but attributes can only be defined for non-terminals."))
          
          ;;; Ensure, that the attribute is not already defined for the given context:
          (if (find
               (lambda (def)
-                (and (eq? attribute-name (attribute-definition-name def)) (eq? position (cdr (attribute-definition-context def)))))
+                (and (eq? attribute-name (attribute-definition-name def)) (= position (cdr (attribute-definition-context def)))))
               (ast-rule-attributes ast-rule))
-             (assertion-violation
-              'ag-rule
-              (string-append
-               "Invalid attribute definition. Redefinition of ["
-               (symbol->string attribute-name)
-               "] for the context ["
-               (symbol->string non-terminal)
-               ", "
-               (number->string position)
-               "]."
-               (list attribute-name non-terminal position))))
+             (throw-exception "Invalid attribute definition; Redefinition of " attribute-name " for context " non-terminal position "."))
          
          ;;; Add the definition to the AST rule:
          (ast-rule-attributes-set!
@@ -1054,15 +864,9 @@
      ;;; Ensure, that the RACR system is in the correct specification phase and...
      (let ((current-phase (racr-specification-specification-phase spec)))
        (if (< current-phase 2)
-           (assertion-violation
-            'ag-rule
-            "Unexpected AG compilation. The RACR specification's AST is not yet compiled."
-            spec))
+           (throw-exception "Unexpected AG compilation. The AST specifications are not yet compiled."))
        (if (> current-phase 2)
-           (assertion-violation
-            'compile-ast-specifications
-            "Unexpected AG compilation. The RACR specification's AG already have been compiled."
-            spec)
+           (throw-exception "Unexpected AG compilation. The AG specifications already have been compiled.")
            (racr-specification-specification-phase-set! spec (+ current-phase 1)))) ; ...iff so proceed to the next specification phase.
      
      (let* ((ast-rules ; List of all AST rules
@@ -1079,7 +883,7 @@
                        (lambda (sub-def)
                          (and
                           (eq? (attribute-definition-name super-def) (attribute-definition-name sub-def))
-                          (eq? (cdr (attribute-definition-context super-def)) (cdr (attribute-definition-context sub-def)))))
+                          (= (cdr (attribute-definition-context super-def)) (cdr (attribute-definition-context sub-def)))))
                        (ast-rule-attributes ast-rule*)))
                  ; ...If the super-type's attribute definition is not shadowed...
                  (ast-rule-attributes-set! ; ...add...
@@ -1120,13 +924,8 @@
              att ; ...Iff it has, return the found defining attribute instance.
              (let ((parent (node-parent n))) ; ...Iff no defining attribute instance can be found...
                (if (not parent) ; ...check if there exists a parent node that may provide a definition....
-                   (assertion-violation ; ...Iff not, thrown an exception,...
-                    'lookup-attribute
-                    (string-append
-                     "AG evaluator exception: Cannot access unknown attribute ["
-                     (symbol->string name)
-                     "].")
-                    n)
+                   (throw-exception ; ...Iff not, thrown an exception,...
+                    "AG evaluator exception; Cannot access unknown attribute " name ".")
                    (let* ((att (loop parent)) ; ...otherwise proceed the search at the parent node. Iff it succeeds...
                           (find-child-index
                            (lambda (n)
@@ -1293,10 +1092,7 @@
                 ; this attribute is evaluated must depend on this one. Then,...
                 (add-dependency:att->att att)
                 ; ...thrown an exception because we encountered an unexpected dependency cycle.
-                (assertion-violation
-                 'att-value
-                 (string-append "AG evaluator exception: Unexpected [" (symbol->string name) "] cycle.")
-                 n))
+                (throw-exception "AG evaluator exception; Unexpected " name " cycle."))
                
                (else ; EVALUATION-CASE (5): Non-circular attribute not in evaluation.
                 (dynamic-wind
@@ -1330,10 +1126,7 @@
  (define ast-node-type
    (lambda (n)
      (if (or (ast-list-node? n) (node-terminal? n))
-         (assertion-violation
-          'ast-type
-          "RACR system runtime exception (ast-type): Cannot access type; List nodes and terminals have no type."
-          n))
+         (throw-exception "Cannot access type; List nodes and terminals have no type."))
      (add-dependency:att->node-type n)
      (vector-ref (car (ast-rule-production (node-ast-rule n))) 0)))
  
@@ -1358,15 +1151,9 @@
      (if (or
           (and (node? a1) (or (ast-list-node? a1) (node-terminal? a1)))
           (and (node? a2) (or (ast-list-node? a2) (node-terminal? a2))))
-         (assertion-violation
-          'ast-subtype?
-          "RACR system runtime error (ast-subtype?): List nodes and terminals cannot be tested for sub-typing."
-          (list a1 a2)))
+         (throw-exception "List nodes and terminals cannot be tested for sub-typing."))
      (if (and (not (node? a1)) (not (node? a2)))
-         (assertion-violation
-          'ast-subtype?
-          "RACR system runtime error (ast-subtype?): Wrong argument types; At least one argument must be an AST node."
-          (list a1 a2)))
+         (throw-exception "Wrong argument types; At least one argument must be an AST node."))
      ((lambda (t1/t2)
         (and
          (car t1/t2)
@@ -1404,10 +1191,7 @@
            (begin
              (add-dependency:att->node parent)
              parent)
-           (assertion-violation
-            'ast-parent
-            "RACR system runtime error (ast-parent): Cannot access parent of roots."
-            n)))))
+           (throw-exception "Cannot access parent of roots.")))))
  
  ; Given a node, return its i'th child; If the node has no i'th child or is a terminal throw an exception.
  ; DEPENDENCIES:
@@ -1415,27 +1199,15 @@
  (define ast-child
    (lambda (i n)
      (if (node-terminal? n)
-         (assertion-violation
-          'ast-child
-          "RACR system runtime error (ast-child): Cannot access child; Terminals have no children."
-          n))
+         (throw-exception "Cannot access child; Terminals have no children."))
      (cond
        ((symbol? i)
         (if (ast-list-node? n)
-            (assertion-violation
-             'ast-child
-             "RACR system runtime error (ast-child): Cannot access list element by context-name; List-nodes define no context-names."
-             n))
+            (throw-exception "Cannot access list element by context-name; List-nodes define no context-names."))
         (let loop ((contexts (cdr (ast-rule-production (node-ast-rule n))))
                    (children (node-children n)))
           (if (null? contexts)
-              (assertion-violation
-               'ast-child
-               (string-append
-                "RACR system runtime error (ast-child): Cannot access non-existent ["
-                (symbol->string i)
-                "] child.")
-               n)
+              (throw-exception "Cannot access non-existent " i " child.")
               (if (eq? (vector-ref (car contexts) 3) i)
                   (let ((child (car children)))
                     (add-dependency:att->node child)
@@ -1450,13 +1222,7 @@
               (if (node-terminal? child)
                   (node-children child)
                   child))
-            (assertion-violation
-             'ast-child
-             (string-append
-              "RACR system runtime error (ast-child): Cannot access non existent ["
-              (number->string i)
-              "]'th child.")
-             n))))))
+            (throw-exception "Cannot access non existent " i "'th child."))))))
  
  ; Given a node C, child of another node P, return P's i'th child S (thus, S is a sibling of C or C)
  ; DEPENDENCIES:
@@ -1483,10 +1249,7 @@
  (define ast-num-children
    (lambda (n)
      (if (node-terminal? n)
-         (assertion-violation
-          'ast-num-children
-          "RACR system runtime error (ast-num-children): Cannot access number of children; Terminals have no children."
-          n))
+         (throw-exception "Cannot access number of children; Terminals have no children."))
      (add-dependency:att->node-num-children n)
      (length (node-children n))))
  
@@ -1583,38 +1346,23 @@
    (lambda (spec rule children)
      ;;; Ensure, that the RACR system is completely specified:
      (if (< (racr-specification-specification-phase spec) 3)
-         (assertion-violation
-          'create-ast
-          (string-append
-           "Cannot construct ["
-           (symbol->string rule)
-           "] fragment. The RACR specification still must be compiled.")
-          (list spec rule children)))
+         (throw-exception "Cannot construct " rule " fragment; The RACR specification still must be compiled."))
      
      (let ((ast-rule* (hashtable-ref (racr-specification-rules spec) rule #f)))
        ;;; Ensure, that the given AST rule is defined:
        (if (not ast-rule*)
-           (assertion-violation
-            'create-ast
-            (string-append
-             "Cannot construct ["
-             (symbol->string rule)
-             "] fragment. Unknown non-terminal/rule.")
-            (list spec rule children)))
+           (throw-exception "Cannot construct " rule " fragment; Unknown non-terminal/rule."))
        
        ;;; Ensure, that the expected number of children are given:
        (if (not (= (length children) (- (length (ast-rule-production ast-rule*)) 1)))
-           (assertion-violation
-            'create-ast
-            (string-append
-             "Cannot construct ["
-             (symbol->string rule)
-             "] fragment. ["
-             (number->string (length children))
-             "] children given, but ["
-             (number->string (- (length (ast-rule-production ast-rule*)) 1))
-             "] children expected.")
-            (list spec rule children)))
+           (throw-exception
+            "Cannot construct "
+            rule
+            " fragment; "
+            (length children)
+            " children given, but "
+            (- (length (ast-rule-production ast-rule*)) 1)
+            " children expected."))
        
        ;;; Construct the fragment, i.e., (1) the AST part consisting of the root and the given children and (2) the root's
        ;;; synthesized attribute instances and the childrens' inherited ones.
@@ -1638,57 +1386,45 @@
                              (lambda (child)
                                ; ...its type is the one of the expected non-terminal or a sub-type....
                                (if (not (memq (node-ast-rule child) (cons (vector-ref symb* 1) (ast-rule-subtypes (vector-ref symb* 1)))))
-                                   (assertion-violation
-                                    'create-ast
-                                    (string-append
-                                     "Cannot construct ["
-                                     (symbol->string rule)
-                                     "] fragment. Expected a ["
-                                     (symbol->string (vector-ref symb* 0))
-                                     "] node as ["
-                                     (number->string pos)
-                                     "]'th child, not a ["
-                                     (symbol->string (ast-node-type child))
-                                     "].")
-                                    (list spec rule children))))))
+                                   (throw-exception
+                                    "Cannot construct "
+                                    rule
+                                    " fragment; Expected a "
+                                    (vector-ref symb* 0)
+                                    " node as "
+                                    pos
+                                    "'th child, not a "
+                                    (ast-node-type child)
+                                    ".")))))
                         (if (not (node? child)) ; ...Then, check that the given child is an AST node and...
-                            (assertion-violation
-                             'create-ast
-                             (string-append
-                              "Cannot construct ["
-                              (symbol->string rule)
-                              "] fragment. Expected a ["
-                              (symbol->string (vector-ref symb* 0))
-                              "] node as ["
-                              (number->string pos)
-                              "]'th child, not a terminal.")
-                             (list spec rule children)))
+                            (throw-exception
+                             "Cannot construct "
+                             rule
+                             " fragment; Expected a "
+                             (vector-ref symb* 0)
+                             " node as "
+                             pos
+                             "'th child, not a terminal."))
                         (if (node-parent child) ; ...does not already belong to another AST....
-                            (assertion-violation
-                             'create-ast
-                             (string-append
-                              "Cannot construct ["
-                              (symbol->string rule)
-                              "] fragment. The given ["
-                              (number->string pos)
-                              "]'th child already is part of another AST fragment.")
-                             (list spec rule children)))
+                            (throw-exception
+                             "Cannot construct "
+                             rule
+                             " fragment. The given "
+                             pos
+                             "'th child already is part of another AST fragment."))
                         (if (vector-ref symb* 2) ; ...Now, check if we expect a list of non-terminals...
                             (if (ast-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
                                 (for-each ensure-child-fits (node-children child)) ; ...all its elements fit....
-                                (assertion-violation
-                                 'create-ast
-                                 (string-append
-                                  "Cannot construct ["
-                                  (symbol->string rule)
-                                  "] fragment. Expected a list-node as ["
-                                  (number->string pos)
-                                  "]'th child, not a "
-                                  (if (node? child)
-                                      (string-append "single [" (symbol->string (ast-node-type child)) "] node")
-                                      "terminal")
-                                  ".")
-                                 (list spec rule children)))
+                                (throw-exception
+                                 "Cannot construct "
+                                 rule
+                                 " fragment; Expected a list-node as "
+                                 pos
+                                 "'th child, not a "
+                                 (if (node? child)
+                                     (string-append "single [" (symbol->string (ast-node-type child)) "] node")
+                                     "terminal")
+                                 "."))
                             (ensure-child-fits child)) ; ...If we expect a single non-terminal child, just ensure that the child fits....
                         (node-parent-set! child root) ; ...Finally, set the root as the child's parent,...
                         (cons
@@ -1724,32 +1460,17 @@
            (begin
              ; ...the child is a non-terminal, non-list node and...
              (if (or (not (node? (car children))) (ast-list-node? (car children)) (node-terminal? (car children)))
-                 (assertion-violation
-                  'create-ast-list
-                  (string-append
-                   "Cannot construct list-node. Unexpected ["
-                   (number->string pos)
-                   "]'th child; Only non-terminal, non-list nodes are permitted as list elements.")
-                  children))
+                 (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
              ; ...is not already part of another AST. Further,...
              (if (node-parent (car children))
-                 (assertion-violation
-                  'create-ast
-                  (string-append
-                   "Cannot construct list-node. The given ["
-                   (number->string pos)
-                   "]'th child already is part of another AST fragment.")
-                  children))
+                 (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
              (loop (cdr children) (+ pos 1)))))
      (if (not (null? children)) ; ...ensure, that all children are instances of the same RACR specification....
          (let ((spec (ast-rule-specification (node-ast-rule (car children)))))
            (for-each
             (lambda (child)
               (if (not (eq? (ast-rule-specification (node-ast-rule child)) spec))
-                  (assertion-violation
-                   'create-ast-list
-                   "Cannot construct list-node. The given children are instances of different RACR specifications."
-                   children)))
+                  (throw-exception "Cannot construct list-node; The given children are instances of different RACR specifications.")))
             children)))
      (let ((list-node ; ...Finally, construct the list-node,...
             (make-node
@@ -1867,29 +1588,26 @@
             ; Support function to throw replacement exceptions incorporating a given error message:
             (error
              (lambda (cause)
-               (assertion-violation
-                'ast-replace
-                (string-append
-                 "RACR system runtime exception (rewrite-node): Cannot perform replacement [old: "
-                 (symbol->string
-                  (if (or (ast-list-node? old-fragment) (node-terminal? old-fragment))
-                      (node-ast-rule old-fragment)
-                      (vector-ref (car (ast-rule-production (node-ast-rule old-fragment))) 0)))
-                 " | new: "
-                 (symbol->string
-                  (if (or (ast-list-node? new-fragment) (node-terminal? new-fragment))
-                      (node-ast-rule new-fragment)
-                      (vector-ref (car (ast-rule-production (node-ast-rule new-fragment))) 0)))
-                 " | expected: "
-                 (if (ast-list-node? old-fragment)
-                     "list of "
-                     "")
-                 (if expected-type
-                     (symbol->string (vector-ref (car (ast-rule-production expected-type)) 0))
-                     "terminal")
-                 "]; "
-                 cause)
-                (list old-fragment new-fragment))))
+               (throw-exception
+                "Cannot perform replacement [old: "
+                (symbol->string
+                 (if (or (ast-list-node? old-fragment) (node-terminal? old-fragment))
+                     (node-ast-rule old-fragment)
+                     (vector-ref (car (ast-rule-production (node-ast-rule old-fragment))) 0)))
+                " | new: "
+                (symbol->string
+                 (if (or (ast-list-node? new-fragment) (node-terminal? new-fragment))
+                     (node-ast-rule new-fragment)
+                     (vector-ref (car (ast-rule-production (node-ast-rule new-fragment))) 0)))
+                " | expected: "
+                (if (ast-list-node? old-fragment)
+                    "list of "
+                    "")
+                (if expected-type
+                    (symbol->string (vector-ref (car (ast-rule-production expected-type)) 0))
+                    "terminal")
+                "]; "
+                cause)))
             ; Support function used to perform VALID replacements. To perform a replacement,...
             (insert-into-ast
              (lambda ()
@@ -1979,10 +1697,7 @@
    (lambda (l i e)
      ; Before inserting the element, ensure, that...
      (if (not (ast-list-node? l)) ; ...indeed a list-node is given as context,...
-         (assertion-violation
-          'rewrite-insert
-          "RACR system runtime exception (rewrite-insert): Cannot insert list element; The given context is no list-node."
-          (list l i e)))
+         (throw-exception "Cannot insert list element; The given context is no list-node."))
      (letrec* (; Support variable constraining the type of the element to insert:
                (expected-type
                 (vector-ref
@@ -1994,21 +1709,18 @@
                ; Support function to throw insertion exceptions incorporating a given error message:
                (error
                 (lambda (cause)
-                  (assertion-violation
-                   'rewrite-insert
-                   (string-append
-                    "RACR system runtime exception (rewrite-insert): Cannot insert list element [index: "
-                    (number->string i)
-                    " | new: "
-                    (symbol->string
-                     (if (or (ast-list-node? e) (node-terminal? e))
-                         (node-ast-rule e)
-                         (vector-ref (car (ast-rule-production (node-ast-rule e))) 0)))
-                    " | expected: "
-                    (symbol->string (vector-ref (car (ast-rule-production expected-type)) 0))
-                    "]; "
-                    cause)
-                   (list l i e))))
+                  (throw-exception
+                   "Cannot insert list element [index: "
+                   (number->string i)
+                   " | new: "
+                   (symbol->string
+                    (if (or (ast-list-node? e) (node-terminal? e))
+                        (node-ast-rule e)
+                        (vector-ref (car (ast-rule-production (node-ast-rule e))) 0)))
+                   " | expected: "
+                   (symbol->string (vector-ref (car (ast-rule-production expected-type)) 0))
+                   "]; "
+                   cause)))
                ; Support function to insert an element e at position i into a list l:
                (insert
                 (lambda (l i e)
@@ -2060,15 +1772,9 @@
      (if (and ; ...no attributes are in evaluation and...
             (node-evaluator-state n)
             (evaluator-state-in-evaluation? (node-evaluator-state n)))
-         (assertion-violation
-          'rewrite-delete
-          "RACR system runtime exception (rewrite-delete): Cannot delete list element; There are attributes in evaluation."
-          (list n)))
+         (throw-exception "Cannot delete list element; There are attributes in evaluation."))
      (if (not (ast-list-node? (node-parent n))) ; ...the given node is a list-node element....
-         (assertion-violation
-          'rewrite-delete
-          "RACR system runtime exception (rewrite-delete): Cannot delete list element; The given node is not element of a list."
-          (list n)))
+         (throw-exception "Cannot delete list element; The given node is not element of a list."))
      ; ...When all rewrite constraints are satisfied,...
      (for-each ; ...flush the caches of all attributes influenced by the number of children of the list-node the element is part of. Further,...
       (lambda (influence)
@@ -2104,20 +1810,11 @@
      (if (and ; ...no attributes are in evaluation,...
           (node-evaluator-state l)
           (evaluator-state-in-evaluation? (node-evaluator-state l)))
-         (assertion-violation
-          'rewrite-add
-          "RACR system runtime exception (rewrite-add): Cannot add list element; There are attributes in evaluation."
-          (list l e)))
+         (throw-exception "Cannot add list element; There are attributes in evaluation."))
      (if (not (ast-list-node? l)) ; ...indeed a list-node is given as context,...
-         (assertion-violation
-          'rewrite-add
-          "RACR system runtime exception (rewrite-add): Cannot add list element; The given context is no list-node."
-          (list l e)))
+         (throw-exception "Cannot add list element; The given context is no list-node."))
      (if (node-parent e) ; ...the new element is not part of another AST (i.e., is freely available) and...
-         (assertion-violation
-          'rewrite-add
-          "RACR system runtime exception (rewrite-add): Cannot add list element; The given replacement already is part of another AST."
-          (list l e)))
+         (throw-exception "Cannot add list element; The given replacement already is part of another AST."))
      (let* ((expected-type
              (vector-ref
               (list-ref
@@ -2126,10 +1823,7 @@
               1))
             (valid-types (cons expected-type (ast-rule-subtypes expected-type))))
        (if (not (memq (node-ast-rule e) valid-types)) ; ...can be a child of the list-node....
-           (assertion-violation
-            'rewrite-add
-            "RACR system runtime exception (rewrite-add): Cannot add list element; The new element does not fit."
-            (list l e))))
+           (throw-exception "Cannot add list element; The new element does not fit.")))
      ; ...When all rewrite constraints are satisfied...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children,...
       (lambda (influence)
