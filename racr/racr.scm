@@ -208,6 +208,22 @@
                 m-part*
                 (string-append "[" (object->string m-part*) "]"))) ...)))))))
  
+ (define-syntax check-arguments
+  (syntax-rules ()
+    ((_ args ...)
+     (begin
+       (if (not args)
+         (throw-exception "Unexpected argument; Check: " 'args ".")) ...))))
+ 
+ (define-syntax define-api-function
+   (syntax-rules ()
+     ((_ name ((parameter parameter-check) ...) body ...)
+      (define name
+        (lambda (parameter ...)
+          (if (not parameter-check)
+              (throw-exception "Unexpected " parameter " argument; Check: " 'parameter-check ".")) ...
+          body ...)))))
+ 
  ; INTERNAL FUNCTION: Procedure sequentially applying a function on all the AST rules of a set of rules which inherit,
  ; whereby super-types are processed before their sub-types.
  (define apply-wrt-ast-inheritance
@@ -345,17 +361,17 @@
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
          (throw-exception "Cannot weave " name " annotation; There are attributes in evaluation."))
-     (if (not (node-terminal? node))
-         (begin
-           (if (and
-                (not (ast-list-node? node))
-                (not (ast-annotation? node name))
-                (ast-subtype? node type))
-               (ast-annotation-set! node name value))
-           (for-each
-            (lambda (child)
-              (ast-weave-annotations child type name value))
-            (node-children node))))))
+     (if (not (ast-annotation? node name))
+         (cond
+           ((and (not (ast-list-node? node)) (ast-subtype? node type))
+            (ast-annotation-set! node name value))
+           ((and (ast-list-node? node) (eq? type 'list-node))
+            (ast-annotation-set! node name value))))
+     (for-each
+      (lambda (child)
+        (if (not (node-terminal? child))
+            (ast-weave-annotations child type name value)))
+      (node-children node))))
  
  ; Given a node and an annotation name, return whether the node has an annotation with the given name or not. An exception is
  ; thrown, if any attributes of the AST the given node is part of are in evaluation.
@@ -382,17 +398,14 @@
  
  ; Given a node and an annotation name N and value V, add an annotation with name N and value V to the node. If the node already has
  ; an annotation named N, set its value to V. If V is a procedure, the annotation's value is a procedure P calling V with the node
- ; the annotation is associated with as first argument and arbitrary many further given arguments. The annotation of list nodes and
- ; terminals is not permitted and yields a runtime exception! Additionally, an exception is thrown, if any attributes of the AST the
- ; given node is part of are in evaluation.
+ ; the annotation is associated with as first argument and arbitrary many further given arguments. An exception is thrown, if any
+ ; attributes of the AST the given node is part of are in evaluation.
  (define ast-annotation-set!
    (lambda (node name value)
      (if (and
           (node-evaluator-state node)
           (evaluator-state-in-evaluation? (node-evaluator-state node)))
          (throw-exception "Cannot set " name " annotation; There are attributes in evaluation."))
-     (if (or (ast-list-node? node) (node-terminal? node))
-         (throw-exception "Cannot set " name " annotation; List nodes and terminals cannot be annotated."))
      (if (not (symbol? name))
          (throw-exception "Cannot set " name " annotation; Annotation names must be Scheme symbols."))
      (let ((annotation (ast-annotation? node name))
@@ -1120,13 +1133,14 @@
  ;;                                                   Abstract Syntax Tree Access Interface                                                        ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; Given a node n, return its type. If the node is a list node or terminal, an exception is thrown.
+ ; Given a node n, return its type. If the node is a list node, an exception is thrown. Note, that the given node never can be
+ ; a terminal node, since terminal nodes themselves cannot be accessed (cf. ast-child), but only their value.
  ; DEPENDENCIES:
  ;  - Existence of a node of n's type
  (define ast-node-type
    (lambda (n)
-     (if (or (ast-list-node? n) (node-terminal? n))
-         (throw-exception "Cannot access type; List nodes and terminals have no type."))
+     (if (ast-list-node? n) ; Remember: (node-terminal? n) is not possible
+         (throw-exception "Cannot access type; List nodes have no type."))
      (add-dependency:att->node-type n)
      (vector-ref (car (ast-rule-production (node-ast-rule n))) 0)))
  
