@@ -178,9 +178,7 @@
  ; evaluation in progress return the current attribute in evaluation, otherwise #f.
  (define evaluator-state-in-evaluation?
    (lambda (state)
-     (if (not (null? (evaluator-state-att-eval-stack state)))
-         (car (evaluator-state-att-eval-stack state))
-         #f)))
+     (and (not (null? (evaluator-state-att-eval-stack state))) (car (evaluator-state-att-eval-stack state)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;                                                                      Utility                                                                   ;;;
@@ -357,9 +355,7 @@
  ; node is part of are in evaluation.
  (define ast-weave-annotations
    (lambda (node type name value)
-     (if (and
-          (node-evaluator-state node)
-          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state node))
          (throw-exception "Cannot weave " name " annotation; There are attributes in evaluation."))
      (if (not (ast-annotation? node name))
          (cond
@@ -377,9 +373,7 @@
  ; thrown, if any attributes of the AST the given node is part of are in evaluation.
  (define ast-annotation?
    (lambda (node name)
-     (if (and
-          (node-evaluator-state node)
-          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state node))
          (throw-exception "Cannot check for " name " annotation; There are attributes in evaluation."))
      (assq name (node-annotations node))))
  
@@ -387,9 +381,7 @@
  ; annotation or any attributes of the AST it is part of are in evaluation.
  (define ast-annotation
    (lambda (node name)
-     (if (and
-          (node-evaluator-state node)
-          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state node))
          (throw-exception "Cannot access " name " annotation; There are attributes in evaluation."))
      (let ((annotation (ast-annotation? node name)))
        (if annotation
@@ -402,9 +394,7 @@
  ; attributes of the AST the given node is part of are in evaluation.
  (define ast-annotation-set!
    (lambda (node name value)
-     (if (and
-          (node-evaluator-state node)
-          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state node))
          (throw-exception "Cannot set " name " annotation; There are attributes in evaluation."))
      (if (not (symbol? name))
          (throw-exception "Cannot set " name " annotation; Annotation names must be Scheme symbols."))
@@ -422,9 +412,7 @@
  ; if any attributes of the AST the given node is part of are in evaluation.
  (define ast-annotation-remove!
    (lambda (node name)
-     (if (and
-          (node-evaluator-state node)
-          (evaluator-state-in-evaluation? (node-evaluator-state node)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state node))
          (throw-exception "Cannot remove " name " annotation; There are attributes in evaluation."))
      (node-annotations-set!
       node
@@ -1352,10 +1340,11 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; Function for the construction of proper attributed, rewriteable derivation fragments. Given a RACR specification, the name of a non-terminal
- ; to construct (i.e., an AST rule to apply) and a list of children the function constructs and returns an AST fragment, whose root node's type
+ ; to construct (i.e., an AST rule to apply) and a list of children, the function constructs and returns an AST fragment, whose root node's type
  ; and children are the given ones. Thereby, it is checked, that (1) the given children fit into the AST fragment to construct, (2) enough and
  ; not to many children are given and (3) inherited attribute instances introduced for children are shadowed by equally named synthesized attributes
- ; the children already have.
+ ; the children already have. In case of any violation an exception is thrown. Additionally, an exception is thrown, if attributes of any of the
+ ; given children are in evaluation.
  (define create-ast
    (lambda (spec rule children)
      ;;; Ensure, that the RACR system is completely specified:
@@ -1410,7 +1399,7 @@
                                     "'th child, not a "
                                     (ast-node-type child)
                                     ".")))))
-                        (if (not (node? child)) ; ...Then, check that the given child is an AST node and...
+                        (if (not (node? child)) ; ...Then, check that the given child is an AST node,...
                             (throw-exception
                              "Cannot construct "
                              rule
@@ -1419,13 +1408,15 @@
                              " node as "
                              pos
                              "'th child, not a terminal."))
-                        (if (node-parent child) ; ...does not already belong to another AST....
+                        (if (node-parent child) ; ...does not already belong to another AST and...
                             (throw-exception
                              "Cannot construct "
                              rule
                              " fragment. The given "
                              pos
                              "'th child already is part of another AST fragment."))
+                        (if (evaluator-state-in-evaluation? (node-evaluator-state child)) ; ...non of its attributes are in evaluation....
+                            (throw-exception "Cannot construct " rule " fragment; There are attributes in evaluation."))
                         (if (vector-ref symb* 2) ; ...Now, check if we expect a list of non-terminals...
                             (if (ast-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
                                 (for-each ensure-child-fits (node-children child)) ; ...all its elements fit....
@@ -1450,6 +1441,7 @@
                         root
                         child)
                        (loop (+ pos 1) (cdr symbols) (cdr children)))))))) ; ...process the next expected child.
+         (distribute-evaluator-state (make-evaluator-state) root) ; ...When all children are processed, distribute the new fragment's evaluator state.
          
          ;;; The AST part of the fragment is properly constructed so we can proceed with (2) --- the construction
          ;;; of the fragment's attribute instances. Therefore,...
@@ -1458,26 +1450,25 @@
           attach-inherited-attributes
           (node-children root))
          
-         ;;; Finally, check iff the constructed fragment represents a derivation w.r.t. the start symbol....
-         (if (eq? (vector-ref (car (ast-rule-production ast-rule*)) 0) (racr-specification-start-symbol spec))
-             (distribute-evaluator-state (make-evaluator-state) root)) ; ...Iff so, construct and distribute the AST's evaluator state.
-         root)))) ; Return the constructed fragment.
+         root)))) ; Finally, return the newly constructed fragment.
  
  ; Given a list l of non-terminal nodes that are not list-nodes construct a list-node whose elements are the elements of l.
  ; An exception is thrown, iff an element of l is not an AST node, is a list-node, is a terminal node, already belongs to
- ; another AST or at least two elements of l are instances of different RACR specifications.
+ ; another AST, has attributes in evaluation or at least two elements of l are instances of different RACR specifications.
  (define create-ast-list
    (lambda (children)
      (let loop ((children children) ; For every child, ensure, that...
                 (pos 1))
        (if (not (null? children))
            (begin
-             ; ...the child is a non-terminal, non-list node and...
+             ; ...the child is a non-terminal, non-list node,...
              (if (or (not (node? (car children))) (ast-list-node? (car children)) (node-terminal? (car children)))
                  (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
-             ; ...is not already part of another AST. Further,...
+             ; ...is not already part of another AST and...
              (if (node-parent (car children))
                  (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
+             (if (evaluator-state-in-evaluation? (node-evaluator-state (car children))) ; ...non of its attributes are in evaluation. Further,...
+                 (throw-exception "Cannot construct list-node; The given " pos "'th child has attributes in evaluation."))
              (loop (cdr children) (+ pos 1)))))
      (if (not (null? children)) ; ...ensure, that all children are instances of the same RACR specification....
          (let ((spec (ast-rule-specification (node-ast-rule (car children)))))
@@ -1491,10 +1482,11 @@
              'list-node
              #f
              children)))
-       (for-each ; ...set it as parent for every of its elements and...
+       (for-each ; ...set it as parent for every of its elements,...
         (lambda (child)
           (node-parent-set! child list-node))
         children)
+       (distribute-evaluator-state (make-evaluator-state) list-node) ; ...construct and distribute its evaluator state and...
        list-node))) ; ...return it.
  
  ; INTERNAL FUNCTION: Given an AST node initialize its synthesized attribute instances (i.e., add the synthesized attributes
@@ -1647,7 +1639,7 @@
                (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...initialize the new fragment's evaluator state and...
                (distribute-evaluator-state #f old-fragment) ; ...reset the old fragment's one. Finally,...
                (attach-inherited-attributes new-fragment)))) ; ...initialize any inherited attributes defined for the new fragment in its new context.
-       ; Before performing the actual replacement, check that neither the old nor the new fragment are in evaluation,
+       ; Before performing the actual replacement, check that neither, attributes of the old nor the new fragment are in evaluation,
        ; no start symbol replacement is given and the new fragment is not part of another AST (i.e., is freely available). Further,...
        (if (and
             (node-evaluator-state old-fragment)
@@ -1741,9 +1733,7 @@
                   (if (= i 0)
                       (cons e l)
                       (cons (car l) (insert (cdr l) (- i 1) e))))))
-              (if (and ; ...no attributes are in evaluation,...
-                   (node-evaluator-state l)
-                   (evaluator-state-in-evaluation? (node-evaluator-state l)))
+              (if (evaluator-state-in-evaluation? (node-evaluator-state l)) ; ...no attributes are in evaluation,...
                   (error "There are attributes in evaluation."))
               (if (node-parent e) ; ...the new element is not part of another AST (i.e., is freely available),...
                   (error "The given element already is part of another AST."))
@@ -1783,9 +1773,7 @@
  (define rewrite-delete
    (lambda (n)
      ; Before deleting the element ensure, that...
-     (if (and ; ...no attributes are in evaluation and...
-            (node-evaluator-state n)
-            (evaluator-state-in-evaluation? (node-evaluator-state n)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
          (throw-exception "Cannot delete list element; There are attributes in evaluation."))
      (if (not (ast-list-node? (node-parent n))) ; ...the given node is a list-node element....
          (throw-exception "Cannot delete list element; The given node is not element of a list."))
@@ -1821,9 +1809,7 @@
  (define rewrite-add
    (lambda (l e)
      ; Before adding the element, ensure, that...
-     (if (and ; ...no attributes are in evaluation,...
-          (node-evaluator-state l)
-          (evaluator-state-in-evaluation? (node-evaluator-state l)))
+     (if (evaluator-state-in-evaluation? (node-evaluator-state l)) ; ...no attributes are in evaluation,...
          (throw-exception "Cannot add list element; There are attributes in evaluation."))
      (if (not (ast-list-node? l)) ; ...indeed a list-node is given as context,...
          (throw-exception "Cannot add list element; The given context is no list-node."))
@@ -1922,10 +1908,7 @@
  ;  6) Dependency on whether the node is a list-node or not (i.e., existence of a node at the same location which also is a/no list-node)
  (define add-dependency:att->node-characteristic
    (lambda (influencing-node influencing-characteristic)
-     (let ((dependent-att
-            (and
-             (node-evaluator-state influencing-node)
-             (evaluator-state-in-evaluation? (node-evaluator-state influencing-node)))))
+     (let ((dependent-att (evaluator-state-in-evaluation? (node-evaluator-state influencing-node))))
        (if dependent-att
            (let ((dependency-vector
                   (let ((dc-hit (assq influencing-node (attribute-instance-node-dependencies dependent-att))))
@@ -1949,10 +1932,7 @@
  ; the evaluator state of the AST A is part of) and an influence-edge vice-versa. If no attribute is in evaluation no edges are added.
  (define add-dependency:att->att
    (lambda (influencing-att)
-     (let ((dependent-att
-            (and
-             (node-evaluator-state (attribute-instance-context influencing-att))
-             (evaluator-state-in-evaluation? (node-evaluator-state (attribute-instance-context influencing-att))))))
+     (let ((dependent-att (evaluator-state-in-evaluation? (node-evaluator-state (attribute-instance-context influencing-att)))))
        (if (and dependent-att (not (memq influencing-att (attribute-instance-attribute-dependencies dependent-att))))
            (begin
              (attribute-instance-attribute-dependencies-set!
