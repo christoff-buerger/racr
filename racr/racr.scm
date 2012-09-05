@@ -46,8 +46,6 @@
   rewrite-node
   rewrite-insert
   rewrite-delete
-  ; Introspection interface:
-  ast-attributes
   ; Utility interface:
   print-ast
   racr-exception?)
@@ -1457,7 +1455,7 @@
               ((not att)
                (node-attributes-set! n (cons (make-attribute-instance att-def n) (node-attributes n))))
               ((eq? (attribute-definition-equation (attribute-instance-definition att)) (attribute-definition-equation att-def))
-               (attribute-instance-definition-set! att-def))
+               (attribute-instance-definition-set! att att-def))
               (else
                (flush-attribute-cache att)
                (attribute-instance-context-set! att racr-nil)
@@ -1497,7 +1495,7 @@
                      (attribute-instance-definition-set! att att-def)
                      (begin
                        (flush-attribute-cache att)
-                       (attribute-instance-context-set! racr-nil)
+                       (attribute-instance-context-set! att racr-nil)
                        (node-attributes-set! n (cons (make-attribute-instance att-def n) (remq att (node-attributes n))))))))))
           att-defs)
          (node-attributes-set! ; Delete all inherited attribute instances not defined anymore:
@@ -1602,53 +1600,77 @@
  
  (define rewrite-refine
    (lambda (n t . c)
-     ;;; Before refining the non-terminal, ensure, that...
-     (when (or ; ...no attributes are in evaluation,...
-            (evaluator-state-in-evaluation? (node-evaluator-state n))
-            (find
-             evaluator-state-in-evaluation?
-             (map node-evaluator-state c)))
+     ;;; Before refining the non-terminal ensure, that...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes of n are in evaluation,...
        (throw-exception "Cannot refine node; There are attributes in evaluation."))
      (when (ast-list-node? n) ; ...the given node is not a list node,...
-       (throw-exception "Cannot refine node; The node is a list node."))
+       (throw-exception "Cannot refine node; The node is a list-node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t)))
-       (unless (ast-rule-subtype? new-rule old-rule) ; ...the given type is a subtype,...
+       (unless (and new-rule (ast-rule-subtype? new-rule old-rule)) ; ...the given type is a subtype,...
          (throw-exception "Cannot refine node; " t " is not a subtype of " (ast-node-type n)))
        (let ((additional-children (list-tail (ast-rule-production new-rule) (length (ast-rule-production old-rule)))))
-         (unless (= (length additional-children) (length c))
-           (throw-exception "Cannot refine node; Unexpected number of additional children.")) ; ...the expected number of new children are given...
-         (for-each ; ...and each child fits.
-          (lambda (symbol child)
-            (unless (ast-subtype? child (symbol-name symbol))
-              'TODO))
-          additional-children
-          c)
-         ;;; Everything is fine. Thus,...
-         (for-each ; ...flush the influenced attributes, i.e., all attributes influenced by the node's...
-          (lambda (influence)
-            (when (or
-                   (and (vector-ref (cdr influence) 1) (not (null? c))) ; ...number of children,...
-                   (and (vector-ref (cdr influence) 2) (not (eq? old-rule new-rule))) ; ...type,...
-                   (find ; ...supertype or...
-                    (lambda (t2)
-                      (not (eq? (ast-rule-subtype? t2 old-rule) (ast-rule-subtype? t2 new-rule))))
-                    (vector-ref (cdr influence) 3))
-                   (find ; ...subtype. Afterwards,...
-                    (lambda (t2)
-                      (not (eq? (ast-rule-subtype? old-rule t2) (ast-rule-subtype? new-rule t2))))
-                    (vector-ref (cdr influence) 4)))
-              (flush-attribute-cache (car influence))))
-          (node-attribute-influences n))
-         (node-ast-rule-set! n new-rule) ; ...update the node's type and...
-         (update-synthesized-attribution n) ; ...synthesized attribution. Further,...
-         (node-children-set! n (append (node-children n) c (list))) ; ...insert the new children and...
-         (for-each
-          (lambda (child)
-            (node-parent-set! child n)
-            (update-inherited-attribution child) ; ...update their inherited attribution and...
-            (distribute-evaluator-state (node-evaluator-state n) child)) ; ...evaluator state.
-          c)))))
+         (unless (= (length additional-children) (length c)) ; ...the expected number of new children are given,...
+           (throw-exception "Cannot refine node; Unexpected number of additional children."))
+         (let ((c
+                (map ; ...each child fits and non of its attributes are in evaluation.
+                 (lambda (symbol child)
+                   (cond
+                     ((symbol-kleene? symbol)
+                      (if (and (node? child) (ast-list-node? child))
+                          (for-each
+                           (lambda (child)
+                             (unless (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))
+                               (throw-exception "Cannot refine node; The given children do not fit.")))
+                           (node-children child))
+                          (throw-exception "Cannot refine node; The given children do not fit."))
+                      (when (evaluator-state-in-evaluation? (node-evaluator-state child))
+                        (throw-exception "Cannot refine node; There are attributes in evaluation."))
+                      child)
+                     ((symbol-non-terminal? symbol)
+                      (unless
+                          (and
+                           (node? child)
+                           (node-non-terminal? child)
+                           (not (ast-list-node? child))
+                           (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
+                        (throw-exception "Cannot refine node; The given children do not fit."))
+                      (when (evaluator-state-in-evaluation? (node-evaluator-state child))
+                        (throw-exception "Cannot refine node; There are attributes in evaluation."))
+                      child)
+                     (else
+                      (when (node? child)
+                        (throw-exception "Cannot refine node; The given children do not fit."))
+                      (make-node 'terminal n child))))
+                 additional-children
+                 c)))
+           ;;; Everything is fine. Thus,...
+           (for-each ; ...flush the influenced attributes, i.e., all attributes influenced by the node's...
+            (lambda (influence)
+              (when (or
+                     (and (vector-ref (cdr influence) 1) (not (null? c))) ; ...number of children,...
+                     (and (vector-ref (cdr influence) 2) (not (eq? old-rule new-rule))) ; ...type,...
+                     (find ; ...supertype or...
+                      (lambda (t2)
+                        (not (eq? (ast-rule-subtype? t2 old-rule) (ast-rule-subtype? t2 new-rule))))
+                      (vector-ref (cdr influence) 3))
+                     (find ; ...subtype. Afterwards,...
+                      (lambda (t2)
+                        (not (eq? (ast-rule-subtype? old-rule t2) (ast-rule-subtype? new-rule t2))))
+                      (vector-ref (cdr influence) 4)))
+                (flush-attribute-cache (car influence))))
+            (node-attribute-influences n))
+           (node-ast-rule-set! n new-rule) ; ...update the node's type,...
+           (update-synthesized-attribution n) ; ...synthesized attribution,...
+           (node-children-set! n (append (node-children n) c (list))) ; ...insert the new children and...
+           (for-each
+            (lambda (child)
+              (node-parent-set! child n)
+              (distribute-evaluator-state (node-evaluator-state n) child))
+            c)
+           (for-each ; ...update the inherited attribution of all children.
+            update-inherited-attribution
+            (node-children n)))))))
  
  (define rewrite-abstract
    (lambda (n t)
@@ -1659,39 +1681,45 @@
        (throw-exception "Cannot abstract node; The node is a list node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t))
-            (children-to-remove (list-tail (node-children n) (length (ast-rule-production new-rule)))))
-       (unless (ast-rule-subtype? old-rule new-rule) ; ...the given type is a supertype.
-         (throw-exception "Cannot abstract node; " t " is not a supertype of " (ast-node-type n)))
+            (new-num-children (- (length (ast-rule-production new-rule)) 1)))
+       (unless (and new-rule (ast-rule-subtype? old-rule new-rule)) ; ...the given type is a supertype.
+         (throw-exception "Cannot abstract node; " t " is not a supertype of " (ast-node-type n) "."))
        ;;; Everything is fine. Thus,...
-       (for-each ; ...flush the caches of all influenced attributes, i.e., (1) all attributes influenced by the node's...
-        (lambda (influence)
-          (when (or
-                 (and (vector-ref (cdr influence) 1) (not (null? children-to-remove))) ; ...number of children,...
-                 (and (vector-ref (cdr influence) 2) (not (eq? old-rule new-rule))) ; ...type...
-                 (find ; ...supertype or...
-                  (lambda (t2)
-                    (not (eq? (ast-rule-subtype? t2 old-rule) (ast-rule-subtype? t2 new-rule))))
-                  (vector-ref (cdr influence) 3))
-                 (find ; ...subtype and...
-                  (lambda (t2)
-                    (not (eq? (ast-rule-subtype? old-rule t2) (ast-rule-subtype? new-rule t2))))
-                  (vector-ref (cdr influence) 4)))
-            (flush-attribute-cache (car influence))))
-        (node-attribute-influences n))
-       (for-each ; ...(2) all attributes depending on, but still outside of, an removed AST. Afterwards,...
-        flush-depending-attributes-outside-of
-        children-to-remove)
-       (node-ast-rule-set! n new-rule) ; ...update the node's type and...
-       (update-synthesized-attribution n) ; ...synthesized attribution and...
-       (for-each ; ...for every child to remove,...
-        (lambda (child)
-          (node-parent-set! child #f) ; ...detach the child from the AST,...
-          (detach-inherited-attributes child) ; ...delete its inherited attribution and...
-          (distribute-evaluator-state (make-evaluator-state) child)) ; ...update its evaluator state. Finally,...
-        children-to-remove)
-       (unless (null? children-to-remove)
-         (set-cdr! (list-tail (node-children n) (- (length (ast-rule-production new-rule)) 1)) (list)))
-       children-to-remove))) ; ...return the removed children.
+       (let ((children-to-remove (list-tail (node-children n) (- (length (ast-rule-production new-rule)) 1))))
+         (for-each ; ...flush the caches of all influenced attributes, i.e., (1) all attributes influenced by the node's...
+          (lambda (influence)
+            (when (or
+                   (and (vector-ref (cdr influence) 1) (not (null? children-to-remove))) ; ...number of children,...
+                   (and (vector-ref (cdr influence) 2) (not (eq? old-rule new-rule))) ; ...type...
+                   (find ; ...supertype or...
+                    (lambda (t2)
+                      (not (eq? (ast-rule-subtype? t2 old-rule) (ast-rule-subtype? t2 new-rule))))
+                    (vector-ref (cdr influence) 3))
+                   (find ; ...subtype and...
+                    (lambda (t2)
+                      (not (eq? (ast-rule-subtype? old-rule t2) (ast-rule-subtype? new-rule t2))))
+                    (vector-ref (cdr influence) 4)))
+              (flush-attribute-cache (car influence))))
+          (node-attribute-influences n))
+         (for-each ; ...(2) all attributes depending on, but still outside of, an removed AST. Afterwards,...
+          flush-depending-attributes-outside-of
+          children-to-remove)
+         (node-ast-rule-set! n new-rule) ; ...update the node's type and...
+         (update-synthesized-attribution n) ; ...synthesized attribution and...
+         (for-each ; ...for every child to remove,...
+          (lambda (child)
+            (node-parent-set! child #f) ; ...detach the child from the AST,...
+            (detach-inherited-attributes child) ; ...delete its inherited attribution and...
+            (distribute-evaluator-state (make-evaluator-state) child)) ; ...update its evaluator state. Further,...
+          children-to-remove)
+         (unless (null? children-to-remove)
+           (if (> new-num-children 0)
+               (set-cdr! (list-tail (node-children n) (- new-num-children 1)) (list))
+               (node-children-set! n (list))))
+         (for-each ; ...update the inherited attribution of all remaining children. Finally,...
+          update-inherited-attribution
+          (node-children n))
+         children-to-remove)))) ; ...return the removed children.
  
  ; Given a list-node l and another node e add e to l's list of children (i.e., e becomes an element of l). Thereby, the caches of any
  ; influenced attributes are flushed and dependencies are maintained. An exception is thrown, if l is not a list-node, e does not fit
@@ -2183,17 +2211,4 @@
           influencing-att
           (cons
            dependent-att
-           (attribute-instance-attribute-influences influencing-att)))))))
- 
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                          Introspection Interface                                                               ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 
- (define ast-attributes
-   (lambda (n)
-     (when (evaluator-state-in-evaluation? (node-evaluator-state n))
-       (throw-exception "TODO: Introspection while attribute evaluation not supported yet."))
-     (map
-      (lambda (att)
-        (attribute-definition-name (attribute-instance-definition att)))
-      (node-attributes n)))))
+           (attribute-instance-attribute-influences influencing-att))))))))
