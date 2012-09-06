@@ -13,11 +13,10 @@
  (import
   (rnrs)
   (racr)
-  (siple ast)
   (siple type))
  
  (define perform-type-coercions
-   (lambda (n)
+   (lambda (n siple-specification)
      (let ((coercion (att-value 'find-integer->real-coercion n)))
        (if coercion
            (let ((dummy-node (create-ast siple-specification 'Constant (list "1"))))
@@ -33,7 +32,7 @@
              (perform-type-coercions n))))))
  
  (define specify-type-coercion
-   (lambda ()
+   (lambda (siple-specification)
      (with-specification
       siple-specification
       

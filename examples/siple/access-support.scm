@@ -9,10 +9,10 @@
  (siple access-support)
  (export
   specify-access-support)
- (import (rnrs) (racr) (siple ast))
+ (import (rnrs) (racr))
  
  (define specify-access-support
-   (lambda ()
+   (lambda (siple-specification)
      (with-specification
       siple-specification
       

@@ -9,10 +9,10 @@
  (siple type-analysis)
  (export
   specify-type-analysis)
- (import (rnrs) (racr) (siple type) (siple ast))
+ (import (rnrs) (racr) (siple type))
  
  (define specify-type-analysis
-   (lambda ()
+   (lambda (siple-specification)
      (with-specification
       siple-specification
       

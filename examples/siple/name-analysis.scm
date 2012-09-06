@@ -9,10 +9,10 @@
  (siple name-analysis)
  (export
   specify-name-analysis)
- (import (rnrs) (racr) (siple ast))
+ (import (rnrs) (racr))
  
  (define specify-name-analysis
-   (lambda ()
+   (lambda (siple-specification)
      (with-specification
       siple-specification
       

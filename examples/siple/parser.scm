@@ -9,10 +9,10 @@
  (siple parser)
  (export
   construct-parser)
- (import (rnrs) (racr) (siple type) (siple lexer) (siple ast))
+ (import (rnrs) (racr) (siple type) (siple lexer) (siple type-coercion))
  
  (define construct-parser
-   (lambda (lexer error-continuation)
+   (lambda (lexer siple-specification perform-type-coercions? error-continuation)
      (with-specification
       siple-specification
       (letrec (;;; Parser IO support functions:
@@ -383,7 +383,9 @@
                              (set! rtype (parse-type))))
                        (type-procedure rtype paras)))
                     (else (parser-error "Malformed type. Unexpected token."))))))
-        
         ;;; Return parser function:
         (lambda ()
-          (parse-compilation-unit)))))))
+          (let ((ast (parse-compilation-unit)))
+            (when perform-type-coercions?
+              (perform-type-coercions ast siple-specification))
+            ast)))))))
