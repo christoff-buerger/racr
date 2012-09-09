@@ -192,7 +192,7 @@
        (weave
         'RealCoercion
         (lambda (n s)
-          ((ast-annotation (ast-child 'Operand n) 'interpret) s))) ; No need for special treatment in Scheme
+          (+ ((ast-annotation (ast-child 'Operand n) 'interpret) s) 0.0)))
        
        (weave
         'Dereference

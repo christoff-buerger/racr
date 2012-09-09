@@ -20,16 +20,16 @@
      (let ((coercion (att-value 'find-integer->real-coercion n)))
        (if coercion
            (let ((dummy-node (create-ast siple-specification 'Constant (list "1"))))
-             (rewrite-node
+             (rewrite-subtree
               coercion
               (create-ast
                siple-specification
                'RealCoercion
                (list dummy-node)))
-             (rewrite-node
+             (rewrite-subtree
               dummy-node
               coercion)
-             (perform-type-coercions n))))))
+             (perform-type-coercions n siple-specification))))))
  
  (define specify-type-coercion
    (lambda (siple-specification)
@@ -78,12 +78,19 @@
               ((and (type-pointer? l-type)
                     (type-real? (type-rtype l-type))
                     (type-integer? (att-value 'type (ast-child 'RHand n))))
-               (ast-child 'LHand n))
+               (ast-child 'RHand n))
               (else (att-value 'find-integer->real-coercion (ast-child 'RHand n)))))))
        
        (ProcedureReturn
         (lambda (n)
-          (list:find-integer->real-coercion (ast-child 'Expression* n))))
+          (or
+           (list:find-integer->real-coercion (ast-child 'Expression* n))
+           (let ((procedure-decl (att-value 'procedure-in-context n)))
+             (and procedure-decl
+                  (type-real? (type-rtype (att-value 'type procedure-decl)))
+                  (= (ast-num-children (ast-child 'Expression* n)) 1)
+                  (type-integer? (att-value 'type (ast-child 1 (ast-child 'Expression* n))))
+                  (ast-child 1 (ast-child 'Expression* n)))))))
        
        (Write
         (lambda (n)
@@ -103,8 +110,17 @@
        
        (ProcedureCall
         (lambda (n)
-          (or (att-value 'find-integer->real-coercion (ast-child 'Procedure n))
-              (list:find-integer->real-coercion (ast-child 'Arguments n)))))
+          (or
+           (att-value 'find-integer->real-coercion (ast-child 'Procedure n))
+           (list:find-integer->real-coercion (ast-child 'Arguments n))
+           (let ((procedure-type (att-value 'type (ast-child 'Procedure n))))
+             (and (type-procedure? procedure-type)
+                  (= (length (type-paras procedure-type)) (ast-num-children (ast-child 'Arguments n)))
+                  (exists
+                   (lambda (para-type arg)
+                     (and (type-real? para-type) (type-integer? (att-value 'type arg)) arg))
+                   (type-paras procedure-type)
+                   (ast-children (ast-child 'Arguments n))))))))
        
        (UnaryExpression
         (lambda (n)

@@ -42,8 +42,8 @@
   rewrite-terminal
   rewrite-refine
   rewrite-abstract
+  rewrite-subtree
   rewrite-add
-  rewrite-node
   rewrite-insert
   rewrite-delete
   ; Utility interface:
@@ -1613,30 +1613,30 @@
          (unless (= (length additional-children) (length c)) ; ...the expected number of new children are given,...
            (throw-exception "Cannot refine node; Unexpected number of additional children."))
          (let ((c
-                (map ; ...each child fits and non of its attributes are in evaluation.
+                (map ; ...each child fits, is not part of another AST and non of its attributes are in evaluation.
                  (lambda (symbol child)
                    (cond
-                     ((symbol-kleene? symbol)
-                      (if (and (node? child) (ast-list-node? child))
-                          (for-each
-                           (lambda (child)
-                             (unless (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))
-                               (throw-exception "Cannot refine node; The given children do not fit.")))
-                           (node-children child))
-                          (throw-exception "Cannot refine node; The given children do not fit."))
-                      (when (evaluator-state-in-evaluation? (node-evaluator-state child))
-                        (throw-exception "Cannot refine node; There are attributes in evaluation."))
-                      child)
                      ((symbol-non-terminal? symbol)
-                      (unless
-                          (and
-                           (node? child)
-                           (node-non-terminal? child)
-                           (not (ast-list-node? child))
-                           (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
+                      (unless (node? child)
                         (throw-exception "Cannot refine node; The given children do not fit."))
+                      (when (node-parent child)
+                        (throw-exception "Cannot refine node; A given child already is part of another AST."))
                       (when (evaluator-state-in-evaluation? (node-evaluator-state child))
                         (throw-exception "Cannot refine node; There are attributes in evaluation."))
+                      (if (symbol-kleene? symbol)
+                          (if (ast-list-node? child)
+                              (for-each
+                               (lambda (child)
+                                 (unless (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))
+                                   (throw-exception "Cannot refine node; The given children do not fit.")))
+                               (node-children child))
+                              (throw-exception "Cannot refine node; The given children do not fit."))
+                          (unless
+                              (and
+                               (node-non-terminal? child)
+                               (not (ast-list-node? child))
+                               (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
+                            (throw-exception "Cannot refine node; The given children do not fit.")))
                       child)
                      (else
                       (when (node? child)
@@ -1662,11 +1662,11 @@
             (node-attribute-influences n))
            (node-ast-rule-set! n new-rule) ; ...update the node's type,...
            (update-synthesized-attribution n) ; ...synthesized attribution,...
-           (node-children-set! n (append (node-children n) c (list))) ; ...insert the new children and...
+           (node-children-set! n (append (node-children n) c (list))) ; ...insert the new children,...
            (for-each
             (lambda (child)
               (node-parent-set! child n)
-              (distribute-evaluator-state (node-evaluator-state n) child))
+              (distribute-evaluator-state (node-evaluator-state n) child)) ; ...update their evaluator state and...
             c)
            (for-each ; ...update the inherited attribution of all children.
             update-inherited-attribution
@@ -1681,11 +1681,11 @@
        (throw-exception "Cannot abstract node; The node is a list node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t))
-            (new-num-children (- (length (ast-rule-production new-rule)) 1)))
+            (num-new-children (- (length (ast-rule-production new-rule)) 1)))
        (unless (and new-rule (ast-rule-subtype? old-rule new-rule)) ; ...the given type is a supertype.
          (throw-exception "Cannot abstract node; " t " is not a supertype of " (ast-node-type n) "."))
        ;;; Everything is fine. Thus,...
-       (let ((children-to-remove (list-tail (node-children n) (- (length (ast-rule-production new-rule)) 1))))
+       (let ((children-to-remove (list-tail (node-children n) num-new-children)))
          (for-each ; ...flush the caches of all influenced attributes, i.e., (1) all attributes influenced by the node's...
           (lambda (influence)
             (when (or
@@ -1713,8 +1713,8 @@
             (distribute-evaluator-state (make-evaluator-state) child)) ; ...update its evaluator state. Further,...
           children-to-remove)
          (unless (null? children-to-remove)
-           (if (> new-num-children 0)
-               (set-cdr! (list-tail (node-children n) (- new-num-children 1)) (list))
+           (if (> num-new-children 0)
+               (set-cdr! (list-tail (node-children n) (- num-new-children 1)) (list))
                (node-children-set! n (list))))
          (for-each ; ...update the inherited attribution of all remaining children. Finally,...
           update-inherited-attribution
@@ -1733,7 +1733,7 @@
        (throw-exception "Cannot add list element; There are attributes in evaluation."))
      (unless (ast-list-node? l) ; ...indeed a list-node is given as context,...
        (throw-exception "Cannot add list element; The given context is no list-node."))
-     (when (node-parent e) ; ...the new element is not part of another AST (i.e., is freely available) and...
+     (when (node-parent e) ; ...the new element is not part of another AST and...
        (throw-exception "Cannot add list element; The element to add already is part of another AST."))
      (when (node-parent l)
        (let ((expected-type
@@ -1777,61 +1777,59 @@
 ;        (detach-inherited-attributes to-remove) ; ...delete its inherited attribution,...
 ;        (distribute-evaluator-state (make-evaluator-state) to-remove) ; ...update its evaluator state and finally,...
 ;        to-remove))) ; ...return the removed element.
-;  
-;  (define rewrite-subtree-delayed
-;    (lambda (old-fragment transformer)
-;      ;;; Before removing the old fragment, ensure that...
-;      (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment)) ; ...non of its attributes are in evaluation. If so,...
-;        (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
-;      (let* ((old-fragment-parent (node-parent old-fragment)) ; ...retain the old fragment's context and...
-;             (old-fragment-location (list-tail (node-children old-fragment-parent) (node-child-index old-fragment)))
-;             (expected-type ; ...type constraints. Finally,...
-;              (if (ast-list-node? old-fragment-parent)
-;                  (symbol-non-terminal?
-;                   (list-ref
-;                    (ast-rule-production (node-ast-rule (node-parent old-fragment-parent)))
-;                    (node-child-index old-fragment-parent)))
-;                  (symbol-non-terminal?
-;                   (list-ref
-;                    (ast-rule-production (node-ast-rule old-fragment-parent))
-;                    (node-child-index old-fragment))))))
-;        (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it that are outside its spaned tree,...
-;        (node-parent-set! old-fragment #f) ; ...remove it,...
-;        (set-car! old-fragment-location #f)
-;        (detach-inherited-attributes old-fragment) ; ...delete its inherited attribution and...
-;        (distribute-evaluator-state (make-evaluator-state) old-fragment) ; ...update its evaluator state.
-;        ;;; After removing the old fragment,...
-;        (let ((new-fragment (transformer old-fragment))) ; ...compute its replacement using the given transformer. Afterwards, ensure that...
-;          (when (evaluator-state-in-evaluation? (node-evaluator-state new-fragment)) ; ...no attributes of the replacement are in evaluation,...
-;            (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
-;          (when (node-parent new-fragment) ; ...it is not part of another AST (i.e., is freely available) and...
-;            (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
-;          (if (ast-list-node? old-fragment) ; ...it fits into its new context. If so,...
-;                (if (ast-list-node? new-fragment)
-;                    (for-each
-;                     (lambda (element)
-;                       (unless (ast-rule-subtype? element expected-type)
-;                         (throw-exception "Cannot replace subtree; The replacement does not fit.")))
-;                     (node-children new-fragment))
-;                    (throw-exception "Cannot replace subtree; The replacement does not fit."))
-;                (when (or
-;                       (ast-list-node? new-fragment)
-;                       (not (ast-rule-subtype? (node-ast-rule new-fragment) expected-type)))
-;                  (throw-exception "Cannot replace subtree; The replacement does not fit.")))
-;          (node-parent-set! new-fragment old-fragment-parent) ; ...insert the replacement into its new context and...
-;          (set-car! old-fragment-location new-fragment)
-;          (update-inherited-attribution new-fragment) ; ...update its inherited attributes and...
-;          (distribute-evaluator-state (node-evaluator-state old-fragment-parent) new-fragment))) ; ...evaluator state. Finally,...
-;      old-fragment)) ; ...return the removed old fragment.
-;  
-;  (define rewrite-subtree
-;    (lambda (old-fragment new-fragment)
-;      (rewrite-subtree-delayed old-fragment (lambda (old-fragment) new-fragment))))
-;  
-; ; (define rewrite-node ; TODO: delete
-; ;   (lambda (n1 n2)
-; ;     (rewrite-subtree n1 n2)))
-;  
+ 
+ (define rewrite-subtree-delayed
+   (lambda (old-fragment transformer)
+     ;;; Before removing the old fragment, ensure that...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment)) ; ...non of its attributes are in evaluation. If so,...
+       (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
+     (let* ((old-fragment-parent (node-parent old-fragment)) ; ...retain the old fragment's context and...
+            (old-fragment-location (list-tail (node-children old-fragment-parent) (- (node-child-index old-fragment) 1)))
+            (n* (if (ast-list-node? old-fragment-parent) old-fragment-parent old-fragment))
+            (expected-type ; ...type constraints,...
+             (symbol-non-terminal?
+              (list-ref
+               (ast-rule-production (node-ast-rule (node-parent n*)))
+               (node-child-index n*)))))
+       (detach-inherited-attributes old-fragment) ; ...delete its inherited attribution,...
+       (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it that are outside its spaned tree,...
+       (node-parent-set! old-fragment #f) ; ...remove it and...
+       (set-car! old-fragment-location #f)
+       (distribute-evaluator-state (make-evaluator-state) old-fragment) ; ...update its evaluator state.
+       ;;; After removing the old fragment,...
+       (let ((new-fragment (transformer old-fragment))) ; ...compute its replacement using the given transformer. Afterwards, ensure that...
+         (unless (and (node? new-fragment) (node-non-terminal? new-fragment)) ; ...the replacement is a non-terminal node,...
+           (throw-exception "Cannot replace subtree; The new fragment is not a non-terminal node."))
+         (when (evaluator-state-in-evaluation? (node-evaluator-state new-fragment)) ; ...non of its attributes are in evaluation,...
+           (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
+         (when (node-parent new-fragment) ; ...it is not part of another AST and...
+           (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
+         (if (ast-list-node? old-fragment) ; ...it fits into its new context. If so,...
+             (if (ast-list-node? new-fragment)
+                 (for-each
+                  (lambda (element)
+                    (unless (ast-rule-subtype? element expected-type)
+                      (throw-exception "Cannot replace subtree; The replacement does not fit.")))
+                  (node-children new-fragment))
+                 (throw-exception "Cannot replace subtree; The replacement does not fit."))
+             (unless (and
+                      (not (ast-list-node? new-fragment))
+                      (ast-rule-subtype? (node-ast-rule new-fragment) expected-type))
+               (throw-exception "Cannot replace subtree; The replacement does not fit.")))
+         (node-parent-set! new-fragment old-fragment-parent) ; ...insert the replacement into its new context and...
+         (set-car! old-fragment-location new-fragment)
+         (update-inherited-attribution new-fragment) ; ...update its inherited attributes and...
+         (distribute-evaluator-state (node-evaluator-state old-fragment-parent) new-fragment))) ; ...evaluator state. Finally,...
+     old-fragment)) ; ...return the removed old fragment.
+ 
+ ; Given an AST node to replace (old fragment) and its replacement (new fragment) replace the old fragment by the new one.
+ ; Thereby, any influenced attributes' caches are flushed and dependencies are maintained. An exception is thrown, iff the
+ ; new fragment doesn't fit, the old fragment is an AST root (i.e., a start symbol node), any attributes of either fragment
+ ; are in evaluation or the new fragment already is part of another AST.
+ (define rewrite-subtree
+   (lambda (old-fragment new-fragment)
+     (rewrite-subtree-delayed old-fragment (lambda (old-fragment) new-fragment))))
+ 
 ;  (define rewrite-switch
 ;    (lambda (n1 n2)
 ;      (rewrite-subtree-delayed
@@ -1866,124 +1864,6 @@
 ;          (rewrite-switch n (car next-to-switch))
 ;          (loop (cdr next-to-switch))))
 ;      (rewrite-delete-last (node-parent n))))
- 
- ; Given an AST node to replace (old fragment) and its replacement (new fragment) replace the old fragment by the new one.
- ; Thereby, any influenced attributes' caches are flushed and dependencies are maintained. An exception is thrown, iff the
- ; new fragment doesn't fit, the old fragment is an AST root (i.e., a start symbol node), any attributes of either fragment
- ; are in evaluation or the new fragment already is part of another AST.
- (define rewrite-node
-   (lambda (old-fragment new-fragment)
-     (let* (; Support variable constraining the type of the new fragment depending on the type of replacement:
-            ; In case of list-node replacement: The type the new fragment's elements must be
-            ; In case of non-list non-terminal (ordinary non-terminal) replacement: The type the new fragment must be
-            ; In case of terminal replacement: #f
-            (expected-type
-             (cond
-               ((node-terminal? old-fragment)
-                #f)
-               ((ast-list-node? (node-parent old-fragment))
-                (symbol-non-terminal?
-                 (list-ref
-                  (ast-rule-production (node-ast-rule (node-parent (node-parent old-fragment))))
-                  (ast-child-index (node-parent old-fragment)))))
-               (else
-                (symbol-non-terminal?
-                 (list-ref
-                  (ast-rule-production (node-ast-rule (node-parent old-fragment)))
-                  (ast-child-index old-fragment))))))
-            ; Support function to throw replacement exceptions incorporating a given error message:
-            (error
-             (lambda (cause)
-               (throw-exception
-                "Cannot perform replacement [old: "
-                (symbol->string
-                 (if (or (ast-list-node? old-fragment) (node-terminal? old-fragment))
-                     (node-ast-rule old-fragment)
-                     (symbol-name (car (ast-rule-production (node-ast-rule old-fragment))))))
-                " | new: "
-                (symbol->string
-                 (if (or (ast-list-node? new-fragment) (node-terminal? new-fragment))
-                     (node-ast-rule new-fragment)
-                     (symbol-name (car (ast-rule-production (node-ast-rule new-fragment))))))
-                " | expected: "
-                (if (ast-list-node? old-fragment)
-                    "list of "
-                    "")
-                (if expected-type
-                    (symbol->string (symbol-name (car (ast-rule-production expected-type))))
-                    "terminal")
-                "]; "
-                cause)))
-            ; Support function used to perform VALID replacements. To perform a replacement,...
-            (insert-into-ast
-             (lambda ()
-               (let loop ((n old-fragment)) ; ...for every node within the AST the old fragment spans,...
-                 (for-each ; ...flush the caches of all attributes influenced by the node and...
-                  (lambda (influence)
-                    (flush-attribute-cache (car influence)))
-                  (node-attribute-influences n))
-                 (for-each ; ...all its attributes. Then,...
-                  flush-attribute-cache
-                  (node-attributes n))
-                 (when (node-non-terminal? n)
-                   (for-each
-                    loop
-                    (node-children n))))
-               (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attributes,...
-               (let loop ((children (node-children (node-parent old-fragment)))) ; ...insert the new fragment at the right place and...
-                 (if (eq? (car children) old-fragment)
-                     (set-car! children new-fragment)
-                     (loop (cdr children))))
-               (node-parent-set! new-fragment (node-parent old-fragment))
-               (node-parent-set! old-fragment #f) ; ...detach the old fragment. Further,...
-               (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...initialize the new fragment's evaluator state and...
-               (distribute-evaluator-state (make-evaluator-state) old-fragment) ; ...reset the old fragment's one. Finally,...
-               (update-inherited-attribution new-fragment)))) ; ...update the inherited attributes of the new fragment for its new context.
-       ; Before performing the actual replacement, check that neither, attributes of the old nor the new fragment are in evaluation,
-       ; no start symbol replacement is given and the new fragment is not part of another AST (i.e., is freely available). Further,...
-       (when (and
-              (node-evaluator-state old-fragment)
-              (evaluator-state-in-evaluation? (node-evaluator-state old-fragment)))
-         (error "There are attributes in evaluation."))
-       (when (and
-              expected-type
-              (eq?
-               (symbol-name (car (ast-rule-production expected-type)))
-               (racr-specification-start-symbol (ast-rule-specification (node-ast-rule old-fragment)))))
-         (error "Replacement of start symbol fragments not permitted."))
-       (when (node-parent new-fragment)
-         (error "The given replacement already is part of another AST."))
-       ; ...depending, whether (1) a terminal, (2) a list-node or (3) ordinary non-terminal replacement is given we must ensure that the
-       ; new fragment is a terminal, list-node or ordinary non-terminal respectively and, in case of a list-node, its children fit or,
-       ; in case of an ordinary non-terminal, the new fragment itself fits into its new context:
-       (cond
-         ; (1) Terminal replacement:
-         ((node-terminal? old-fragment)
-          (unless (node-terminal? new-fragment)
-            (error "The given replacement does not fit."))
-          (insert-into-ast)) ; Perform the actual replacement.
-         ; (2) List-node replacement:
-         ((ast-list-node? old-fragment)
-          (unless (ast-list-node? new-fragment)
-            (error "The given replacement does not fit."))
-          (for-each
-           (lambda (child)
-             (unless (ast-rule-subtype? (node-ast-rule child) expected-type)
-               (error
-                (string-append
-                 "The given list-node contains a non-fitting ["
-                 (symbol->string (ast-node-type child))
-                 "] child."))))
-           (node-children new-fragment))
-          (insert-into-ast)) ; Perform the actual replacement.
-         ; (3) Ordinary non-terminal replacement:
-         (else
-          (when (or
-                 (node-terminal? new-fragment)
-                 (ast-list-node? new-fragment)
-                 (not (ast-rule-subtype? (node-ast-rule new-fragment) expected-type)))
-            (error "The given replacement does not fit."))
-          (insert-into-ast)))))) ; Perform the actual replacement.
  
  ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, any influenced attributes'
  ; caches are flushed and dependencies are maintained. An exception is thrown, iff l is no list-node, e does not fit w.r.t.

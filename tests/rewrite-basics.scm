@@ -148,7 +148,7 @@
          (influenced:
           (invariant))
          
-         (rewrite-node (B) (create-ast 'Ba (list -10)))
+         (rewrite-subtree (B) (create-ast 'Ba (list -10)))
          (influenced:
           (invariant)
           (S) 'att
@@ -163,7 +163,7 @@
           (C) 'att
           (D) 'att)
          
-         (rewrite-node (B) (create-ast 'B (list)))
+         (rewrite-subtree (B) (create-ast 'B (list)))
          (influenced:
           (invariant)
           (S) 'att
