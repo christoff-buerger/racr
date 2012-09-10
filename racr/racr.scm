@@ -27,7 +27,7 @@
   create-ast
   create-ast-list
   ast-node-type
-  ast-list-node?
+  (rename (node-list-node? ast-list-node?))
   ast-subtype?
   ast-parent
   ast-child
@@ -177,6 +177,11 @@
    (lambda (n)
      (not (node-terminal? n))))
  
+ ; Given a node n, return whether it represents a list of children, i.e., is a list node, or not.
+ (define node-list-node?
+   (lambda (n)
+     (eq? (node-ast-rule n) 'list-node)))
+ 
  ; INTERNAL FUNCTION: Given a node, return its child-index. An exception is thrown, if the node has no parent (i.e., is a root).
  (define node-child-index
    (lambda (n)
@@ -191,7 +196,7 @@
  ; INTERNAL FUNCTION: Given a node find a certain child by name. If the node has no such child, return #f, otherwise the child.
  (define node-find-child
    (lambda (n context-name)
-     (and (not (ast-list-node? n))
+     (and (not (node-list-node? n))
           (not (node-terminal? n))
           (let loop ((contexts (cdr (ast-rule-production (node-ast-rule n))))
                      (children (node-children n)))
@@ -332,7 +337,7 @@
        (let loop ((ast-depth 0)
                   (ast ast))
          (cond
-           ((ast-list-node? ast) ; Print list nodes
+           ((node-list-node? ast) ; Print list nodes
             (print-indentation ast-depth)
             (print-indentation ast-depth)
             (my-display "-* ")
@@ -416,9 +421,9 @@
        (throw-exception "Cannot weave " name " annotation; There are attributes in evaluation."))
      (when (not (ast-annotation? node name))
        (cond
-         ((and (not (ast-list-node? node)) (ast-subtype? node type))
+         ((and (not (node-list-node? node)) (ast-subtype? node type))
           (ast-annotation-set! node name value))
-         ((and (ast-list-node? node) (eq? type 'list-node))
+         ((and (node-list-node? node) (eq? type 'list-node))
           (ast-annotation-set! node name value))))
      (for-each
       (lambda (child)
@@ -1122,20 +1127,10 @@
  ;  - Existence of a node of n's type
  (define ast-node-type
    (lambda (n)
-     (when (ast-list-node? n) ; Remember: (node-terminal? n) is not possible
+     (when (node-list-node? n) ; Remember: (node-terminal? n) is not possible
        (throw-exception "Cannot access type; List nodes have no type."))
      (add-dependency:att->node-type n)
      (symbol-name (car (ast-rule-production (node-ast-rule n))))))
- 
- ; Given a node n, return whether it represents a list of children, i.e., is a list node, or not.
- ; DEPENDENCIES:
- ;  - n is list node: Existence of a node which is a list node
- ;  - n is not list node: Existence of a node which is not a list node
- (define ast-list-node?
-   (lambda (n)
-     (let ((result (eq? (node-ast-rule n) 'list-node)))
-       (add-dependency:att->node-list? n)
-       result)))
  
  ; Given at least one AST node and another node or symbol representing an AST rule, return if the first argument is a
  ; subtype of the second. The considered subtype relationship is reflexive, i.e., every type is a subtype of itself.
@@ -1146,8 +1141,8 @@
  (define ast-subtype?
    (lambda (a1 a2)
      (when (or
-            (and (node? a1) (or (ast-list-node? a1) (node-terminal? a1)))
-            (and (node? a2) (or (ast-list-node? a2) (node-terminal? a2))))
+            (and (node? a1) (or (node-list-node? a1) (node-terminal? a1)))
+            (and (node? a2) (or (node-list-node? a2) (node-terminal? a2))))
        (throw-exception "Cannot perform subtype check; List nodes and terminals cannot be tested for subtyping."))
      (when (and (not (node? a1)) (not (node? a2)))
        (throw-exception "Cannot perform subtype check; At least one argument must be an AST node."))
@@ -1379,7 +1374,7 @@
                         (when (evaluator-state-in-evaluation? (node-evaluator-state child)) ; ...non of its attributes are in evaluation....
                           (throw-exception "Cannot construct " rule " fragment; There are attributes in evaluation."))
                         (if (symbol-kleene? symb*) ; ...Now, check if we expect a list of non-terminals...
-                            (if (ast-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
+                            (if (node-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
                                 (for-each ensure-child-fits (node-children child)) ; ...all its elements fit....
                                 (throw-exception
                                  "Cannot construct "
@@ -1421,7 +1416,7 @@
      (let loop ((children* children) ; For every child, ensure, that the child is a...
                 (pos 1))
        (unless (null? children*)
-         (when (or (not (node? (car children*))) (ast-list-node? (car children*)) (node-terminal? (car children*)))  ; ...proper non-terminal node,...
+         (when (or (not (node? (car children*))) (node-list-node? (car children*)) (node-terminal? (car children*)))  ; ...proper non-terminal node,...
            (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
          (when (node-parent (car children*)) ; ...is not already part of another AST,...
            (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
@@ -1447,7 +1442,7 @@
  ; ones, shadow equally named inherited attributes and update the definitions of existing synthesized attributes.
  (define update-synthesized-attribution
    (lambda (n)
-     (when (and (not (node-terminal? n)) (not (ast-list-node? n)))
+     (when (and (not (node-terminal? n)) (not (node-list-node? n)))
        (for-each
         (lambda (att-def)
           (let ((att (node-find-attribute n (attribute-definition-name att-def))))
@@ -1512,9 +1507,9 @@
                remove?))
            (node-attributes n)))))
      ;;; Perform the update:
-     (let* ((n* (if (ast-list-node? (node-parent n)) (node-parent n) n))
+     (let* ((n* (if (node-list-node? (node-parent n)) (node-parent n) n))
             (att-defs (symbol-attributes (list-ref (ast-rule-production (node-ast-rule (node-parent n*))) (node-child-index n*)))))
-       (if (ast-list-node? n)
+       (if (node-list-node? n)
            (for-each
             (lambda (n)
               (update-by-defs n att-defs))
@@ -1526,7 +1521,7 @@
  (define detach-inherited-attributes
    (lambda (n)
      (cond
-       ((ast-list-node? n)
+       ((node-list-node? n)
         (for-each
          detach-inherited-attributes
          (node-children n)))
@@ -1582,7 +1577,7 @@
  ; n has no i'th child, n's i'th child is no terminal or any attributes of the AST n is part of are in evaluation.
  (define rewrite-terminal
    (lambda (i n new-value)
-     ; Before changing the value of the terminal, ensure, that...
+     ; Before changing the value of the terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
        (throw-exception "Cannot change terminal value; There are attributes in evaluation."))
      (let ((n
@@ -1601,9 +1596,9 @@
  (define rewrite-refine
    (lambda (n t . c)
      ;;; Before refining the non-terminal ensure, that...
-     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes of n are in evaluation,...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...non of its attributes are in evaluation,...
        (throw-exception "Cannot refine node; There are attributes in evaluation."))
-     (when (ast-list-node? n) ; ...the given node is not a list node,...
+     (when (node-list-node? n) ; ...it is not a list node,...
        (throw-exception "Cannot refine node; The node is a list-node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t)))
@@ -1624,7 +1619,7 @@
                       (when (evaluator-state-in-evaluation? (node-evaluator-state child))
                         (throw-exception "Cannot refine node; There are attributes in evaluation."))
                       (if (symbol-kleene? symbol)
-                          (if (ast-list-node? child)
+                          (if (node-list-node? child)
                               (for-each
                                (lambda (child)
                                  (unless (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))
@@ -1634,7 +1629,7 @@
                           (unless
                               (and
                                (node-non-terminal? child)
-                               (not (ast-list-node? child))
+                               (not (node-list-node? child))
                                (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
                             (throw-exception "Cannot refine node; The given children do not fit.")))
                       child)
@@ -1674,10 +1669,10 @@
  
  (define rewrite-abstract
    (lambda (n t)
-     ;;; Before abstracting the non-terminal, ensure, that...
+     ;;; Before abstracting the non-terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation,...
        (throw-exception "Cannot abstract node; There are attributes in evaluation."))
-     (when (ast-list-node? n) ; ...the given node is not a list node and...
+     (when (node-list-node? n) ; ...the given node is not a list node and...
        (throw-exception "Cannot abstract node; The node is a list node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t))
@@ -1708,8 +1703,8 @@
          (update-synthesized-attribution n) ; ...synthesized attribution and...
          (for-each ; ...for every child to remove,...
           (lambda (child)
-            (node-parent-set! child #f) ; ...detach the child from the AST,...
-            (detach-inherited-attributes child) ; ...delete its inherited attribution and...
+            (detach-inherited-attributes child) ; ...delete its inherited attribution,...
+            (node-parent-set! child #f) ; ...detach it from the AST and...
             (distribute-evaluator-state (make-evaluator-state) child)) ; ...update its evaluator state. Further,...
           children-to-remove)
          (unless (null? children-to-remove)
@@ -1726,12 +1721,12 @@
  ; w.r.t. l's context, any attributes of either l or e are in evaluation or e already is part of another AST.
  (define rewrite-add
    (lambda (l e)
-     ;;; Before adding the element, ensure, that...
+     ;;; Before adding the element ensure, that...
      (when (or ; ...no attributes are in evaluation,...
             (evaluator-state-in-evaluation? (node-evaluator-state l))
             (evaluator-state-in-evaluation? (node-evaluator-state e)))
        (throw-exception "Cannot add list element; There are attributes in evaluation."))
-     (unless (ast-list-node? l) ; ...indeed a list-node is given as context,...
+     (unless (node-list-node? l) ; ...indeed a list-node is given as context,...
        (throw-exception "Cannot add list element; The given context is no list-node."))
      (when (node-parent e) ; ...the new element is not part of another AST and...
        (throw-exception "Cannot add list element; The element to add already is part of another AST."))
@@ -1760,7 +1755,7 @@
 ;      ;;; Before removing the last element, ensure, that...
 ;      (when (evaluator-state-in-evaluation? (node-evaluator-state l)) ; ...no attributes are in evaluation and...
 ;        (throw-exception "Cannot remove last list element; There are attributes in evaluation."))
-;      (unless (ast-list-node? l) ; ...indeed a list-node with...
+;      (unless (node-list-node? l) ; ...indeed a list-node with...
 ;        (throw-exception "Cannot remove last list element; The given context is no list-node."))
 ;      (when (null? (node-children l)) ; ...at least one element is given.
 ;        (throw-exception "Cannot remove last list element; The list node has no elements"))
@@ -1780,12 +1775,12 @@
  
  (define rewrite-subtree-delayed
    (lambda (old-fragment transformer)
-     ;;; Before removing the old fragment, ensure that...
+     ;;; Before removing the old fragment ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment)) ; ...non of its attributes are in evaluation. If so,...
        (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
      (let* ((old-fragment-parent (node-parent old-fragment)) ; ...retain the old fragment's context and...
             (old-fragment-location (list-tail (node-children old-fragment-parent) (- (node-child-index old-fragment) 1)))
-            (n* (if (ast-list-node? old-fragment-parent) old-fragment-parent old-fragment))
+            (n* (if (node-list-node? old-fragment-parent) old-fragment-parent old-fragment))
             (expected-type ; ...type constraints,...
              (symbol-non-terminal?
               (list-ref
@@ -1804,8 +1799,8 @@
            (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
          (when (node-parent new-fragment) ; ...it is not part of another AST and...
            (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
-         (if (ast-list-node? old-fragment) ; ...it fits into its new context. If so,...
-             (if (ast-list-node? new-fragment)
+         (if (node-list-node? old-fragment) ; ...it fits into its new context. If so,...
+             (if (node-list-node? new-fragment)
                  (for-each
                   (lambda (element)
                     (unless (ast-rule-subtype? element expected-type)
@@ -1813,7 +1808,7 @@
                   (node-children new-fragment))
                  (throw-exception "Cannot replace subtree; The replacement does not fit."))
              (unless (and
-                      (not (ast-list-node? new-fragment))
+                      (not (node-list-node? new-fragment))
                       (ast-rule-subtype? (node-ast-rule new-fragment) expected-type))
                (throw-exception "Cannot replace subtree; The replacement does not fit.")))
          (node-parent-set! new-fragment old-fragment-parent) ; ...insert the replacement into its new context and...
@@ -1829,6 +1824,76 @@
  (define rewrite-subtree
    (lambda (old-fragment new-fragment)
      (rewrite-subtree-delayed old-fragment (lambda (old-fragment) new-fragment))))
+ 
+ ; Given a node, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby,
+ ; any influenced attributes' caches are flushed and dependencies are maintained. An exception is thrown, iff the given node
+ ; is no list-node element or any attributes of the AST it is part of are in evaluation.
+ (define rewrite-delete
+   (lambda (n)
+     ;;; Before deleting the element ensure, that...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
+       (throw-exception "Cannot delete list element; There are attributes in evaluation."))
+     (unless (and (node-parent n) (node-list-node? (node-parent n))) ; ...the given node is a list-node element.
+       (throw-exception "Cannot delete list element; The given node is not element of a list."))
+     ;;; When all rewrite constraints are satisfied,...
+     (for-each ; ...flush the caches of all attributes influenced by the number of children of the list-node the element is part of. Further,...
+      (lambda (influence)
+        (when (vector-ref (cdr influence) 1)
+          (flush-attribute-cache (car influence))))
+      (node-attribute-influences (node-parent n)))
+     (detach-inherited-attributes n) ; ...delete the element's inherited attributes and,...
+     (for-each ; ...for each tree spaned by the element and its successor elements,...
+      flush-depending-attributes-outside-of ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      (list-tail (node-children (node-parent n)) (- (node-child-index n) 1)))
+     (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove the element from the list and...
+     (node-parent-set! n #f)
+     (distribute-evaluator-state (make-evaluator-state) n))) ; ...reset its evaluator state.
+ 
+ ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, any influenced attributes'
+ ; caches are flushed and dependencies are maintained. An exception is thrown, iff l is no list-node, e does not fit w.r.t.
+ ; l's context, l has not enough elements, such that no i'th position exists, any attributes of either l or e are in evaluation
+ ; or e already is part of another AST.
+ (define rewrite-insert
+   (lambda (l i e)
+     ;;; Before inserting the element ensure, that...
+     (when (or ; ...no attributes are in evaluation,...
+            (evaluator-state-in-evaluation? (node-evaluator-state l))
+            (evaluator-state-in-evaluation? (node-evaluator-state e)))
+       (throw-exception "Cannot insert list element; There are attributes in evaluation."))
+     (unless (node-list-node? l) ; ...indeed a list-node is given as context,...
+       (throw-exception "Cannot insert list element; The given context is no list-node."))
+     (when (or (< i 1) (> i (+ (length (node-children l)) 1))) ; ...the list has enough elements,...
+       (throw-exception "Cannot insert list element; The given index is out of range."))
+     (when (node-parent e) ; ...the new element is not part of another AST and...
+       (throw-exception "Cannot insert list element; The element to insert already is part of another AST."))
+     (when (node-parent l)
+       (let ((expected-type
+              (symbol-non-terminal?
+               (list-ref
+                (ast-rule-production (node-ast-rule (node-parent l)))
+                (node-child-index l)))))
+         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...can be a child of the list-node.
+           (throw-exception "Cannot insert list element; The new element does not fit."))))
+     ;;; When all rewrite constraints are satisfied...
+     (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children. Further,...
+      (lambda (influence)
+        (when (vector-ref (cdr influence) 1)
+          (flush-attribute-cache (car influence))))
+      (node-attribute-influences l))
+     (for-each ; ...for each tree spaned by the successor element's of the insertion position,...
+      flush-depending-attributes-outside-of ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      (list-tail (node-children l) (- i 1)))
+     (node-children-set! ; ...insert the new element,...
+      l
+      (let loop ((l (node-children l)) (i i))
+        (cond
+          ((= i 1) (cons e (loop l 0)))
+          ((null? l) (list))
+          (else (cons (car l) (loop (cdr l) (- i 1)))))))
+     (node-parent-set! e l)
+     (distribute-evaluator-state (node-evaluator-state l) e) ; ...initialize its evaluator state and...
+     (when (node-parent l)
+       (update-inherited-attribution e)))) ; ...any inherited attributes defined for its new context.
  
 ;  (define rewrite-switch
 ;    (lambda (n1 n2)
@@ -1857,119 +1922,13 @@
 ;  ; part of are in evaluation.
 ;  (define rewrite-delete
 ;    (lambda (n)
-;      (when (or (not (node-parent n)) (not (ast-list-node? (node-parent n))))
+;      (when (or (not (node-parent n)) (not (node-list-node? (node-parent n))))
 ;        (throw-exception "Cannot delete list element; The given node is not element of a list."))
 ;      (let loop ((next-to-switch (list-tail (node-children (node-parent n)) (node-child-index n))))
 ;        (unless (null? next-to-switch)
 ;          (rewrite-switch n (car next-to-switch))
 ;          (loop (cdr next-to-switch))))
 ;      (rewrite-delete-last (node-parent n))))
- 
- ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, any influenced attributes'
- ; caches are flushed and dependencies are maintained. An exception is thrown, iff l is no list-node, e does not fit w.r.t.
- ; l's context, l has not enough elements, such that no i'th position exists, any attributes of either l or e are in evaluation
- ; or e already is part of another AST.
- (define rewrite-insert
-   (lambda (l i e)
-     ; Before inserting the element, ensure, that...
-     (when (not (ast-list-node? l)) ; ...indeed a list-node is given as context,...
-       (throw-exception "Cannot insert list element; The given context is no list-node."))
-     (letrec* (; Support variable constraining the type of the element to insert:
-               (expected-type
-                (symbol-non-terminal?
-                 (list-ref
-                  (ast-rule-production (node-ast-rule (node-parent l)))
-                  (ast-child-index l))))
-               ; Support function to throw insertion exceptions incorporating a given error message:
-               (error
-                (lambda (cause)
-                  (throw-exception
-                   "Cannot insert list element [index: "
-                   (number->string i)
-                   " | new: "
-                   (symbol->string
-                    (if (or (ast-list-node? e) (node-terminal? e))
-                        (node-ast-rule e)
-                        (symbol-name (car (ast-rule-production (node-ast-rule e))))))
-                   " | expected: "
-                   (symbol->string (symbol-name (car (ast-rule-production expected-type))))
-                   "]; "
-                   cause)))
-               ; Support function to insert an element e at position i into a list l:
-               (insert
-                (lambda (l i e)
-                  (if (= i 0)
-                      (cons e l)
-                      (cons (car l) (insert (cdr l) (- i 1) e))))))
-              (when (evaluator-state-in-evaluation? (node-evaluator-state l)) ; ...no attributes are in evaluation,...
-                (error "There are attributes in evaluation."))
-              (when (node-parent e) ; ...the new element is not part of another AST (i.e., is freely available),...
-                (error "The given element already is part of another AST."))
-              (when (or (< i 1) (> i (+ (ast-num-children l) 1))) ; ...the list has enough elements and...
-                (error "The given index is out of range."))
-              (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...the element can be a child of the list-node....
-                (error "The new element does not fit."))
-              ; ...When all rewrite constraints are satisfied...
-              (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children. Further,...
-               (lambda (influence)
-                 (when (vector-ref (cdr influence) 1)
-                   (flush-attribute-cache (car influence))))
-               (node-attribute-influences l))
-              (for-each ; ...for every node within the ASTs of the successor elements following the insertion position,...
-               (lambda (n)
-                 (let loop ((n n))
-                   (for-each ; ...flush the caches of all attributes influenced by the node and...
-                    (lambda (influence)
-                      (flush-attribute-cache (car influence)))
-                    (node-attribute-influences n))
-                   (for-each ; ...all its attributes. Afterwards,...
-                    flush-attribute-cache
-                    (node-attributes n))
-                   (when (node-non-terminal? n)
-                     (for-each
-                      loop
-                      (node-children n)))))
-               (list-tail (node-children l) (- i 1)))
-              (node-children-set! l (insert (node-children l) (- i 1) e)) ; ...insert the new element,...
-              (node-parent-set! e l)
-              (distribute-evaluator-state (node-evaluator-state l) e) ; ...initialize its evaluator state and...
-              (update-inherited-attribution e)))) ; ...any inherited attributes defined for its new context.
- 
- ; Given a node, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby,
- ; any influenced attributes' caches are flushed and dependencies are maintained. An exception is thrown, iff the given node
- ; is no list-node element or any attributes of the AST it is part of are in evaluation.
- (define rewrite-delete
-   (lambda (n)
-     ; Before deleting the element ensure, that...
-     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
-       (throw-exception "Cannot delete list element; There are attributes in evaluation."))
-     (when (not (ast-list-node? (node-parent n))) ; ...the given node is a list-node element....
-       (throw-exception "Cannot delete list element; The given node is not element of a list."))
-     ; ...When all rewrite constraints are satisfied,...
-     (for-each ; ...flush the caches of all attributes influenced by the number of children of the list-node the element is part of. Further,...
-      (lambda (influence)
-        (when (vector-ref (cdr influence) 1)
-          (flush-attribute-cache (car influence))))
-      (node-attribute-influences (node-parent n)))
-     (for-each ; ...for every node within the ASTs the element and its successor elements span,...
-      (lambda (n)
-        (let loop ((n n))
-          (for-each ; ...flush the caches of all attributes influenced by the node and...
-           (lambda (influence)
-             (flush-attribute-cache (car influence)))
-           (node-attribute-influences n))
-          (for-each ; ...all its attributes. Afterwards,...
-           flush-attribute-cache
-           (node-attributes n))
-          (when (node-non-terminal? n)
-            (for-each
-             loop
-             (node-children n)))))
-      (list-tail (node-children (node-parent n)) (- (ast-child-index n) 1)))
-     (detach-inherited-attributes n) ; ...delete the element's inherited attributes,...
-     (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove it from the list and...
-     (node-parent-set! n #f)
-     (distribute-evaluator-state #f n))) ; ...reset its evaluator state.
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;                                                        Dependency Tracking Support                                                             ;;;
@@ -2028,20 +1987,14 @@
    (lambda (influencing-node comparision-type)
      (add-dependency:att->node-characteristic influencing-node (cons 4 comparision-type))))
  
- ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
- (define add-dependency:att->node-list?
-   (lambda (influencing-node)
-     (add-dependency:att->node-characteristic influencing-node (cons 5 racr-nil))))
- 
  ; INTERNAL FUNCTION: Given a node N and a correlation C add an dependency-edge marked with C from
  ; the attribute currently in evaluation (considering the evaluator state of the AST N is part of) to N and an influence-edge
- ; vice versa. If no attribute is in evaluation no edges are added. The following six influencing-characteristics exist:
+ ; vice versa. If no attribute is in evaluation no edges are added. The following six correlations exist:
  ;  1) Dependency on the existence of the node (i.e., existence of a node at the same location)
  ;  2) Dependency on the node's number of children (i.e., existence of a node at the same location and with the same number of children)
  ;  3) Dependency on the node's type (i.e., existence of a node at the same location and with the same type)
- ;  4) Dependency on the node's super-type (i.e., existence of a node at the same location which is a super-type)
- ;  5) Dependency on the node's sub-type (i.e., existence of a node at the same location which is a sub-type)
- ;  6) Dependency on whether the node is a list-node or not (i.e., existence of a node at the same location which also is a/no list-node)
+ ;  4) Dependency on whether the node's type is a supertype w.r.t. a certain type encoded in C or not
+ ;  5) Dependency on whether the node's type is a subtype w.r.t. a certain type encoded in C or not
  (define add-dependency:att->node-characteristic
    (lambda (influencing-node correlation)
      (let ((dependent-att (evaluator-state-in-evaluation? (node-evaluator-state influencing-node))))
@@ -2051,7 +2004,7 @@
                   (and dc-hit (cdr dc-hit)))))
            (unless dependency-vector
              (begin
-               (set! dependency-vector (vector #f #f #f (list) (list) #f))
+               (set! dependency-vector (vector #f #f #f (list) (list)))
                (attribute-instance-node-dependencies-set!
                 dependent-att
                 (cons
@@ -2068,7 +2021,7 @@
               dependency-vector
               correlation-type
               (case correlation-type
-                ((0 1 2 5)
+                ((0 1 2)
                  #t)
                 ((3 4)
                  (let ((known-args (vector-ref dependency-vector correlation-type)))

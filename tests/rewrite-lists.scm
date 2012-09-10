@@ -155,8 +155,7 @@
           (S) 'A-length
           (A) 'A-length
           (E 1 5) 'i
-          (E 3) 's
-          (E 4 5) 's) ; Fix!
+          (E 3) 's)
          
          ; add with hit:
          (rewrite-add (A-E-list) (create-ast 'E (list #f)))
@@ -172,9 +171,7 @@
          (influenced:
           (invariant)
           (S) 'A-length
-          (A) 'A-length
-          (E 4 5) 'i ; Fix!
-          (E 4 5) 's) ; Fix!
+          (A) 'A-length)
          
          ; delete before hit:
          (rewrite-delete (E 2))
@@ -185,8 +182,7 @@
           (A) 'i
           (S) 'A-length
           (A) 'A-length
-          (E 1 4) 'i
-          (E 2 4) 's) ; Fix!
+          (E 1 4) 'i)
          
          ; insert after hit:
          (rewrite-insert (A-E-list) 3 (create-ast 'E (list #f)))
@@ -195,9 +191,7 @@
           (S) 'A-length
           (A) 'A-length
           (E 3) 'i
-          (E 3) 's
-          (E 4 5) 'i ; Fix!
-          (E 4 5) 's) ; Fix!
+          (E 3) 's)
          
          ; insert before hit:
          (rewrite-insert (A-E-list) 1 (create-ast 'E (list #f)))
@@ -209,8 +203,7 @@
           (S) 'A-length
           (A) 'A-length
           (E 1 6) 'i
-          (E 1) 's
-          (E 2 6) 's) ; Fix!
+          (E 1) 's)
          
          ; cancel hit:
          (rewrite-terminal 1 (E 3) #f)
@@ -243,8 +236,7 @@
           (A) 'i
           (S) 'A-length
           (A) 'A-length
-          (E 1 6) 'i
-          (E 4 6) 's) ; Fix!
+          (E 1 6) 'i)
          
          ; insert without hit:
          (rewrite-insert (A-E-list) 2 (create-ast 'E (list #f)))
@@ -256,6 +248,4 @@
           (S) 'A-length
           (A) 'A-length
           (E 1 7) 'i
-          (E 2 2) 's
-          (E 3 7) 's) ; Fix!
-         )))))
+          (E 2 2) 's))))))
