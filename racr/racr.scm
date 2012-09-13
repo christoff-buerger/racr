@@ -1573,8 +1573,8 @@
           (node-children n*))))))
  
  ; Given a node n, a child-index i and an arbitrary value new-value, change the value of n's i'th child, which must be a terminal, to
- ; new-value. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if
- ; n has no i'th child, n's i'th child is no terminal or any attributes of the AST n is part of are in evaluation.
+ ; new-value. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if n
+ ; has no i'th child, n's i'th child is no terminal or any attributes of the AST n is part of are in evaluation.
  (define rewrite-terminal
    (lambda (i n new-value)
      ; Before changing the value of the terminal ensure, that...
@@ -1593,6 +1593,12 @@
           (node-attribute-influences n))
          (node-children-set! n new-value))))) ; ...rewrite its value.
  
+ ; Given a node n (of arbitrary type), a non-terminal type t (which is a subtype of n's current type) and a list of non-terminal nodes
+ ; and terminal values c, rewrite the type of n to t and add c as children for the additional contexts t introduces compared to n's current
+ ; type. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if t is no
+ ; subtype of n, not enough or to much additional context children are given, any of the additional context children does not fit, any
+ ; attributes of the AST n is part of or of any of the ASTs spaned by the additional children are in evaluation, any of the additional
+ ; children already is part of another AST or n is within the AST of any of the additional children.
  (define rewrite-refine
    (lambda (n t . c)
      ;;; Before refining the non-terminal ensure, that...
@@ -1608,7 +1614,7 @@
          (unless (= (length additional-children) (length c)) ; ...the expected number of new children are given,...
            (throw-exception "Cannot refine node; Unexpected number of additional children."))
          (let ((c
-                (map ; ...each child fits, is not part of another AST and non of its attributes are in evaluation.
+                (map ; ...each child fits, is not part of another AST, does not contain the refined node and non of its attributes are in evaluation.
                  (lambda (symbol child)
                    (cond
                      ((symbol-non-terminal? symbol)
@@ -1616,6 +1622,8 @@
                         (throw-exception "Cannot refine node; The given children do not fit."))
                       (when (node-parent child)
                         (throw-exception "Cannot refine node; A given child already is part of another AST."))
+                      (when (node-inside-of? n c)
+                        (throw-exception "Cannot refine node; The node to refine is part of the AST spaned by a given child."))
                       (when (evaluator-state-in-evaluation? (node-evaluator-state child))
                         (throw-exception "Cannot refine node; There are attributes in evaluation."))
                       (if (symbol-kleene? symbol)
@@ -1667,6 +1675,10 @@
             update-inherited-attribution
             (node-children n)))))))
  
+ ; Given a node n (of arbitrary type) and a non-terminal type t (which is a supertype of n's current type), rewrite the type of n to t.
+ ; Superfluous children of n representing child contexts not known anymore by n's new type t are deleted. Further, the caches of any
+ ; influenced attributes are flushed and dependencies are maintained. An exception is thrown, if t is not a supertype of n's current type
+ ; or any attributes of the AST n is part of are in evaluation.
  (define rewrite-abstract
    (lambda (n t)
      ;;; Before abstracting the non-terminal ensure, that...
@@ -1718,7 +1730,8 @@
  
  ; Given a list-node l and another node e add e to l's list of children (i.e., e becomes an element of l). Thereby, the caches of any
  ; influenced attributes are flushed and dependencies are maintained. An exception is thrown, if l is not a list-node, e does not fit
- ; w.r.t. l's context, any attributes of either l or e are in evaluation or e already is part of another AST.
+ ; w.r.t. l's context, any attributes of either l or e are in evaluation, e already is part of another AST or l is within the AST
+ ; spaned by e.
  (define rewrite-add
    (lambda (l e)
      ;;; Before adding the element ensure, that...
@@ -1728,15 +1741,17 @@
        (throw-exception "Cannot add list element; There are attributes in evaluation."))
      (unless (node-list-node? l) ; ...indeed a list-node is given as context,...
        (throw-exception "Cannot add list element; The given context is no list-node."))
-     (when (node-parent e) ; ...the new element is not part of another AST and...
+     (when (node-parent e) ; ...the new element is not part of another AST,...
        (throw-exception "Cannot add list element; The element to add already is part of another AST."))
+     (when (node-inside-of? l e) ; ...its spaned AST does not contain the list-node and...
+       (throw-exception "Cannot add list element; The given list is part of the AST spaned by the element to add."))
      (when (node-parent l)
        (let ((expected-type
               (symbol-non-terminal?
                (list-ref
                 (ast-rule-production (node-ast-rule (node-parent l)))
                 (node-child-index l)))))
-         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...can be a child of the list-node.
+         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...it can be a child of the list-node.
            (throw-exception "Cannot add list element; The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children,...
@@ -1794,11 +1809,13 @@
        ;;; After removing the old fragment,...
        (let ((new-fragment (transformer old-fragment))) ; ...compute its replacement using the given transformer. Afterwards, ensure that...
          (unless (and (node? new-fragment) (node-non-terminal? new-fragment)) ; ...the replacement is a non-terminal node,...
-           (throw-exception "Cannot replace subtree; The new fragment is not a non-terminal node."))
+           (throw-exception "Cannot replace subtree; The replacement is not a non-terminal node."))
          (when (evaluator-state-in-evaluation? (node-evaluator-state new-fragment)) ; ...non of its attributes are in evaluation,...
            (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
-         (when (node-parent new-fragment) ; ...it is not part of another AST and...
+         (when (node-parent new-fragment) ; ...it is not part of another AST...
            (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
+         (when (node-inside-of? old-fragment-parent new-fragment) ; ...its spaned AST did not contain the old-fragment and...
+           (throw-exception "Cannot replace subtree; The given old fargment is part of the AST spaned by the replacement."))
          (if (node-list-node? old-fragment) ; ...it fits into its new context. If so,...
              (if (node-list-node? new-fragment)
                  (for-each
@@ -1817,17 +1834,17 @@
          (distribute-evaluator-state (node-evaluator-state old-fragment-parent) new-fragment))) ; ...evaluator state. Finally,...
      old-fragment)) ; ...return the removed old fragment.
  
- ; Given an AST node to replace (old fragment) and its replacement (new fragment) replace the old fragment by the new one.
- ; Thereby, any influenced attributes' caches are flushed and dependencies are maintained. An exception is thrown, iff the
- ; new fragment doesn't fit, the old fragment is an AST root (i.e., a start symbol node), any attributes of either fragment
- ; are in evaluation or the new fragment already is part of another AST.
+ ; Given an AST node to replace (old-fragment) and its replacement (new-fragment) replace old-fragment by new-fragment. Thereby, the
+ ; caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if new-fragment does not fit,
+ ; old-fragment is not part of an AST (i.e., has no parent node), any attributes of either fragment are in evaluation, new-fragment
+ ; already is part of another AST or old-fragment is within the AST spaned by new-fragment.
  (define rewrite-subtree
    (lambda (old-fragment new-fragment)
      (rewrite-subtree-delayed old-fragment (lambda (old-fragment) new-fragment))))
  
- ; Given a node, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby,
- ; any influenced attributes' caches are flushed and dependencies are maintained. An exception is thrown, iff the given node
- ; is no list-node element or any attributes of the AST it is part of are in evaluation.
+ ; Given a node n, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby, the caches
+ ; of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if n is no list-node element or any
+ ; attributes of the AST it is part of are in evaluation.
  (define rewrite-delete
    (lambda (n)
      ;;; Before deleting the element ensure, that...
@@ -1849,10 +1866,10 @@
      (node-parent-set! n #f)
      (distribute-evaluator-state (make-evaluator-state) n))) ; ...reset its evaluator state.
  
- ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, any influenced attributes'
- ; caches are flushed and dependencies are maintained. An exception is thrown, iff l is no list-node, e does not fit w.r.t.
- ; l's context, l has not enough elements, such that no i'th position exists, any attributes of either l or e are in evaluation
- ; or e already is part of another AST.
+ ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, the caches of any influenced attributes
+ ; are flushed and dependencies are maintained. An exception is thrown, if l is no list-node, e does not fit w.r.t. l's context, l has not
+ ; enough elements, such that no i'th position exists, any attributes of either l or e are in evaluation, e already is part of another AST or
+ ; l is within the AST spaned by e.
  (define rewrite-insert
    (lambda (l i e)
      ;;; Before inserting the element ensure, that...
@@ -1864,15 +1881,17 @@
        (throw-exception "Cannot insert list element; The given context is no list-node."))
      (when (or (< i 1) (> i (+ (length (node-children l)) 1))) ; ...the list has enough elements,...
        (throw-exception "Cannot insert list element; The given index is out of range."))
-     (when (node-parent e) ; ...the new element is not part of another AST and...
+     (when (node-parent e) ; ...the new element is not part of another AST,...
        (throw-exception "Cannot insert list element; The element to insert already is part of another AST."))
+     (when (node-inside-of? l e) ; ...its spaned AST does not contain the list-node and...
+      (throw-exception "Cannot insert list element; The given list is part of the AST spaned by the element to insert."))
      (when (node-parent l)
        (let ((expected-type
               (symbol-non-terminal?
                (list-ref
                 (ast-rule-production (node-ast-rule (node-parent l)))
                 (node-child-index l)))))
-         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...can be a child of the list-node.
+         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...it can be a child of the list-node.
            (throw-exception "Cannot insert list element; The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children. Further,...
