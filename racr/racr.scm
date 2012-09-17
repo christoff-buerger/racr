@@ -39,6 +39,7 @@
   ast-find-child
   att-value
   ; Rewrite interface:
+  perform-rewrites
   rewrite-terminal
   rewrite-refine
   rewrite-abstract
@@ -1416,7 +1417,7 @@
      (let loop ((children* children) ; For every child, ensure, that the child is a...
                 (pos 1))
        (unless (null? children*)
-         (when (or (not (node? (car children*))) (node-list-node? (car children*)) (node-terminal? (car children*)))  ; ...proper non-terminal node,...
+         (when (or (not (node? (car children*))) (node-list-node? (car children*)) (node-terminal? (car children*))) ; ...proper non-terminal node,...
            (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
          (when (node-parent (car children*)) ; ...is not already part of another AST,...
            (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
@@ -1551,6 +1552,33 @@
  ;;                                                             Rewrite Interface                                                                  ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
+ (define perform-rewrites
+   (lambda (n strategy . transformers)
+     (define find-and-apply
+       (case strategy
+         ((top-down)
+          (lambda (n)
+            (and
+             (not (node-terminal? n))
+             (or
+              (find (lambda (r) (r n)) transformers)
+              (find find-and-apply (node-children n))))))
+         ((bottom-up)
+          (lambda (n)
+            (and
+             (not (node-terminal? n))
+             (or
+              (find find-and-apply (node-children n))
+              (find (lambda (r) (r n)) transformers)))))
+         (else (throw-exception "Cannot perform rewrites; Unknown " strategy " strategy."))))
+     (let loop ()
+       (when (node-parent n)
+         (throw-exception "Cannot perform rewrites; The given starting point is not (anymore) an AST root."))
+       (let ((match (find-and-apply n)))
+         (if match
+             (cons match (loop))
+             (list))))))
+ 
  (define flush-depending-attributes-outside-of
    (lambda (n)
      (let loop ((n* n))
@@ -1678,7 +1706,8 @@
  ; Given a node n (of arbitrary type) and a non-terminal type t (which is a supertype of n's current type), rewrite the type of n to t.
  ; Superfluous children of n representing child contexts not known anymore by n's new type t are deleted. Further, the caches of any
  ; influenced attributes are flushed and dependencies are maintained. An exception is thrown, if t is not a supertype of n's current type
- ; or any attributes of the AST n is part of are in evaluation.
+ ; or any attributes of the AST n is part of are in evaluation. If rewriting succeeds, a list containing in their original order the
+ ; deleted superfluous children is returned.
  (define rewrite-abstract
    (lambda (n t)
      ;;; Before abstracting the non-terminal ensure, that...
@@ -1765,106 +1794,54 @@
      (when (node-parent l)
        (update-inherited-attribution e)))) ; ...any inherited attributes defined for its new context.
  
-;  (define rewrite-delete-last
-;    (lambda (l)
-;      ;;; Before removing the last element, ensure, that...
-;      (when (evaluator-state-in-evaluation? (node-evaluator-state l)) ; ...no attributes are in evaluation and...
-;        (throw-exception "Cannot remove last list element; There are attributes in evaluation."))
-;      (unless (node-list-node? l) ; ...indeed a list-node with...
-;        (throw-exception "Cannot remove last list element; The given context is no list-node."))
-;      (when (null? (node-children l)) ; ...at least one element is given.
-;        (throw-exception "Cannot remove last list element; The list node has no elements"))
-;      ;;; When all rewrite contraints are satisfied,...
-;      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children and...
-;       (lambda (influence)
-;         (when (vector-ref (cdr influence) 1)
-;           (flush-attribute-cache (car influence))))
-;       (node-attribute-influences l))
-;      (let ((to-remove (list-ref (node-children l) (- (length (node-children l)) 1))))
-;        (flush-depending-attributes-outside-of to-remove) ; ...all attributes depending on, but still outside of, the last element. Then,...
-;        (node-parent-set! to-remove #f) ; ...detach the element from the AST,...
-;        (node-children-set! l (remq to-remove (node-children l)))
-;        (detach-inherited-attributes to-remove) ; ...delete its inherited attribution,...
-;        (distribute-evaluator-state (make-evaluator-state) to-remove) ; ...update its evaluator state and finally,...
-;        to-remove))) ; ...return the removed element.
- 
- (define rewrite-subtree-delayed
-   (lambda (old-fragment transformer)
-     ;;; Before removing the old fragment ensure, that...
-     (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment)) ; ...non of its attributes are in evaluation. If so,...
+ ; Given an AST node to replace (old-fragment) and its replacement (new-fragment) replace old-fragment by new-fragment. Thereby, the
+ ; caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if new-fragment does not fit,
+ ; old-fragment is not part of an AST (i.e., has no parent node), any attributes of either fragment are in evaluation, new-fragment
+ ; already is part of another AST or old-fragment is within the AST spaned by new-fragment. If rewriting succeeds, the removed
+ ; old-fragment is returned.
+ (define rewrite-subtree
+   (lambda (old-fragment new-fragment)
+     ;;; Before replacing the subtree ensure, that...
+     (when (or  ; ...no attributes are in evaluation,...
+            (evaluator-state-in-evaluation? (node-evaluator-state old-fragment))
+            (evaluator-state-in-evaluation? (node-evaluator-state new-fragment)))
        (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
-     (let* ((old-fragment-parent (node-parent old-fragment)) ; ...retain the old fragment's context and...
-            (old-fragment-location (list-tail (node-children old-fragment-parent) (- (node-child-index old-fragment) 1)))
-            (n* (if (node-list-node? old-fragment-parent) old-fragment-parent old-fragment))
-            (expected-type ; ...type constraints,...
+     (unless (and (node? new-fragment) (node-non-terminal? new-fragment)) ; ...the new fragment is a non-terminal node,...
+       (throw-exception "Cannot replace subtree; The replacement is not a non-terminal node."))
+     (when (node-parent new-fragment) ; ...it is not part of another AST...
+       (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
+     (when (node-inside-of? old-fragment new-fragment) ; ...its spaned AST did not contain the old-fragment and...
+       (throw-exception "Cannot replace subtree; The given old fragment is part of the AST spaned by the replacement."))
+     (let* ((n* (if (node-list-node? (node-parent old-fragment)) (node-parent old-fragment) old-fragment))
+            (expected-type
              (symbol-non-terminal?
               (list-ref
                (ast-rule-production (node-ast-rule (node-parent n*)))
                (node-child-index n*)))))
-       (detach-inherited-attributes old-fragment) ; ...delete its inherited attribution,...
-       (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it that are outside its spaned tree,...
-       (node-parent-set! old-fragment #f) ; ...remove it and...
-       (set-car! old-fragment-location #f)
-       (distribute-evaluator-state (make-evaluator-state) old-fragment) ; ...update its evaluator state.
-       ;;; After removing the old fragment,...
-       (let ((new-fragment (transformer old-fragment))) ; ...compute its replacement using the given transformer. Afterwards, ensure that...
-         (unless (and (node? new-fragment) (node-non-terminal? new-fragment)) ; ...the replacement is a non-terminal node,...
-           (throw-exception "Cannot replace subtree; The replacement is not a non-terminal node."))
-         (when (evaluator-state-in-evaluation? (node-evaluator-state new-fragment)) ; ...non of its attributes are in evaluation,...
-           (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
-         (when (node-parent new-fragment) ; ...it is not part of another AST...
-           (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
-         (when (node-inside-of? old-fragment-parent new-fragment) ; ...its spaned AST did not contain the old-fragment and...
-           (throw-exception "Cannot replace subtree; The given old fargment is part of the AST spaned by the replacement."))
-         (if (node-list-node? old-fragment) ; ...it fits into its new context. If so,...
-             (if (node-list-node? new-fragment)
-                 (for-each
-                  (lambda (element)
-                    (unless (ast-rule-subtype? element expected-type)
-                      (throw-exception "Cannot replace subtree; The replacement does not fit.")))
-                  (node-children new-fragment))
-                 (throw-exception "Cannot replace subtree; The replacement does not fit."))
-             (unless (and
-                      (not (node-list-node? new-fragment))
-                      (ast-rule-subtype? (node-ast-rule new-fragment) expected-type))
-               (throw-exception "Cannot replace subtree; The replacement does not fit.")))
-         (node-parent-set! new-fragment old-fragment-parent) ; ...insert the replacement into its new context and...
-         (set-car! old-fragment-location new-fragment)
-         (update-inherited-attribution new-fragment) ; ...update its inherited attributes and...
-         (distribute-evaluator-state (node-evaluator-state old-fragment-parent) new-fragment))) ; ...evaluator state. Finally,...
-     old-fragment)) ; ...return the removed old fragment.
- 
- ; Given an AST node to replace (old-fragment) and its replacement (new-fragment) replace old-fragment by new-fragment. Thereby, the
- ; caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if new-fragment does not fit,
- ; old-fragment is not part of an AST (i.e., has no parent node), any attributes of either fragment are in evaluation, new-fragment
- ; already is part of another AST or old-fragment is within the AST spaned by new-fragment.
- (define rewrite-subtree
-   (lambda (old-fragment new-fragment)
-     (rewrite-subtree-delayed old-fragment (lambda (old-fragment) new-fragment))))
- 
- ; Given a node n, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby, the caches
- ; of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if n is no list-node element or any
- ; attributes of the AST it is part of are in evaluation.
- (define rewrite-delete
-   (lambda (n)
-     ;;; Before deleting the element ensure, that...
-     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
-       (throw-exception "Cannot delete list element; There are attributes in evaluation."))
-     (unless (and (node-parent n) (node-list-node? (node-parent n))) ; ...the given node is a list-node element.
-       (throw-exception "Cannot delete list element; The given node is not element of a list."))
+       (if (node-list-node? old-fragment) ; ...it fits into its new context.
+           (if (node-list-node? new-fragment)
+               (for-each
+                (lambda (element)
+                  (unless (ast-rule-subtype? element expected-type)
+                    (throw-exception "Cannot replace subtree; The replacement does not fit.")))
+                (node-children new-fragment))
+               (throw-exception "Cannot replace subtree; The replacement does not fit."))
+           (unless (and
+                    (not (node-list-node? new-fragment))
+                    (ast-rule-subtype? (node-ast-rule new-fragment) expected-type))
+             (throw-exception "Cannot replace subtree; The replacement does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
-     (for-each ; ...flush the caches of all attributes influenced by the number of children of the list-node the element is part of. Further,...
-      (lambda (influence)
-        (when (vector-ref (cdr influence) 1)
-          (flush-attribute-cache (car influence))))
-      (node-attribute-influences (node-parent n)))
-     (detach-inherited-attributes n) ; ...delete the element's inherited attributes and,...
-     (for-each ; ...for each tree spaned by the element and its successor elements,...
-      flush-depending-attributes-outside-of ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
-      (list-tail (node-children (node-parent n)) (- (node-child-index n) 1)))
-     (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove the element from the list and...
-     (node-parent-set! n #f)
-     (distribute-evaluator-state (make-evaluator-state) n))) ; ...reset its evaluator state.
+     (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attribution,...
+     (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it that are outside its spaned tree,...
+     (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...update both fragments' evaluator state,...
+     (distribute-evaluator-state (make-evaluator-state) old-fragment)
+     (set-car! ; ...replace the old fragment by the new one and...
+      (list-tail (node-children (node-parent old-fragment)) (- (node-child-index old-fragment) 1))
+      new-fragment)
+     (node-parent-set! new-fragment (node-parent old-fragment))
+     (node-parent-set! old-fragment #f)
+     (update-inherited-attribution new-fragment) ; ...update the new fragment's inherited attribution. Finally,...
+     old-fragment )) ; ...return the removed old fragment.
  
  ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, the caches of any influenced attributes
  ; are flushed and dependencies are maintained. An exception is thrown, if l is no list-node, e does not fit w.r.t. l's context, l has not
@@ -1914,40 +1891,30 @@
      (when (node-parent l)
        (update-inherited-attribution e)))) ; ...any inherited attributes defined for its new context.
  
-;  (define rewrite-switch
-;    (lambda (n1 n2)
-;      (rewrite-subtree-delayed
-;       n1
-;       (lambda (n1)
-;         (rewrite-subtree n2 n1)))))
-;  
-;  ; Given a list-node l, a child-index i and an AST node e, insert e as i'th element into l. Thereby, any influenced attributes'
-;  ; caches are flushed and dependencies are maintained. An exception is thrown, if l is no list-node, e does not fit w.r.t.
-;  ; l's context, l has not enough elements, such that no i'th position exists, any attributes of either l or e are in evaluation
-;  ; or e already is part of another AST.
-;  (define rewrite-insert
-;    (lambda (l i e)
-;      (when (or (< i 1) (> (- i 1) (length (node-children l))))
-;        (throw-exception "Cannot insert list element; The given index " i " is out of range."))
-;      (rewrite-add l e)
-;      (let loop ((to-switch-count (+ (- (length (node-children l)) i) 1))
-;                 (next-to-switch (reverse (node-children l))))
-;        (when (> to-switch-count 0)
-;          (rewrite-switch (cadr next-to-switch) e)
-;          (loop (- to-switch-count 1) (cdr next-to-switch))))))
-;  
-;  ; Given a node, which is element of a list-node, delete it within the list. Thereby, any influenced attributes' caches are flushed and
-;  ; dependencies are maintained. An exception is thrown, if the given node is no list-node element or any attributes of the AST it is
-;  ; part of are in evaluation.
-;  (define rewrite-delete
-;    (lambda (n)
-;      (when (or (not (node-parent n)) (not (node-list-node? (node-parent n))))
-;        (throw-exception "Cannot delete list element; The given node is not element of a list."))
-;      (let loop ((next-to-switch (list-tail (node-children (node-parent n)) (node-child-index n))))
-;        (unless (null? next-to-switch)
-;          (rewrite-switch n (car next-to-switch))
-;          (loop (cdr next-to-switch))))
-;      (rewrite-delete-last (node-parent n))))
+ ; Given a node n, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby, the caches
+ ; of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if n is no list-node element or any
+ ; attributes of the AST it is part of are in evaluation. If rewriting succeeds, the deleted list element n is returned.
+ (define rewrite-delete
+   (lambda (n)
+     ;;; Before deleting the element ensure, that...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
+       (throw-exception "Cannot delete list element; There are attributes in evaluation."))
+     (unless (and (node-parent n) (node-list-node? (node-parent n))) ; ...the given node is a list-node element.
+       (throw-exception "Cannot delete list element; The given node is not element of a list."))
+     ;;; When all rewrite constraints are satisfied,...
+     (for-each ; ...flush the caches of all attributes influenced by the number of children of the list-node the element is part of. Further,...
+      (lambda (influence)
+        (when (vector-ref (cdr influence) 1)
+          (flush-attribute-cache (car influence))))
+      (node-attribute-influences (node-parent n)))
+     (detach-inherited-attributes n) ; ...delete the element's inherited attributes and,...
+     (for-each ; ...for each tree spaned by the element and its successor elements,...
+      flush-depending-attributes-outside-of ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      (list-tail (node-children (node-parent n)) (- (node-child-index n) 1)))
+     (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove the element from the list,...
+     (node-parent-set! n #f)
+     (distribute-evaluator-state (make-evaluator-state) n) ; ...reset its evaluator state and...
+     n)) ; ...return it.
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;                                                        Dependency Tracking Support                                                             ;;;
