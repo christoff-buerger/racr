@@ -26,8 +26,11 @@
   ; AST & attribute access interface:
   create-ast
   create-ast-list
+  create-ast-bud
+  (rename (node? ast-node?))
   ast-node-type
   (rename (node-list-node? ast-list-node?))
+  (rename (node-bud-node? ast-bud-node?))
   ast-subtype?
   ast-parent
   ast-child
@@ -178,10 +181,15 @@
    (lambda (n)
      (not (node-terminal? n))))
  
- ; Given a node n, return whether it represents a list of children, i.e., is a list node, or not.
+ ; Given a node, return whether it represents a list of children, i.e., is a list-node, or not.
  (define node-list-node?
    (lambda (n)
      (eq? (node-ast-rule n) 'list-node)))
+ 
+ ; INTERNAL FUNCTION: Given a node, return whether is is a bud-node or not.
+ (define node-bud-node?
+   (lambda (n)
+     (eq? (node-ast-rule n) 'bud-node)))
  
  ; INTERNAL FUNCTION: Given a node, return its child-index. An exception is thrown, if the node has no parent (i.e., is a root).
  (define node-child-index
@@ -198,6 +206,7 @@
  (define node-find-child
    (lambda (n context-name)
      (and (not (node-list-node? n))
+          (not (node-bud-node? n))
           (not (node-terminal? n))
           (let loop ((contexts (cdr (ast-rule-production (node-ast-rule n))))
                      (children (node-children n)))
@@ -352,6 +361,10 @@
              (lambda (element)
                (loop (+ ast-depth 1) element))
              (node-children ast)))
+           ((node-bud-node? ast) ; Print bud nodes
+            (print-indentation ast-depth)
+            (print-indentation ast-depth)
+            (my-display "-@ bud-node"))
            ((node-non-terminal? ast) ; Print non-terminal
             (print-indentation ast-depth)
             (print-indentation ast-depth)
@@ -422,9 +435,11 @@
        (throw-exception "Cannot weave " name " annotation; There are attributes in evaluation."))
      (when (not (ast-annotation? node name))
        (cond
-         ((and (not (node-list-node? node)) (ast-subtype? node type))
+         ((and (not (node-list-node? node)) (not (node-bud-node? node)) (ast-subtype? node type))
           (ast-annotation-set! node name value))
          ((and (node-list-node? node) (eq? type 'list-node))
+          (ast-annotation-set! node name value))
+         ((and (node-bud-node? node) (eq? type 'bud-node))
           (ast-annotation-set! node name value))))
      (for-each
       (lambda (child)
@@ -924,12 +939,14 @@
  ;;                                                             Attribute Evaluator                                                                ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; INTERNAL FUNCTION: Given a node N find a certain attribute associated with it, whereas in case no proper attribute
- ; is associated with N itself the search is extended to find a broadcast solution. Iff the extended search finds a
+ ; INTERNAL FUNCTION: Given a node n find a certain attribute associated with it, whereas in case no proper attribute
+ ; is associated with n itself the search is extended to find a broadcast solution. Iff the extended search finds a
  ; solution, appropriate copy propergation attributes (i.e., broadcasters) are added. Iff no attribute instance can be
- ; found, an exception is thrown. Otherwise, the attribute or its respective last broadcaster is returned.
+ ; found or n is a bud node, an exception is thrown. Otherwise, the attribute or its respective last broadcaster is returned.
  (define lookup-attribute
    (lambda (name n)
+     (when (node-bud-node? n)
+       (throw-exception "AG evaluator exception; Cannot access " name " attribute - the given node is a bud."))
      (let loop ((n n)) ; Recursively...
        (let ((att (node-find-attribute n name))) ; ...check if the current node has a proper attribute instance....
          (if att
@@ -958,10 +975,12 @@
                      (node-attributes-set! n (cons broadcaster (node-attributes n))) ; ...add the constructed broadcaster and...
                      broadcaster)))))))) ; ...return it as the current node's look-up result.
  
- ; Given a node return the value of one of its attributes A. If required, A is evaluated, whereas all its
- ; meta-information like dependencies etc. are properly computed.
- ; DEPENENCIES:
- ;  - Iff another attribute A2 already is in evaluation: A2 depends on A
+ ; Given a node return the value of one of its attribute instances. In case no proper attribute instance is associated with the node
+ ; itself the search is extended to find a broadcast solution. If required, the found attribute instance is evaluated, whereupon all
+ ; its meta-information like dependencies etc. are computed. The function has a variable number of arguments, whereas its optional
+ ; parameters are the actual arguments for parameterized attributes. An exception is thrown, if the given node is a bud node, no
+ ; properly named attribute instance can be found, the wrong number of arguments is given or the attribute equation is erroneous
+ ; (i.e., its evaluation aborts with an exception).
  (define att-value
    (lambda (name n . args)
      (let* (; The evaluator state used and changed throughout evaluation:
@@ -1122,29 +1141,29 @@
  ;;                                                   Abstract Syntax Tree Access Interface                                                        ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; Given a node n, return its type. If the node is a list node, an exception is thrown. Note, that the given node never can be
+ ; Given a node n, return its type. If the node is a list node or a bud node, an exception is thrown. Note, that the given node never can be
  ; a terminal node, since terminal nodes themselves cannot be accessed (cf. ast-child), but only their value.
  ; DEPENDENCIES:
  ;  - Existence of a node of n's type
  (define ast-node-type
    (lambda (n)
-     (when (node-list-node? n) ; Remember: (node-terminal? n) is not possible
-       (throw-exception "Cannot access type; List nodes have no type."))
+     (when (or (node-list-node? n) (node-bud-node? n)) ; Remember: (node-terminal? n) is not possible
+       (throw-exception "Cannot access type; List nodes and bud nodes have no type."))
      (add-dependency:att->node-type n)
      (symbol-name (car (ast-rule-production (node-ast-rule n))))))
  
  ; Given at least one AST node and another node or symbol representing an AST rule, return if the first argument is a
  ; subtype of the second. The considered subtype relationship is reflexive, i.e., every type is a subtype of itself.
- ; An exception is thrown, if non of the arguments is an AST node or any of the arguments is a list or terminal node!
+ ; An exception is thrown, if non of the arguments is an AST node or any of the arguments is a list, bud or terminal node!
  ; DEPENDENCIES:
  ;  - Iff the first argument a1 is a node: Existence of a node of a1's subtype
  ;  - Iff the second argument a2 is a node: Existence of a node of a2's supertype
  (define ast-subtype?
    (lambda (a1 a2)
      (when (or
-            (and (node? a1) (or (node-list-node? a1) (node-terminal? a1)))
-            (and (node? a2) (or (node-list-node? a2) (node-terminal? a2))))
-       (throw-exception "Cannot perform subtype check; List nodes and terminals cannot be tested for subtyping."))
+            (and (node? a1) (or (node-list-node? a1) (node-bud-node? a1) (node-terminal? a1)))
+            (and (node? a2) (or (node-list-node? a2) (node-bud-node? a2) (node-terminal? a2))))
+       (throw-exception "Cannot perform subtype check; List, bud and terminal nodes cannot be tested for subtyping."))
      (when (and (not (node? a1)) (not (node? a2)))
        (throw-exception "Cannot perform subtype check; At least one argument must be an AST node."))
      ((lambda (t1/t2)
@@ -1207,13 +1226,13 @@
      (add-dependency:att->node n)
      (node-child-index n)))
  
- ; Given a node n, return its number of children. If the node is a terminal an exception is thrown.
+ ; Given a node n, return its number of children. If the node is a bud or terminal node an exception is thrown.
  ; DEPENDENCIES:
  ;  - Existence of a node with n's number of children.
  (define ast-num-children
    (lambda (n)
-     (when (node-terminal? n)
-       (throw-exception "Cannot access number of children; Terminals have no children."))
+     (when (or (node-bud-node? n) (node-terminal? n))
+       (throw-exception "Cannot access number of children; Bud and terminal nodes have no children."))
      (add-dependency:att->node-num-children n)
      (length (node-children n))))
  
@@ -1344,8 +1363,8 @@
                   (if (symbol-non-terminal? symb*) ; ...check if the next expected child is a non-terminal....
                       (let ((ensure-child-fits ; ...If we expect a non-terminal we need a function which ensures, that...
                              (lambda (child)
-                               ; ...its type is the one of the expected non-terminal or a sub-type....
-                               (unless (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symb*))
+                               ; ...the child either is a bud-node or its type is the one of the expected non-terminal or a sub-type....
+                               (unless (or (node-bud-node? child) (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symb*)))
                                  (throw-exception
                                   "Cannot construct "
                                   rule
@@ -1414,19 +1433,27 @@
  ; another AST, has attributes in evaluation or at least two elements of l are instances of different RACR specifications.
  (define create-ast-list
    (lambda (children)
-     (let loop ((children* children) ; For every child, ensure, that the child is a...
-                (pos 1))
-       (unless (null? children*)
-         (when (or (not (node? (car children*))) (node-list-node? (car children*)) (node-terminal? (car children*))) ; ...proper non-terminal node,...
-           (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
-         (when (node-parent (car children*)) ; ...is not already part of another AST,...
-           (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
-         (when (evaluator-state-in-evaluation? (node-evaluator-state (car children*))) ; ...non of its attributes are in evaluation and...
-           (throw-exception "Cannot construct list-node; The given " pos "'th child has attributes in evaluation."))
-         (unless (eq? (ast-rule-specification (node-ast-rule (car children*))) ; ...all children are instances of the same RACR specification.
-                      (ast-rule-specification (node-ast-rule (car children))))
-           (throw-exception "Cannot construct list-node; The given children are instances of different RACR specifications."))
-         (loop (cdr children*) (+ pos 1))))
+     (let* ((child-with-spec
+             (find
+              (lambda (child)
+                (and (node? child) (not (node-list-node? child)) (not (node-bud-node? child))))
+              children))
+            (spec (and child-with-spec (ast-rule-specification (node-ast-rule child-with-spec)))))
+       (let loop ((children children) ; For every child, ensure, that the child is a...
+                  (pos 1))
+         (unless (null? children)
+           (when (or (not (node? (car children))) (node-list-node? (car children))) ; ...proper non-terminal node,...
+             (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
+           (when (node-parent (car children)) ; ...is not already part of another AST,...
+             (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
+           (when (evaluator-state-in-evaluation? (node-evaluator-state (car children))) ; ...non of its attributes are in evaluation and...
+             (throw-exception "Cannot construct list-node; The given " pos "'th child has attributes in evaluation."))
+           (unless (or ; ...all children are instances of the same RACR specification.
+                    (node-bud-node? (car children))
+                    (eq? (ast-rule-specification (node-ast-rule (car children)))
+                         spec))
+             (throw-exception "Cannot construct list-node; The given children are instances of different RACR specifications."))
+           (loop (cdr children) (+ pos 1)))))
      (let ((list-node ; ...Finally, construct the list-node,...
             (make-node
              'list-node
@@ -1439,11 +1466,18 @@
        (distribute-evaluator-state (make-evaluator-state) list-node) ; ...construct and distribute its evaluator state and...
        list-node))) ; ...return it.
  
+ ; Construct a new bud-node, that can be used as placeholder within incomplete AST fragments.
+ (define create-ast-bud
+   (lambda ()
+     (let ((bud-node (make-node 'bud-node #f (list))))
+       (distribute-evaluator-state (make-evaluator-state) bud-node)
+       bud-node)))
+ 
  ; INTERNAL FUNCTION: Given an AST node update its synthesized attribution (i.e., add missing synthesized attributes, delete superfluous
  ; ones, shadow equally named inherited attributes and update the definitions of existing synthesized attributes.
  (define update-synthesized-attribution
    (lambda (n)
-     (when (and (not (node-terminal? n)) (not (node-list-node? n)))
+     (when (and (not (node-terminal? n)) (not (node-list-node? n)) (not (node-bud-node? n)))
        (for-each
         (lambda (att-def)
           (let ((att (node-find-attribute n (attribute-definition-name att-def))))
@@ -1513,9 +1547,11 @@
        (if (node-list-node? n)
            (for-each
             (lambda (n)
-              (update-by-defs n att-defs))
+              (unless (node-bud-node? n)
+                (update-by-defs n att-defs)))
             (node-children n))
-           (update-by-defs n att-defs)))))
+           (unless (node-bud-node? n)
+             (update-by-defs n att-defs))))))
  
  ; INTERNAL FUNCTION: Given an AST node delete its inherited attribute instances. Iff the given node is a list node,
  ; the inherited attributes of its elements are deleted.
@@ -1552,6 +1588,25 @@
  ;;                                                             Rewrite Interface                                                                  ;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
+ ; Given an AST root n, a strategy for traversing the subtree spaned by n and a set of transformers, apply the transformers
+ ; on the nodes visited by the given strategy until no further transformations are possible (i.e., a normal form is established).
+ ; Each transformer is a function with a single parameter which is the node currently visited by the strategy. The visit strategy
+ ; applies each transformer on the currently visited node until either, one matches or all fail. Thereby, each transformer decides,
+ ; if it performs any rewrite for the currently visited node. If it does, it performs the rewrite and returns a truth value equal
+ ; to #t, otherwise #f. If all transformers failed (i.e., non performed any rewrite), the visit strategy selects the next node to
+ ; visit. If any transformer matched (i.e., performed a rewrite), the visit strategy is reseted and starts all over again. If the
+ ; visit strategy has no further node to visit (i.e., all nodes to visit have been visited and no transformer matched)
+ ; perform-rewrites terminates.
+ ; perform-rewrites supports two general visit strategies, both deduced form term rewriting: (1) outermost (leftmost redex) and
+ ; (2) innermost (rightmost redex) rewriting. In terms of ASTs, outermost rewriting prefers to rewrite the node closest to the root
+ ; (top-down rewriting), whereas innermost rewriting only rewrites nodes when there does not exist any applicable rewrite within
+ ; their subtree (bottom-up rewriting). In case several topmost or bottommost rewritable nodes exist, the leftmost is preferred in
+ ; both approaches. The strategies can be selected by using 'top-down and 'bottom-up respectively as strategy argument.
+ ; An exception is thrown by perform-rewrites, if the given node n is no AST root or any applied transformer changes its root status
+ ; by inserting it into some AST. Exceptions are also thrown, if the given transformers are not functions of arity one or do not
+ ; accept an AST node as argument.
+ ; When terminating, perform-rewrites returns a list containing the respective result returned by each applied transformer in the
+ ; order of their application (thus, the length of the list is the total number of transformations performed).
  (define perform-rewrites
    (lambda (n strategy . transformers)
      (define find-and-apply
@@ -1632,8 +1687,8 @@
      ;;; Before refining the non-terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...non of its attributes are in evaluation,...
        (throw-exception "Cannot refine node; There are attributes in evaluation."))
-     (when (node-list-node? n) ; ...it is not a list node,...
-       (throw-exception "Cannot refine node; The node is a list-node."))
+     (when (or (node-list-node? n) (node-bud-node? n)) ; ...it is not a list or bud node,...
+       (throw-exception "Cannot refine node; The node is a " (if (node-list-node? n) "list" "bud") " node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t)))
        (unless (and new-rule (ast-rule-subtype? new-rule old-rule)) ; ...the given type is a subtype,...
@@ -1658,7 +1713,7 @@
                           (if (node-list-node? child)
                               (for-each
                                (lambda (child)
-                                 (unless (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))
+                                 (unless (or (node-bud-node? child) (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
                                    (throw-exception "Cannot refine node; The given children do not fit.")))
                                (node-children child))
                               (throw-exception "Cannot refine node; The given children do not fit."))
@@ -1666,7 +1721,7 @@
                               (and
                                (node-non-terminal? child)
                                (not (node-list-node? child))
-                               (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
+                               (or (node-bud-node? child) (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))))
                             (throw-exception "Cannot refine node; The given children do not fit.")))
                       child)
                      (else
@@ -1706,15 +1761,15 @@
  ; Given a node n (of arbitrary type) and a non-terminal type t (which is a supertype of n's current type), rewrite the type of n to t.
  ; Superfluous children of n representing child contexts not known anymore by n's new type t are deleted. Further, the caches of any
  ; influenced attributes are flushed and dependencies are maintained. An exception is thrown, if t is not a supertype of n's current type
- ; or any attributes of the AST n is part of are in evaluation. If rewriting succeeds, a list containing in their original order the
- ; deleted superfluous children is returned.
+ ; or any attributes of the AST n is part of are in evaluation. If rewriting succeeds, a list containing the deleted superfluous children
+ ; in their original order is returned.
  (define rewrite-abstract
    (lambda (n t)
      ;;; Before abstracting the non-terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation,...
        (throw-exception "Cannot abstract node; There are attributes in evaluation."))
-     (when (node-list-node? n) ; ...the given node is not a list node and...
-       (throw-exception "Cannot abstract node; The node is a list node."))
+     (when (or (node-list-node? n) (node-bud-node? n)) ; ...the given node is not a list or bud node and...
+       (throw-exception "Cannot abstract node; The node is a " (if (node-list-node? n) "list" "bud") " node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t))
             (num-new-children (- (length (ast-rule-production new-rule)) 1)))
@@ -1780,7 +1835,7 @@
                (list-ref
                 (ast-rule-production (node-ast-rule (node-parent l)))
                 (node-child-index l)))))
-         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...it can be a child of the list-node.
+         (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type)) ; ...it can be a child of the list-node.
            (throw-exception "Cannot add list element; The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children,...
@@ -1822,13 +1877,13 @@
            (if (node-list-node? new-fragment)
                (for-each
                 (lambda (element)
-                  (unless (ast-rule-subtype? element expected-type)
+                  (unless (or (node-bud-node? element) (ast-rule-subtype? element expected-type))
                     (throw-exception "Cannot replace subtree; The replacement does not fit.")))
                 (node-children new-fragment))
                (throw-exception "Cannot replace subtree; The replacement does not fit."))
            (unless (and
                     (not (node-list-node? new-fragment))
-                    (ast-rule-subtype? (node-ast-rule new-fragment) expected-type))
+                    (or (node-bud-node? new-fragment) (ast-rule-subtype? (node-ast-rule new-fragment) expected-type)))
              (throw-exception "Cannot replace subtree; The replacement does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
      (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attribution,...
@@ -1868,7 +1923,7 @@
                (list-ref
                 (ast-rule-production (node-ast-rule (node-parent l)))
                 (node-child-index l)))))
-         (unless (ast-rule-subtype? (node-ast-rule e) expected-type) ; ...it can be a child of the list-node.
+         (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type)) ; ...it can be a child of the list-node.
            (throw-exception "Cannot insert list element; The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children. Further,...
