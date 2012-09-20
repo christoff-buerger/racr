@@ -19,17 +19,13 @@
    (lambda (n siple-specification)
      (define perform-type-coercion
        (lambda (n)
-         (let ((dummy-node (create-ast siple-specification 'Constant (list "1"))))
+         (let ((dummy-node (create-ast-bud)))
            (rewrite-subtree
-            n
+            dummy-node
             (create-ast
              siple-specification
              'RealCoercion
-             (list dummy-node)))
-           (rewrite-subtree
-            dummy-node
-            n)
-           #t)))
+             (list (rewrite-subtree n dummy-node)))))))
      (perform-rewrites
       n
       'bottom-up
