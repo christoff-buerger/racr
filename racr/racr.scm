@@ -512,112 +512,107 @@
      ;;; Ensure, that the RACR system is in the correct specification phase:
      (when (> (racr-specification-specification-phase spec) 1)
        (throw-exception "Unexpected AST rule " rule "; AST rules can only be defined in the AST specification phase."))
-     
-     (let* (; Support function, that given a symbol S encoding an AST rule, parses S and returns an appropriate rule representation.
-            (parse-rule
-             (lambda (rule)
-               (letrec ((rule-string (symbol->string rule)) ; String representation of the rule encoded in the given symbol; Used for parsing
-                        (pos 0) ; The current parsing position
-                        ; Support function returning, whether the end of the parsing string is reached or not:
-                        (eos?
-                         (lambda ()
-                           (= pos (string-length rule-string))))
-                        ; Support function returning the current character to parse:
-                        (my-peek-char
-                         (lambda ()
-                           (string-ref rule-string pos)))
-                        ; Support function returning the current character to parse and incrementing the parsing position:
-                        (my-read-char
-                         (lambda ()
-                           (let ((c (my-peek-char)))
-                             (set! pos (+ pos 1))
-                             c)))
-                        ; Support function matching a certain character:
-                        (match-char!
-                         (lambda (c)
-                           (if (eos?)
-                               (throw-exception "Unexpected end of AST rule " rule "; Expected " c " character.")
-                               (if (char=? (my-peek-char) c)
-                                   (set! pos (+ pos 1))
-                                   (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character.")))))
-                        ; Support function parsing a symbol, i.e., retrieving its name, type, if it is a list and optional context-name.
-                        ; It returns a (name-as-scheme-symbol terminal? klenee? context-name-as-scheme-symbol?) quadrupel:
-                        (parse-symbol
-                         (lambda (location) ; location: l-hand, r-hand 
-                           (let ((symbol-type (if (eq? location 'l-hand) "non-terminal" "terminal")))
-                             (when (eos?)
-                               (throw-exception "Unexpected end of AST rule " rule "; Expected " symbol-type "."))
-                             (let* ((parse-name
-                                     (lambda (terminal?)
-                                       (append
-                                        (let loop ((chars (list)))
-                                          (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
-                                              (begin
-                                                (when (and terminal? (not (char-lower-case? (my-peek-char))))
-                                                  (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character."))
-                                                (loop (cons (my-read-char) chars)))
-                                              (reverse chars)))
-                                        (let loop ((chars (list)))
-                                          (if (and (not (eos?)) (char-numeric? (my-peek-char)))
-                                              (loop (cons (my-read-char) chars))
-                                              (reverse chars))))))
-                                    (terminal? (char-lower-case? (my-peek-char)))
-                                    (name (parse-name terminal?)))
-                               (when (null? name)
-                                 (throw-exception "Unexpected " (my-peek-char) " character in AST rule " rule "; Expected " symbol-type "."))
-                               (when (and (eq? location 'l-hand) terminal?)
-                                 (throw-exception "Unexpected terminal in AST rule " rule "; Left hand side symbols must be non-terminals."))
-                               (let* ((klenee? (and (not terminal?) (eq? location 'r-hand) (not (eos?)) (char=? (my-peek-char) #\*) (my-read-char)))
-                                      (context-name?
-                                       (and
-                                        (not terminal?)
-                                        (eq? location 'r-hand)
-                                        (not (eos?))
-                                        (char=? (my-peek-char) #\<)
-                                        (my-read-char)
-                                        (parse-name #f))))
-                                 (when context-name?
-                                   (if (null? context-name?)
-                                       (throw-exception "Invalid AST rule " rule "; Missing context-name.")
-                                       (unless (char-alphabetic? (car context-name?))
-                                         (throw-exception "Malformed context-name in AST rule " rule "; Context-names must start with a letter."))))
-                                 (let* ((name-string (list->string name))
-                                        (name-symbol (string->symbol name-string)))
-                                   (make-production-symbol
-                                    name-symbol
-                                    (not terminal?)
-                                    klenee?
-                                    (if context-name?
-                                        (string->symbol (list->string context-name?))
-                                        (if klenee?
-                                            (string->symbol (string-append name-string "*"))
-                                            name-symbol))
-                                    (list)))))))))
-                 (let* ((l-hand (parse-symbol 'l-hand)); The rule's l-hand
-                        (supertype ; The rule's super-type
-                         (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (symbol-name (parse-symbol 'l-hand)))))
-                   (match-char! #\-)
-                   (match-char! #\>)
-                   (make-ast-rule
-                    spec
-                    rule
-                    (append
-                     (list l-hand)
-                     (let loop ((r-hand
-                                 (if (not (eos?))
-                                     (list (parse-symbol 'r-hand))
-                                     (list))))
-                       (if (eos?)
-                           (reverse r-hand)
-                           (begin
-                             (match-char! #\-)
-                             (loop (cons (parse-symbol 'r-hand) r-hand))))))
-                    supertype)))))
-            (rule* (parse-rule rule)) ; Representation of the parsed rule
-            (l-hand (symbol-name (car (ast-rule-production rule*))))) ; The rule's l-hand
-       (when (racr-specification-find-rule spec l-hand) ; Check, that the rule's l-hand is not already defined.
-         (throw-exception "Invalid AST rule " rule "; Redefinition of " l-hand "."))
-       (hashtable-set! (racr-specification-rules-table spec) l-hand rule*)))) ; Add the rule to the RACR system.
+     (letrec* ((rule-string (symbol->string rule)) ; String representation of the rule encoded in the given symbol; Used for parsing
+               (pos 0) ; The current parsing position
+               ; Support function returning, whether the end of the parsing string is reached or not:
+               (eos?
+                (lambda ()
+                  (= pos (string-length rule-string))))
+               ; Support function returning the current character to parse:
+               (my-peek-char
+                (lambda ()
+                  (string-ref rule-string pos)))
+               ; Support function returning the current character to parse and incrementing the parsing position:
+               (my-read-char
+                (lambda ()
+                  (let ((c (my-peek-char)))
+                    (set! pos (+ pos 1))
+                    c)))
+               ; Support function matching a certain character:
+               (match-char!
+                (lambda (c)
+                  (if (eos?)
+                      (throw-exception "Unexpected end of AST rule " rule "; Expected " c " character.")
+                      (if (char=? (my-peek-char) c)
+                          (set! pos (+ pos 1))
+                          (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character.")))))
+               ; Support function parsing a symbol, i.e., retrieving its name, type, if it is a list and optional context-name.
+               ; It returns a (name-as-scheme-symbol terminal? klenee? context-name-as-scheme-symbol?) quadrupel:
+               (parse-symbol
+                (lambda (location) ; location: l-hand, r-hand 
+                  (let ((symbol-type (if (eq? location 'l-hand) "non-terminal" "terminal")))
+                    (when (eos?)
+                      (throw-exception "Unexpected end of AST rule " rule "; Expected " symbol-type "."))
+                    (let* ((parse-name
+                            (lambda (terminal?)
+                              (let ((name
+                                     (append
+                                      (let loop ((chars (list)))
+                                        (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
+                                            (begin
+                                              (when (and terminal? (not (char-lower-case? (my-peek-char))))
+                                                (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character."))
+                                              (loop (cons (my-read-char) chars)))
+                                            (reverse chars)))
+                                      (let loop ((chars (list)))
+                                        (if (and (not (eos?)) (char-numeric? (my-peek-char)))
+                                            (loop (cons (my-read-char) chars))
+                                            (reverse chars))))))
+                                (when (null? name)
+                                  (throw-exception "Unexpected " (my-peek-char) " character in AST rule " rule "; Expected " symbol-type "."))
+                                (unless (char-alphabetic? (car name))
+                                  (throw-exception "Malformed name in AST rule " rule "; Names must start with a letter."))
+                                name)))
+                           (terminal? (char-lower-case? (my-peek-char)))
+                           (name (parse-name terminal?))
+                           (klenee? (and (not terminal?) (eq? location 'r-hand) (not (eos?)) (char=? (my-peek-char) #\*) (my-read-char)))
+                           (context-name?
+                            (and
+                             (not terminal?)
+                             (eq? location 'r-hand)
+                             (not (eos?))
+                             (char=? (my-peek-char) #\<)
+                             (my-read-char)
+                             (parse-name #f)))
+                           (name-string (list->string name))
+                           (name-symbol (string->symbol name-string)))
+                      (when (and terminal? (eq? location 'l-hand))
+                        (throw-exception "Unexpected " name " terminal in AST rule " rule "; Left hand side symbols must be non-terminals."))
+                      (make-production-symbol
+                       name-symbol
+                       (not terminal?)
+                       klenee?
+                       (if context-name?
+                           (string->symbol (list->string context-name?))
+                           (if klenee?
+                               (string->symbol (string-append name-string "*"))
+                               name-symbol))
+                       (list))))))
+               (l-hand (parse-symbol 'l-hand)); The rule's l-hand
+               (supertype ; The rule's super-type
+                (and (not (eos?)) (char=? (my-peek-char) #\:) (my-read-char) (symbol-name (parse-symbol 'l-hand))))
+               (rule* ; Representation of the parsed rule
+                (begin
+                  (match-char! #\-)
+                  (match-char! #\>)
+                  (make-ast-rule
+                   spec
+                   rule
+                   (append
+                    (list l-hand)
+                    (let loop ((r-hand
+                                (if (not (eos?))
+                                    (list (parse-symbol 'r-hand))
+                                    (list))))
+                      (if (eos?)
+                          (reverse r-hand)
+                          (begin
+                            (match-char! #\-)
+                            (loop (cons (parse-symbol 'r-hand) r-hand))))))
+                   supertype))))
+              (when (racr-specification-find-rule spec (symbol-name l-hand)) ; Check, that the rule's l-hand is not already defined.
+                (throw-exception "Invalid AST rule " rule "; Redefinition of " (symbol-name l-hand) "."))
+              (hashtable-set! (racr-specification-rules-table spec) (symbol-name l-hand) rule*)))) ; Add the rule to the RACR system.
  
  ; Calling this function finishes the AST specification phase of the given RACR specification, whereby the given symbol becomes the start
  ; symbol. The AST specification is checked for completeness and correctness, i.e., (1) all non-terminals are defined, (2) rule inheritance
