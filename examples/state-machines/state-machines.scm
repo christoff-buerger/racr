@@ -55,7 +55,7 @@
   (ag-rule
    filter-transitions ; Return all transitions satisfying a given filter.
    (StateMachine
-    #f ; Don't cache the attribute (high chance filter function arguments are anonymous and just clutter cache memory)
+    #f
     (lambda (n filter-function)
       (filter
        filter-function
@@ -232,6 +232,7 @@
        (s2 -> s4)
        (s3 -> s5)))
     
+    ; Test sm-1:
     (assert (att-value 'lookup-state sm-1 's5))
     (assert (not (att-value 'lookup-state sm-1 'unknown-state)))
     (assert
@@ -253,20 +254,14 @@
         (memq (att-value 'lookup-state sm-1 's6) reachable)
         (memq (att-value 'lookup-state sm-1 's7) reachable))))
     (assert (att-value 'correct? sm-1))
+    (rewrite-add (ast-child 'State* sm-1) (create-ast sm-spec 'State (list 'sn)))
+    (rewrite-add (ast-child 'Transition* sm-1) (create-ast sm-spec 'Transition (list 's3 'sn)))
+    (assert (not (att-value 'correct? sm-1)))
+    (rewrite-terminal 'finals sm-1 (cons 'sn (ast-child 'finals sm-1)))
+    (assert (att-value 'correct? sm-1))
     
-    ; Begin rewrites:
-;    (rewrite-add (ast-child 1 sm-1) (create-ast sm-spec 'State (list 'sn)))
-;    (rewrite-add (ast-child 2 sm-1) (create-ast sm-spec 'Transition (list 's3 'sn)))
-;    (display (att-value 'correct? sm-1))
-;    (rewrite-terminal 4 sm-1 (cons 'sn (ast-child 4 sm-1)))
-;    (display (att-value 'correct? sm-1))
-;    (display
-;     (map
-;      (lambda (state)
-;        (ast-child 1 state))
-;      (att-value 'reachable (att-value 'lookup-state sm-1 's3))))
-    ; End rewrites.
-    
+    ; Test sm-2:
     (assert (not (att-value 'correct? sm-2)))
     
+    ; Test sm-3:
     (assert (not (att-value 'correct? sm-3)))))
