@@ -23,7 +23,7 @@
   ast-annotation
   ast-annotation-set!
   ast-annotation-remove!
-  ; AST & attribute access interface:
+  ; AST & attribute query interface:
   create-ast
   create-ast-list
   create-ast-bud
@@ -55,17 +55,19 @@
   racr-exception?)
  (import (rnrs) (rnrs mutable-pairs))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                             Internal Data Structures                                                           ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Internal Data Structures ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- (define-record-type racr-nil-record (sealed #t) (opaque #t)) ; Constructor for unique entities internally used by the RACR system
+ ; Constructor for unique entities internally used by the RACR system
+ (define-record-type racr-nil-record (sealed #t) (opaque #t))
  (define racr-nil (make-racr-nil-record)) ; Unique value indicating undefined RACR entities
  
- ; Record type representing RACR compiler specifications. A compiler specification consists of arbitrary many AST rule, attribute and
- ; rewrite specifications, all aggregated into a set of rules stored in a non-terminal-symbol -> ast-rule hashtable, an actual
- ; compiler specification phase and a distinguished start symbol. The specification phase is an internal flag indicating the RACR system
- ; the compiler's specification progress. Possible phases are:
+ ; Record type representing RACR compiler specifications. A compiler specification consists of arbitrary
+ ; many AST rule, attribute and rewrite specifications, all aggregated into a set of rules stored in a
+ ; non-terminal-symbol -> ast-rule hashtable, an actual compiler specification phase and a distinguished
+ ; start symbol. The specification phase is an internal flag indicating the RACR system the compiler's
+ ; specification progress. Possible phases are:
  ; 1 : AST specification
  ; 2 : AG specification
  ; 3 : Rewrite specification
@@ -77,7 +79,8 @@
       (lambda ()
         (new 1 (make-eq-hashtable 50) racr-nil)))))
  
- ; INTERNAL FUNCTION: Given a RACR specification and a non-terminal, return the non-terminal's AST rule or #f if it is undefined.
+ ; INTERNAL FUNCTION: Given a RACR specification and a non-terminal, return the
+ ; non-terminal's AST rule or #f if it is undefined.
  (define racr-specification-find-rule
    (lambda (spec non-terminal)
      (hashtable-ref (racr-specification-rules-table spec) non-terminal #f)))
@@ -90,13 +93,13 @@
       (lambda (key-vector value-vector)
         (vector->list value-vector)))))
  
- ; Record type for AST rules; An AST rule has a reference to the RACR specification it belongs to and consist of
- ; its symbolic encoding, a production (i.e., a list of production-symbols) and an optional supertype.
+ ; Record type for AST rules; An AST rule has a reference to the RACR specification it belongs to and consist
+ ; of its symbolic encoding, a production (i.e., a list of production-symbols) and an optional supertype.
  (define-record-type ast-rule
    (fields specification as-symbol (mutable production) (mutable supertype)))
  
- ; INTERNAL FUNCTION: Given two rules r1 and r2, return whether r1 is a subtype of r2 or not. The subtype relationship is
- ; reflexive, i.e., every type is a subtype of itself.
+ ; INTERNAL FUNCTION: Given two rules r1 and r2, return whether r1 is a subtype of r2 or not. The subtype
+ ; relationship is reflexive, i.e., every type is a subtype of itself.
  (define ast-rule-subtype?
    (lambda (r1 r2)
      (and
@@ -115,41 +118,46 @@
         (and (not (eq? rule2 rule1)) (ast-rule-subtype? rule2 rule1)))
       (racr-specification-rules-list (ast-rule-specification rule1)))))
  
- ; Record type for production symbols; A production symbol has a name, a flag indicating whether it is a non-terminal or not (later
- ; resolved to the actual AST rule representing the respective non-terminal), a flag indicating whether it represents a Kleene closure
- ; (i.e., is a list of certain type) or not, a context-name unambiguously referencing it within the production it is part of and
- ; a list of attributes defined for it.
+ ; Record type for production symbols; A production symbol has a name, a flag indicating whether it is a
+ ; non-terminal or not (later resolved to the actual AST rule representing the respective non-terminal), a
+ ; flag indicating whether it represents a Kleene closure (i.e., is a list of certain type) or not, a
+ ; context-name unambiguously referencing it within the production it is part of and a list of attributes
+ ; defined for it.
  (define-record-type (symbol make-production-symbol production-symbol?)
    (fields name (mutable non-terminal?) kleene? context-name (mutable attributes)))
  
- ; Record type for attribute definitions. An attribute definition has a certain name, a definition context consisting
- ; of an AST rule and an attribute position (i.e., a (ast-rule position) pair), an equation, and an optional
- ; circularity-definition needed for circular attributes' fix-point computations. Further, attribute definitions
- ; specify whether the value of instances of the defined attribute are cached. Circularity-definitions are
- ; (bottom-value equivalence-function) pairs, whereby bottom-value is the value fix-point computations start with and
- ; equivalence-functions are used to decide whether a fix-point is reached or not (i.e., equivalence-functions are arbitrary
- ; functions of arity two computing whether two given arguments are equal or not).
+ ; Record type for attribute definitions. An attribute definition has a certain name, a definition context
+ ; consisting of an AST rule and an attribute position (i.e., a (ast-rule position) pair), an equation, and
+ ; an optional circularity-definition needed for circular attributes' fix-point computations. Further,
+ ; attribute definitions specify whether the value of instances of the defined attribute are cached.
+ ; Circularity-definitions are (bottom-value equivalence-function) pairs, whereby bottom-value is the value
+ ; fix-point computations start with and equivalence-functions are used to decide whether a fix-point is
+ ; reached or not (i.e., equivalence-functions are arbitrary functions of arity two computing whether two
+ ; given arguments are equal or not).
  (define-record-type attribute-definition
    (fields name context equation circularity-definition cached?))
  
- ; INTERNAL FUNCTION: Given an attribute definition, check if instances can depend on themself (i.e., be circular) or not.
+ ; INTERNAL FUNCTION: Given an attribute definition, check if instances can depend on
+ ; themself (i.e., be circular) or not.
  (define attribute-definition-circular?
    (lambda (att)
      (attribute-definition-circularity-definition att)))
  
- ; INTERNAL FUNCTION: Given an attribute definition, return whether it specifies a synthesized attribute or not.
+ ; INTERNAL FUNCTION: Given an attribute definition, return whether it specifies
+ ; a synthesized attribute or not.
  (define attribute-definition-synthesized?
    (lambda (att-def)
      (= (cdr (attribute-definition-context att-def)) 0)))
  
- ; INTERNAL FUNCTION: Given an attribute definition, return whether it specifies an inherited attribute or not.
+ ; INTERNAL FUNCTION: Given an attribute definition, return whether it specifies
+ ; an inherited attribute or not.
  (define attribute-definition-inherited?
    (lambda (att-def)
      (not (attribute-definition-synthesized? att-def))))
  
- ; Record type for AST nodes. AST nodes have a reference to the evaluator state used for evaluating their attributes and
- ; rewrites, the AST rule they represent a context of, their parent, children, attribute instances, attributes they influence
- ; and annotations.
+ ; Record type for AST nodes. AST nodes have a reference to the evaluator state used for evaluating their
+ ; attributes and rewrites, the AST rule they represent a context of, their parent, children, attribute
+ ; instances, attributes they influence and annotations.
  (define-record-type node
    (fields
     (mutable evaluator-state)
@@ -181,7 +189,8 @@
    (lambda (n)
      (not (node-terminal? n))))
  
- ; INTERNAL FUNCTION: Given a node, return whether it represents a list of children, i.e., is a list-node, or not.
+ ; INTERNAL FUNCTION: Given a node, return whether it represents a list of
+ ; children, i.e., is a list-node, or not.
  (define node-list-node?
    (lambda (n)
      (eq? (node-ast-rule n) 'list-node)))
@@ -191,7 +200,8 @@
    (lambda (n)
      (eq? (node-ast-rule n) 'bud-node)))
  
- ; INTERNAL FUNCTION: Given a node, return its child-index. An exception is thrown, if the node has no parent (i.e., is a root).
+ ; INTERNAL FUNCTION: Given a node, return its child-index. An exception is thrown,
+ ; if the node has no parent (i.e., is a root).
  (define node-child-index
    (lambda (n)
      (if (node-parent n)
@@ -200,9 +210,12 @@
            (if (eq? (car children) n)
                pos
                (loop (cdr children) (+ pos 1))))
-         (throw-exception "Cannot access child-index; The node has no parent!"))))
+         (throw-exception
+          "Cannot access child-index; "
+          "The node has no parent!"))))
  
- ; INTERNAL FUNCTION: Given a node find a certain child by name. If the node has no such child, return #f, otherwise the child.
+ ; INTERNAL FUNCTION: Given a node find a certain child by name. If the node has
+ ; no such child, return #f, otherwise the child.
  (define node-find-child
    (lambda (n context-name)
      (and (not (node-list-node? n))
@@ -216,7 +229,8 @@
                     (car children)
                     (loop (cdr contexts) (cdr children))))))))
  
- ; INTERNAL FUNCTION: Given a node find a certain attribute associated with it. If the node has no such attribute, return #f, otherwise the attribute.
+ ; INTERNAL FUNCTION: Given a node find a certain attribute associated with it. If the node
+ ; has no such attribute, return #f, otherwise the attribute.
  (define node-find-attribute
    (lambda (n name)
      (find
@@ -232,9 +246,9 @@
        ((node-parent n1) (node-inside-of? (node-parent n1) n2))
        (else #f))))
  
- ; Record type for attribute instances of a certain attribute definition, associated with a certain node (context),
- ; dependencies, influences, a value cache, a cycle cache and an optional cache for the last arguments with
- ; which the attribute has been evaluated. 
+ ; Record type for attribute instances of a certain attribute definition, associated with a certain
+ ; node (context), dependencies, influences, a value cache, a cycle cache and an optional cache for the last
+ ; arguments with which the attribute has been evaluated. 
  (define-record-type attribute-instance
    (fields
     (mutable definition)
@@ -258,9 +272,10 @@
          (make-hashtable equal-hash equal? 1)
          racr-nil)))))
  
- ; Record type representing the internal state of RACR systems throughout their execution, i.e., while evaluating attributes and rewriting
- ; ASTs. An evaluator state consists of a flag indicating if the AG currently performs a fix-point evaluation, a flag indicating if throughout
- ; a fix-point iteration the value of an attribute changed and an attribute evaluation stack used for dependency tracking.
+ ; Record type representing the internal state of RACR systems throughout their execution, i.e., while
+ ; evaluating attributes and rewriting ASTs. An evaluator state consists of a flag indicating if the AG
+ ; currently performs a fix-point evaluation, a flag indicating if throughout a fix-point iteration the
+ ; value of an attribute changed and an attribute evaluation stack used for dependency tracking.
  (define-record-type evaluator-state
    (fields (mutable ag-in-cycle?) (mutable ag-cycle-change?) (mutable att-eval-stack))
    (protocol
@@ -268,17 +283,18 @@
       (lambda ()
         (new #f #f (list))))))
  
- ; INTERNAL FUNCTION: Given an evaluator state, return whether it represents an evaluation in progress or not; If it represents an
- ; evaluation in progress return the current attribute in evaluation, otherwise #f.
+ ; INTERNAL FUNCTION: Given an evaluator state, return whether it represents an evaluation in progress or
+ ; not; If it represents an evaluation in progress return the current attribute in evaluation, otherwise #f.
  (define evaluator-state-in-evaluation?
    (lambda (state)
      (and (not (null? (evaluator-state-att-eval-stack state))) (car (evaluator-state-att-eval-stack state)))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                                      Utility                                                                   ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utility ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; INTERNAL FUNCTION: Given an arbitrary Scheme entity, construct a string representation of it using display.
+ ; INTERNAL FUNCTION: Given an arbitrary Scheme entity, construct a string
+ ; representation of it using display.
  (define object->string
    (lambda (x)
      (call-with-string-output-port
@@ -287,9 +303,10 @@
  
  (define-condition-type racr-exception &non-continuable make-racr-exception racr-exception?)
  
- ; INTERNAL FUNCTION: Given an arbitrary sequence of strings and other Scheme entities, concatenate them to form an error message and
- ; throw a special RACR exception with the constructed message. Any entity that is not a string is treated as error information embedded
- ; in the error message between [ and ] characters, whereby the actual string representation of the entity is obtained using object->string.
+ ; INTERNAL FUNCTION: Given an arbitrary sequence of strings and other Scheme entities, concatenate them to
+ ; form an error message and throw a special RACR exception with the constructed message. Any entity that is
+ ; not a string is treated as error information embedded in the error message between [ and ] characters,
+ ; whereby the actual string representation of the entity is obtained using object->string.
  (define-syntax throw-exception
    (syntax-rules ()
      ((_ m-part ...)
@@ -304,8 +321,8 @@
                 m-part*
                 (string-append "[" (object->string m-part*) "]"))) ...)))))))
  
- ; INTERNAL FUNCTION: Procedure sequentially applying a function on all the AST rules of a set of rules which inherit,
- ; whereby supertypes are processed before their subtypes.
+ ; INTERNAL FUNCTION: Procedure sequentially applying a function on all the AST rules of a set of rules which
+ ; inherit, whereby supertypes are processed before their subtypes.
  (define apply-wrt-ast-inheritance
    (lambda (func rules)
      (let loop ((resolved ; The set of all AST rules that are already processed....
@@ -327,15 +344,16 @@
            (func to-resolve) ; ...process it and...
            (loop (cons to-resolve resolved) (remq to-resolve to-check))))))) ; ...recur.
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                                   Support API                                                                  ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Support API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; Given an AST, an association list L of attribute pretty-printers and an output port, print a human-readable ASCII representation of
- ; the AST on the output port. The elements of the association list L are (attribute-name pretty-printing-function) pairs. Every attribute
- ; for which L contains an entry is printed when the AST node it is associated with is printed. Thereby, the given pretty printing function
- ; is applied to the attribute's value before printing it. Beware: The output port is never closed by this function --- neither in case of
- ; an io-exception nor after finishing printing the AST.
+ ; Given an AST, an association list L of attribute pretty-printers and an output port, print a
+ ; human-readable ASCII representation of the AST on the output port. The elements of the association list
+ ; L are (attribute-name pretty-printing-function) pairs. Every attribute for which L contains an entry is
+ ; printed when the AST node it is associated with is printed. Thereby, the given pretty printing function
+ ; is applied to the attribute's value before printing it. Beware: The output port is never closed by this
+ ; function - neither in case of an io-exception nor after finishing printing the AST.
  (define print-ast
    (lambda (ast attribute-pretty-printer-list output-port)
      (letrec ((print-indentation
@@ -416,22 +434,24 @@
                   (lambda ()
                     (racr-specification-specification-phase spec*)))
                  (#,(datum->syntax #'k 'specify-attribute)
-                  (lambda (attribute-name non-terminal context-name-or-position cached? equation circularity-definition)
-                    (specify-attribute spec* attribute-name non-terminal context-name-or-position cached? equation circularity-definition))))
+                  (lambda (att-name non-terminal index cached? equation circ-def)
+                    (specify-attribute spec* att-name non-terminal index cached? equation circ-def))))
             (let-syntax ((#,(datum->syntax #'k 'ag-rule)
                           (syntax-rules ()
                             ((_ attribute-name definition (... ...))
                              (specify-ag-rule spec* attribute-name definition (... ...))))))
               body ...))))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                         Abstract Syntax Tree Annotations                                                       ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define ast-weave-annotations
    (lambda (node type name value)
      (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception "Cannot weave " name " annotation; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot weave " name " annotation; "
+        "There are attributes in evaluation."))
      (when (not (ast-annotation? node name))
        (cond
          ((and (not (node-list-node? node)) (not (node-bud-node? node)) (ast-subtype? node type))
@@ -449,24 +469,34 @@
  (define ast-annotation?
    (lambda (node name)
      (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception "Cannot check for " name " annotation; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot check for " name " annotation; "
+        "There are attributes in evaluation."))
      (assq name (node-annotations node))))
  
  (define ast-annotation
    (lambda (node name)
      (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception "Cannot access " name " annotation; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot access " name " annotation; "
+        "There are attributes in evaluation."))
      (let ((annotation (ast-annotation? node name)))
        (if annotation
            (cdr annotation)
-           (throw-exception "Cannot access " name " annotation; The given node has no such annotation.")))))
+           (throw-exception
+            "Cannot access " name " annotation; "
+            "The given node has no such annotation.")))))
  
  (define ast-annotation-set!
    (lambda (node name value)
      (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception "Cannot set " name " annotation; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot set " name " annotation; "
+        "There are attributes in evaluation."))
      (when (not (symbol? name))
-       (throw-exception "Cannot set " name " annotation; Annotation names must be Scheme symbols."))
+       (throw-exception
+        "Cannot set " name " annotation; "
+        "Annotation names must be Scheme symbols."))
      (let ((annotation (ast-annotation? node name))
            (value
             (if (procedure? value)
@@ -480,7 +510,9 @@
  (define ast-annotation-remove!
    (lambda (node name)
      (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception "Cannot remove " name " annotation; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot remove " name " annotation; "
+        "There are attributes in evaluation."))
      (node-annotations-set!
       node
       (remp
@@ -488,16 +520,18 @@
          (eq? (car entry) name))
        (node-annotations node)))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                       Abstract Syntax Tree Specifications                                                      ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Specifications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define specify-ast-rule
    (lambda (spec rule)
      ;;; Ensure, that the RACR system is in the correct specification phase:
      (when (> (racr-specification-specification-phase spec) 1)
-       (throw-exception "Unexpected AST rule " rule "; AST rules can only be defined in the AST specification phase."))
-     (letrec* ((rule-string (symbol->string rule)) ; String representation of the rule encoded in the given symbol; Used for parsing
+       (throw-exception
+        "Unexpected AST rule " rule "; "
+        "AST rules can only be defined in the AST specification phase."))
+     (letrec* ((rule-string (symbol->string rule)) ; String representation of the encoded rule (used for parsing)
                (pos 0) ; The current parsing position
                ; Support function returning, whether the end of the parsing string is reached or not:
                (eos?
@@ -517,17 +551,23 @@
                (match-char!
                 (lambda (c)
                   (if (eos?)
-                      (throw-exception "Unexpected end of AST rule " rule "; Expected " c " character.")
+                      (throw-exception
+                       "Unexpected end of AST rule " rule ";"
+                       "Expected " c " character.")
                       (if (char=? (my-peek-char) c)
                           (set! pos (+ pos 1))
-                          (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character.")))))
+                          (throw-exception
+                           "Invalid AST rule " rule "; "
+                           "Unexpected " (my-peek-char) " character.")))))
                ; Support function parsing a symbol, i.e., retrieving its name, type, if it is a list and optional context-name.
                ; It returns a (name-as-scheme-symbol terminal? klenee? context-name-as-scheme-symbol?) quadrupel:
                (parse-symbol
                 (lambda (location) ; location: l-hand, r-hand 
                   (let ((symbol-type (if (eq? location 'l-hand) "non-terminal" "terminal")))
                     (when (eos?)
-                      (throw-exception "Unexpected end of AST rule " rule "; Expected " symbol-type "."))
+                      (throw-exception
+                       "Unexpected end of AST rule " rule "; "
+                       "Expected " symbol-type "."))
                     (let* ((parse-name
                             (lambda (terminal?)
                               (let ((name
@@ -536,7 +576,9 @@
                                         (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
                                             (begin
                                               (when (and terminal? (not (char-lower-case? (my-peek-char))))
-                                                (throw-exception "Invalid AST rule " rule "; Unexpected " (my-peek-char) " character."))
+                                                (throw-exception
+                                                 "Invalid AST rule " rule "; "
+                                                 "Unexpected " (my-peek-char) " character."))
                                               (loop (cons (my-read-char) chars)))
                                             (reverse chars)))
                                       (let loop ((chars (list)))
@@ -544,13 +586,23 @@
                                             (loop (cons (my-read-char) chars))
                                             (reverse chars))))))
                                 (when (null? name)
-                                  (throw-exception "Unexpected " (my-peek-char) " character in AST rule " rule "; Expected " symbol-type "."))
+                                  (throw-exception
+                                   "Unexpected " (my-peek-char) " character in AST rule " rule "; "
+                                   "Expected " symbol-type "."))
                                 (unless (char-alphabetic? (car name))
-                                  (throw-exception "Malformed name in AST rule " rule "; Names must start with a letter."))
+                                  (throw-exception
+                                   "Malformed name in AST rule " rule "; "
+                                   "Names must start with a letter."))
                                 name)))
                            (terminal? (char-lower-case? (my-peek-char)))
                            (name (parse-name terminal?))
-                           (klenee? (and (not terminal?) (eq? location 'r-hand) (not (eos?)) (char=? (my-peek-char) #\*) (my-read-char)))
+                           (klenee?
+                            (and
+                             (not terminal?)
+                             (eq? location 'r-hand)
+                             (not (eos?))
+                             (char=? (my-peek-char) #\*)
+                             (my-read-char)))
                            (context-name?
                             (and
                              (not terminal?)
@@ -562,7 +614,9 @@
                            (name-string (list->string name))
                            (name-symbol (string->symbol name-string)))
                       (when (and terminal? (eq? location 'l-hand))
-                        (throw-exception "Unexpected " name " terminal in AST rule " rule "; Left hand side symbols must be non-terminals."))
+                        (throw-exception
+                         "Unexpected " name " terminal in AST rule " rule "; "
+                         "Left hand side symbols must be non-terminals."))
                       (make-production-symbol
                        name-symbol
                        (not terminal?)
@@ -595,17 +649,26 @@
                             (match-char! #\-)
                             (loop (cons (parse-symbol 'r-hand) r-hand))))))
                    supertype))))
-              (when (racr-specification-find-rule spec (symbol-name l-hand)) ; Check, that the rule's l-hand is not already defined.
-                (throw-exception "Invalid AST rule " rule "; Redefinition of " (symbol-name l-hand) "."))
-              (hashtable-set! (racr-specification-rules-table spec) (symbol-name l-hand) rule*)))) ; Add the rule to the RACR system.
+              ; Check, that the rule's l-hand is not already defined:
+              (when (racr-specification-find-rule spec (symbol-name l-hand))
+                (throw-exception
+                 "Invalid AST rule " rule "; "
+                 "Redefinition of " (symbol-name l-hand) "."))
+              (hashtable-set! ; Add the rule to the RACR system.
+               (racr-specification-rules-table spec)
+               (symbol-name l-hand)
+               rule*))))
  
  (define compile-ast-specifications
    (lambda (spec start-symbol)
      ;;; Ensure, that the RACR system is in the correct specification phase and...
      (let ((current-phase (racr-specification-specification-phase spec)))
        (if (> current-phase 1)
-           (throw-exception "Unexpected AST compilation; The AST specifications already have been compiled.")
-           (racr-specification-specification-phase-set! spec (+ current-phase 1)))) ; ...iff so proceed to the next specification phase.
+           (throw-exception
+            "Unexpected AST compilation; "
+            "The AST specifications already have been compiled.")
+           ; ...iff so proceed to the next specification phase:
+           (racr-specification-specification-phase-set! spec (+ current-phase 1))))
      
      (racr-specification-start-symbol-set! spec start-symbol)
      (let* ((rules-list (racr-specification-rules-list spec))
@@ -626,14 +689,18 @@
           (when (ast-rule-supertype rule*)
             (let ((supertype-entry (racr-specification-find-rule spec (ast-rule-supertype rule*))))
               (if (not supertype-entry)
-                  (throw-exception "Invalid AST rule " (ast-rule-as-symbol rule*) "; The supertype " (ast-rule-supertype rule*) " is not defined.")
+                  (throw-exception
+                   "Invalid AST rule " (ast-rule-as-symbol rule*) "; "
+                   "The supertype " (ast-rule-supertype rule*) " is not defined.")
                   (ast-rule-supertype-set! rule* supertype-entry))))
           (for-each
            (lambda (symb*)
              (when (symbol-non-terminal? symb*)
                (let ((symb-definition (racr-specification-find-rule spec (symbol-name symb*))))
                  (when (not symb-definition)
-                   (throw-exception "Invalid AST rule " (ast-rule-as-symbol rule*) "; Non-terminal " (symbol-name symb*) " is not defined."))
+                   (throw-exception
+                    "Invalid AST rule " (ast-rule-as-symbol rule*) "; "
+                    "Non-terminal " (symbol-name symb*) " is not defined."))
                  (symbol-non-terminal?-set! symb* symb-definition))))
            (cdr (ast-rule-production rule*))))
         rules-list)
@@ -642,25 +709,28 @@
        (for-each
         (lambda (rule*)
           (when (memq rule* (ast-rule-subtypes rule*))
-            (throw-exception "Invalid AST grammar; The definition of " (ast-rule-as-symbol rule*) " depends on itself (cyclic inheritance).")))
+            (throw-exception
+             "Invalid AST grammar; "
+             "The definition of " (ast-rule-as-symbol rule*) " depends on itself (cyclic inheritance).")))
         rules-list)
        
        ;;; Ensure, that the start symbol is defined:
        (unless (racr-specification-find-rule spec start-symbol)
-         (throw-exception "Invalid AST grammar; The start symbol " start-symbol " is not defined."))
+         (throw-exception
+          "Invalid AST grammar; "
+          "The start symbol " start-symbol " is not defined."))
        
        ;;; Ensure, that the start symbol has no super- and subtype:
        (let ((supertype (ast-rule-supertype (racr-specification-find-rule spec start-symbol))))
          (when supertype
-           (throw-exception "Invalid AST grammar; The start symbol " start-symbol " inherits from " (ast-rule-as-symbol supertype) ".")))
+           (throw-exception
+            "Invalid AST grammar; "
+            "The start symbol " start-symbol " inherits from " (ast-rule-as-symbol supertype) ".")))
        (let ((subtypes (ast-rule-subtypes (racr-specification-find-rule spec start-symbol))))
          (unless (null? subtypes)
            (throw-exception
-            "Invalid AST grammar; The rules "
-            (map ast-rule-as-symbol subtypes)
-            " inherit from the start symbol "
-            start-symbol
-            ".")))
+            "Invalid AST grammar; "
+            "The rules " (map ast-rule-as-symbol subtypes) " inherit from the start symbol " start-symbol ".")))
        
        ;;; Ensure, that the CFG is start separated:
        (let ((start-rule (racr-specification-find-rule spec start-symbol)))
@@ -668,11 +738,8 @@
           (lambda (rule*)
             (when (memq start-rule (derivable-rules rule*))
               (throw-exception
-               "Invalid AST grammar; The start symbol "
-               start-symbol
-               " is not start separated because of rule "
-               (ast-rule-as-symbol rule*)
-               ".")))
+               "Invalid AST grammar; "
+               "The start symbol " start-symbol " is not start separated because of rule " (ast-rule-as-symbol rule*) ".")))
           rules-list))
        
        ;;; Resolve inherited production symbols:
@@ -705,11 +772,8 @@
                          (eq? (symbol-context-name symb*) current-context-name))
                        (cdr rest-production))
                   (throw-exception
-                   "Invalid AST grammar; The context-name "
-                   current-context-name
-                   " is not unique for rule "
-                   (ast-rule-as-symbol rule*)
-                   "."))
+                   "Invalid AST grammar; "
+                   "The context-name " current-context-name " is not unique for rule " (ast-rule-as-symbol rule*) "."))
                 (loop (cdr rest-production))))))
         rules-list)
        
@@ -735,7 +799,9 @@
                    (not (memq rule* checked)))
                  rules-list)))
            (unless (null? non-derivable-rules)
-             (throw-exception "Invalid AST grammar; The rules " (map ast-rule-as-symbol non-derivable-rules) " cannot be derived."))))
+             (throw-exception
+              "Invalid AST grammar; "
+              "The rules " (map ast-rule-as-symbol non-derivable-rules) " cannot be derived."))))
        
        ;;; Ensure, that all non-terminals are productive:
        (let* ((productive-rules (list))
@@ -756,39 +822,41 @@
                (set! productive-rules (cons productive-rule productive-rules))
                (loop))))
          (unless (null? to-check)
-           (throw-exception "Invalid AST grammar; The rules " (map ast-rule-as-symbol to-check) " are not productive."))))))
+           (throw-exception
+            "Invalid AST grammar; "
+            "The rules " (map ast-rule-as-symbol to-check) " are not productive."))))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                       Attribute Grammar Specifications                                                         ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Grammar Specifications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define-syntax specify-ag-rule
    (lambda (x)
      (syntax-case x ()
-       ((_ spec attribute-name definition ...)
-        (and (identifier? #'attribute-name) (not (null? #'(definition ...))))
+       ((_ spec att-name definition ...)
+        (and (identifier? #'att-name) (not (null? #'(definition ...))))
         #'(let ((spec* spec)
-                (attribute-name* 'attribute-name))
+                (att-name* 'att-name))
             (let-syntax
                 ((specify-attribute*
                   (syntax-rules ()
-                    ((_ spec* attribute-name* ((non-terminal position) equation))
-                     (specify-attribute spec* attribute-name* 'non-terminal 'position #t equation #f))
-                    ((_ spec* attribute-name* ((non-terminal position) cached? equation))
-                     (specify-attribute spec* attribute-name* 'non-terminal 'position cached? equation #f))
-                    ((_ spec* attribute-name* ((non-terminal position) equation bottom-value equivalence-function))
-                     (specify-attribute spec* attribute-name* 'non-terminal 'position #t equation (cons bottom-value equivalence-function)))
-                    ((_ spec* attribute-name* ((non-terminal position) cached? equation bottom-value equivalence-function))
-                     (specify-attribute spec* attribute-name* 'non-terminal 'position cached? equation (cons bottom-value equivalence-function)))
-                    ((_ spec* attribute-name* (non-terminal equation))
-                     (specify-attribute spec* attribute-name* 'non-terminal 0 #t equation #f))
-                    ((_ spec* attribute-name* (non-terminal cached? equation))
-                     (specify-attribute spec* attribute-name* 'non-terminal 0 cached? equation #f))
-                    ((_ spec* attribute-name* (non-terminal equation bottom-value equivalence-function))
-                     (specify-attribute spec* attribute-name* 'non-terminal 0 #t equation (cons bottom-value equivalence-function)))
-                    ((_ spec* attribute-name* (non-terminal cached? equation bottom-value equivalence-function))
-                     (specify-attribute spec* attribute-name* 'non-terminal 0 cached? equation (cons bottom-value equivalence-function))))))
-              (specify-attribute* spec* attribute-name* definition) ...))))))
+                    ((_ spec* att-name* ((non-terminal index) equation))
+                     (specify-attribute spec* att-name* 'non-terminal 'index #t equation #f))
+                    ((_ spec* att-name* ((non-terminal index) cached? equation))
+                     (specify-attribute spec* att-name* 'non-terminal 'index cached? equation #f))
+                    ((_ spec* att-name* ((non-terminal index) equation bottom equivalence-function))
+                     (specify-attribute spec* att-name* 'non-terminal 'index #t equation (cons bottom equivalence-function)))
+                    ((_ spec* att-name* ((non-terminal index) cached? equation bottom equivalence-function))
+                     (specify-attribute spec* att-name* 'non-terminal 'index cached? equation (cons bottom equivalence-function)))
+                    ((_ spec* att-name* (non-terminal equation))
+                     (specify-attribute spec* att-name* 'non-terminal 0 #t equation #f))
+                    ((_ spec* att-name* (non-terminal cached? equation))
+                     (specify-attribute spec* att-name* 'non-terminal 0 cached? equation #f))
+                    ((_ spec* att-name* (non-terminal equation bottom equivalence-function))
+                     (specify-attribute spec* att-name* 'non-terminal 0 #t equation (cons bottom equivalence-function)))
+                    ((_ spec* att-name* (non-terminal cached? equation bottom equivalence-function))
+                     (specify-attribute spec* att-name* 'non-terminal 0 cached? equation (cons bottom equivalence-function))))))
+              (specify-attribute* spec* att-name* definition) ...))))))
  
  (define specify-attribute
    (lambda (spec attribute-name non-terminal context-name-or-position cached? equation circularity-definition)
@@ -809,12 +877,18 @@
                   (not (procedure? (cdr circularity-definition)))
                   "Circularity definition : #f or (bottom-value equivalence-function) pair"))))
        (when wrong-argument-type
-         (throw-exception "Invalid attribute definition; Wrong argument type (" wrong-argument-type ").")))
+         (throw-exception
+          "Invalid attribute definition; "
+          "Wrong argument type (" wrong-argument-type ").")))
      (unless (= (racr-specification-specification-phase spec) 2) ; ...that the RACR system is in the correct specification phase,...
-       (throw-exception "Unexpected " attribute-name " attribute definition; Attributes can only be defined in the AG specification phase."))
+       (throw-exception
+        "Unexpected " attribute-name " attribute definition; "
+        "Attributes can only be defined in the AG specification phase."))
      (let ((ast-rule (racr-specification-find-rule spec non-terminal)))
        (unless ast-rule ; ...the given AST rule is defined,...
-         (throw-exception "Invalid attribute definition; The non-terminal " non-terminal " is not defined."))
+         (throw-exception
+          "Invalid attribute definition; "
+          "The non-terminal " non-terminal " is not defined."))
        (let* ((position ; ...the given context exists,...
                (if (symbol? context-name-or-position)
                    (if (eq? context-name-or-position '*)
@@ -823,27 +897,26 @@
                                   (rest-production (cdr (ast-rule-production ast-rule))))
                          (if (null? rest-production)
                              (throw-exception
-                              "Invalid attribute definition; The non-terminal "
-                              non-terminal
-                              " has no "
-                              context-name-or-position
-                              " context.")
+                              "Invalid attribute definition; "
+                              "The non-terminal " non-terminal " has no " context-name-or-position " context.")
                              (if (eq? (symbol-context-name (car rest-production)) context-name-or-position)
                                  pos
                                  (loop (+ pos 1) (cdr rest-production))))))
                    (if (>= context-name-or-position (length (ast-rule-production ast-rule)))
                        (throw-exception
-                        "Invalid attribute definition; There exists no "
-                        context-name-or-position
-                        "'th position in the context of "
-                        non-terminal
-                        ".")
+                        "Invalid attribute definition; "
+                        "There exists no " context-name-or-position "'th position in the context of " non-terminal ".")
                        context-name-or-position)))
               (context (list-ref (ast-rule-production ast-rule) position)))
          (unless (symbol-non-terminal? context) ; ...it is a non-terminal and...
-           (throw-exception "Invalid attribute definition; " non-terminal context-name-or-position " is a terminal."))
-         (when (memq attribute-name (map attribute-definition-name (symbol-attributes context))) ; ...the attribute is not already defined for it.
-           (throw-exception "Invalid attribute definition; Redefinition of " attribute-name " for " non-terminal context-name-or-position "."))
+           (throw-exception
+            "Invalid attribute definition; "
+            non-terminal context-name-or-position " is a terminal."))
+         ; ...the attribute is not already defined for it:
+         (when (memq attribute-name (map attribute-definition-name (symbol-attributes context)))
+           (throw-exception
+            "Invalid attribute definition; "
+            "Redefinition of " attribute-name " for " non-terminal context-name-or-position "."))
          ;;; Everything is fine. Thus, add the definition to the AST rule's respective symbol:
          (symbol-attributes-set!
           context
@@ -861,9 +934,13 @@
      ;;; Ensure, that the RACR system is in the correct specification phase and...
      (let ((current-phase (racr-specification-specification-phase spec)))
        (when (< current-phase 2)
-         (throw-exception "Unexpected AG compilation. The AST specifications are not yet compiled."))
+         (throw-exception
+          "Unexpected AG compilation; "
+          "The AST specifications are not yet compiled."))
        (if (> current-phase 2)
-           (throw-exception "Unexpected AG compilation. The AG specifications already have been compiled.")
+           (throw-exception
+            "Unexpected AG compilation; "
+            "The AG specifications already have been compiled.")
            (racr-specification-specification-phase-set! spec (+ current-phase 1)))) ; ...if so proceed to the next specification phase.
      
      ;;; Resolve attribute definitions inherited from a supertype. Thus,...
@@ -892,18 +969,21 @@
             (loop (cdr super-prod) (cdr sub-prod)))))
       (racr-specification-rules-list spec))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                             Attribute Evaluator                                                                ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Evaluator ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; INTERNAL FUNCTION: Given a node n find a certain attribute associated with it, whereas in case no proper attribute
- ; is associated with n itself the search is extended to find a broadcast solution. Iff the extended search finds a
- ; solution, appropriate copy propergation attributes (i.e., broadcasters) are added. Iff no attribute instance can be
- ; found or n is a bud node, an exception is thrown. Otherwise, the attribute or its respective last broadcaster is returned.
+ ; INTERNAL FUNCTION: Given a node n find a certain attribute associated with it, whereas in case no proper
+ ; attribute is associated with n itself the search is extended to find a broadcast solution. Iff the
+ ; extended search finds a solution, appropriate copy propergation attributes (i.e., broadcasters) are added.
+ ; Iff no attribute instance can be found or n is a bud node, an exception is thrown. Otherwise, the
+ ; attribute or its respective last broadcaster is returned.
  (define lookup-attribute
    (lambda (name n)
      (when (node-bud-node? n)
-       (throw-exception "AG evaluator exception; Cannot access " name " attribute - the given node is a bud."))
+       (throw-exception
+        "AG evaluator exception; "
+        "Cannot access " name " attribute - the given node is a bud."))
      (let loop ((n n)) ; Recursively...
        (let ((att (node-find-attribute n name))) ; ...check if the current node has a proper attribute instance....
          (if att
@@ -911,13 +991,14 @@
              (let ((parent (node-parent n))) ; ...Iff no defining attribute instance can be found...
                (if (not parent) ; ...check if there exists a parent node that may provide a definition....
                    (throw-exception ; ...Iff not, throw an exception,...
-                    "AG evaluator exception; Cannot access unknown " name " attribute.")
+                    "AG evaluator exception; "
+                    "Cannot access unknown " name " attribute.")
                    (let* ((att (loop parent)) ; ...otherwise proceed the search at the parent node. Iff it succeeds...
                           (broadcaster ; ...construct a broadcasting attribute instance...
                            (make-attribute-instance
-                            (make-attribute-definition ; ...whose...
+                            (make-attribute-definition ; ...whose definition context depends...
                              name
-                             (if (eq? (node-ast-rule parent) 'list-node) ; ...definition context depends if the parent node is a list-node or not....
+                             (if (eq? (node-ast-rule parent) 'list-node) ; ...if the parent node is a list-node or not....
                                  (cons ; ...Iff it is a list-node the broadcaster's context is...
                                   (node-ast-rule (node-parent parent)) ; ...the list-node's parent node and...
                                   (node-child-index parent)) ; ...child position.
@@ -976,7 +1057,8 @@
              ; Now, decide how to evaluate the attribute dependening on whether the attribute is circular, already in evaluation
              ; or starting point for a fix-point evaluation:
              (cond
-               (start-fixpoint-computation? ; EVALUATION-CASE (1): Circular attribute starting point for a fix-point evaluation.
+               ; EVALUATION-CASE (1): Circular attribute starting point for a fix-point evaluation:
+               (start-fixpoint-computation?
                 (let (; Flag indicating abnormal termination of the fix-point evaluation (e.g., by implementation
                       ; errors within applied attribute equations and respective exceptions or the application of
                       ; a continuation outside the fix-point evaluation's scope):
@@ -984,9 +1066,9 @@
                   (dynamic-wind
                    (lambda ()
                      ; Maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-                     ; of another attribute, the other attribute depends on this one and...
+                     ; of another attribute, the other attribute depends on this one and this attribute must depend on
+                     ; any other attributes that will be evaluated through its own evaluation. Further,..
                      (add-dependency:att->att att)
-                     ; ...this attribute must depend on any other attributes that will be evaluated through its own evaluation. Further,..
                      (evaluator-state-att-eval-stack-set! evaluator-state (cons att (evaluator-state-att-eval-stack evaluator-state)))
                      ; ...update the evaluator state that we are about to start a fix-point evaluation and...
                      (evaluator-state-ag-in-cycle?-set! evaluator-state #t)
@@ -1013,13 +1095,14 @@
                            (for-each
                             loop
                             (attribute-instance-attribute-dependencies att))
-                           (when (> (hashtable-size (attribute-instance-cycle-cache att)) 0) ; ...In case of circular attributes not yet updated,...
+                           ; ...In case of circular attributes not yet updated,...
+                           (when (> (hashtable-size (attribute-instance-cycle-cache att)) 0)
                              (when (and ; ...check...
                                     (not abnormal-termination?) ; ...if the fix-point evaluation terminated normal and...
-                                    (attribute-definition-cached? (attribute-instance-definition att))) ; ...caching is enabled,...
-                               (hashtable-set! ; ...iff so...
+                                    (attribute-definition-cached? (attribute-instance-definition att))) ; ...caching is enabled....
+                               (hashtable-set! ; ...Iff so...
                                 (attribute-instance-value-cache att) ; ...each such attribute's fix-point value to cache...
-                                (attribute-instance-args-cache att) ; ...is the value computed throughout its last invocation. Further,...
+                                (attribute-instance-args-cache att) ; ...is the value computed during its last invocation. Further,...
                                 (car (hashtable-ref (attribute-instance-cycle-cache att) (attribute-instance-args-cache att) #f))))
                              (hashtable-clear! (attribute-instance-cycle-cache att)) ; ...ALWAYS clear the attribute's cycle and...
                              (attribute-instance-args-cache-set! att racr-nil) ; ...most recent arguments cache....
@@ -1029,20 +1112,22 @@
                      ; ...Finally, pop the attribute from the attribute evaluation stack.
                      (evaluator-state-att-eval-stack-set! evaluator-state (cdr (evaluator-state-att-eval-stack evaluator-state)))))))
                
-               ((and circular? entered?) ; EVALUATION-CASE (2): Circular attribute, already in evaluation for the given arguments.
+               ; EVALUATION-CASE (2): Circular attribute, already in evaluation for the given arguments:
+               ((and circular? entered?)
                 ; Maintaine attribute dependencies, i.e., the other attribute throughout whose evaluation
                 ; this attribute is evaluated must depend on this one. Finally,...
                 (add-dependency:att->att att)
                 ; ...the result is the attribute's cycle cache entry.
                 (set! result (car cc-hit)))
                
-               (circular? ; EVALUATION-CASE (3): Circular attribute not in evaluation and entered throughout a fix-point evaluation.
+               ; EVALUATION-CASE (3): Circular attribute not in evaluation and entered throughout a fix-point evaluation:
+               (circular?
                 (dynamic-wind
                  (lambda ()
                    ; Maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-                   ; of another attribute, the other attribute depends on this one and...
+                   ; of another attribute, the other attribute depends on this one and this attribute must depend on
+                   ; any other attributes that will be evaluated through its own evaluation. Further,..
                    (add-dependency:att->att att)
-                   ; ...this attribute must depend on any other attributes that will be evaluated through its own evaluation. Further,..
                    (evaluator-state-att-eval-stack-set! evaluator-state (cons att (evaluator-state-att-eval-stack evaluator-state)))
                    ; ...mark, that the attribute is in evaluation and construct an appropriate cycle-cache entry if required.
                    (if cc-hit
@@ -1059,20 +1144,22 @@
                    ; ...pop the attribute from the attribute evaluation stack.
                    (evaluator-state-att-eval-stack-set! evaluator-state (cdr (evaluator-state-att-eval-stack evaluator-state))))))
                
-               (entered? ; EVALUATION-CASE (4): Non-circular attribute already in evaluation.
+               ; EVALUATION-CASE (4): Non-circular attribute already in evaluation:
+               (entered?
                 ; Maintaine attribute dependencies, i.e., the other attribute throughout whose evaluation
                 ; this attribute is evaluated must depend on this one. Then,...
                 (add-dependency:att->att att)
-                ; ...thrown an exception because we encountered an unexpected dependency cycle.
-                (throw-exception "AG evaluator exception; Unexpected " name " cycle."))
+                (throw-exception ; ...thrown an exception because we encountered an unexpected dependency cycle.
+                 "AG evaluator exception; "
+                 "Unexpected " name " cycle."))
                
                (else ; EVALUATION-CASE (5): Non-circular attribute not in evaluation.
                 (dynamic-wind
                  (lambda ()
                    ; Maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-                   ; of another attribute, the other attribute depends on this one and...
+                   ; of another attribute, the other attribute depends on this one and this attribute must depend on
+                   ; any other attributes that will be evaluated through its own evaluation. Further,..
                    (add-dependency:att->att att)
-                   ; ...this attribute must depend on any other attributes that will be evaluated through its own evaluation. Further,..
                    (evaluator-state-att-eval-stack-set! evaluator-state (cons att (evaluator-state-att-eval-stack evaluator-state)))
                    ; ...mark, that the attribute is in evaluation, i.e.,...
                    (set! cc-hit (cons racr-nil #t)) ; ...construct an appropriate cycle-cache entry and...
@@ -1088,21 +1175,25 @@
                    (evaluator-state-att-eval-stack-set! evaluator-state (cdr (evaluator-state-att-eval-stack evaluator-state)))))))
              result))))) ; Return the computed value.
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                   Abstract Syntax Tree Access Interface                                                        ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Access Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define ast-node-type
    (lambda (n)
      (when (or (node-list-node? n) (node-bud-node? n)) ; Remember: (node-terminal? n) is not possible
-       (throw-exception "Cannot access type; List and bud nodes have no type."))
+       (throw-exception
+        "Cannot access type; "
+        "List and bud nodes have no type."))
      (add-dependency:att->node-type n)
      (symbol-name (car (ast-rule-production (node-ast-rule n))))))
  
  (define ast-list-node?
    (lambda (n)
      (if (node-bud-node? n)
-       (throw-exception "Cannot perform list node check; Bud nodes have no type.")
+       (throw-exception
+        "Cannot perform list node check; "
+        "Bud nodes have no type.")
        (node-list-node? n))))
  
  (define ast-subtype?
@@ -1110,9 +1201,13 @@
      (when (or
             (and (node? a1) (or (node-list-node? a1) (node-bud-node? a1)))
             (and (node? a2) (or (node-list-node? a2) (node-bud-node? a2))))
-       (throw-exception "Cannot perform subtype check; List and bud nodes cannot be tested for subtyping."))
+       (throw-exception
+        "Cannot perform subtype check; "
+        "List and bud nodes cannot be tested for subtyping."))
      (when (and (not (node? a1)) (not (node? a2)))
-       (throw-exception "Cannot perform subtype check; At least one argument must be an AST node."))
+       (throw-exception
+        "Cannot perform subtype check; "
+        "At least one argument must be an AST node."))
      ((lambda (t1/t2)
         (and
          (car t1/t2)
@@ -1122,14 +1217,18 @@
           (let* ((t2 (node-ast-rule a2))
                  (t1 (racr-specification-find-rule (ast-rule-specification t2) a1)))
             (unless t1
-              (throw-exception "Cannot perform subtype check; " a1 " is no valid non-terminal (first argument undefined non-terminal)."))
+              (throw-exception
+               "Cannot perform subtype check; "
+               a1 " is no valid non-terminal (first argument undefined non-terminal)."))
             (add-dependency:att->node-super-type a2 t1)
             (cons t1 t2))
           (if (symbol? a2)
               (let* ((t1 (node-ast-rule a1))
                      (t2 (racr-specification-find-rule (ast-rule-specification t1) a2)))
                 (unless t1
-                  (throw-exception "Cannot perform subtype check; " a2 " is no valid non-terminal (second argument undefined non-terminal)."))
+                  (throw-exception
+                   "Cannot perform subtype check; "
+                   a2 " is no valid non-terminal (second argument undefined non-terminal)."))
                 (add-dependency:att->node-sub-type a1 t2)
                 (cons t1 t2))
               (begin
@@ -1170,7 +1269,9 @@
  (define ast-num-children
    (lambda (n)
      (when (node-bud-node? n)
-       (throw-exception "Cannot access number of children; Bud nodes have no children."))
+       (throw-exception
+        "Cannot access number of children; "
+        "Bud nodes have no children."))
      (add-dependency:att->node-num-children n)
      (length (node-children n))))
  
@@ -1194,7 +1295,9 @@
              (b* b)
              (ub (cdr b*)))
         (when (node-bud-node? n*)
-          (throw-exception "Cannot visit children; No valid operation on bud nodes."))
+          (throw-exception
+           "Cannot visit children; "
+           "No valid operation on bud nodes."))
         (if (eq? ub '*)
             (let ((pos (car b*))
                   (ub (length (node-children n*))))
@@ -1234,35 +1337,34 @@
             b ...)
            #f))))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                Abstract Syntax Tree Construction Interface                                                     ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Construction Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define create-ast
    (lambda (spec rule children)
      ;;; Ensure, that the RACR system is completely specified:
      (when (< (racr-specification-specification-phase spec) 3)
-       (throw-exception "Cannot construct " rule " fragment; The RACR specification still must be compiled."))
+       (throw-exception
+        "Cannot construct " rule " fragment; "
+        "The RACR specification still must be compiled."))
      
      (let ((ast-rule* (racr-specification-find-rule spec rule)))
        ;;; Ensure, that the given AST rule is defined:
        (unless ast-rule*
-         (throw-exception "Cannot construct " rule " fragment; Unknown non-terminal/rule."))
+         (throw-exception
+          "Cannot construct " rule " fragment; "
+          "Unknown non-terminal/rule."))
        
        ;;; Ensure, that the expected number of children are given:
        (unless (= (length children) (- (length (ast-rule-production ast-rule*)) 1))
          (throw-exception
-          "Cannot construct "
-          rule
-          " fragment; "
-          (length children)
-          " children given, but "
-          (- (length (ast-rule-production ast-rule*)) 1)
-          " children expected."))
+          "Cannot construct " rule " fragment; "
+          (length children) " children given, but " (- (length (ast-rule-production ast-rule*)) 1) " children expected."))
        
        ;;; Construct the fragment, i.e., (1) the AST part consisting of the root and the given children and (2) the root's
        ;;; synthesized attribute instances and the childrens' inherited ones.
-       (let (;;; For (1) --- the construction of the fragment's AST part --- first construct the fragment's root. Then...
+       (let (;;; For (1) - the construction of the fragment's AST part - first construct the fragment's root. Then...
              (root
               (make-node
                ast-rule*
@@ -1280,45 +1382,33 @@
                   (if (symbol-non-terminal? symb*) ; ...check if the next expected child is a non-terminal....
                       (let ((ensure-child-fits ; ...If we expect a non-terminal we need a function which ensures, that...
                              (lambda (child)
-                               ; ...the child either is a bud-node or its type is the one of the expected non-terminal or a sub-type....
-                               (unless (or (node-bud-node? child) (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symb*)))
+                               ; ...the child either is a bud-node or its type is the one of the
+                               ; expected non-terminal or a sub-type....
+                               (unless (or
+                                        (node-bud-node? child)
+                                        (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symb*)))
                                  (throw-exception
-                                  "Cannot construct "
-                                  rule
-                                  " fragment; Expected a "
-                                  (symbol-name symb*)
-                                  " node as "
-                                  pos
-                                  "'th child, not a "
-                                  (ast-node-type child)
-                                  ".")))))
+                                  "Cannot construct " rule " fragment; "
+                                  "Expected a " (symbol-name symb*) " node as " pos "'th child, not a " (ast-node-type child) ".")))))
                         (unless (node? child) ; ...Then, check that the given child is an AST node,...
                           (throw-exception
-                           "Cannot construct "
-                           rule
-                           " fragment; Expected a "
-                           (symbol-name symb*)
-                           " node as "
-                           pos
-                           "'th child, not a terminal."))
+                           "Cannot construct " rule " fragment; "
+                           "Expected a " (symbol-name symb*) " node as " pos "'th child, not a terminal."))
                         (when (node-parent child) ; ...does not already belong to another AST and...
                           (throw-exception
-                           "Cannot construct "
-                           rule
-                           " fragment. The given "
-                           pos
-                           "'th child already is part of another AST fragment."))
-                        (when (evaluator-state-in-evaluation? (node-evaluator-state child)) ; ...non of its attributes are in evaluation....
-                          (throw-exception "Cannot construct " rule " fragment; There are attributes in evaluation."))
+                           "Cannot construct " rule " fragment; "
+                           "The given " pos "'th child already is part of another AST fragment."))
+                        ; ...non of its attributes are in evaluation....
+                        (when (evaluator-state-in-evaluation? (node-evaluator-state child))
+                          (throw-exception
+                           "Cannot construct " rule " fragment; "
+                           "There are attributes in evaluation."))
                         (if (symbol-kleene? symb*) ; ...Now, check if we expect a list of non-terminals...
                             (if (node-list-node? child) ; ...If we expect a list, ensure the given child is a list-node and...
                                 (for-each ensure-child-fits (node-children child)) ; ...all its elements fit....
                                 (throw-exception
-                                 "Cannot construct "
-                                 rule
-                                 " fragment; Expected a list-node as "
-                                 pos
-                                 "'th child, not a "
+                                 "Cannot construct " rule " fragment; "
+                                 "Expected a list-node as " pos "'th child, not a "
                                  (if (node? child)
                                      (string-append "single [" (symbol->string (ast-node-type child)) "] node")
                                      "terminal")
@@ -1334,9 +1424,10 @@
                         root
                         child)
                        (loop (+ pos 1) (cdr symbols) (cdr children)))))))) ; ...process the next expected child.
-         (distribute-evaluator-state (make-evaluator-state) root) ; ...When all children are processed, distribute the new fragment's evaluator state.
+         ; ...When all children are processed, distribute the new fragment's evaluator state:
+         (distribute-evaluator-state (make-evaluator-state) root)
          
-         ;;; The AST part of the fragment is properly constructed so we can proceed with (2) --- the construction
+         ;;; The AST part of the fragment is properly constructed so we can proceed with (2) - the construction
          ;;; of the fragment's attribute instances. Therefore,...
          (update-synthesized-attribution root) ; ...initialize the root's synthesized and...
          (for-each ; ...each child's inherited attributes.
@@ -1357,16 +1448,25 @@
                   (pos 1))
          (unless (null? children)
            (when (or (not (node? (car children))) (node-list-node? (car children))) ; ...proper non-terminal node,...
-             (throw-exception "Cannot construct list-node; The given " pos "'th child is not a non-terminal, non-list node."))
+             (throw-exception
+              "Cannot construct list-node; "
+              "The given " pos "'th child is not a non-terminal, non-list node."))
            (when (node-parent (car children)) ; ...is not already part of another AST,...
-             (throw-exception "Cannot construct list-node; The given " pos "'th child already is part of another AST."))
-           (when (evaluator-state-in-evaluation? (node-evaluator-state (car children))) ; ...non of its attributes are in evaluation and...
-             (throw-exception "Cannot construct list-node; The given " pos "'th child has attributes in evaluation."))
+             (throw-exception
+              "Cannot construct list-node; "
+              "The given " pos "'th child already is part of another AST."))
+           ; ...non of its attributes are in evaluation and...
+           (when (evaluator-state-in-evaluation? (node-evaluator-state (car children)))
+             (throw-exception
+              "Cannot construct list-node; "
+              "The given " pos "'th child has attributes in evaluation."))
            (unless (or ; ...all children are instances of the same RACR specification.
                     (node-bud-node? (car children))
                     (eq? (ast-rule-specification (node-ast-rule (car children)))
                          spec))
-             (throw-exception "Cannot construct list-node; The given children are instances of different RACR specifications."))
+             (throw-exception
+              "Cannot construct list-node; "
+              "The given children are instances of different RACR specifications."))
            (loop (cdr children) (+ pos 1)))))
      (let ((list-node ; ...Finally, construct the list-node,...
             (make-node
@@ -1386,8 +1486,9 @@
        (distribute-evaluator-state (make-evaluator-state) bud-node)
        bud-node)))
  
- ; INTERNAL FUNCTION: Given an AST node update its synthesized attribution (i.e., add missing synthesized attributes, delete superfluous
- ; ones, shadow equally named inherited attributes and update the definitions of existing synthesized attributes.
+ ; INTERNAL FUNCTION: Given an AST node update its synthesized attribution (i.e., add missing synthesized
+ ; attributes, delete superfluous ones, shadow equally named inherited attributes and update the
+ ; definitions of existing synthesized attributes.
  (define update-synthesized-attribution
    (lambda (n)
      (when (and (not (node-terminal? n)) (not (node-list-node? n)) (not (node-bud-node? n)))
@@ -1420,8 +1521,9 @@
              remove?))
          (node-attributes n))))))
  
- ; INTERNAL FUNCTION: Given an AST node update its inherited attribution (i.e., add missing inherited attributes, delete superfluous ones and
- ; update the definitions of existing inherited attributes. If the given node is a list-node the inherited attributes of its elements are updated.
+ ; INTERNAL FUNCTION: Given an AST node update its inherited attribution (i.e., add missing inherited
+ ; attributes, delete superfluous ones and update the definitions of existing inherited attributes.
+ ; If the given node is a list-node the inherited attributes of its elements are updated.
  (define update-inherited-attribution
    (lambda (n)
      ;;; Support function updating n's inherited attribution w.r.t. a list of inherited attribute definitions:
@@ -1434,7 +1536,9 @@
                 ((not att)
                  (node-attributes-set! n (cons (make-attribute-instance att-def n) (node-attributes n))))
                 ((not (attribute-definition-synthesized? (attribute-instance-definition att)))
-                 (if (eq? (attribute-definition-equation (attribute-instance-definition att)) (attribute-definition-equation att-def))
+                 (if (eq?
+                      (attribute-definition-equation (attribute-instance-definition att))
+                      (attribute-definition-equation att-def))
                      (attribute-instance-definition-set! att att-def)
                      (begin
                        (flush-attribute-cache att)
@@ -1466,8 +1570,8 @@
            (unless (node-bud-node? n)
              (update-by-defs n att-defs))))))
  
- ; INTERNAL FUNCTION: Given an AST node delete its inherited attribute instances. Iff the given node is a list node,
- ; the inherited attributes of its elements are deleted.
+ ; INTERNAL FUNCTION: Given an AST node delete its inherited attribute instances. Iff the given node
+ ; is a list node, the inherited attributes of its elements are deleted.
  (define detach-inherited-attributes
    (lambda (n)
      (cond
@@ -1487,7 +1591,8 @@
               remove?))
           (node-attributes n)))))))
  
- ; INTERNAL FUNCTION: Given an evaluator state and an AST fragment, change the fragment's evaluator state to the given one.
+ ; INTERNAL FUNCTION: Given an evaluator state and an AST fragment, change the
+ ; fragment's evaluator state to the given one.
  (define distribute-evaluator-state
    (lambda (evaluator-state n)
      (node-evaluator-state-set! n evaluator-state)
@@ -1497,9 +1602,9 @@
           (distribute-evaluator-state evaluator-state n))
         (node-children n)))))
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                             Rewrite Interface                                                                  ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Rewrite Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define perform-rewrites
    (lambda (n strategy . transformers)
@@ -1519,16 +1624,21 @@
              (or
               (find find-and-apply (node-children n))
               (find (lambda (r) (r n)) transformers)))))
-         (else (throw-exception "Cannot perform rewrites; Unknown " strategy " strategy."))))
+         (else (throw-exception
+                "Cannot perform rewrites; "
+                "Unknown " strategy " strategy."))))
      (let loop ()
        (when (node-parent n)
-         (throw-exception "Cannot perform rewrites; The given starting point is not (anymore) an AST root."))
+         (throw-exception
+          "Cannot perform rewrites; "
+          "The given starting point is not (anymore) an AST root."))
        (let ((match (find-and-apply n)))
          (if match
              (cons match (loop))
              (list))))))
  
- ; INTERNAL FUNCTION: Given an AST node n, flush all attributes that depend on information of the subtree spaned by n but are outside of it.
+ ; INTERNAL FUNCTION: Given an AST node n, flush all attributes that depend on information of
+ ; the subtree spaned by n but are outside of it.
  (define flush-depending-attributes-outside-of
    (lambda (n)
      (let loop ((n* n))
@@ -1554,13 +1664,17 @@
    (lambda (i n new-value)
      ; Before changing the value of the terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
-       (throw-exception "Cannot change terminal value; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot change terminal value; "
+        "There are attributes in evaluation."))
      (let ((n
             (if (symbol? i)
                 (node-find-child n i)
                 (and (>= i 1) (<= i (length (node-children n))) (list-ref (node-children n) (- i 1))))))
        (unless (and n (node-terminal? n)) ; ...the given context is a terminal. If so,...
-         (throw-exception "Cannot change terminal value; The given context does not exist or is no terminal."))
+         (throw-exception
+          "Cannot change terminal value; "
+          "The given context does not exist or is no terminal."))
        (unless (equal? (node-children n) new-value)
          (for-each ; ...flush the caches of all attributes influenced by the terminal and...
           (lambda (influence)
@@ -1572,47 +1686,74 @@
    (lambda (n t . c)
      ;;; Before refining the non-terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...non of its attributes are in evaluation,...
-       (throw-exception "Cannot refine node; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot refine node; "
+        "There are attributes in evaluation."))
      (when (or (node-list-node? n) (node-bud-node? n)) ; ...it is not a list or bud node,...
-       (throw-exception "Cannot refine node; The node is a " (if (node-list-node? n) "list" "bud") " node."))
+       (throw-exception
+        "Cannot refine node; "
+        "The node is a " (if (node-list-node? n) "list" "bud") " node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t)))
        (unless (and new-rule (ast-rule-subtype? new-rule old-rule)) ; ...the given type is a subtype,...
-         (throw-exception "Cannot refine node; " t " is not a subtype of " (ast-node-type n)))
+         (throw-exception
+          "Cannot refine node; "
+          t " is not a subtype of " (ast-node-type n)))
        (let ((additional-children (list-tail (ast-rule-production new-rule) (length (ast-rule-production old-rule)))))
          (unless (= (length additional-children) (length c)) ; ...the expected number of new children are given,...
-           (throw-exception "Cannot refine node; Unexpected number of additional children."))
+           (throw-exception
+            "Cannot refine node; "
+            "Unexpected number of additional children."))
          (let ((c
-                (map ; ...each child fits, is not part of another AST, does not contain the refined node and non of its attributes are in evaluation.
+                (map ; ...each child...
                  (lambda (symbol child)
                    (cond
                      ((symbol-non-terminal? symbol)
-                      (unless (node? child)
-                        (throw-exception "Cannot refine node; The given children do not fit."))
-                      (when (node-parent child)
-                        (throw-exception "Cannot refine node; A given child already is part of another AST."))
-                      (when (node-inside-of? n c)
-                        (throw-exception "Cannot refine node; The node to refine is part of the AST spaned by a given child."))
-                      (when (evaluator-state-in-evaluation? (node-evaluator-state child))
-                        (throw-exception "Cannot refine node; There are attributes in evaluation."))
+                      (unless (node? child) ; ...fits,...
+                        (throw-exception
+                         "Cannot refine node; "
+                         "The given children do not fit."))
+                      (when (node-parent child) ; ...is not part of another AST,...
+                        (throw-exception
+                         "Cannot refine node; "
+                         "A given child already is part of another AST."))
+                      (when (node-inside-of? n c) ; ...does not contain the refined node and...
+                        (throw-exception
+                         "Cannot refine node; "
+                         "The node to refine is part of the AST spaned by a given child."))
+                      (when (evaluator-state-in-evaluation? (node-evaluator-state child)) ; ...non of its attributes are in evaluation.
+                        (throw-exception
+                         "Cannot refine node; "
+                         "There are attributes in evaluation."))
                       (if (symbol-kleene? symbol)
                           (if (node-list-node? child)
                               (for-each
                                (lambda (child)
-                                 (unless (or (node-bud-node? child) (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
-                                   (throw-exception "Cannot refine node; The given children do not fit.")))
+                                 (unless
+                                     (or
+                                      (node-bud-node? child)
+                                      (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol)))
+                                   (throw-exception
+                                    "Cannot refine node; "
+                                    "The given children do not fit.")))
                                (node-children child))
-                              (throw-exception "Cannot refine node; The given children do not fit."))
+                              (throw-exception
+                               "Cannot refine node; "
+                               "The given children do not fit."))
                           (unless
                               (and
                                (node-non-terminal? child)
                                (not (node-list-node? child))
                                (or (node-bud-node? child) (ast-rule-subtype? (node-ast-rule child) (symbol-non-terminal? symbol))))
-                            (throw-exception "Cannot refine node; The given children do not fit.")))
+                            (throw-exception
+                             "Cannot refine node; "
+                             "The given children do not fit.")))
                       child)
                      (else
                       (when (node? child)
-                        (throw-exception "Cannot refine node; The given children do not fit."))
+                        (throw-exception
+                         "Cannot refine node; "
+                         "The given children do not fit."))
                       (make-node 'terminal n child))))
                  additional-children
                  c)))
@@ -1648,14 +1789,20 @@
    (lambda (n t)
      ;;; Before abstracting the non-terminal ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation,...
-       (throw-exception "Cannot abstract node; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot abstract node; "
+        "There are attributes in evaluation."))
      (when (or (node-list-node? n) (node-bud-node? n)) ; ...the given node is not a list or bud node and...
-       (throw-exception "Cannot abstract node; The node is a " (if (node-list-node? n) "list" "bud") " node."))
+       (throw-exception
+        "Cannot abstract node; "
+        "The node is a " (if (node-list-node? n) "list" "bud") " node."))
      (let* ((old-rule (node-ast-rule n))
             (new-rule (racr-specification-find-rule (ast-rule-specification old-rule) t))
             (num-new-children (- (length (ast-rule-production new-rule)) 1)))
        (unless (and new-rule (ast-rule-subtype? old-rule new-rule)) ; ...the given type is a supertype.
-         (throw-exception "Cannot abstract node; " t " is not a supertype of " (ast-node-type n) "."))
+         (throw-exception
+          "Cannot abstract node; "
+          t " is not a supertype of " (ast-node-type n) "."))
        ;;; Everything is fine. Thus,...
        (let ((children-to-remove (list-tail (node-children n) num-new-children)))
          (for-each ; ...flush the caches of all influenced attributes, i.e., (1) all attributes influenced by the node's...
@@ -1699,13 +1846,21 @@
      (when (or ; ...no attributes are in evaluation,...
             (evaluator-state-in-evaluation? (node-evaluator-state l))
             (evaluator-state-in-evaluation? (node-evaluator-state e)))
-       (throw-exception "Cannot add list element; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot add list element; "
+        "There are attributes in evaluation."))
      (unless (node-list-node? l) ; ...indeed a list-node is given as context,...
-       (throw-exception "Cannot add list element; The given context is no list-node."))
+       (throw-exception
+        "Cannot add list element; "
+        "The given context is no list-node."))
      (when (node-parent e) ; ...the new element is not part of another AST,...
-       (throw-exception "Cannot add list element; The element to add already is part of another AST."))
+       (throw-exception
+        "Cannot add list element; "
+        "The element to add already is part of another AST."))
      (when (node-inside-of? l e) ; ...its spaned AST does not contain the list-node and...
-       (throw-exception "Cannot add list element; The given list is part of the AST spaned by the element to add."))
+       (throw-exception
+        "Cannot add list element; "
+        "The given list is part of the AST spaned by the element to add."))
      (when (node-parent l)
        (let ((expected-type
               (symbol-non-terminal?
@@ -1713,7 +1868,9 @@
                 (ast-rule-production (node-ast-rule (node-parent l)))
                 (node-child-index l)))))
          (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type)) ; ...it can be a child of the list-node.
-           (throw-exception "Cannot add list element; The new element does not fit."))))
+           (throw-exception
+            "Cannot add list element; "
+            "The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children,...
       (lambda (influence)
@@ -1732,13 +1889,21 @@
      (when (or  ; ...no attributes are in evaluation,...
             (evaluator-state-in-evaluation? (node-evaluator-state old-fragment))
             (evaluator-state-in-evaluation? (node-evaluator-state new-fragment)))
-       (throw-exception "Cannot replace subtree; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot replace subtree; "
+        "There are attributes in evaluation."))
      (unless (and (node? new-fragment) (node-non-terminal? new-fragment)) ; ...the new fragment is a non-terminal node,...
-       (throw-exception "Cannot replace subtree; The replacement is not a non-terminal node."))
+       (throw-exception
+        "Cannot replace subtree; "
+        "The replacement is not a non-terminal node."))
      (when (node-parent new-fragment) ; ...it is not part of another AST...
-       (throw-exception "Cannot replace subtree; The replacement already is part of another AST."))
+       (throw-exception
+        "Cannot replace subtree; "
+        "The replacement already is part of another AST."))
      (when (node-inside-of? old-fragment new-fragment) ; ...its spaned AST did not contain the old-fragment and...
-       (throw-exception "Cannot replace subtree; The given old fragment is part of the AST spaned by the replacement."))
+       (throw-exception
+        "Cannot replace subtree; "
+        "The given old fragment is part of the AST spaned by the replacement."))
      (let* ((n* (if (node-list-node? (node-parent old-fragment)) (node-parent old-fragment) old-fragment))
             (expected-type
              (symbol-non-terminal?
@@ -1750,16 +1915,22 @@
                (for-each
                 (lambda (element)
                   (unless (or (node-bud-node? element) (ast-rule-subtype? element expected-type))
-                    (throw-exception "Cannot replace subtree; The replacement does not fit.")))
+                    (throw-exception
+                     "Cannot replace subtree; "
+                     "The replacement does not fit.")))
                 (node-children new-fragment))
-               (throw-exception "Cannot replace subtree; The replacement does not fit."))
+               (throw-exception
+                "Cannot replace subtree; "
+                "The replacement does not fit."))
            (unless (and
                     (not (node-list-node? new-fragment))
                     (or (node-bud-node? new-fragment) (ast-rule-subtype? (node-ast-rule new-fragment) expected-type)))
-             (throw-exception "Cannot replace subtree; The replacement does not fit."))))
+             (throw-exception
+              "Cannot replace subtree; "
+              "The replacement does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
      (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attribution,...
-     (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it that are outside its spaned tree,...
+     (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it and outside its spaned tree,...
      (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...update both fragments' evaluator state,...
      (distribute-evaluator-state (make-evaluator-state) old-fragment)
      (set-car! ; ...replace the old fragment by the new one and...
@@ -1776,15 +1947,25 @@
      (when (or ; ...no attributes are in evaluation,...
             (evaluator-state-in-evaluation? (node-evaluator-state l))
             (evaluator-state-in-evaluation? (node-evaluator-state e)))
-       (throw-exception "Cannot insert list element; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot insert list element; "
+        "There are attributes in evaluation."))
      (unless (node-list-node? l) ; ...indeed a list-node is given as context,...
-       (throw-exception "Cannot insert list element; The given context is no list-node."))
+       (throw-exception
+        "Cannot insert list element; "
+        "The given context is no list-node."))
      (when (or (< i 1) (> i (+ (length (node-children l)) 1))) ; ...the list has enough elements,...
-       (throw-exception "Cannot insert list element; The given index is out of range."))
+       (throw-exception
+        "Cannot insert list element; "
+        "The given index is out of range."))
      (when (node-parent e) ; ...the new element is not part of another AST,...
-       (throw-exception "Cannot insert list element; The element to insert already is part of another AST."))
+       (throw-exception
+        "Cannot insert list element; "
+        "The element to insert already is part of another AST."))
      (when (node-inside-of? l e) ; ...its spaned AST does not contain the list-node and...
-      (throw-exception "Cannot insert list element; The given list is part of the AST spaned by the element to insert."))
+      (throw-exception
+       "Cannot insert list element; "
+       "The given list is part of the AST spaned by the element to insert."))
      (when (node-parent l)
        (let ((expected-type
               (symbol-non-terminal?
@@ -1792,7 +1973,9 @@
                 (ast-rule-production (node-ast-rule (node-parent l)))
                 (node-child-index l)))))
          (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type)) ; ...it can be a child of the list-node.
-           (throw-exception "Cannot insert list element; The new element does not fit."))))
+           (throw-exception
+            "Cannot insert list element; "
+            "The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied...
      (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children. Further,...
       (lambda (influence)
@@ -1800,7 +1983,8 @@
           (flush-attribute-cache (car influence))))
       (node-attribute-influences l))
      (for-each ; ...for each tree spaned by the successor element's of the insertion position,...
-      flush-depending-attributes-outside-of ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      flush-depending-attributes-outside-of
       (list-tail (node-children l) (- i 1)))
      (node-children-set! ; ...insert the new element,...
       l
@@ -1818,39 +2002,45 @@
    (lambda (n)
      ;;; Before deleting the element ensure, that...
      (when (evaluator-state-in-evaluation? (node-evaluator-state n)) ; ...no attributes are in evaluation and...
-       (throw-exception "Cannot delete list element; There are attributes in evaluation."))
+       (throw-exception
+        "Cannot delete list element; "
+        "There are attributes in evaluation."))
      (unless (and (node-parent n) (node-list-node? (node-parent n))) ; ...the given node is a list-node element.
-       (throw-exception "Cannot delete list element; The given node is not element of a list."))
-     ;;; When all rewrite constraints are satisfied,...
-     (for-each ; ...flush the caches of all attributes influenced by the number of children of the list-node the element is part of. Further,...
+       (throw-exception
+        "Cannot delete list element; "
+        "The given node is not element of a list."))
+     ;;; When all rewrite constraints are satisfied, flush the caches of all attributes influenced by
+     ; the number of children of the list-node the element is part of. Further,...
+     (for-each
       (lambda (influence)
         (when (vector-ref (cdr influence) 1)
           (flush-attribute-cache (car influence))))
       (node-attribute-influences (node-parent n)))
      (detach-inherited-attributes n) ; ...delete the element's inherited attributes and,...
      (for-each ; ...for each tree spaned by the element and its successor elements,...
-      flush-depending-attributes-outside-of ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
+      flush-depending-attributes-outside-of
       (list-tail (node-children (node-parent n)) (- (node-child-index n) 1)))
      (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove the element from the list,...
      (node-parent-set! n #f)
      (distribute-evaluator-state (make-evaluator-state) n) ; ...reset its evaluator state and...
      n)) ; ...return it.
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;                                                        Dependency Tracking Support                                                             ;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dependency Tracking Support ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: Given an attribute, flush its and its depending attributes' caches and dependencies.
  (define flush-attribute-cache
    (lambda (att)
-     (let ((influenced-atts (attribute-instance-attribute-influences att))) ; First, save all attributes influenced by the attribute,...
+     (let ((influenced-atts (attribute-instance-attribute-influences att))) ; Save all attributes influenced by the attribute,...
        (attribute-instance-attribute-influences-set! att (list)) ; ...remove the respective influence edges and...
        (hashtable-clear! (attribute-instance-value-cache att)) ; ...clear the attribute's value cache. Then,...
        (for-each ; ...for every attribute I the attribute depends on,...
         (lambda (influencing-att)
-          (attribute-instance-attribute-influences-set!
+          (attribute-instance-attribute-influences-set! ; ...remove the influence edge from I to the attribute and...
            influencing-att
-           (remq att (attribute-instance-attribute-influences influencing-att)))) ; ...remove the influence edge from I to the attribute and...
+           (remq att (attribute-instance-attribute-influences influencing-att))))
         (attribute-instance-attribute-dependencies att))
        (attribute-instance-attribute-dependencies-set! att (list)) ;...the attribute's dependency edges to such I. Then,...
        (for-each ; ...for every node N the attribute depends on...
@@ -1894,10 +2084,12 @@
      (add-dependency:att->node-characteristic influencing-node (cons 4 comparision-type))))
  
  ; INTERNAL FUNCTION: Given a node N and a correlation C add an dependency-edge marked with C from
- ; the attribute currently in evaluation (considering the evaluator state of the AST N is part of) to N and an influence-edge
- ; vice versa. If no attribute is in evaluation no edges are added. The following six correlations exist:
+ ; the attribute currently in evaluation (considering the evaluator state of the AST N is part of) to N and
+ ; an influence-edge vice versa. If no attribute is in evaluation no edges are added. The following six
+ ; correlations exist:
  ;  1) Dependency on the existence of the node (i.e., existence of a node at the same location)
- ;  2) Dependency on the node's number of children (i.e., existence of a node at the same location and with the same number of children)
+ ;  2) Dependency on the node's number of children (i.e., existence of a node at the same location and with
+ ;     the same number of children)
  ;  3) Dependency on the node's type (i.e., existence of a node at the same location and with the same type)
  ;  4) Dependency on whether the node's type is a supertype w.r.t. a certain type encoded in C or not
  ;  5) Dependency on whether the node's type is a subtype w.r.t. a certain type encoded in C or not
@@ -1935,8 +2127,9 @@
                        known-args
                        (cons correlation-arg known-args))))))))))))
  
- ; INTERNAL FUNCTION: Given an attribute instance A, add an dependency-edge from A to the attribute currently in evaluation (considering
- ; the evaluator state of the AST A is part of) and an influence-edge vice-versa. If no attribute is in evaluation no edges are added.
+ ; INTERNAL FUNCTION: Given an attribute instance A, add an dependency-edge from A to the attribute currently
+ ; in evaluation (considering the evaluator state of the AST A is part of) and an influence-edge vice-versa.
+ ; If no attribute is in evaluation no edges are added.
  (define add-dependency:att->att
    (lambda (influencing-att)
      (let ((dependent-att (evaluator-state-in-evaluation? (node-evaluator-state (attribute-instance-context influencing-att)))))

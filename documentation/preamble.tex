@@ -1,0 +1,89 @@
+% Configure character output and input encoding:
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% Configure font:
+\usepackage{lmodern}
+\renewcommand*\familydefault{\sfdefault}
+%\usepackage{txfonts}
+
+% KOMA Script heading configuration:
+\usepackage{scrpage2}
+\pagestyle{scrheadings}
+\automark[section]{chapter}
+
+% Configure paragraph handling (no indentation):
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 2pt}
+
+% Configure table of contents depth:
+\setcounter{tocdepth}{1}
+
+% Provide support for non-eps pictures:
+\usepackage{graphicx}
+
+% Define colours (used for example as background colours in listings): 
+\usepackage{color}
+\definecolor{babyblue}{rgb}{0.93,.95,0.98}
+
+% Configure listings:
+\usepackage{listings}
+\lstset{literate=
+  {ö}{{\"o}}1
+  {ä}{{\"a}}1
+  {ü}{{\"u}}1
+  {Ö}{{\"O}}1
+  {Ä}{{\"A}}1
+  {Ü}{{\"U}}1
+}
+\lstloadlanguages{Lisp}
+\lstdefinestyle{generic-code}{
+	basicstyle=\small,
+	numbers=none,
+	aboveskip=\bigskipamount,
+	belowskip=\medskipamount,
+	xleftmargin=7pt,
+	%xrightmargin=7pt,
+	tabsize=4,
+	breaklines=false,
+	columns=[c]flexible
+}
+\lstdefinestyle{lisp-style}{
+	language=Lisp,
+	basicstyle=\small\bfseries\ttfamily,
+	commentstyle=\rmfamily\mdseries\fontshape{n},
+	numbers=none,
+	xleftmargin=7pt,
+	xrightmargin=7pt,
+	breaklines=false,
+	showstringspaces=false,
+	columns=[c]flexible
+}
+\lstdefinestyle{racr-api-function-heading-style}{
+	language=Lisp,
+	basicstyle=\small\bfseries\ttfamily,
+	commentstyle=\rmfamily\mdseries\fontshape{n},
+	aboveskip=\bigskipamount,
+	belowskip=\smallskipamount,
+	frame=lines,
+	framesep=5pt,
+	backgroundcolor=\color{babyblue},
+	numbers=none,
+	breaklines=false,
+	columns=[c]flexible
+}
+\lstdefinestyle{lisp-appendix-style}{
+	language=Lisp,
+	basicstyle=\tiny\bfseries\ttfamily,
+	commentstyle=\rmfamily\mdseries\fontshape{n},
+	numbers=left,
+	breaklines=true,
+	showstringspaces=false,
+	columns=[c]flexible
+}
+
+% Configure index:
+\usepackage{makeidx}
+\makeindex
+\renewcommand\indexname{API Index}
+\newcommand{\indexfunction}[1]{\index{#1@\lstinline[style=lisp-style];#1;}}
