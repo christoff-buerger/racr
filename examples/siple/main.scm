@@ -22,6 +22,7 @@
   (siple name-analysis)
   (siple type-analysis)
   (siple type-coercion)
+  (siple control-flow-analysis)
   (siple well-formedness)
   (siple interpreter))
  
@@ -51,5 +52,6 @@
    (specify-name-analysis siple-specification)
    (specify-type-analysis siple-specification)
    (specify-type-coercion siple-specification)
+   (specify-control-flow-analysis siple-specification)
    (specify-well-formedness siple-specification)
    (compile-ag-specifications siple-specification)))

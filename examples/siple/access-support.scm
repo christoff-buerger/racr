@@ -49,6 +49,15 @@
           (ast-parent n))))
       
       (ag-rule
+       procedure-return-in-context
+       (CompilationUnit
+        (lambda (n)
+          #f))
+       (ProcedureReturn
+        (lambda (n)
+          n)))
+      
+      (ag-rule
        as-boolean
        (Constant
         (lambda (n)

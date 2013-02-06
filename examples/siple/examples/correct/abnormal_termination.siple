@@ -1,8 +1,7 @@
 % This program and the accompanying materials are made available under the
 % terms of the MIT license (X11 license) which accompanies this distribution.
 
-% Program for ad hoc testing from command line.
-% Can be changed arbitrary; is not part of the test-suite.
+% author: C. Bürger
 
 Procedure test1(Var b:Boolean):Integer Begin
 	If b Then
@@ -12,7 +11,7 @@ Procedure test1(Var b:Boolean):Integer Begin
 	Fi;
 End;
 
-Procedure test2(Var j:Boolean):Integer Begin
+Procedure test2(Var j:Integer):Integer Begin
 	If j = 1 Then
 		Return 1;
 	Else
@@ -22,9 +21,13 @@ Procedure test2(Var j:Boolean):Integer Begin
 			Return 3;
 		Fi;
 	Fi;
-	j := 0;
-	Return 5;
+End;
+
+Procedure test3() Begin
 End;
 
 Procedure main() Begin
+	test1(true);
+	test2(2);
+	test3();
 End;
