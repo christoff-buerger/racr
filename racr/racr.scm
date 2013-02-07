@@ -812,6 +812,7 @@
                        (lambda (symb*)
                          (and
                           (symbol-non-terminal? symb*)
+                          (not (symbol-kleene? symb*)) ; Unbounded repetitions are always productive because of the empty list.
                           (not (memq (symbol-non-terminal? symb*) productive-rules))))
                        (cdr (ast-rule-production rule*)))))))
          (let loop ()

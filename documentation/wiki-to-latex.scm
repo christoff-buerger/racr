@@ -34,6 +34,7 @@
           (write-string "\\input{preamble}\n\n")
           (write-string "\\begin{document}\n")
           (write-string "\t\\input{title}\n")
+          (write-string "\t\\input{abstract}\n")
           (write-string "\t\\tableofcontents\n")
           (write-string "\t\\listoffigures")
           (for-each
