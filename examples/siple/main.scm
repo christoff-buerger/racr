@@ -45,7 +45,7 @@
  
  ; Initialize SiPLE:
  (define siple-specification (create-specification))
- (when (= (specification-phase siple-specification) 1)
+ (when (= (specification->phase siple-specification) 1)
    (specify-ast siple-specification)
    (compile-ast-specifications siple-specification 'CompilationUnit)
    (specify-access-support siple-specification)

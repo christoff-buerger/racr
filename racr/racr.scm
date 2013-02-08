@@ -10,23 +10,34 @@
  (export
   ; Specification interface:
   (rename (make-racr-specification create-specification))
-  (rename (racr-specification-specification-phase specification-phase))
   with-specification
   (rename (specify-ast-rule ast-rule))
   (rename (specify-ag-rule ag-rule))
   specify-attribute
   compile-ast-specifications
   compile-ag-specifications
-  ; AST annotation interface:
-  ast-weave-annotations
-  ast-annotation?
-  ast-annotation
-  ast-annotation-set!
-  ast-annotation-remove!
-  ; AST & attribute query interface:
+  ; Specification query interface:
+  (rename
+   (racr-specification-specification-phase specification->phase)
+   (racr-specification-find-rule specification->find-ast-rule)
+   (symbol-name symbol->name)
+   (symbol-non-terminal? symbol->non-terminal?)
+   (symbol-kleene? symbol->kleene?)
+   (symbol-context-name symbol->context-name)
+   (attribute-definition-name attribute->name)
+   (attribute-definition-circular? attribute->circular?)
+   (attribute-definition-synthesized? attribute->synthesized?)
+   (attribute-definition-inherited? attribute->inherited?)
+   (attribute-definition-cached? attribute->cached?))
+  specification->ast-rules
+  ast-rule->production
+  symbol->attributes
+  ; AST construction interface:
   create-ast
   create-ast-list
   create-ast-bud
+  create-ast-mockup
+  ; AST & attribute query interface:
   (rename (node? ast-node?))
   ast-node-type
   ast-list-node?
@@ -50,6 +61,12 @@
   rewrite-add
   rewrite-insert
   rewrite-delete
+  ; AST annotation interface:
+  ast-weave-annotations
+  ast-annotation?
+  ast-annotation
+  ast-annotation-set!
+  ast-annotation-remove!
   ; Utility interface:
   print-ast
   racr-exception?)
@@ -96,10 +113,11 @@
  ; Record type for AST rules; An AST rule has a reference to the RACR specification it belongs to and consist
  ; of its symbolic encoding, a production (i.e., a list of production-symbols) and an optional supertype.
  (define-record-type ast-rule
-   (fields specification as-symbol (mutable production) (mutable supertype)))
+   (fields specification as-symbol (mutable production) (mutable supertype?)))
  
  ; INTERNAL FUNCTION: Given two rules r1 and r2, return whether r1 is a subtype of r2 or not. The subtype
  ; relationship is reflexive, i.e., every type is a subtype of itself.
+ ; BEWARE: Only works correct if supertypes are resolved, otherwise an exception can be thrown!
  (define ast-rule-subtype?
    (lambda (r1 r2)
      (and
@@ -107,10 +125,11 @@
       (let loop ((r1 r1))
         (cond
           ((eq? r1 r2) #t)
-          ((ast-rule-supertype r1) (loop (ast-rule-supertype r1)))
+          ((ast-rule-supertype? r1) (loop (ast-rule-supertype? r1)))
           (else #f))))))
  
  ; INTERNAL FUNCTION: Given a rule, return a list containing all its subtypes except the rule itself.
+ ; BEWARE: Only works correct if supertypes are resolved, otherwise an exception can be thrown!
  (define ast-rule-subtypes
    (lambda (rule1)
      (filter
@@ -141,7 +160,7 @@
  ; themself (i.e., be circular) or not.
  (define attribute-definition-circular?
    (lambda (att)
-     (attribute-definition-circularity-definition att)))
+     (if (attribute-definition-circularity-definition att) #t #f)))
  
  ; INTERNAL FUNCTION: Given an attribute definition, return whether it specifies
  ; a synthesized attribute or not.
@@ -290,6 +309,22 @@
      (and (not (null? (evaluator-state-att-eval-stack state))) (car (evaluator-state-att-eval-stack state)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Specification Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (define specification->ast-rules
+   (lambda (spec)
+     (append (racr-specification-rules-list spec) (list)))) ; Create copy!
+ 
+ (define ast-rule->production
+   (lambda (rule)
+     (append (ast-rule-production rule) (list)))) ; Create copy!
+ 
+ (define symbol->attributes
+   (lambda (symbol)
+     (append (symbol-attributes symbol) (list)))) ; Create copy!
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utility ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
@@ -328,17 +363,17 @@
      (let loop ((resolved ; The set of all AST rules that are already processed....
                  (filter ; ...Initially it consists of all the rules that have no supertypes.
                   (lambda (rule)
-                    (not (ast-rule-supertype rule)))
+                    (not (ast-rule-supertype? rule)))
                   rules))
                 (to-check ; The set of all AST rules that still must be processed....
                  (filter ; ...Initially it consists of all the rules that have supertypes.
                   (lambda (rule)
-                    (ast-rule-supertype rule))
+                    (ast-rule-supertype? rule))
                   rules)))
        (let ((to-resolve ; ...Find a rule that still must be processed and...
               (find
                (lambda (rule)
-                 (memq (ast-rule-supertype rule) resolved)) ; ...whose supertype already has been processed....
+                 (memq (ast-rule-supertype? rule) resolved)) ; ...whose supertype already has been processed....
                to-check)))
          (when to-resolve ; ...If such a rule exists,...
            (func to-resolve) ; ...process it and...
@@ -686,13 +721,13 @@
        ;;; Resolve supertypes and non-terminals occuring in productions and ensure all non-terminals are defined:
        (for-each
         (lambda (rule*)
-          (when (ast-rule-supertype rule*)
-            (let ((supertype-entry (racr-specification-find-rule spec (ast-rule-supertype rule*))))
+          (when (ast-rule-supertype? rule*)
+            (let ((supertype-entry (racr-specification-find-rule spec (ast-rule-supertype? rule*))))
               (if (not supertype-entry)
                   (throw-exception
                    "Invalid AST rule " (ast-rule-as-symbol rule*) "; "
-                   "The supertype " (ast-rule-supertype rule*) " is not defined.")
-                  (ast-rule-supertype-set! rule* supertype-entry))))
+                   "The supertype " (ast-rule-supertype? rule*) " is not defined.")
+                  (ast-rule-supertype?-set! rule* supertype-entry))))
           (for-each
            (lambda (symb*)
              (when (symbol-non-terminal? symb*)
@@ -721,7 +756,7 @@
           "The start symbol " start-symbol " is not defined."))
        
        ;;; Ensure, that the start symbol has no super- and subtype:
-       (let ((supertype (ast-rule-supertype (racr-specification-find-rule spec start-symbol))))
+       (let ((supertype (ast-rule-supertype? (racr-specification-find-rule spec start-symbol))))
          (when supertype
            (throw-exception
             "Invalid AST grammar; "
@@ -757,7 +792,7 @@
                 (symbol-kleene? symbol)
                 (symbol-context-name symbol)
                 (list)))
-             (cdr (ast-rule-production (ast-rule-supertype rule))))
+             (cdr (ast-rule-production (ast-rule-supertype? rule))))
             (cdr (ast-rule-production rule)))))
         rules-list)
        
@@ -947,7 +982,7 @@
      ;;; Resolve attribute definitions inherited from a supertype. Thus,...
      (apply-wrt-ast-inheritance ; ...for every AST rule R which has a supertype...
       (lambda (rule)
-        (let loop ((super-prod (ast-rule-production (ast-rule-supertype rule)))
+        (let loop ((super-prod (ast-rule-production (ast-rule-supertype? rule)))
                    (sub-prod (ast-rule-production rule)))
           (unless (null? super-prod)
             (for-each ; ...check for every attribute definition of R's supertype...
@@ -1486,6 +1521,21 @@
      (let ((bud-node (make-node 'bud-node #f (list))))
        (distribute-evaluator-state (make-evaluator-state) bud-node)
        bud-node)))
+ 
+ (define create-ast-mockup
+   (lambda (rule)
+     (create-ast
+      (ast-rule-specification rule)
+      (symbol-name (car (ast-rule-production rule)))
+      (map
+       (lambda (symbol)
+         (cond
+           ((not (symbol-non-terminal? symbol))
+            racr-nil)
+           ((symbol-kleene? symbol)
+            (create-ast-list (list)))
+           (else (create-ast-bud))))
+       (cdr (ast-rule-production rule))))))
  
  ; INTERNAL FUNCTION: Given an AST node update its synthesized attribution (i.e., add missing synthesized
  ; attributes, delete superfluous ones, shadow equally named inherited attributes and update the
