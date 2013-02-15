@@ -1,0 +1,835 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
+================================================================================
+                                    Web Sources
+================================================================================
+
+ISBN Format:
+ http://isbntools.com
+ http://isbntools.com/details.html
+Websites for ISBN checking:
+ http://isbndb.com
+ http://www.worldcat.org
+ACM Digital Library:
+ http://dl.acm.org
+Springer Link:
+ http://link.springer.com
+Library of Congress Online Cataloge:
+ http://catalog.loc.gov
+ 
+================================================================================
+                                 Prototype Schemes
+================================================================================
+
+techreport{mustermann:The_Title_Subtitle,
+	author = {Mustermann, Max M. and Schmidt, Rudolf},
+	title = {The Title: Subtitle},
+	institution = {Chair/Institute, University Name},
+	number = {Report Number},
+	year = {XXXX},
+	month = {Month}
+}
+
+inproceedings{mustermann:The_Title_Subtitle,
+	author = {Mustermann, Max M. and Schmidt, Rudolf},
+	editor = {Mustermann, Max M. and Schmidt, Rudolf},
+	title = {The Title: Subtitle},
+	booktitle = {Proceedings Title: Proceedings Sub-Title},
+	year = {XXXX},
+	month = {Month},
+	pages = {XX--XX},
+	volume = {XXX},
+	series = {Series Name},
+	publisher = {Publisher Name},
+	isbn = {XXX-X-XXX-XXXXX-X},
+	location = {City, Province/State, Country}
+}
+
+article{mustermann:The_Title_Subtitle,
+	author = {Mustermann, Max M. and Schmidt, Rudolf},
+	title = {The Title: Subtitle},
+	journal = {Journal Name},
+	volume = {XX},
+	number = {X},
+	month = {Month},
+	year = {XXXX},
+	issn = {XXXX-XXXX},
+	pages = {XXX--XXX},
+	publisher = {Publisher Name}
+}
+
+phdthesis{mustermann:The_Title_Subtitle,
+	author = {Mustermann, Max M.},
+	title = {The Title: Subtitle},
+	year = {XXXX},
+	month = {Month},
+	school = {University Name},
+	isbn = {X-XXXX-XXXX-X}
+}
+
+book{mustermann:mustermann:The_Title_Subtitle,
+	author = {Mustermann, Max M. and Schmidt, Rudolf},
+	title = {The Title: Subtitle},
+	publisher = {Publisher Name},
+	edition = {2}, % Only if edition > 1!
+	series = {Name of Series},
+	volume = {X}, % Only if multi-volume!
+	year = {XXXX},
+	isbn = {X-XXX-XXXXX-X}
+}
+
+incollection{mustermann:The_Title_Subtitle,
+	author = {Mustermann, Max M. and Schmidt, Rudolf},
+	editor = {Editor, Main M. and Schmidt, Rudolf},
+	title = {The Title: Subtitle},
+	booktitle = {Title of Collection: And Subtitle},
+	year = {XXXX},
+	isbn = {XXX-X-XXXX-XXXX-X},
+	pages = {XXX--XXX},
+	publisher = {Publisher Name},
+	crossref = {editor:Title_of_Collection_And_Subtitle}
+}
+
+collection{mustermann:The_Title_Subtitle,
+	editor = {Mustermann, Max M. and Schmidt, Rudolf},
+	title = {The Title: Subtitle},
+	volume = {1}, % Only if multi-volume!
+	publisher = {Publisher Name},
+	year = {XXXX},
+	isbn = {XXX-X-XXXX-XXXX-X}
+}
+
+================================================================================
+                                      Entries
+================================================================================
+
+@article{cordy:The_TXL_Source_Transformation_Language,
+	author = {Cordy, James R.},
+	title = {The TXL Source Transformation Language},
+	journal = {Science of Computer Programming},
+	volume = {61},
+	number = {3},
+	month = {August},
+	year = {2006},
+	issn = {0167-6423},
+	pages = {190--210},
+	publisher = {Elsevier}
+}editor = {Hedin, G{\"o}rel and Van Wyk, Eric}
+
+@inproceedings{cordy:Excerpts_from_the_TXL_Cookbook,
+	author = {Cordy, James R.},
+	editor = {Fernandes, João M. and Lämmel, Ralf and Visser, Joost and Saraiva, João},
+	title = {Excerpts from the TXL Cookbook},
+	booktitle = {Generative and Transformational Techniques in Software Engineering III: International Summer School},
+	year = {2011},
+	month = {January},
+	pages = {27--91},
+	volume = {6491},
+	series = {Lecture Notes in Computer Science},
+	publisher = {Springer},
+	isbn = {978-3-642-18022-4},
+	location = {Braga, Norte, Portugal}
+}
+
+@techreport{cordy:The_TXL_Programming_Language,
+	author = {Cory, James R. and Carmichael, Ian H. and Halliday, Russell},
+	title = {The TXL Programming Language},
+	institution = {Software Technology Laboratory, Queen's University},
+	year = {2012},
+	month = {July},
+	note = {Version 10.6}
+}location = {Kingston, Ontario, Canada}
+
+@book{abelson:Structure_and_Interpretation_of_Computer_Programs,
+	author = {Abelson, Harold and Sussman, Gerald J. and Sussman, Julie},
+	title = {Structure and Interpretation of Computer Programs},
+	publisher = {MIT Press},
+	edition = {2},
+	year = {1996},
+	isbn = {0-262-51087-1}
+}
+
+@book{dybvig:The_Scheme_Programming_Language,
+	author = {Dybvig, R. Kent},
+	title = {The Scheme Programming Language},
+	publisher = {MIT Press},
+	edition = {4},
+	year = {2009},
+	isbn = {978-0-262-51298-5}
+}
+
+@book{wilhelm:Compiler_Design,
+	author = {Wilhelm, Reinhard and Maurer, Dieter},
+	title = {Compiler Design},
+	publisher = {Addison-Wesley},
+	year = {1995},
+	isbn = {0-201-42290-5}
+}note = {German Title: \emph{{\"U}bersetzerbau: Theorie, Konstruktion, Generierung}. Springer, 1992}
+
+@book{wirth:Grundlagen_und_Techniken_des_Compilerbaus,
+	author = {Wirth, Niklaus},
+	title = {Grundlagen und Techniken des Compilerbaus},
+	publisher = {Oldenbourg},
+	edition = {2},
+	year = {2008},
+	isbn = {978-3-486-58581-0}
+}
+
+@book{deransart:Attribute_Grammars_Definitions_Systems_and_Bibliography,
+	author = {Deransart, Pierre and Jourdan, Martin and Lorho, Bernard},
+	title = {Attribute Grammars: Definitions, Systems and Bibliography},
+	publisher = {Springer},
+	series = {Lecture Notes in Computer Science},
+	year = {1988},
+	isbn = {978-3-540-50056-8}
+}
+
+@book{schmitz:Syntaxbasierte_Programmierwerkzeuge,
+	author = {Schmitz, Lothar},
+	title = {Syntaxbasierte Programmierwerkzeuge},
+	publisher = {Teubner},
+	series = {Leitf{\"a}den der Informatik},
+	year = {1995},
+	isbn = {3-519-02140-4}
+}
+
+@book{krumke:Graphentheoretische_Konzepte_und_Algorithmen,
+	author = {Krumke, Sven O. and Noltemeier, Hartmut},
+	title = {Graphentheoretische Konzepte und Algorithmen},
+	edition = {3},
+	publisher = {Springer Vieweg},
+	series = {Leitf{\"a}den der Informatik},
+	year = {2012},
+	isbn = {978-3-8348-1849-2}
+}
+
+@article{paakki:Attribute_Grammar_Paradigms_A_High_Level_Methodology_in_Language_Implementation,
+	author = {Paakki, Jukka},
+	title = {Attribute Grammar Paradigms: A High-Level Methodology in Language Implementation},
+	journal = {ACM Computing Surveys},
+	volume = {27},
+	number = {2},
+	month = {June},
+	year = {1995},
+	issn = {0360-0300},
+	pages = {196--255},
+	publisher = {ACM}
+}editor = {Wegner, Peter and Israel, Marvin},
+
+@inproceedings{nagl:Set_Theoretic_Approaches_to_Graph_Grammars,
+	author = {Nagl, Manfred},
+	editor = {Ehrig, Hartmut and Nagl, Manfred and Rozenberg, Grzegorz and Rosenfeld, Azriel},
+	title = {Set Theoretic Approaches to Graph Grammars},
+	booktitle = {Graph-Grammars and Their Application to Computer Science: 3rd International Workshop},
+	year = {1987},
+	month = {December},
+	pages = {41--54},
+	volume = {291},
+	series = {Lecture Notes in Computer Science},
+	publisher = {Springer},
+	isbn = {978-3-540-18771-4},
+	location = {Warrenton, Virginia, USA}
+}
+
+@article{nagl:Formal_Languages_of_Labelled_Graphs,
+	author = {Nagl, Manfred},
+	title = {Formal Languages of Labelled Graphs},
+	journal = {Computing},
+	publisher = {Springer},
+	year = {1976},
+	month = {March},
+	volume = {16},
+	number = {1--2},
+	pages = {113--137},
+	issn = {0010-485X}
+}
+
+@techreport{detten:Story_Diagrams_Syntax_and_Semantics,
+	author = {von Detten, Markus and Heinzemann, Christian and Platenius, Marie C. and Rieke, Jan and Travkin, Dietrich and Hildebrandt, Stephan},
+	title = {Story Diagrams: Syntax and Semantics},
+	institution = {Software Engineering Group, Heinz Nixdorf Institute, University of Paderborn},
+	number = {tr-ri-12-324},
+	year = {2012},
+	month = {July},
+	note = {Version 0.2}
+}
+
+@inproceedings{fischer:Story_Diagrams_A_New_Graph_Rewriting_Language_based_on_the_Unified_Modeling_Language_and_Java,
+	author = {Fischer, Thorsten and Niere, J{\"o}rg and Torunski, Lars and Z{\"u}ndorf, Albert},
+	editor = {Ehrig, Hartmut and Engels, Gregor and Kreowski, Hans-J{\"o}rg and Rozenberg, Grzegorz},
+	title = {Story Diagrams: A new Graph Rewrite Language based on the Unified Modeling Language and Java},
+	booktitle = {Theory and Application of Graph Transformations: 6th International Workshop},
+	year = {1998},
+	month = {November},
+	pages = {296--309},
+	isbn = {3-540-67203-6},
+	publisher = {Springer},
+	series = {Lecture Notes in Computer Science},
+	volume = {1764},
+	location = {Paderborn, North Rhine-Westphalia, Germany}
+}
+
+@inproceedings{nickel:The_FUJABA_Environment,
+	author = {Nickel, Ulrich and Niere, J\"{o}rg and Z\"{u}ndorf, Albert},
+	editor = {Finkelstein, Anthony},
+	title = {The FUJABA Environment},
+	booktitle = {Proceedings of the 22nd International Conference on Software Engineering},
+	year = {2000},
+	month = {June},
+	isbn = {1-581-13206-9},
+	pages = {742--745},
+	publisher = {ACM},
+	location = {Limerick, Munster, Ireland}
+}
+
+@inproceedings{taentzer:AGG_A_Tool_Environment_for_Algebraic_Graph_Transformation,
+	author = {Taentzer, Gabriele},
+	editor = {Nagl, Manfred and Sch{\"u}rr, Andreas and M{\"u}nch, Manfred},
+	title = {AGG: A Tool Environment for Algebraic Graph Transformation},
+	booktitle = {Applications of Graph Transformations with Industrial Relevance: International Workshop},
+	year = {2000},
+	month = {September},
+	publisher = {Springer},
+	pages = {481--488},
+	series = {Lecture Notes in Computer Science},
+	volume = {1779},
+	isbn = {978-3-540-67658-4},
+	location = {Kerkrade, Limburg, The Netherlands}
+}
+
+@inproceedings{geiss:GrGen_A_Fast_SPO_Based_Graph_Rewriting_Tool,
+	author = {Gei{\ss}, Rubino R. and Batz, Gernot V. and Grund, Daniel and Hack, Sebastian and Szalkowski, Adam M.},
+	editor = {Corradini, Andrea and Ehrig, Hartmut and Montanari, Ugo and Ribeiro, Leila and Rozenberg, Grzegorz},
+	title = {GrGen: A Fast SPO-Based Graph Rewriting Tool},
+	booktitle = {Graph Transformations: Third International Conference},
+	year = {2006},
+	month = {September},
+	publisher = {Springer},
+	pages = {383--397},
+	series = {Lecture Notes in Computer Science},
+	volume = {4178},
+	isbn = {978-3-540-38870-8},
+	location = {Natal, Rio Grande do Norte, Brazil}
+}
+
+@phdthesis{geiss:Graphersetzung_mit_Anwendungen_im_Uebersetzerbau,
+	author = {Gei{\ss}, Rubino R.},
+	title = {Graphersetzung mit Anwendungen im {\"U}bersetzerbau},
+	year = {2007},
+	month = {October},
+	school = {Universit{\"a}t Fridericiana zu Karlsruhe},
+}
+
+@inproceedings{sloane:Lightweight_Language_Processing_in_Kiama,
+	author = {Sloane, Anthony M.},
+	editor = {Fernandes, João M. and L{\"a}mmel, Ralf and Visser, Joost and Saraiva, João},
+	title = {Lightweight Language Processing in Kiama},
+	booktitle = {Generative and Transformational Techniques in Software Engineering III: International Summer School},
+	series = {Lecture Notes in Computer Science},
+	volume = {6491},
+	year = {2011},
+	month = {July},
+	isbn = {978-3-642-18022-4},
+	pages = {408--425},
+	publisher = {Springer},
+	location = {Braga, Norte, Portugal}
+}
+
+@article{wyk:Silver_An_Extensible_Attribute_Grammar_System,
+	author = {Van Wyk, Eric and Bodin, Derek and Gao, Jimin and Krishnan, Lijesh},
+	title = {Silver: An Extensible Attribute Grammar System},
+	journal = {Science of Computer Programming},
+	publisher = {Elsevier},
+	year = {2010},
+	month = {January},
+	volume = {75},
+	number = {1--2},
+	pages = {39--54},
+	issn = {0167-6423}
+}editor = {Johnstone, Adrian and Sloane, Anthony M. and Boyland, John T.},
+
+@inproceedings{hoover:Efficient_Incremental_Evaluation_of_Aggregate_Values_in_Attribute_Grammars,
+	author = {Hoover, Roger and Teitelbaum, Tim},
+	editor = {Wexelblat, Richard L.},
+	title = {Efficient Incremental Evaluation of Aggregate Values in Attribute Grammars},
+	booktitle = {Proceedings of the 1986 SIGPLAN Symposium on Compiler Construction},
+	year = {1986},
+	month = {June},
+	isbn = {0-89791-197-0},
+	pages = {39--50},
+	publisher = {ACM},
+	location = {Palo Alto, California, USA}
+}
+
+@article{magnusson:Circular_Reference_Attributed_Grammars_Their_Evaluation_and_Applications,
+	author = {Magnusson, Eva and Hedin, G\"{o}rel},
+	title = {Circular Reference Attributed Grammars: Their Evaluation and Applications},
+	journal = {Science of Computer Programming},
+	volume = {68},
+	number = {1},
+	month = {August},
+	year = {2007},
+	issn = {0167-6423},
+	pages = {21--37},
+	publisher = {Elsevier}
+}
+
+@inproceedings{kastens:Attribute_Grammars_in_a_Compiler_Construction_Environment,
+    author = {Kastens, Uwe},
+    editor = {Alblas, Henk and Melichar, Bořivoj},
+    title = {Attribute Grammars in a Compiler Construction Environment},
+    booktitle = {Attribute Grammars, Applications and Systems: International Summer School SAGA},
+    publisher = {Springer},
+    series = {Lecture Notes in Computer Science},
+    volume = {545},
+    pages = {380--400},
+    year = {1991},
+    month = {June},
+    isbn = {978-3-540-54572-9},
+    location = {Prague, Czechoslovakia}
+}
+
+@book{reps:The_Synthesizer_Generator_A_System_for_Constructing_Language_Based_Editors,
+	author = {Reps, Thomas and Teitelbaum, Tim},
+	editor = {Gries, David},
+	title = {The Synthesizer Generator: A System for Constructing Language-Based Editors},
+	publisher = {Springer},
+	series = {Texts and Monographs in Computer Science},
+	year = {1989},
+	isbn = {978-1-461-39625-3}
+}
+
+@inproceedings{reps:The_Synthesizer_Generator,
+	author = {Reps, Thomas and Teitelbaum, Tim},
+	editor = {Riddle, William and Henderson, Peter B.},
+	title = {The Synthesizer Generator},
+	booktitle = {Proceedings of the first ACM SIGSOFT/SIGPLAN Software Engineering Symposium on Practical Software Development Environments},
+	year = {1984},
+	month = {April},
+	isbn = {0-89791-131-8},
+	pages = {42--48},
+	publisher = {ACM},
+	location = {Pittsburgh, Pennsylvania, USA}
+}
+
+@book{kastens:Uebersetzerbau,
+	author = {Kastens, Uwe},
+	editor = {Endres, Albert and Krallmann, Hermann and Schnupp, Peter},
+	title = {{\"U}bersetzerbau},
+	publisher = {Oldenbourg},
+	series = {Handbuch der Informatik},
+	volume = {3.3},
+	year = {1990},
+	isbn = {3-486-20780-6}
+}
+
+@book{kuehnemann:Attributgrammatiken_Eine_grundlegende_Einfuehrung,
+	author = {K{\"u}hnemann, Armin and Vogler, Heiko},
+	title = {Attributgrammatiken: Eine grundlegende Einf{\"u}hrung},
+	publisher = {Vieweg},
+	year = {1997},
+	isbn = {3-528-05582-0}
+}
+
+@phdthesis{reps:Generating_Language_Based_Environments,
+	author = {Reps, Thomas W.},
+	title = {Generating Language-Based Environments},
+	year = {1982},
+	month = {August},
+	school = {Cornell University}
+}
+
+@phdthesis{maddox:Incremental_Static_Semantic_Analysis,
+	author = {Maddox III, William H.},
+	title = {Incremental Static Semantic Analysis},
+	year = {1997},
+	month = {May},
+	school = {University of California at Berkeley},
+}
+
+@article{boyland:Incremental_Evaluators_for_Remote_Attribute_Grammars,
+    author = {Boyland, John T.},
+    title = {Incremental Evaluators for Remote Attribute Grammars},
+    publisher = {Elsevier},
+    journal = {Electronic Notes in Theoretical Computer Science},
+    volume = {65},
+    number = {3},
+    pages = {9--29},
+    year = {2002},
+    month = {April},
+    issn = {1571-0661}
+}location = {Grenoble, Isère, France}, booktitle = {Second Workshop on Language Descriptions, Tools and Applications},editor = {van den Brand, Mark and L{\"a}mmel, Ralf},
+
+@inproceedings{demers:Incremental_Evaluation_for_Attribute_Grammars_with_Application_to_Syntax_Directed_Editors,
+	author = {Demers, Alan J. and Reps, Thomas W. and Teitelbaum, Tim},
+	editor = {White, John and Lipton, Richard J. and Goldberg, Patricia C.},
+	title = {Incremental Evaluation for Attribute Grammars with Application to Syntax-Directed Editors},
+	booktitle = {Proceedings of the 8th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+	year = {1981},
+	month = {January},
+	isbn = {0-89791-029-X},
+	pages = {105--116},
+	publisher = {ACM},
+	location = {Williamsburg, Virginia, USA}
+}
+
+@inproceedings{jourdan:An_Optimal_time_Recursive_Evaluator_for_Attribute_Grammars,
+	author = {Jourdan, Martin},
+	editor = {Paul, Manfred and Robinet, Bernard},
+	title = {An Optimal-time Recursive Evaluator for Attribute Grammars},
+	booktitle = {International Symposium on Programming: 6th Colloquium},
+	year = {1984},
+	month = {April},
+	isbn = {978-3-540-12925-7},
+	pages = {167--178},
+	publisher = {Springer},
+	series = {Lecture Notes in Computer Science},
+	volume = {167},
+	location = {Toulouse, Haute-Garonne, France}
+}
+
+@book{schuerr:Operationales_Spezifizieren_mit_programmierten_Graphersetzungssystemen_Formale_Definitionen_Anwendungsbeispiele_und_Werkzeugunterstuetzung,
+	author = {Sch{\"u}rr, Andreas},
+	title = {Operationales Spezifizieren mit programmierten Graphersetzungssystemen: Formale Definitionen, Anwendungsbeispiele und Werkzeugunterst{\"u}tzung},
+	publisher = {Deutscher Universit{\"a}ts-Verlag},
+	year = {1991},
+	isbn = {3-8244-2021-X},
+	note = {PhD thesis}
+}
+
+@incollection{schuerr:Programmed_Graph_Replacement_Systems,
+	author = {Sch{\"u}rr, Andreas},
+	editor = {Rozenberg, Grzegorz},
+	title = {Programmed Graph Replacement Systems},
+	booktitle = {Handbook of Graph Grammars and Computing by Graph Transformation: Foundations},
+	year = {1997},
+	isbn = {978-9-8102-2884-2},
+	pages = {479--545},
+	publisher = {World Scientific Publishing},
+	crossref = {rozenberg:Handbook_of_Graph_Grammars_and_Computing_by_Graph_Transformation_Vol_1}
+}
+
+@collection{rozenberg:Handbook_of_Graph_Grammars_and_Computing_by_Graph_Transformation_Vol_1,
+	editor = {Rozenberg, Grzegorz},
+	title = {Handbook of Graph Grammars and Computing by Graph Transformation: Foundations},
+	volume = {1},
+	publisher = {World Scientific Publishing},
+	year = {1997},
+	isbn = {978-9-8102-2884-2}
+}
+
+@incollection{ermel:The_AGG_Approach_Language_and_Environment,
+	author = {Ermel, Claudia. and Rudolf, Michael and Taentzer, Gabriele},
+	editor = {Ehrig, Hartmut and Engels, Gregor and Kreowski, Hans-J{\"o}rg},
+	title = {The AGG Approach: Language and Environment},
+	booktitle = {Handbook of Graph Grammars and Computing by Graph Transformation: Applications, Languages and Tools},
+	year = {1999},
+	isbn = {978-9-8102-4020-2},
+	pages = {551--603},
+	publisher = {World Scientific Publishing},
+	crossref = {ehrig:Handbook_of_Graph_Grammars_and_Computing_by_Graph_Transformation_Vol_2}
+}
+
+@collection{ehrig:Handbook_of_Graph_Grammars_and_Computing_by_Graph_Transformation_Vol_2,
+	editor = {Ehrig, Hartmut and Engels, Gregor and Kreowski, Hans-J{\"o}rg},
+	title = {Handbook of Graph Grammars and Computing by Graph Transformation: Applications, Languages and Tools},
+	volume = {2},
+	publisher = {World Scientific Publishing},
+	year = {1999},
+	isbn = {978-9-8102-4020-2}
+}
+
+@book{zuendorf:PROgrammierte_GRaphErsetzungs_Systeme_Spezifikation_Implementierung_und_Anwendung_einer_integrierten_Entwicklungsumgebung,
+	author = {Z{\"u}ndorf, Albert},
+	title = {PROgrammierte GRaphErsetzungs Systeme: Spezifikation, Implementierung und Anwendung einer integrierten Entwicklungsumgebung},
+	publisher = {Deutscher Universit{\"a}ts-Verlag},
+	year = {1996},
+	isbn = {3-8244-2075-9},
+	note = {PhD thesis}
+}
+
+@article{bravenboera:StrategoXT_0_17_A_Language_and_Toolset_for_Program_Transformation,
+	author = {Bravenboera, Martin and Kallebergb, Karl T. and Vermaasc, Rob and Visser, Eelco},
+	title = {Stratego/XT 0.17: A Language and Toolset for Program Transformation},
+	journal = {Science of Computer Programming},
+	volume = {72},
+	number = {1--2},
+	year = {2008},
+	issn = {0167-6423},
+	pages = {52--70},
+	publisher = {Elsevier},
+	month = {June}
+}editor = {van den Brand, Mark}
+
+@inproceedings{visser:Program_Transformation_with_StrategoXT,
+	author = {Visser, Eelco},
+	editor = {Lengauer, Christian and Batory, Don and Consel, Charles and Odersky, Martin},
+	title = {Program Transformation with Stratego/XT},
+	booktitle = {Domain-Specific Program Generation: International Seminar},
+	pages = {216--238},
+	publisher = {Springer},
+	series = {Lecture Notes in Computer Science},
+	volume = {3016},
+	month = {March},
+	year = {2004},
+	isbn = {978-3-540-22119-7},
+	location = {Castle Dagstuhl by Wadern, Saarland, Germany}
+}
+
+@article{visser:A_Survey_of_Strategies_in_Rule_based_Program_Transformation_Systems,
+	author = {Visser, Eelco},
+	title = {A Survey of Strategies in Rule-based Program Transformation Systems},
+	journal = {Journal of Symbolic Computation},
+	volume = {40},
+	number = {1},
+	year = {2005},
+	issn = {0747-7171},
+	pages = {831--873},
+	publisher = {Elsevier},
+	month = {July}
+}editor = {Gramlich, Bernhard and Lucas, Salvador}
+
+@book{kastens:GAG_A_Practical_Compiler_Generator,
+	author = {Kastens, Uwe and Hutt, Brigitte and Zimmermann, Erich},
+	editor = {Goos, Gerhard and Hartmanis, Juris},
+	title = {GAG: A Practical Compiler Generator},
+	publisher = {Springer},
+	series = {Lecture Notes in Computer Science},
+	volume = {141},
+	year = {1982},
+	isbn = {3-540-11591-9}
+}
+
+@article{gray:Eli_A_Complete_Flexible_Compiler_Construction_System,
+	author = {Gray, Robert W. and Levi, Steven P. and Heuring, Vincent P. and Sloane, Anthony M. and Waite, William M.},
+	title = {Eli: A Complete, Flexible Compiler Construction System},
+	journal = {Communications of the ACM},
+	volume = {35},
+	number = {2},
+	year = {1992},
+	issn = {0001-0782},
+	pages = {121--130},
+	publisher = {ACM},
+	month = {February}
+}
+
+@inproceedings{hedin:An_Object_Oriented_Notation_For_Attribute_Grammars,
+	author = {G{\"o}rel Hedin},
+	editor = {Cook, Stephen A.},
+	title = {An Object-Oriented Notation for Attribute Grammars},
+	booktitle = {ECOOP'89: Proceedings of the 1989 European Conference on Object-Oriented Programming},
+	pages = {329--345},
+	publisher = {Cambridge University Press},
+	month = {July},
+	year = {1989},
+	isbn = {0-521-38232-7},
+	location = {Nottingham, England, United Kingdom}
+}
+
+@book{ehrig:Fundamentals_of_Algebraic_Graph_Transformation,
+	author = {Ehrig, Hartmut and Ehrig, Karsten and Prange, Ulrike and Taentzer, Gabriele},
+	editor = {Brauer, Wilfried and Rozenberg, Grzegorz and Salomaa, Arto},
+	title = {Fundamentals of Algebraic Graph Transformation},
+	publisher = {Springer},
+	series = {Monographs in Theoretical Computer Science. An EATCS Series},
+	year = {2006},
+	isbn = {978-3-540-31187-4}
+}
+
+@book{aho:Compilers_Principles_Techniques_and_Tools,
+	author = {Aho, Alfred V. and Lam, Monica S. and Sethi, Ravi and Ullman, Jeffrey D.},
+	title = {Compilers: Principles, Techniques, {\&} Tools},
+	publisher = {Prentice Hall},
+	edition = {2},
+	year = {2006},
+	isbn = {978-0-321-48681-3}
+}
+
+@book{baader:Term_Rewriting_And_All_That,
+	author = {Nipkow, Tobias and Baader, Franz},
+	title = {Term Rewriting and All That},
+	publisher = {Cambridge University Press},
+	year = {1999},
+	edition = {2},
+	isbn = {978-0-521-77920-3}
+}
+
+@phdthesis{magnusson:Object_Oriented_Declarative_Program_Analysis,
+	author = {Magnusson, Eva},
+	title = {Object-Oriented Declarative Program Analysis},
+	year = {2007},
+	month = {December},
+	school = {University of Lund},
+	isbn = {978-91-628-7306-6}
+}
+
+@inproceedings{farrow:Automatic_generation_of_fixed_point_finding_evaluators_for_circular_but_well_defined_attribute_grammars,
+	author = {Farrow, Rodney},
+	editor = {Wexelblat, Richard L.},
+	title = {Automatic Generation of Fixed-Point-Finding Evaluators for Circular, but Well-defined, Attribute Grammars},
+	booktitle = {Proceedings of the 1986 SIGPLAN Symposium on Compiler Construction},
+	year = {1986},
+	month = {June},
+	isbn = {0-89791-197-0},
+	pages = {85--98},
+	publisher = {ACM},
+	location = {Palo Alto, California, United States}
+}
+
+@phdthesis{ekman:Extensible_Compiler_Construction,
+	author = {Ekman, Torbj\"{o}rn},
+	title = {Extensible Compiler Construction},
+	year = {2006},
+	month = {June},
+	school = {University of Lund},
+	isbn = {91-628-6839-X}
+}
+
+@article{hedin:The_JastAdd_System_Modular_Extensible_Compiler_Construction,
+	author = {Ekman, Torbj\"{o}rn and Hedin, G\"{o}rel},
+	title = {The JastAdd System: Modular Extensible Compiler Construction},
+	journal = {Science of Computer Programming},
+	volume = {69},
+	number = {1-3},
+	year = {2007},
+	month = {December},
+	issn = {0167-6423},
+	pages = {14--26},
+	publisher = {Elsevier}
+}
+
+@article{knuth:Semantics_Of_Context_Free_Languages,
+	author = {Knuth, Donald E.},
+	title = {Semantics of Context-Free Languages},
+	journal = {Theory of Computing Systems},
+	publisher = {Springer},
+	year = {1968},
+	month = {June},
+	volume = {2},
+	number = {2},
+	pages = {127--145},
+	issn = {1432-4350}
+}
+
+@article{knuth:Semantics_Of_Context_Free_Languages_Correction,
+	author = {Donald E. Knuth},
+	title = {Semantics of Context-Free Languages: Correction},
+	journal = {Theory of Computing Systems},
+	publisher = {Springer},
+	year = {1971},
+	month = {June},
+	volume = {5},
+	number = {2},
+	pages = {95--96},
+	issn = {1432-4350}
+}
+
+@article{hedin:Reference_Attributed_Grammars,
+	author = {Hedin, G{\"o}rel},
+	title = {Reference Attributed Grammars},
+	journal = {Informatica (Slovenia)},
+	volume = {24},
+	number = {3},
+	year = {2000},
+	month = {July},
+	pages = {301--317},
+	issn = {0350-5596}
+}
+
+@article{boyland:Remote_Attribute_Grammars,
+	author = {Boyland, John T.},
+	title = {Remote attribute grammars},
+	journal = {Journal of the ACM},
+	volume = {52},
+	number = {4},
+	year = {2005},
+	issn = {0004-5411},
+	pages = {627--687},
+	publisher = {ACM},
+	month = {July}
+}
+
+@book{cleaveland:Grammars_for_Programming_Languages,
+	author = {Cleaveland, J. Craig and Uzgalis, Robert C.},
+	title = {Grammars for Programming Languages},
+	publisher = {Elsevier},
+	year = {1977},
+	volume = {4},
+	series = {Programming Languages Series},
+	isbn = {0-444-00187-5},
+	editor = {Cheatham, Thomas E.}
+}
+
+@article{reps:Incremental_Context_Dependent_Analysis_for_Language_Based_Editors,
+	author = {Reps, Thomas and Teitelbaum, Tim and Demers, Alan},
+	title = {Incremental Context-Dependent Analysis for Language-Based Editors},
+	journal = {ACM Transactions on Programming Languages and Systems},
+	volume = {5},
+	number = {3},
+	year = {1983},
+	month = {July},
+	issn = {0164-0925},
+	pages = {449--477},
+	publisher = {ACM},
+}
+
+@book{dencker:Generative_attribuierte_Grammatiken,
+	author = {Dencker, Peter},
+	title = {Generative attribuierte Grammatiken},
+	publisher = {Oldenbourg},
+	isbn = {3-486-20199-9},
+	series = {Berichte der Gesellschaft f{\"u}r Mathematik und Datenverarbeitung},
+	volume ={158},
+	year = {1986},
+	school = {Universit{\"a}t Fridericiana zu Karlsruhe},
+	note = {PhD thesis}
+}
+
+@inproceedings{vogt:Higher_Order_Attribute_Grammars,
+	author = {Vogt, Harald H. and Swierstra, Doaitse and Kuiper, Matthijs F.},
+	editor = {Wexelblat, Richard L.},
+	title = {Higher Order Attribute Grammars},
+	booktitle = {Proceedings of the ACM SIGPLAN 1989 Conference on Programming Language Design and Implementation},
+	year = {1989},
+	isbn = {0-89791-306-X},
+	pages = {131--145},
+	publisher = {ACM},
+	month = {June},
+	location = {Portland, Oregon, USA}
+}
+
+@book{nagl:Graph_Grammatiken_Theorie_Implementierung_Anwendungen,
+	author = {Nagl, Manfred},
+	title = {Graph-Grammatiken: Theorie, Anwendungen, Implementierung},
+	publisher = {Vieweg},
+	year = {1979},
+	isbn = {3-528-03338-X}
+}
+
+@collection{nagl:Building_Tightly_Integrated_Software_Development_Environments_The_IPSEN_Approach,
+	editor = {Manfred Nagl},
+	title = {Building Tightly Integrated Software Development Environments: The IPSEN Approach},
+	publisher = {Springer},
+	series = {Lecture Notes in Computer Science},
+	volume = {1170},
+	year = {1996},
+	isbn = {978-3-540-61985-7}
+}
+
+@inproceedings{bunke:Programmed_Graph_Grammars,
+	author = {Bunke, Horst},
+	editor = {Claus, Volker and Ehrig, Hartmut and Rozenberg, Grzegorz},
+	title = {Programmed Graph Grammars},
+	booktitle = {Graph-Grammars and Their Application to Computer Science and Biology: International Workshop},
+	year = {1979},
+	month = {November},
+	pages = {155--166},
+	publisher = {Springer},
+	isbn = {978-3-540-09525-5},
+	volume ={73},
+	series = {Lecture Notes in Computer Science},
+	location = {Bad Honnef, North Rhine-Westphalia, Germany}
+}

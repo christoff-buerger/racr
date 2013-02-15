@@ -1,3 +1,8 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
 % Configure character output and input encoding:
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -22,7 +27,7 @@
 % Provide support for non-eps pictures:
 \usepackage{graphicx}
 
-% Define colours (used for example as background colours in listings): 
+% Define colours (e.g., background colours of listings): 
 \usepackage{color}
 \definecolor{babyblue}{rgb}{0.93,.95,0.98}
 
@@ -90,3 +95,93 @@
 
 % Support for user specified line space (e.g., in the abstract):
 \usepackage{setspace}
+
+% Configure bibliography:
+\usepackage{biblatex}
+\DeclareBibliographyCategory{Scheme}
+\DeclareBibliographyCategory{CompilerConstruction}
+\DeclareBibliographyCategory{AG:Foundations}
+\DeclareBibliographyCategory{AG:Extensions}
+\DeclareBibliographyCategory{AG:Incremental_Evaluation}
+\DeclareBibliographyCategory{AG:Systems_and_Applications}
+\DeclareBibliographyCategory{GR:Foundations}
+\DeclareBibliographyCategory{GR:Programmed_Graph_Rewriting}
+\DeclareBibliographyCategory{GR:Systems_and_Applications}
+\addtocategory{Scheme}{
+	dybvig:The_Scheme_Programming_Language,
+	abelson:Structure_and_Interpretation_of_Computer_Programs}
+\addtocategory{CompilerConstruction}{
+	schmitz:Syntaxbasierte_Programmierwerkzeuge,
+	aho:Compilers_Principles_Techniques_and_Tools,
+	kastens:Uebersetzerbau,
+	wilhelm:Compiler_Design,
+	wirth:Grundlagen_und_Techniken_des_Compilerbaus,
+	abelson:Structure_and_Interpretation_of_Computer_Programs}
+\addtocategory{AG:Foundations}{
+	knuth:Semantics_Of_Context_Free_Languages,
+	knuth:Semantics_Of_Context_Free_Languages_Correction,
+	deransart:Attribute_Grammars_Definitions_Systems_and_Bibliography,
+	kuehnemann:Attributgrammatiken_Eine_grundlegende_Einfuehrung,
+	paakki:Attribute_Grammar_Paradigms_A_High_Level_Methodology_in_Language_Implementation,
+	cleaveland:Grammars_for_Programming_Languages,
+	jourdan:An_Optimal_time_Recursive_Evaluator_for_Attribute_Grammars}
+\addtocategory{AG:Extensions}{
+	hedin:An_Object_Oriented_Notation_For_Attribute_Grammars,
+	hedin:Reference_Attributed_Grammars,
+	boyland:Remote_Attribute_Grammars,
+	farrow:Automatic_generation_of_fixed_point_finding_evaluators_for_circular_but_well_defined_attribute_grammars,
+	magnusson:Circular_Reference_Attributed_Grammars_Their_Evaluation_and_Applications,
+	magnusson:Object_Oriented_Declarative_Program_Analysis,
+	dencker:Generative_attribuierte_Grammatiken,
+	vogt:Higher_Order_Attribute_Grammars}
+\addtocategory{AG:Incremental_Evaluation}{
+	demers:Incremental_Evaluation_for_Attribute_Grammars_with_Application_to_Syntax_Directed_Editors,
+	reps:Incremental_Context_Dependent_Analysis_for_Language_Based_Editors,
+	reps:Generating_Language_Based_Environments,
+	maddox:Incremental_Static_Semantic_Analysis,
+	boyland:Incremental_Evaluators_for_Remote_Attribute_Grammars,
+	hoover:Efficient_Incremental_Evaluation_of_Aggregate_Values_in_Attribute_Grammars}
+\addtocategory{AG:Systems_and_Applications}{
+	kastens:GAG_A_Practical_Compiler_Generator,
+	reps:The_Synthesizer_Generator,
+	reps:The_Synthesizer_Generator_A_System_for_Constructing_Language_Based_Editors,
+	gray:Eli_A_Complete_Flexible_Compiler_Construction_System,
+	kastens:Attribute_Grammars_in_a_Compiler_Construction_Environment,
+	hedin:The_JastAdd_System_Modular_Extensible_Compiler_Construction,
+	ekman:Extensible_Compiler_Construction,
+	magnusson:Object_Oriented_Declarative_Program_Analysis,
+	sloane:Lightweight_Language_Processing_in_Kiama,
+	wyk:Silver_An_Extensible_Attribute_Grammar_System}
+\addtocategory{GR:Foundations}{
+	krumke:Graphentheoretische_Konzepte_und_Algorithmen,
+	rozenberg:Handbook_of_Graph_Grammars_and_Computing_by_Graph_Transformation_Vol_1,
+	nagl:Graph_Grammatiken_Theorie_Implementierung_Anwendungen,
+	nagl:Formal_Languages_of_Labelled_Graphs,
+	nagl:Set_Theoretic_Approaches_to_Graph_Grammars,
+	ehrig:Fundamentals_of_Algebraic_Graph_Transformation,
+	baader:Term_Rewriting_And_All_That}
+\addtocategory{GR:Programmed_Graph_Rewriting}{
+	bunke:Programmed_Graph_Grammars,
+	schuerr:Programmed_Graph_Replacement_Systems,
+	schuerr:Operationales_Spezifizieren_mit_programmierten_Graphersetzungssystemen_Formale_Definitionen_Anwendungsbeispiele_und_Werkzeugunterstuetzung,
+	fischer:Story_Diagrams_A_New_Graph_Rewriting_Language_based_on_the_Unified_Modeling_Language_and_Java,
+	detten:Story_Diagrams_Syntax_and_Semantics,
+	visser:A_Survey_of_Strategies_in_Rule_based_Program_Transformation_Systems}
+\addtocategory{GR:Systems_and_Applications}{
+	ehrig:Handbook_of_Graph_Grammars_and_Computing_by_Graph_Transformation_Vol_2,
+	schuerr:Operationales_Spezifizieren_mit_programmierten_Graphersetzungssystemen_Formale_Definitionen_Anwendungsbeispiele_und_Werkzeugunterstuetzung,
+	zuendorf:PROgrammierte_GRaphErsetzungs_Systeme_Spezifikation_Implementierung_und_Anwendung_einer_integrierten_Entwicklungsumgebung,
+	nagl:Building_Tightly_Integrated_Software_Development_Environments_The_IPSEN_Approach,
+	geiss:GrGen_A_Fast_SPO_Based_Graph_Rewriting_Tool,
+	geiss:Graphersetzung_mit_Anwendungen_im_Uebersetzerbau,
+	ermel:The_AGG_Approach_Language_and_Environment,
+	taentzer:AGG_A_Tool_Environment_for_Algebraic_Graph_Transformation,
+	nickel:The_FUJABA_Environment,
+	detten:Story_Diagrams_Syntax_and_Semantics,
+	bravenboera:StrategoXT_0_17_A_Language_and_Toolset_for_Program_Transformation,
+	visser:Program_Transformation_with_StrategoXT,
+	cordy:The_TXL_Programming_Language,
+	cordy:Excerpts_from_the_TXL_Cookbook,
+	cordy:The_TXL_Source_Transformation_Language}
+\bibliography{bibliography}
+\nocite{*} % Print all bibliography entries, even if not cited.

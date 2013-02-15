@@ -1,0 +1,45 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% author: C. Bürger
+
+\chapter{Bibliography}
+
+\emph{RACR} is based on previous research in the fields of attribute grammars
+and rewriting. For convenient programming, \emph{RACR} developers should be familiar with
+the basic concepts of these fields. This includes attribute grammar extensions and
+techniques like reference, parameterised and circular attributes and demand-driven and
+incremental attribute evaluation and rewriting basics like matching and rules consisting
+of left- and righ-hand sides.
+
+To understand the advantages, in particular regarding expressiveness and complexity, of
+combining attribute grammars and rewriting, it is also helpful to know basic
+rewrite approaches, their limitations and relationships (term rewriting, context-free and
+sensitive graph rewriting). Knowledge in programmed or strategic rewriting
+may be additionally helpful to get started in the development of more complex
+rewrites whose applications are steered by attributes.
+
+The following bibliography summarises the literature most important for
+\emph{RACR}. It is grouped w.r.t. attribute grammars and rewriting and respective
+research problems. References are not exclusively classified; Instead references
+are listed in all problem categories they are related to. To support \emph{Scheme} and
+compiler construction novices, also some basic literature is given. It is highly
+recommended to become used to \emph{Scheme} programming and compiler construction
+concepts before looking into \emph{RACR}, attribute grammar or rewriting details. An
+overview of recent and historically important attribute grammar and rewrite systems and
+applications complements the bibliography.
+
+\printbibliography[heading=subbibliography,category=Scheme,title={Scheme Programming}]
+
+\printbibliography[heading=subbibliography,category=CompilerConstruction,title={Compiler Construction: Introduction and Basics}]
+
+%\printbibheading[title={Attribute Grammars}]
+\printbibliography[heading=subbibliography,category=AG:Foundations,title={Attribute Grammar Foundations}]
+\printbibliography[heading=subbibliography,category=AG:Extensions,title={Attribute Grammar Extensions}]
+\printbibliography[heading=subbibliography,category=AG:Incremental_Evaluation,title={Incremental Attribute Evaluation}]
+\printbibliography[heading=subbibliography,category=AG:Systems_and_Applications,title={Attribute Grammar Systems and Applications}]
+
+%\printbibheading[title={Graph Rewriting}]
+\printbibliography[heading=subbibliography,category=GR:Foundations,title={Graph Rewriting Foundations}]
+\printbibliography[heading=subbibliography,category=GR:Programmed_Graph_Rewriting,title={Programmed Graph Rewriting}]
+\printbibliography[heading=subbibliography,category=GR:Systems_and_Applications,title={Graph Rewrite Systems and Applications}]

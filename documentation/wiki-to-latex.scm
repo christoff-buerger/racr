@@ -45,6 +45,7 @@
            pages)
           (write-string "\n\t\\part*{Appendix}")
           (write-string "\n\t\\appendix")
+          (write-string "\n\t\\input{related-work}")
           (write-string "\n\t\\input{sourcecode}")
           (write-string "\n\t\\chapter{MIT License}")
           (write-string "\n\t\\input{./../license.txt}")
