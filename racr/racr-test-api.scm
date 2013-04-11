@@ -6,7 +6,7 @@
 #!r6rs
 
 (library
- (racr test-api)
+ (racr-test-api)
  (export
   construct-reevaluation-tests)
  (import (rnrs) (racr))

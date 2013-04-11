@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr) (racr test-api))
+(import (rnrs) (racr) (racr-test-api))
 
 (define run-tests
   (lambda ()
@@ -61,3 +61,5 @@
           (and (ast-subtype? n 'B) (rewrite-refine n 'B)))
         (lambda (n) ; Transformer eliminating B nodes
           (and (ast-subtype? n 'Aa) (rewrite-abstract n 'A))))))))
+
+(run-tests)

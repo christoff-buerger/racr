@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr) (racr test-api))
+(import (rnrs) (racr) (racr-test-api))
 
 (define run-tests
   (lambda ()
@@ -182,3 +182,5 @@
           (D) 'att
           (C) 'att2
           (D) 'att2))))))
+
+(run-tests)

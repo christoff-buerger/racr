@@ -106,7 +106,8 @@
  (define racr-specification-rules-list
    (lambda (spec)
      (call-with-values
-      (lambda () (hashtable-entries (racr-specification-rules-table spec)))
+      (lambda ()
+        (hashtable-entries (racr-specification-rules-table spec)))
       (lambda (key-vector value-vector)
         (vector->list value-vector)))))
  
@@ -176,7 +177,7 @@
  
  ; Record type for AST nodes. AST nodes have a reference to the evaluator state used for evaluating their
  ; attributes and rewrites, the AST rule they represent a context of, their parent, children, attribute
- ; instances, attributes they influence and annotations.
+ ; instances, attribute cache entries they influence and annotations.
  (define-record-type node
    (fields
     (mutable evaluator-state)
@@ -184,7 +185,7 @@
     (mutable parent)
     (mutable children)
     (mutable attributes)
-    (mutable attribute-influences)
+    (mutable cache-influences)
     (mutable annotations))
    (protocol
     (lambda (new)
@@ -265,38 +266,54 @@
        ((node-parent n1) (node-inside-of? (node-parent n1) n2))
        (else #f))))
  
- ; Record type for attribute instances of a certain attribute definition, associated with a certain
- ; node (context), dependencies, influences, a value cache, a cycle cache and an optional cache for the last
- ; arguments with which the attribute has been evaluated. 
+ ; Record type for attribute instances of a certain attribute definition, associated with
+ ; a certain node (context) and a cache.
  (define-record-type attribute-instance
-   (fields
-    (mutable definition)
-    (mutable context)
-    (mutable node-dependencies)
-    (mutable attribute-dependencies)
-    (mutable attribute-influences)
-    value-cache
-    cycle-cache
-    (mutable args-cache))
+   (fields (mutable definition) (mutable context) cache)
    (protocol
     (lambda (new)
       (lambda (definition context)
+        (new definition context (make-hashtable equal-hash equal? 1))))))
+ 
+ ; Record type for attribute cache entries. Attribute cache entries represent the values of
+ ; and dependencies between attribute instances evaluated for certain arguments. The attribute
+ ; instance of which an entry represents a value is called its context. If an entry already
+ ; is evaluated, it caches the result of its context evaluated for its arguments. If an entry is
+ ; not evaluated but its context is circular it stores an intermediate result of its fixpoint
+ ; computation, called cycle value. Entries also track whether they are already in evaluation or
+ ; not, such that the attribute evaluator can detect unexpected cycles.
+ (define-record-type attribute-cache-entry
+   (fields
+    (mutable context)
+    (mutable arguments)
+    (mutable value)
+    (mutable cycle-value)
+    (mutable entered?)
+    (mutable node-dependencies)
+    (mutable cache-dependencies)
+    (mutable cache-influences))
+   (protocol
+    (lambda (new)
+      (lambda (att arguments) ; att: The attribute instance for which to construct a cache entry
         (new
-         definition
-         context
+         att
+         arguments
+         racr-nil
+         (let ((circular? (attribute-definition-circularity-definition (attribute-instance-definition att))))
+           (if circular?
+               (car circular?)
+               racr-nil))
+         #f
          (list)
          (list)
-         (list)
-         (make-hashtable equal-hash equal? 1)
-         (make-hashtable equal-hash equal? 1)
-         racr-nil)))))
+         (list))))))
  
  ; Record type representing the internal state of RACR systems throughout their execution, i.e., while
  ; evaluating attributes and rewriting ASTs. An evaluator state consists of a flag indicating if the AG
  ; currently performs a fix-point evaluation, a flag indicating if throughout a fix-point iteration the
  ; value of an attribute changed and an attribute evaluation stack used for dependency tracking.
  (define-record-type evaluator-state
-   (fields (mutable ag-in-cycle?) (mutable ag-cycle-change?) (mutable att-eval-stack))
+   (fields (mutable ag-in-cycle?) (mutable ag-cycle-change?) (mutable evaluation-stack))
    (protocol
     (lambda (new)
       (lambda ()
@@ -306,7 +323,7 @@
  ; not; If it represents an evaluation in progress return the current attribute in evaluation, otherwise #f.
  (define evaluator-state-in-evaluation?
    (lambda (state)
-     (and (not (null? (evaluator-state-att-eval-stack state))) (car (evaluator-state-att-eval-stack state)))))
+     (and (not (null? (evaluator-state-evaluation-stack state))) (car (evaluator-state-evaluation-stack state)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Specification Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -336,7 +353,7 @@
       (lambda (port)
         (display x port)))))
  
- (define-condition-type racr-exception &non-continuable make-racr-exception racr-exception?)
+ (define-condition-type racr-exception &violation make-racr-exception racr-exception?)
  
  ; INTERNAL FUNCTION: Given an arbitrary sequence of strings and other Scheme entities, concatenate them to
  ; form an error message and throw a special RACR exception with the constructed message. Any entity that is
@@ -345,7 +362,7 @@
  (define-syntax throw-exception
    (syntax-rules ()
      ((_ m-part ...)
-      (raise
+      (raise-continuable
        (condition
         (make-racr-exception)
         (make-message-condition
@@ -1051,165 +1068,206 @@
  
  (define att-value
    (lambda (name n . args)
-     (let* (; The evaluator state used and changed throughout evaluation:
-            (evaluator-state (node-evaluator-state n))
-            ; The attribute instance to evaluate:
-            (att (lookup-attribute name n))
-            ; The attribute's definition:
-            (att-def (attribute-instance-definition att))
-            ; The attribute's value cache entry for the given arguments:
-            (vc-hit
-             (if (attribute-definition-cached? att-def)
-                 (hashtable-ref (attribute-instance-value-cache att) args racr-nil)
-                 racr-nil)))
-       (if (not (eq? vc-hit racr-nil)) ; First, check if the attribute's value is cached....
-           (begin ; ...Iff it is,...
-             ; maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-             ; of another attribute, the other attribute depends on this one. Afterwards,...
-             (add-dependency:att->att att)        
-             vc-hit) ; ...return the attribute's cached value.
-           ; ...Iff the attribute is not cached it must be evaluated. Therefore, prepare a few support values and functions:
-           (let* (; The attribute's computed value to return:
-                  (result racr-nil)
-                  ; The attribute's cycle cache entry for the given arguments:
-                  (cc-hit (hashtable-ref (attribute-instance-cycle-cache att) args #f))
-                  ; Boolean value; #t iff the attribute already is in evaluation for the given arguments:
-                  (entered? (and cc-hit (cdr cc-hit)))
-                  ; Boolean value; #t iff the attribute is declared to be circular:
-                  (circular? (attribute-definition-circular? att-def))
-                  ; Boolean value; #t iff the attribute is declared to be circular and is the starting point for a
-                  ; fix-point evaluation:
-                  (start-fixpoint-computation? (and circular? (not (evaluator-state-ag-in-cycle? evaluator-state))))
-                  ; Support function that checks if the attribute's value changed throughout fix-point evaluation and
-                  ; updates its and the evaluator's state accordingly:
-                  (update-cycle-cache
-                   (lambda ()
-                     (attribute-instance-args-cache-set! att args)
-                     (unless ((cdr (attribute-definition-circularity-definition att-def))
-                              result
-                              (car cc-hit))
-                       (set-car! cc-hit result)
-                       (evaluator-state-ag-cycle-change?-set! evaluator-state #t)))))
-             ; Now, decide how to evaluate the attribute dependening on whether the attribute is circular, already in evaluation
-             ; or starting point for a fix-point evaluation:
-             (cond
-               ; EVALUATION-CASE (1): Circular attribute starting point for a fix-point evaluation:
-               (start-fixpoint-computation?
-                (let (; Flag indicating abnormal termination of the fix-point evaluation (e.g., by implementation
-                      ; errors within applied attribute equations and respective exceptions or the application of
-                      ; a continuation outside the fix-point evaluation's scope):
-                      (abnormal-termination? #t))
-                  (dynamic-wind
-                   (lambda ()
-                     ; Maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-                     ; of another attribute, the other attribute depends on this one and this attribute must depend on
-                     ; any other attributes that will be evaluated through its own evaluation. Further,..
-                     (add-dependency:att->att att)
-                     (evaluator-state-att-eval-stack-set! evaluator-state (cons att (evaluator-state-att-eval-stack evaluator-state)))
-                     ; ...update the evaluator state that we are about to start a fix-point evaluation and...
-                     (evaluator-state-ag-in-cycle?-set! evaluator-state #t)
-                     ; ...mark, that the attribute is in evaluation and construct an appropriate cycle-cache entry.
-                     (set! cc-hit (cons (car (attribute-definition-circularity-definition att-def)) #t))
-                     (hashtable-set! (attribute-instance-cycle-cache att) args cc-hit))
-                   (lambda ()
-                     (let loop () ; Start fix-point evaluation. Thus, as long as...
-                       (evaluator-state-ag-cycle-change?-set! evaluator-state #f) ; ...an attribute's value changes...
-                       (set! result (apply (attribute-definition-equation att-def) n args)) ; ...evaluate the attribute,...
-                       (update-cycle-cache) ; ...update its cycle cache and...
-                       ; ...check if throughout its evaluation the value of any attribute it depends on changed....
-                       (when (evaluator-state-ag-cycle-change? evaluator-state) ; ...Iff a value changed,
-                         (loop)) ; ...trigger the attribute's evaluation once more, until a fix-point is reached. Finally,...
-                       (set! abnormal-termination? #f))) ; ...indicate that the fix-point evaluation terminated normal.
-                   (lambda ()
-                     ; Mark that the fix-point evaluation is finished and...
-                     (evaluator-state-ag-in-cycle?-set! evaluator-state #f)
-                     ; ...update the caches of all circular attributes evaluated throughout it. To do so,...
-                     (let loop ((att att))
-                       (if (not (attribute-definition-circular? (attribute-instance-definition att)))
-                           ; ...ignore non-circular attributes and just proceed with the attributes they depend on (to
-                           ; ensure all strongly connected components within a weakly connected one are updated)....
-                           (for-each
-                            loop
-                            (attribute-instance-attribute-dependencies att))
-                           ; ...In case of circular attributes not yet updated,...
-                           (when (> (hashtable-size (attribute-instance-cycle-cache att)) 0)
-                             (when (and ; ...check...
-                                    (not abnormal-termination?) ; ...if the fix-point evaluation terminated normal and...
-                                    (attribute-definition-cached? (attribute-instance-definition att))) ; ...caching is enabled....
-                               (hashtable-set! ; ...Iff so...
-                                (attribute-instance-value-cache att) ; ...each such attribute's fix-point value to cache...
-                                (attribute-instance-args-cache att) ; ...is the value computed during its last invocation. Further,...
-                                (car (hashtable-ref (attribute-instance-cycle-cache att) (attribute-instance-args-cache att) #f))))
-                             (hashtable-clear! (attribute-instance-cycle-cache att)) ; ...ALWAYS clear the attribute's cycle and...
-                             (attribute-instance-args-cache-set! att racr-nil) ; ...most recent arguments cache....
-                             (for-each ; ...Then proceed with the attributes the circular attribute depends on....
+     (let*-values (; The evaluator state used and changed throughout evaluation:
+                   ((evaluator-state) (values (node-evaluator-state n)))
+                   ; The attribute instance to evaluate:
+                   ((att) (values (lookup-attribute name n)))
+                   ; The attribute's definition:
+                   ((att-def) (values (attribute-instance-definition att)))
+                   ; The attribute cache entries used for evaluation and dependency tracking:
+                   ((evaluation-att-cache dependency-att-cache)
+                    (if (attribute-definition-cached? att-def)
+                        ; If the attribute instance is cached, no special action is required, except...
+                        (let ((att-cache
+                               (or
+                                ; ...finding the attribute cache entry to use...
+                                (hashtable-ref (attribute-instance-cache att) args #f)
+                                ; ...or construct a respective one.
+                                (let ((new-entry (make-attribute-cache-entry att args)))
+                                  (hashtable-set! (attribute-instance-cache att) args new-entry)
+                                  new-entry))))
+                          (values att-cache att-cache))
+                        ; If the attribute is not cached, special attention must be paid to avoid the permament storing
+                        ; of fixpoint results and attribute arguments on the one hand but still retaining correct
+                        ; evaluation which requires these information on the other hand. To do so we introduce two
+                        ; different types of attribute cache entries:
+                        ; (1) A parameter approximating entry for tracking dependencies and influences of the uncached
+                        ;     attribute instance.
+                        ; (2) A set of temporary cycle entries for correct cycle detection and fixpoint computation.
+                        ; The "cycle-value" field of the parameter approximating entry is misused to store the hashtable
+                        ; containing the temporary cycle entries and must be deleted when evaluation finished.
+                        (let* ((dependency-att-cache
+                                (or
+                                 (hashtable-ref (attribute-instance-cache att) racr-nil #f)
+                                 (let ((new-entry (make-attribute-cache-entry att racr-nil)))
+                                   (hashtable-set! (attribute-instance-cache att) racr-nil new-entry)
+                                   (attribute-cache-entry-cycle-value-set!
+                                    new-entry
+                                    (make-hashtable equal-hash equal? 1))
+                                   new-entry)))
+                               (evaluation-att-cache
+                                (or
+                                 (hashtable-ref (attribute-cache-entry-cycle-value dependency-att-cache) args #f)
+                                 (let ((new-entry (make-attribute-cache-entry att args)))
+                                   (hashtable-set!
+                                    (attribute-cache-entry-cycle-value dependency-att-cache)
+                                    args
+                                    new-entry)
+                                   new-entry))))
+                          (values evaluation-att-cache dependency-att-cache))))
+                   ; Support function that given an intermediate fixpoint result checks if it is different from the
+                   ; current cycle value and updates the cycle value and evaluator state accordingly:
+                   ((update-cycle-cache)
+                    (values
+                     (lambda (new-result)
+                       (unless ((cdr (attribute-definition-circularity-definition att-def))
+                                new-result
+                                (attribute-cache-entry-cycle-value evaluation-att-cache))
+                         (attribute-cache-entry-cycle-value-set! evaluation-att-cache new-result)
+                         (evaluator-state-ag-cycle-change?-set! evaluator-state #t))))))
+       ; Decide how to evaluate the attribute dependening on whether its value already is cached or its respective
+       ; cache entry is circular, already in evaluation or starting point of a fix-point computation:
+       (cond
+         ; CASE (0): Attribute already evaluated for given arguments:
+         ((not (eq? (attribute-cache-entry-value evaluation-att-cache) racr-nil))
+          ; Maintaine attribute cache entry dependencies, i.e., if this entry is evaluated throughout the
+          ; evaluation of another entry, the other entry depends on this one. Afterwards,...
+          (add-dependency:cache->cache dependency-att-cache)
+          (attribute-cache-entry-value evaluation-att-cache)) ; ...return the cached value.
+         
+         ; CASE (1): Circular attribute that is starting point of a fixpoint computation:
+         ((and (attribute-definition-circular? att-def) (not (evaluator-state-ag-in-cycle? evaluator-state)))
+          (dynamic-wind
+           (lambda ()
+             ; Maintaine attribute cache entry dependencies, i.e., if this entry is evaluated throughout the
+             ; evaluation of another entry, the other depends on this one. Further this entry depends
+             ; on any other entry that will be evaluated through its own evaluation. Further,..
+             (add-dependency:cache->cache dependency-att-cache)
+             (evaluator-state-evaluation-stack-set!
+              evaluator-state
+              (cons dependency-att-cache (evaluator-state-evaluation-stack evaluator-state)))
+             ; ...mark, that the entry is in evaluation and...
+             (attribute-cache-entry-entered?-set! evaluation-att-cache #t)
+             ; ...update the evaluator's state that we are about to start a fix-point computation.
+             (evaluator-state-ag-in-cycle?-set! evaluator-state #t))
+           (lambda ()
+             (let loop () ; Start fix-point computation. Thus, as long as...
+               (evaluator-state-ag-cycle-change?-set! evaluator-state #f) ; ...an entry's value changes...
+               (update-cycle-cache (apply (attribute-definition-equation att-def) n args)) ; ...evaluate this entry.
+               (when (evaluator-state-ag-cycle-change? evaluator-state)
+                 (loop)))
+             (let ((result (attribute-cache-entry-cycle-value evaluation-att-cache)))
+               ; When fixpoint computation finished update the caches of all circular entries evaluated. To do so,...
+               (let loop ((att-cache
+                           (if (attribute-definition-cached? att-def)
+                               evaluation-att-cache
+                               dependency-att-cache)))
+                 (let ((att-def (attribute-instance-definition (attribute-cache-entry-context att-cache))))
+                   (if (not (attribute-definition-circular? att-def))
+                       ; ...ignore non-circular entries and just proceed with the entries they depend on (to
+                       ; ensure all strongly connected components within a weakly connected one are updated)....
+                       (for-each
+                        loop
+                        (attribute-cache-entry-cache-dependencies att-cache))
+                       ; ...In case of circular entries...
+                       (if (attribute-definition-cached? att-def) ; ...check if they have to be cached and...
+                           (when (eq? (attribute-cache-entry-value att-cache) racr-nil) ; ...are not already processed....
+                             ; ...If so cache them,...
+                             (attribute-cache-entry-value-set!
+                              att-cache
+                              (attribute-cache-entry-cycle-value att-cache))
+                             (attribute-cache-entry-cycle-value-set! ; ...reset their cycle values to the bottom value and...
+                              att-cache
+                              (car (attribute-definition-circularity-definition att-def)))
+                             (for-each ; ...proceed with the entries they depend on.
                               loop
-                              (attribute-instance-attribute-dependencies att)))))
-                     ; ...Finally, pop the attribute from the attribute evaluation stack.
-                     (evaluator-state-att-eval-stack-set! evaluator-state (cdr (evaluator-state-att-eval-stack evaluator-state)))))))
-               
-               ; EVALUATION-CASE (2): Circular attribute, already in evaluation for the given arguments:
-               ((and circular? entered?)
-                ; Maintaine attribute dependencies, i.e., the other attribute throughout whose evaluation
-                ; this attribute is evaluated must depend on this one. Finally,...
-                (add-dependency:att->att att)
-                ; ...the result is the attribute's cycle cache entry.
-                (set! result (car cc-hit)))
-               
-               ; EVALUATION-CASE (3): Circular attribute not in evaluation and entered throughout a fix-point evaluation:
-               (circular?
-                (dynamic-wind
-                 (lambda ()
-                   ; Maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-                   ; of another attribute, the other attribute depends on this one and this attribute must depend on
-                   ; any other attributes that will be evaluated through its own evaluation. Further,..
-                   (add-dependency:att->att att)
-                   (evaluator-state-att-eval-stack-set! evaluator-state (cons att (evaluator-state-att-eval-stack evaluator-state)))
-                   ; ...mark, that the attribute is in evaluation and construct an appropriate cycle-cache entry if required.
-                   (if cc-hit
-                       (set-cdr! cc-hit #t)
-                       (begin
-                         (set! cc-hit (cons (car (attribute-definition-circularity-definition att-def)) #t))
-                         (hashtable-set! (attribute-instance-cycle-cache att) args cc-hit))))
-                 (lambda ()
-                   (set! result (apply (attribute-definition-equation att-def) n args)) ; Evaluate the attribute and...
-                   (update-cycle-cache)) ; ...update its cycle-cache.
-                 (lambda ()
-                   ; Mark that the evaluation of the attribute is finished and...
-                   (set-cdr! cc-hit #f)
-                   ; ...pop the attribute from the attribute evaluation stack.
-                   (evaluator-state-att-eval-stack-set! evaluator-state (cdr (evaluator-state-att-eval-stack evaluator-state))))))
-               
-               ; EVALUATION-CASE (4): Non-circular attribute already in evaluation:
-               (entered?
-                ; Maintaine attribute dependencies, i.e., the other attribute throughout whose evaluation
-                ; this attribute is evaluated must depend on this one. Then,...
-                (add-dependency:att->att att)
-                (throw-exception ; ...thrown an exception because we encountered an unexpected dependency cycle.
-                 "AG evaluator exception; "
-                 "Unexpected " name " cycle."))
-               
-               (else ; EVALUATION-CASE (5): Non-circular attribute not in evaluation.
-                (dynamic-wind
-                 (lambda ()
-                   ; Maintaine attribute dependencies, i.e., iff this attribute is evaluated throughout the evaluation
-                   ; of another attribute, the other attribute depends on this one and this attribute must depend on
-                   ; any other attributes that will be evaluated through its own evaluation. Further,..
-                   (add-dependency:att->att att)
-                   (evaluator-state-att-eval-stack-set! evaluator-state (cons att (evaluator-state-att-eval-stack evaluator-state)))
-                   ; ...mark, that the attribute is in evaluation, i.e.,...
-                   (set! cc-hit (cons racr-nil #t)) ; ...construct an appropriate cycle-cache entry and...
-                   (hashtable-set! (attribute-instance-cycle-cache att) args cc-hit)) ; ...add it to the attribute's cycle-cache.
-                 (lambda ()
-                   (set! result (apply (attribute-definition-equation att-def) n args)) ; Evaluate the attribute and...
-                   (when (attribute-definition-cached? att-def) ; ...if caching is enabled...
-                     (hashtable-set! (attribute-instance-value-cache att) args result))) ; ...cache its value.
-                 (lambda ()
-                   ; Mark that the attribute's evaluation finished, i.e., clear its cycle-cache. Finally,...
-                   (hashtable-clear! (attribute-instance-cycle-cache att))
-                   ; ...pop the attribute from the attribute evaluation stack.
-                   (evaluator-state-att-eval-stack-set! evaluator-state (cdr (evaluator-state-att-eval-stack evaluator-state)))))))
-             result))))) ; Return the computed value.
+                              (attribute-cache-entry-cache-dependencies att-cache)))
+                           ; ...If a circular entry is not cached, check if it already is processed....
+                           (when (> (hashtable-size (attribute-cache-entry-cycle-value att-cache)) 0)
+                             ; ...If not, delete its temporary cycle cache and...
+                             (hashtable-clear! (attribute-cache-entry-cycle-value att-cache))
+                             (for-each ; ...proceed with the entries it depends on.
+                              loop
+                              (attribute-cache-entry-cache-dependencies att-cache)))))))
+               result))
+           (lambda ()
+             ; Mark that fixpoint computation finished,...
+             (evaluator-state-ag-in-cycle?-set! evaluator-state #f)
+             ; the evaluation of the attribute cache entry finished and...
+             (attribute-cache-entry-entered?-set! evaluation-att-cache #f)
+             ; ...pop the entry from the evaluation stack.
+             (evaluator-state-evaluation-stack-set!
+              evaluator-state
+              (cdr (evaluator-state-evaluation-stack evaluator-state))))))
+         
+         ; CASE (2): Circular attribute already in evaluation for the given arguments:
+         ((and (attribute-definition-circular? att-def) (attribute-cache-entry-entered? evaluation-att-cache))
+          ; Maintaine attribute cache entry dependencies, i.e., if this entry is evaluated throughout the
+          ; evaluation of another entry, the other entry depends on this one. Finally,...
+          (add-dependency:cache->cache dependency-att-cache)
+          ; ...the intermediate fixpoint result is the attribute cache entry's cycle value.
+          (attribute-cache-entry-cycle-value evaluation-att-cache))
+         
+         ; CASE (3): Circular attribute not in evaluation and entered throughout a fixpoint computation:
+         ((attribute-definition-circular? att-def)
+          (dynamic-wind
+           (lambda ()
+             ; Maintaine attribute cache entry dependencies, i.e., if this entry is evaluated throughout the
+             ; evaluation of another entry, the other depends on this one. Further this entry depends
+             ; on any other entry that will be evaluated through its own evaluation. Further,..
+             (add-dependency:cache->cache dependency-att-cache)
+             (evaluator-state-evaluation-stack-set!
+              evaluator-state
+              (cons dependency-att-cache (evaluator-state-evaluation-stack evaluator-state)))
+             ; ...mark, that the entry is in evaluation.
+             (attribute-cache-entry-entered?-set! evaluation-att-cache #t))
+           (lambda ()
+             (let ((result (apply (attribute-definition-equation att-def) n args))) ; Evaluate the entry and...
+               (update-cycle-cache result) ; ...update its cycle value.
+               result))
+           (lambda ()
+             ; Mark that the evaluation of the attribute cache entry finished and...
+             (attribute-cache-entry-entered?-set! evaluation-att-cache #f)
+             ; ...pop it from the evaluation stack.
+             (evaluator-state-evaluation-stack-set!
+              evaluator-state
+              (cdr (evaluator-state-evaluation-stack evaluator-state))))))
+         
+         ; CASE (4): Non-circular attribute already in evaluation, i.e., unexpected cycle:
+         ((attribute-cache-entry-entered? evaluation-att-cache)
+          ; Maintaine attribute cache entry dependencies, i.e., if this entry is evaluated throughout the
+          ; evaluation of another entry, the other entry depends on this one. Then,...
+          (add-dependency:cache->cache dependency-att-cache)
+          (throw-exception ; ...thrown an exception because we encountered an unexpected dependency cycle.
+           "AG evaluator exception; "
+           "Unexpected " name " cycle."))
+         
+         (else ; CASE (5): Non-circular attribute not in evaluation:
+          (dynamic-wind
+           (lambda ()
+             ; Maintaine attribute cache entry dependencies, i.e., if this entry is evaluated throughout the
+             ; evaluation of another entry, the other depends on this one. Further this entry depends
+             ; on any other entry that will be evaluated through its own evaluation. Further,...
+             (add-dependency:cache->cache dependency-att-cache)
+             (evaluator-state-evaluation-stack-set!
+              evaluator-state
+              (cons dependency-att-cache (evaluator-state-evaluation-stack evaluator-state)))
+             ; ...mark, that the entry is in evaluation.
+             (attribute-cache-entry-entered?-set! evaluation-att-cache #t))
+           (lambda ()
+             (let ((result (apply (attribute-definition-equation att-def) n args))) ; Evaluate the entry and,...
+               (when (attribute-definition-cached? att-def) ; ...if caching is enabled,...
+                 (attribute-cache-entry-value-set! evaluation-att-cache result)) ; ...cache its value.
+               result))
+           (lambda ()
+             ; Mark that the evaluation of the attribute cache entry finished and...
+             (if (attribute-definition-cached? att-def)
+                 (attribute-cache-entry-entered?-set! evaluation-att-cache #f)
+                 (hashtable-delete! (attribute-cache-entry-cycle-value dependency-att-cache) args))
+             ; ...pop it from the evaluation stack.
+             (evaluator-state-evaluation-stack-set!
+              evaluator-state
+              (cdr (evaluator-state-evaluation-stack evaluator-state))))))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Access Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1221,16 +1279,16 @@
        (throw-exception
         "Cannot access type; "
         "List and bud nodes have no type."))
-     (add-dependency:att->node-type n)
+     (add-dependency:cache->node-type n)
      (symbol-name (car (ast-rule-production (node-ast-rule n))))))
  
  (define ast-list-node?
    (lambda (n)
      (if (node-bud-node? n)
-       (throw-exception
-        "Cannot perform list node check; "
-        "Bud nodes have no type.")
-       (node-list-node? n))))
+         (throw-exception
+          "Cannot perform list node check; "
+          "Bud nodes have no type.")
+         (node-list-node? n))))
  
  (define ast-subtype?
    (lambda (a1 a2)
@@ -1256,7 +1314,7 @@
               (throw-exception
                "Cannot perform subtype check; "
                a1 " is no valid non-terminal (first argument undefined non-terminal)."))
-            (add-dependency:att->node-super-type a2 t1)
+            (add-dependency:cache->node-super-type a2 t1)
             (cons t1 t2))
           (if (symbol? a2)
               (let* ((t1 (node-ast-rule a1))
@@ -1265,11 +1323,11 @@
                   (throw-exception
                    "Cannot perform subtype check; "
                    a2 " is no valid non-terminal (second argument undefined non-terminal)."))
-                (add-dependency:att->node-sub-type a1 t2)
+                (add-dependency:cache->node-sub-type a1 t2)
                 (cons t1 t2))
               (begin
-                (add-dependency:att->node-sub-type a1 (node-ast-rule a2))
-                (add-dependency:att->node-super-type a2 (node-ast-rule a1))
+                (add-dependency:cache->node-sub-type a1 (node-ast-rule a2))
+                (add-dependency:cache->node-super-type a2 (node-ast-rule a1))
                 (cons (node-ast-rule a1) (node-ast-rule a2))))))))
  
  (define ast-parent
@@ -1277,7 +1335,7 @@
      (let ((parent (node-parent n)))
        (unless parent
          (throw-exception "Cannot access parent of roots."))
-       (add-dependency:att->node parent)
+       (add-dependency:cache->node parent)
        parent)))
  
  (define ast-child
@@ -1288,7 +1346,7 @@
                 (and (>= i 1) (<= i (length (node-children n))) (list-ref (node-children n) (- i 1))))))
        (unless child
          (throw-exception "Cannot access non-existent " i (if (symbol? i) "'th" "") " child."))
-       (add-dependency:att->node child)
+       (add-dependency:cache->node child)
        (if (node-terminal? child)
            (node-children child)
            child))))
@@ -1299,7 +1357,7 @@
  
  (define ast-child-index
    (lambda (n)
-     (add-dependency:att->node n)
+     (add-dependency:cache->node n)
      (node-child-index n)))
  
  (define ast-num-children
@@ -1308,7 +1366,7 @@
        (throw-exception
         "Cannot access number of children; "
         "Bud nodes have no children."))
-     (add-dependency:att->node-num-children n)
+     (add-dependency:cache->node-num-children n)
      (length (node-children n))))
  
  (define-syntax ast-children
@@ -1552,8 +1610,7 @@
               ((eq? (attribute-definition-equation (attribute-instance-definition att)) (attribute-definition-equation att-def))
                (attribute-instance-definition-set! att att-def))
               (else
-               (flush-attribute-cache att)
-               (attribute-instance-context-set! att racr-nil)
+               (flush-attribute-instance att)
                (node-attributes-set!
                 n
                 (cons (make-attribute-instance att-def n) (remq att (node-attributes n))))))))
@@ -1567,8 +1624,7 @@
                    (attribute-definition-synthesized? (attribute-instance-definition att))
                    (not (eq? (car (attribute-definition-context (attribute-instance-definition att))) (node-ast-rule n))))))
              (when remove?
-               (flush-attribute-cache att)
-               (attribute-instance-context-set! att racr-nil))
+               (flush-attribute-instance att))
              remove?))
          (node-attributes n))))))
  
@@ -1592,9 +1648,10 @@
                       (attribute-definition-equation att-def))
                      (attribute-instance-definition-set! att att-def)
                      (begin
-                       (flush-attribute-cache att)
-                       (attribute-instance-context-set! att racr-nil)
-                       (node-attributes-set! n (cons (make-attribute-instance att-def n) (remq att (node-attributes n))))))))))
+                       (flush-attribute-instance att)
+                       (node-attributes-set!
+                        n
+                        (cons (make-attribute-instance att-def n) (remq att (node-attributes n))))))))))
           att-defs)
          (node-attributes-set! ; Delete all inherited attribute instances not defined anymore:
           n
@@ -1605,8 +1662,7 @@
                      (attribute-definition-inherited? (attribute-instance-definition att))
                      (not (memq (attribute-instance-definition att) att-defs)))))
                (when remove?
-                 (flush-attribute-cache att)
-                 (attribute-instance-context-set! att racr-nil))
+                 (flush-attribute-instance att))
                remove?))
            (node-attributes n)))))
      ;;; Perform the update:
@@ -1637,8 +1693,7 @@
           (lambda (att)
             (let ((remove? (attribute-definition-inherited? (attribute-instance-definition att))))
               (when remove?
-                (flush-attribute-cache att)
-                (attribute-instance-context-set! att racr-nil))
+                (flush-attribute-instance att))
               remove?))
           (node-attributes n)))))))
  
@@ -1688,23 +1743,30 @@
              (cons match (loop))
              (list))))))
  
- ; INTERNAL FUNCTION: Given an AST node n, flush all attributes that depend on information of
- ; the subtree spaned by n but are outside of it.
- (define flush-depending-attributes-outside-of
+ ; INTERNAL FUNCTION: Given an AST node n, flush all attribute cache entries that depend on
+ ; information of the subtree spaned by n but are outside of it.
+ (define flush-depending-attribute-cache-entries-outside-of
    (lambda (n)
      (let loop ((n* n))
        (for-each
         (lambda (influence)
-          (unless (node-inside-of? (attribute-instance-context (car influence)) n)
-            (flush-attribute-cache (car influence))))
-        (node-attribute-influences n*))
+          (unless (node-inside-of? (attribute-instance-context (attribute-cache-entry-context (car influence))) n)
+            (flush-attribute-cache-entry (car influence))))
+        (node-cache-influences n*))
        (for-each
         (lambda (att)
-          (for-each
-           (lambda (influenced)
-             (unless (node-inside-of? (attribute-instance-context influenced) n)
-               (flush-attribute-cache influenced)))
-           (attribute-instance-attribute-influences att)))
+          (vector-for-each
+           (lambda (att-cache)
+             (for-each
+              (lambda (dependent-cache)
+                (unless (node-inside-of? (attribute-instance-context (attribute-cache-entry-context dependent-cache)) n)
+                  (flush-attribute-cache-entry dependent-cache)))
+              (attribute-cache-entry-cache-influences att-cache)))
+           (call-with-values
+            (lambda ()
+              (hashtable-entries (attribute-instance-cache att)))
+            (lambda (key-vector value-vector)
+              value-vector))))
         (node-attributes n*))
        (unless (node-terminal? n*)
          (for-each
@@ -1727,10 +1789,10 @@
           "Cannot change terminal value; "
           "The given context does not exist or is no terminal."))
        (unless (equal? (node-children n) new-value)
-         (for-each ; ...flush the caches of all attributes influenced by the terminal and...
+         (for-each ; ...flush all attribute cache entries influenced by the terminal and...
           (lambda (influence)
-            (flush-attribute-cache (car influence)))
-          (node-attribute-influences n))
+            (flush-attribute-cache-entry (car influence)))
+          (node-cache-influences n))
          (node-children-set! n new-value))))) ; ...rewrite its value.
  
  (define rewrite-refine
@@ -1749,7 +1811,7 @@
        (unless (and new-rule (ast-rule-subtype? new-rule old-rule)) ; ...the given type is a subtype,...
          (throw-exception
           "Cannot refine node; "
-          t " is not a subtype of " (ast-node-type n)))
+          t " is not a subtype of " (ast-node-type n) "."))
        (let ((additional-children (list-tail (ast-rule-production new-rule) (length (ast-rule-production old-rule)))))
          (unless (= (length additional-children) (length c)) ; ...the expected number of new children are given,...
            (throw-exception
@@ -1809,7 +1871,7 @@
                  additional-children
                  c)))
            ;;; Everything is fine. Thus,...
-           (for-each ; ...flush the influenced attributes, i.e., all attributes influenced by the node's...
+           (for-each ; ...flush the influenced attribute cache entries, i.e., all entries influenced by the node's...
             (lambda (influence)
               (when (or
                      (and (vector-ref (cdr influence) 1) (not (null? c))) ; ...number of children,...
@@ -1822,8 +1884,8 @@
                       (lambda (t2)
                         (not (eq? (ast-rule-subtype? old-rule t2) (ast-rule-subtype? new-rule t2))))
                       (vector-ref (cdr influence) 4)))
-                (flush-attribute-cache (car influence))))
-            (node-attribute-influences n))
+                (flush-attribute-cache-entry (car influence))))
+            (node-cache-influences n))
            (node-ast-rule-set! n new-rule) ; ...update the node's type,...
            (update-synthesized-attribution n) ; ...synthesized attribution,...
            (node-children-set! n (append (node-children n) c (list))) ; ...insert the new children,...
@@ -1856,7 +1918,7 @@
           t " is not a supertype of " (ast-node-type n) "."))
        ;;; Everything is fine. Thus,...
        (let ((children-to-remove (list-tail (node-children n) num-new-children)))
-         (for-each ; ...flush the caches of all influenced attributes, i.e., (1) all attributes influenced by the node's...
+         (for-each ; ...flush all influenced attribute cache entries, i.e., (1) all entries influenced by the node's...
           (lambda (influence)
             (when (or
                    (and (vector-ref (cdr influence) 1) (not (null? children-to-remove))) ; ...number of children,...
@@ -1869,10 +1931,10 @@
                     (lambda (t2)
                       (not (eq? (ast-rule-subtype? old-rule t2) (ast-rule-subtype? new-rule t2))))
                     (vector-ref (cdr influence) 4)))
-              (flush-attribute-cache (car influence))))
-          (node-attribute-influences n))
-         (for-each ; ...(2) all attributes depending on, but still outside of, an removed AST. Afterwards,...
-          flush-depending-attributes-outside-of
+              (flush-attribute-cache-entry (car influence))))
+          (node-cache-influences n))
+         (for-each ; ...(2) all entries depending on, but still outside of, an removed AST. Afterwards,...
+          flush-depending-attribute-cache-entries-outside-of
           children-to-remove)
          (node-ast-rule-set! n new-rule) ; ...update the node's type and...
          (update-synthesized-attribution n) ; ...synthesized attribution and...
@@ -1923,11 +1985,11 @@
             "Cannot add list element; "
             "The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
-     (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children,...
+     (for-each ; ...flush all attribute cache entries influenced by the list-node's number of children,...
       (lambda (influence)
         (when (vector-ref (cdr influence) 1)
-          (flush-attribute-cache (car influence))))
-      (node-attribute-influences l))
+          (flush-attribute-cache-entry (car influence))))
+      (node-cache-influences l))
      (node-children-set! l (append (node-children l) (list e))) ; ...add the new element,...
      (node-parent-set! e l)
      (distribute-evaluator-state (node-evaluator-state l) e) ; ...initialize its evaluator state and...
@@ -1951,7 +2013,7 @@
        (throw-exception
         "Cannot replace subtree; "
         "The replacement already is part of another AST."))
-     (when (node-inside-of? old-fragment new-fragment) ; ...its spaned AST did not contain the old-fragment and...
+     (when (node-inside-of? old-fragment new-fragment) ; ...its spaned AST does not contain the old-fragment and...
        (throw-exception
         "Cannot replace subtree; "
         "The given old fragment is part of the AST spaned by the replacement."))
@@ -1981,7 +2043,8 @@
               "The replacement does not fit."))))
      ;;; When all rewrite constraints are satisfied,...
      (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attribution,...
-     (flush-depending-attributes-outside-of old-fragment) ; ...flush all attributes depending on it and outside its spaned tree,...
+     ; ...flush all attribute cache entries depending on it and outside its spaned tree,...
+     (flush-depending-attribute-cache-entries-outside-of old-fragment)
      (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...update both fragments' evaluator state,...
      (distribute-evaluator-state (make-evaluator-state) old-fragment)
      (set-car! ; ...replace the old fragment by the new one and...
@@ -2014,9 +2077,9 @@
         "Cannot insert list element; "
         "The element to insert already is part of another AST."))
      (when (node-inside-of? l e) ; ...its spaned AST does not contain the list-node and...
-      (throw-exception
-       "Cannot insert list element; "
-       "The given list is part of the AST spaned by the element to insert."))
+       (throw-exception
+        "Cannot insert list element; "
+        "The given list is part of the AST spaned by the element to insert."))
      (when (node-parent l)
        (let ((expected-type
               (symbol-non-terminal?
@@ -2028,14 +2091,14 @@
             "Cannot insert list element; "
             "The new element does not fit."))))
      ;;; When all rewrite constraints are satisfied...
-     (for-each ; ...flush the caches of all attributes influenced by the list-node's number of children. Further,...
+     (for-each ; ...flush all attribute cache entries influenced by the list-node's number of children. Further,...
       (lambda (influence)
         (when (vector-ref (cdr influence) 1)
-          (flush-attribute-cache (car influence))))
-      (node-attribute-influences l))
+          (flush-attribute-cache-entry (car influence))))
+      (node-cache-influences l))
      (for-each ; ...for each tree spaned by the successor element's of the insertion position,...
-      ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
-      flush-depending-attributes-outside-of
+      ; ...flush all attribute cache entries depending on, but still outside of, the respective tree. Then,...
+      flush-depending-attribute-cache-entries-outside-of
       (list-tail (node-children l) (- i 1)))
      (node-children-set! ; ...insert the new element,...
       l
@@ -2060,17 +2123,17 @@
        (throw-exception
         "Cannot delete list element; "
         "The given node is not element of a list."))
-     ;;; When all rewrite constraints are satisfied, flush the caches of all attributes influenced by
+     ;;; When all rewrite constraints are satisfied, flush all attribute cache entries influenced by
      ; the number of children of the list-node the element is part of. Further,...
      (for-each
       (lambda (influence)
         (when (vector-ref (cdr influence) 1)
-          (flush-attribute-cache (car influence))))
-      (node-attribute-influences (node-parent n)))
+          (flush-attribute-cache-entry (car influence))))
+      (node-cache-influences (node-parent n)))
      (detach-inherited-attributes n) ; ...delete the element's inherited attributes and,...
      (for-each ; ...for each tree spaned by the element and its successor elements,...
-      ; ...flush the caches of all attributes depending on, but still outside of, the respective tree. Then,...
-      flush-depending-attributes-outside-of
+      ; ...flush all attributes cache entries depending on, but still outside of, the respective tree. Then,...
+      flush-depending-attribute-cache-entries-outside-of
       (list-tail (node-children (node-parent n)) (- (node-child-index n) 1)))
      (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove the element from the list,...
      (node-parent-set! n #f)
@@ -2081,89 +2144,104 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dependency Tracking Support ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; INTERNAL FUNCTION: Given an attribute, flush its and its depending attributes' caches and dependencies.
- (define flush-attribute-cache
+ ; INTERNAL FUNCTION: Given an attribute instance, flush all its cache entries.
+ (define flush-attribute-instance
    (lambda (att)
-     (let ((influenced-atts (attribute-instance-attribute-influences att))) ; Save all attributes influenced by the attribute,...
-       (attribute-instance-attribute-influences-set! att (list)) ; ...remove the respective influence edges and...
-       (hashtable-clear! (attribute-instance-value-cache att)) ; ...clear the attribute's value cache. Then,...
-       (for-each ; ...for every attribute I the attribute depends on,...
-        (lambda (influencing-att)
-          (attribute-instance-attribute-influences-set! ; ...remove the influence edge from I to the attribute and...
-           influencing-att
-           (remq att (attribute-instance-attribute-influences influencing-att))))
-        (attribute-instance-attribute-dependencies att))
-       (attribute-instance-attribute-dependencies-set! att (list)) ;...the attribute's dependency edges to such I. Then,...
-       (for-each ; ...for every node N the attribute depends on...
-        (lambda (node-influence)
-          (node-attribute-influences-set!
-           (car node-influence)
-           (remp ; ...remove the influence edge from N to the attribute and...
-            (lambda (attribute-influence)
-              (eq? (car attribute-influence) att))
-            (node-attribute-influences (car node-influence)))))
-        (attribute-instance-node-dependencies att))
-       (attribute-instance-node-dependencies-set! att (list)) ; ...the attribute's dependency edges to such N. Finally,...
-       (for-each ; ...for every attribute D the attribute originally influenced,...
-        (lambda (dependent-att)
-          (flush-attribute-cache dependent-att)) ; ...flush D.
-        influenced-atts))))
+     (call-with-values
+      (lambda ()
+        (hashtable-entries (attribute-instance-cache att)))
+      (lambda (keys values)
+        (vector-for-each
+         flush-attribute-cache-entry
+         values)))))
  
- ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
- (define add-dependency:att->node
+ ; INTERNAL FUNCTION: Given an attribute cache entry, delete it and all depending entries.
+ (define flush-attribute-cache-entry
+   (lambda (att-cache)
+     (let ((influenced-caches (attribute-cache-entry-cache-influences att-cache))) ; Save all influenced attribute cache entries.
+       ; Delete foreign influences:
+       (for-each ; For every cache entry I the entry depends on,...
+        (lambda (influencing-cache)
+          (attribute-cache-entry-cache-influences-set! ; ...remove the influence edge from I to the entry.
+           influencing-cache
+           (remq att-cache (attribute-cache-entry-cache-influences influencing-cache))))
+        (attribute-cache-entry-cache-dependencies att-cache))
+       (for-each ; For every node N the attribute cache entry depends on...
+        (lambda (node-dependency)
+          (node-cache-influences-set!
+           (car node-dependency)
+           (remp ; ...remove the influence edge from N to the entry.
+            (lambda (cache-influence)
+              (eq? (car cache-influence) att-cache))
+            (node-cache-influences (car node-dependency)))))
+        (attribute-cache-entry-node-dependencies att-cache))
+       ; Delete the attribute cache entry:
+       (hashtable-delete!
+        (attribute-instance-cache (attribute-cache-entry-context att-cache))
+        (attribute-cache-entry-arguments att-cache))
+       (attribute-cache-entry-cache-dependencies-set! att-cache (list))
+       (attribute-cache-entry-node-dependencies-set! att-cache (list))
+       (attribute-cache-entry-cache-influences-set! att-cache (list))
+       ; Proceed flushing, i.e., for every attribute cache entry D the entry originally influenced,...
+       (for-each
+        (lambda (dependent-cache)
+          (flush-attribute-cache-entry dependent-cache)) ; ...flush D.
+        influenced-caches))))
+ 
+ ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
+ (define add-dependency:cache->node
    (lambda (influencing-node)
-     (add-dependency:att->node-characteristic influencing-node (cons 0 racr-nil))))
+     (add-dependency:cache->node-characteristic influencing-node (cons 0 racr-nil))))
  
- ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
- (define add-dependency:att->node-num-children
+ ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
+ (define add-dependency:cache->node-num-children
    (lambda (influencing-node)
-     (add-dependency:att->node-characteristic influencing-node (cons 1 racr-nil))))
+     (add-dependency:cache->node-characteristic influencing-node (cons 1 racr-nil))))
  
- ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
- (define add-dependency:att->node-type
+ ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
+ (define add-dependency:cache->node-type
    (lambda (influencing-node)
-     (add-dependency:att->node-characteristic influencing-node (cons 2 racr-nil))))
+     (add-dependency:cache->node-characteristic influencing-node (cons 2 racr-nil))))
  
- ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
- (define add-dependency:att->node-super-type
+ ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
+ (define add-dependency:cache->node-super-type
    (lambda (influencing-node comparision-type)
-     (add-dependency:att->node-characteristic influencing-node (cons 3 comparision-type))))
+     (add-dependency:cache->node-characteristic influencing-node (cons 3 comparision-type))))
  
- ; INTERNAL FUNCTION: See "add-dependency:att->node-characteristic".
- (define add-dependency:att->node-sub-type
+ ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
+ (define add-dependency:cache->node-sub-type
    (lambda (influencing-node comparision-type)
-     (add-dependency:att->node-characteristic influencing-node (cons 4 comparision-type))))
+     (add-dependency:cache->node-characteristic influencing-node (cons 4 comparision-type))))
  
  ; INTERNAL FUNCTION: Given a node N and a correlation C add an dependency-edge marked with C from
- ; the attribute currently in evaluation (considering the evaluator state of the AST N is part of) to N and
- ; an influence-edge vice versa. If no attribute is in evaluation no edges are added. The following six
- ; correlations exist:
+ ; the attribute cache entry currently in evaluation (considering the evaluator state of the AST N
+ ; is part of) to N and an influence-edge vice versa. If no attribute cache entry is in evaluation
+ ; no edges are added. The following six correlations exist:
  ;  1) Dependency on the existence of the node (i.e., existence of a node at the same location)
  ;  2) Dependency on the node's number of children (i.e., existence of a node at the same location and with
  ;     the same number of children)
  ;  3) Dependency on the node's type (i.e., existence of a node at the same location and with the same type)
  ;  4) Dependency on whether the node's type is a supertype w.r.t. a certain type encoded in C or not
  ;  5) Dependency on whether the node's type is a subtype w.r.t. a certain type encoded in C or not
- (define add-dependency:att->node-characteristic
+ (define add-dependency:cache->node-characteristic
    (lambda (influencing-node correlation)
-     (let ((dependent-att (evaluator-state-in-evaluation? (node-evaluator-state influencing-node))))
-       (when dependent-att
+     (let ((dependent-cache (evaluator-state-in-evaluation? (node-evaluator-state influencing-node))))
+       (when dependent-cache
          (let ((dependency-vector
-                (let ((dc-hit (assq influencing-node (attribute-instance-node-dependencies dependent-att))))
+                (let ((dc-hit (assq influencing-node (attribute-cache-entry-node-dependencies dependent-cache))))
                   (and dc-hit (cdr dc-hit)))))
            (unless dependency-vector
-             (begin
-               (set! dependency-vector (vector #f #f #f (list) (list)))
-               (attribute-instance-node-dependencies-set!
-                dependent-att
-                (cons
-                 (cons influencing-node dependency-vector)
-                 (attribute-instance-node-dependencies dependent-att)))
-               (node-attribute-influences-set!
-                influencing-node
-                (cons
-                 (cons dependent-att dependency-vector)
-                 (node-attribute-influences influencing-node)))))
+             (set! dependency-vector (vector #f #f #f (list) (list)))
+             (attribute-cache-entry-node-dependencies-set!
+              dependent-cache
+              (cons
+               (cons influencing-node dependency-vector)
+               (attribute-cache-entry-node-dependencies dependent-cache)))
+             (node-cache-influences-set!
+              influencing-node
+              (cons
+               (cons dependent-cache dependency-vector)
+               (node-cache-influences influencing-node))))
            (let ((correlation-type (car correlation))
                  (correlation-arg (cdr correlation)))
              (vector-set!
@@ -2178,20 +2256,24 @@
                        known-args
                        (cons correlation-arg known-args))))))))))))
  
- ; INTERNAL FUNCTION: Given an attribute instance A, add an dependency-edge from A to the attribute currently
- ; in evaluation (considering the evaluator state of the AST A is part of) and an influence-edge vice-versa.
- ; If no attribute is in evaluation no edges are added.
- (define add-dependency:att->att
-   (lambda (influencing-att)
-     (let ((dependent-att (evaluator-state-in-evaluation? (node-evaluator-state (attribute-instance-context influencing-att)))))
-       (when (and dependent-att (not (memq influencing-att (attribute-instance-attribute-dependencies dependent-att))))
-         (attribute-instance-attribute-dependencies-set!
-          dependent-att
+ ; INTERNAL FUNCTION: Given an attribute cache entry C, add an dependency-edge from C to the entry currently
+ ; in evaluation (considering the evaluator state of the AST C is part of) and an influence-edge vice-versa.
+ ; If no attribute cache entry is in evaluation no edges are added.
+ (define add-dependency:cache->cache
+   (lambda (influencing-cache)
+     (let ((dependent-cache
+            (evaluator-state-in-evaluation?
+             (node-evaluator-state
+              (attribute-instance-context
+               (attribute-cache-entry-context influencing-cache))))))
+       (when (and dependent-cache (not (memq influencing-cache (attribute-cache-entry-cache-dependencies dependent-cache))))
+         (attribute-cache-entry-cache-dependencies-set!
+          dependent-cache
           (cons
-           influencing-att
-           (attribute-instance-attribute-dependencies dependent-att)))
-         (attribute-instance-attribute-influences-set!
-          influencing-att
+           influencing-cache
+           (attribute-cache-entry-cache-dependencies dependent-cache)))
+         (attribute-cache-entry-cache-influences-set!
+          influencing-cache
           (cons
-           dependent-att
-           (attribute-instance-attribute-influences influencing-att))))))))
+           dependent-cache
+           (attribute-cache-entry-cache-influences influencing-cache))))))))

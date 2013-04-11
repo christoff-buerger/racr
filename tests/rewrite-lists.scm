@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr) (racr test-api))
+(import (rnrs) (racr) (racr-test-api))
 
 (define run-tests
   (lambda ()
@@ -249,3 +249,5 @@
           (A) 'A-length
           (E 1 7) 'i
           (E 2 2) 's))))))
+
+(run-tests)
