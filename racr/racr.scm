@@ -2027,7 +2027,7 @@
            (if (node-list-node? new-fragment)
                (for-each
                 (lambda (element)
-                  (unless (or (node-bud-node? element) (ast-rule-subtype? element expected-type))
+                  (unless (or (node-bud-node? element) (ast-rule-subtype? (node-ast-rule element) expected-type))
                     (throw-exception
                      "Cannot replace subtree; "
                      "The replacement does not fit.")))

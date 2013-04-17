@@ -142,10 +142,8 @@
 (define-syntax state-machine
   (lambda (x)
     (define identifier-list?
-      (lambda (ls)
-        (or (null? ls)
-            (and (identifier? (car ls))
-                 (identifier-list? (cdr ls))))))
+      (lambda (l)
+        (for-all identifier? l)))
     (syntax-case x (->)
       ((_ initial (final ...) (source -> target) ...)
        (and
