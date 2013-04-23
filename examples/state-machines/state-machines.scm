@@ -124,16 +124,12 @@
 
 (define list-union
   (lambda (l1 l2)
-    (let loop ((output l1)
-               (input l2))
-      (if (null? input)
-          output
-          (if (find
-               (lambda (o)
-                 (eq? (car input) o))
-               output)
-              (loop output (cdr input))
-              (loop (cons (car input) output) (cdr input)))))))
+    (append
+     (filter
+      (lambda (e1)
+        (not (memq e1 l2)))
+      l1)
+     l2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;                               User Interface                             ;;;

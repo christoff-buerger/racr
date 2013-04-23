@@ -39,6 +39,16 @@ declare -a siple_sources=(
 	interpreter
 	main)
 
+# Declare array of Petrinet Language source files ordered w.r.t. their compilation dependencies:
+declare -a petrinets_sources=(
+	ast
+	name-analysis
+	well-formedness-analysis
+	enabled-analysis
+	data-flow-analyses
+	ui
+	main)
+
 tests=( $(ls $1/tests/*.scm) )
 
 if [ -f $2/bin/plt-r6rs ]
@@ -49,12 +59,16 @@ then
 	rm -rf $2/collects/racr
 	rm -rf $2/collects/racr-test-api
 	rm -rf $2/collects/siple
+	rm -rf $2/collects/petrinets
 	
 	# Install new:
 	$2/bin/plt-r6rs --all-users --install $1/racr/racr.scm
 	$2/bin/plt-r6rs --all-users --install $1/racr/racr-test-api.scm
 	for (( i=0; i<${#siple_sources[*]}; i++ )) do
 		$2/bin/plt-r6rs --all-users --install $1/examples/siple/${siple_sources[i]}.scm
+	done
+	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
+		$2/bin/plt-r6rs --all-users --install $1/examples/petrinets/${petrinets_sources[i]}.scm
 	done
 	
 	echo "=========================================>>> Run tests to validate installation:"
@@ -71,12 +85,17 @@ then
 	mkdir $2/lib/racr
 	rm -rf $2/lib/siple
 	mkdir $2/lib/siple
+	rm -rf $2/lib/petrinets
+	mkdir $2/lib/petrinets
 	
 	# Copy source files:
 	cp $1/racr/racr.scm $2/lib/racr/racr.sls
 	cp $1/racr/racr-test-api.scm $2/lib/racr/racr-test-api.sls
 	for (( i=0; i<${#siple_sources[*]}; i++ )) do
 		cp $1/examples/siple/${siple_sources[i]}.scm $2/lib/siple/${siple_sources[i]}.sls
+	done
+	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
+		cp $1/examples/petrinets/${petrinets_sources[i]}.scm $2/lib/petrinets/${petrinets_sources[i]}.sls
 	done
 	
 	# Create temporary compile script:
@@ -86,6 +105,9 @@ then
 	echo "(compile-library \"$2/lib/racr/racr-test-api.sls\")" >> racr-compile.sch
 	for (( i=0; i<${#siple_sources[*]}; i++ )) do
 		echo "(compile-library \"$2/lib/siple/${siple_sources[i]}.sls\")" >> racr-compile.sch
+	done
+	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
+		echo "(compile-library \"$2/lib/petrinets/${petrinets_sources[i]}.sls\")" >> racr-compile.sch
 	done
 	
 	# Execute compile script:
