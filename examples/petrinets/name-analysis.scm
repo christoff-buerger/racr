@@ -18,7 +18,7 @@
       
       (ag-rule
        find-transition
-       (Petrinet
+       (AtomicPetrinet
         (lambda (n name)
           (ast-find-child
            (lambda (i transition)
@@ -27,7 +27,7 @@
       
       (ag-rule
        find-place
-       (Petrinet
+       (AtomicPetrinet
         (lambda (n name)
           (ast-find-child
            (lambda (i place)
@@ -35,8 +35,37 @@
            (ast-child 'Place* n)))))
       
       (ag-rule
+       find-inport
+       (AtomicPetrinet
+        (lambda (n name)
+          (ast-find-child
+           (lambda (i port)
+             (and
+              (eq? (ast-child 'place port) name)
+              (ast-subtype? port 'InPort)))
+           (ast-child 'Port* n)))))
+      
+      (ag-rule
+       find-subnet
+       
+       (ComposedPetrinet
+        (lambda (n name)
+          (or
+           (att-value 'find-subnet (ast-child 'Net1 n) name)
+           (att-value 'find-subnet (ast-child 'Net2 n) name))))
+       
+       (AtomicPetrinet
+        (lambda (n name)
+          (and (eq? (ast-child 'name n) name) n))))
+      
+      (ag-rule
        place
+       
        (Arc
+        (lambda (n)
+          (att-value 'find-place n (ast-child 'place n))))
+       
+       (Port
         (lambda (n)
           (att-value 'find-place n (ast-child 'place n)))))
       

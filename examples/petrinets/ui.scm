@@ -10,6 +10,7 @@
  (export
   make-petrinet
   make-transition
+  compose-petrinets
   petrinets-exception?
   throw-petrinets-exception)
  (import (rnrs) (racr) (petrinets ast))
@@ -19,9 +20,9 @@
  (define throw-petrinets-exception
    (lambda (message)
      (raise-continuable
-       (condition
-        (make-petrinets-exception)
-        (make-message-condition message)))))
+      (condition
+       (make-petrinets-exception)
+       (make-message-condition message)))))
  
  (define initialize-places
    (lambda (petrinet)
@@ -49,13 +50,19 @@
        (lambda (l)
          (for-all identifier? l)))
      (syntax-case x ()
-       ((_ ((place start-marking ...) ...) transition ... )
-        (identifier-list? #'(place ...))
+       ((_ name (inport ...) (outport ...) ((place start-marking ...) ...) transition ... )
+        (and
+         (identifier? #'name)
+         (identifier-list? #'(inport ...))
+         (identifier-list? #'(outport ...))
+         (identifier-list? #'(place ...)))
         #`(let ((pn
                  (create-ast
                   petrinet-spec
-                  'Petrinet
+                  'AtomicPetrinet
                   (list
+                   #f
+                   'name
                    (create-ast-list
                     (list
                      (create-ast
@@ -68,12 +75,16 @@
                          (create-ast petrinet-spec 'Token (list start-marking)) ...)))) ...))
                    (create-ast-list
                     (list
-                     transition ...))))))
+                     transition ...))
+                   (create-ast-list
+                    (list
+                     (create-ast petrinet-spec 'InPort (list 'inport)) ...
+                     (create-ast petrinet-spec 'OutPort (list 'outport)) ...))))))
+            ; Initialize the places without explicit start marking:
+            (initialize-places pn)
             ; Ensure, that the petrinet is well-formed:
             (unless (att-value 'well-formed? pn)
               (throw-petrinets-exception "Cannot construct Petrinet; The Petrinet is not well-formed."))
-            ; Initialize the places without explicit start marking:
-            (initialize-places pn)
             ; Return the constructed Petrinet:
             pn)))))
  
@@ -89,31 +100,51 @@
          (identifier-list? #'(variable ... ...))
          (identifier-list? #'(input-place ...))
          (identifier-list? #'(output-place ...)))
-        #`(let ((transition
-                 (create-ast
-                  petrinet-spec
-                  'Transition
-                  (list
-                   'name
-                   (create-ast-list
-                    (list
-                     (create-ast
-                      petrinet-spec
-                      'Arc
-                      (list
-                       'input-place
-                       (list
-                        (lambda (variable)
-                          matching-condition) ...))) ...))
-                   (create-ast-list
-                    (list
-                     (create-ast
-                      petrinet-spec
-                      'Arc
-                      (list
-                       'output-place
-                       (lambda (variable ... ...)
-                         (list to-produce ...)))) ...))))))
-            (unless (att-value 'unique-input-places? transition)
-              (throw-petrinets-exception "Cannot construct transition; The transition's input places are not unique."))
-            transition))))))
+        #`(create-ast
+           petrinet-spec
+           'Transition
+           (list
+            'name
+            (create-ast-list
+             (list
+              (create-ast
+               petrinet-spec
+               'Arc
+               (list
+                'input-place
+                (list
+                 (lambda (variable)
+                   matching-condition) ...))) ...))
+            (create-ast-list
+             (list
+              (create-ast
+               petrinet-spec
+               'Arc
+               (list
+                'output-place
+                (lambda (variable ... ...)
+                  (list to-produce ...)))) ...))))))))
+ 
+ (define-syntax compose-petrinets
+   (lambda (x)
+     (syntax-case x ()
+       ((_ net1 net2 (((out-net out-port) (in-net in-port)) ...))
+        (for-all identifier? #'(out-net ... out-port ... in-net ... in-port ...))
+        #'(begin
+            (rewrite-terminal 'issubnet net1 #t)
+            (rewrite-terminal 'issubnet net2 #t)
+            (create-ast
+             petrinet-spec
+             'ComposedPetrinet
+             (list
+              #f
+              net1
+              net2
+              (create-ast-list
+               (list
+                (create-ast
+                 petrinet-spec
+                 'Glueing
+                 (list
+                  (cons 'out-net 'out-port)
+                  (cons 'in-net 'in-port))) ...))))))))))

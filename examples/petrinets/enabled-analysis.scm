@@ -24,7 +24,7 @@
        enabled?
        
        ; An arc whose target is a transition is enabled if its source
-       ; input place provides the tokens the arc consumes:
+       ; place, or any place it fused with, provides the tokens the arc consumes:
        (Arc
         (lambda (n)
           (let ((bindings
@@ -35,27 +35,37 @@
                 (num-to-bind (length (ast-child 'functionlabel n))))
             (call/cc
              (lambda (abort-search)
-               (ast-for-each-child
-                (lambda (i token)
-                  (let ((binding?
-                         (find
-                          (lambda (binding)
-                            (and
-                             (eq? (car binding) UNDEFINED)
-                             ((cdr binding) (ast-child 'value token))))
-                          bindings)))
-                    (when binding?
-                      (set-car! binding? token)
-                      (set! num-to-bind (- num-to-bind 1))
-                      (when (= num-to-bind 0)
-                        (abort-search
-                         (map
-                          car
-                          bindings))))))
-                (ast-child 'Token* (att-value 'place n)))
+               (let loop ((place (att-value 'place n))
+                          (places-checked (list (att-value 'place n))))
+                 (ast-for-each-child
+                  (lambda (i token)
+                    (let ((binding?
+                           (find
+                            (lambda (binding)
+                              (and
+                               (eq? (car binding) UNDEFINED)
+                               ((cdr binding) (ast-child 'value token))))
+                            bindings)))
+                      (when binding?
+                        (set-car! binding? token)
+                        (set! num-to-bind (- num-to-bind 1))
+                        (when (= num-to-bind 0)
+                          (abort-search
+                           (map
+                            car
+                            bindings))))))
+                  (ast-child 'Token* place))
+                 (let* ((inport-glueing? (att-value 'is-glued-as-inport? place))
+                        (fused-place?
+                         (and
+                          inport-glueing?
+                          (att-value 'place (att-value 'outport inport-glueing?)))))
+                   (when (and inport-glueing? (not (memq fused-place? places-checked)))
+                     (loop fused-place? (cons fused-place? places-checked)))))
                #f)))))
        
-       ; A transition is enabled if all the arcs which have the transition as target are enabled:
+       ; A transition is enabled if all the arcs which
+       ; have the transition as target are enabled:
        (Transition
         (lambda (n)
           (call/cc
@@ -70,9 +80,15 @@
                    bindings?))
                (ast-children (ast-child 'In n))))))))
        
-       (Petrinet
+       (AtomicPetrinet
         (lambda (n)
           (filter
            (lambda (transition)
              (att-value 'enabled? transition))
-           (ast-children (ast-child 'Transition* n))))))))))
+           (ast-children (ast-child 'Transition* n)))))
+       
+       (ComposedPetrinet
+        (lambda (n)
+          (append
+           (att-value 'enabled? (ast-child 'Net1 n))
+           (att-value 'enabled? (ast-child 'Net2 n))))))))))

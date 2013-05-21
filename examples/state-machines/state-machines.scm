@@ -259,3 +259,5 @@
     
     ; Test sm-3:
     (assert (not (att-value 'correct? sm-3)))))
+
+(run-tests)

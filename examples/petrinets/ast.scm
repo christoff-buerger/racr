@@ -18,7 +18,13 @@
    (lambda ()
      (with-specification
       petrinet-spec
-      (ast-rule 'Petrinet->Place*-Transition*)
+      (ast-rule 'Petrinet->issubnet)
+      (ast-rule 'AtomicPetrinet:Petrinet->name-Place*-Transition*-Port*)
+      (ast-rule 'ComposedPetrinet:Petrinet->Petrinet<Net1-Petrinet<Net2-Glueing*)
+      (ast-rule 'Glueing->outport-inport)
+      (ast-rule 'Port->place)
+      (ast-rule 'InPort:Port->)
+      (ast-rule 'OutPort:Port->)
       (ast-rule 'Place->name-Token*)
       (ast-rule 'Token->value)
       (ast-rule 'Transition->name-Arc*<In-Arc*<Out)

@@ -42,10 +42,11 @@ declare -a siple_sources=(
 # Declare array of Petrinet Language source files ordered w.r.t. their compilation dependencies:
 declare -a petrinets_sources=(
 	ast
+	access-support
 	name-analysis
+	composition-analysis
 	well-formedness-analysis
 	enabled-analysis
-	data-flow-analyses
 	ui
 	main)
 
@@ -76,6 +77,10 @@ then
 		echo ${tests[i]}
 		$2/bin/plt-r6rs ${tests[i]}
 	done
+	echo $1/examples/state-machines/state-machines.scm
+	$2/bin/plt-r6rs $1/examples/state-machines/state-machines.scm
+	echo $1/examples/petrinets/examples/purchase-processing.scm
+	$2/bin/plt-r6rs $1/examples/petrinets/examples/purchase-processing.scm
 else if [ -f $2/larceny ]
 then
 	echo "=========================================>>> Install RACR for Larceny:"
@@ -121,6 +126,8 @@ then
 		echo ${tests[i]}
 		$2/larceny --r6rs --path $2/lib/racr --program ${tests[i]}
 	done
+	echo $1/examples/state-machines/state-machines.scm
+	$2/larceny --r6rs --path $2/lib/racr --program $1/examples/state-machines/state-machines.scm
 else
 	echo "Unknown Scheme distribution - only Larceny and Racket are supported."
 fi fi

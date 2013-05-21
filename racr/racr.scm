@@ -20,6 +20,7 @@
   (rename
    (racr-specification-specification-phase specification->phase)
    (racr-specification-find-rule specification->find-ast-rule)
+   (ast-rule-supertype? ast-rule->supertype)
    (symbol-name symbol->name)
    (symbol-non-terminal? symbol->non-terminal?)
    (symbol-kleene? symbol->kleene?)
@@ -772,28 +773,6 @@
           "Invalid AST grammar; "
           "The start symbol " start-symbol " is not defined."))
        
-       ;;; Ensure, that the start symbol has no super- and subtype:
-       (let ((supertype (ast-rule-supertype? (racr-specification-find-rule spec start-symbol))))
-         (when supertype
-           (throw-exception
-            "Invalid AST grammar; "
-            "The start symbol " start-symbol " inherits from " (ast-rule-as-symbol supertype) ".")))
-       (let ((subtypes (ast-rule-subtypes (racr-specification-find-rule spec start-symbol))))
-         (unless (null? subtypes)
-           (throw-exception
-            "Invalid AST grammar; "
-            "The rules " (map ast-rule-as-symbol subtypes) " inherit from the start symbol " start-symbol ".")))
-       
-       ;;; Ensure, that the CFG is start separated:
-       (let ((start-rule (racr-specification-find-rule spec start-symbol)))
-         (for-each
-          (lambda (rule*)
-            (when (memq start-rule (derivable-rules rule*))
-              (throw-exception
-               "Invalid AST grammar; "
-               "The start symbol " start-symbol " is not start separated because of rule " (ast-rule-as-symbol rule*) ".")))
-          rules-list))
-       
        ;;; Resolve inherited production symbols:
        (apply-wrt-ast-inheritance
         (lambda (rule)
@@ -830,7 +809,8 @@
         rules-list)
        
        ;;; Ensure, that all non-terminals can be derived from the start symbol:
-       (let* ((to-check (list (racr-specification-find-rule spec start-symbol)))
+       (let* ((start-rule (racr-specification-find-rule spec start-symbol))
+              (to-check (cons start-rule (ast-rule-subtypes start-rule)))
               (checked (list)))
          (let loop ()
            (unless (null? to-check)
