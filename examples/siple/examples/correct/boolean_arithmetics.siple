@@ -10,21 +10,19 @@ Procedure main() Begin
 	t := true;
 	f := false;
 	
-	Write t;
-	Write f;
+	Assert t;
+	Assert Not f;
+	Assert Not (Not t);
 	
-	Write Not t;
-	Write Not f;
+	Assert t And t;
+	Assert Not (t And f);
+	Assert Not (f And t);
+	Assert Not (f And f);
 	
-	Write t And t;
-	Write t And f;
-	Write f And t;
-	Write f And f;
+	Assert t Or t;
+	Assert t Or f;
+	Assert f Or t;
+	Assert Not (f Or f);
 	
-	Write t Or t;
-	Write t Or f;
-	Write f Or t;
-	Write f Or f;
-	
-	Write Not (f Or (t And t) And f);
+	Assert Not (f Or (t And t) And f);
 End;

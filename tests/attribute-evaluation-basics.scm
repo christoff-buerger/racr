@@ -72,11 +72,17 @@
       (assert (= 2 (att-value 'non-circular ast)))
       (assert (equal? (att-value 'circular ast) (cons 10 32)))
       (assert (equal? (att-value 'circular ast) (cons 10 43)))
-      (with-exception-handler
-       (lambda (exc)
-         (or (racr-exception? exc) (raise exc)))
-       (lambda ()
-         (att-value 'cycle-error ast))))
+      (assert
+       (call/cc
+        (lambda (k)
+          (with-exception-handler
+           (lambda (exc)
+             (if (racr-exception? exc)
+                 (k #t)
+                 (raise exc)))
+           (lambda ()
+             (att-value 'cycle-error ast)
+             #f))))))
     
     (let ((ast (initialize-basic-tests #t)))
       (assert (equal? (att-value 'circular ast) (cons 10 10)))
@@ -85,11 +91,17 @@
       (assert (= 1 (att-value 'non-circular ast)))
       (assert (equal? (att-value 'circular ast) (cons 10 10)))
       (assert (equal? (att-value 'circular ast) (cons 10 10)))
-      (with-exception-handler
-       (lambda (exc)
-         (or (racr-exception? exc) (raise exc)))
-       (lambda ()
-         (att-value 'cycle-error ast))))
+      (assert
+       (call/cc
+        (lambda (k)
+          (with-exception-handler
+           (lambda (exc)
+             (if (racr-exception? exc)
+                 (k #t)
+                 (raise exc)))
+           (lambda ()
+             (att-value 'cycle-error ast)
+             #f))))))
     
     (letrec ((ast-cached (initialize-fibonacci-numbers #t))
              (ast-not-cached (initialize-fibonacci-numbers #f))

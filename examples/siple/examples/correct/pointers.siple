@@ -70,81 +70,81 @@ End;
 Procedure main() Begin
 	initialize(); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BASIC POINTER FUNCTIONALLITIES
 	
-	Write Deref(Address(i1)) = i1; Write Deref(Address(i2)) = i2;
+	Assert Deref(Address(i1)) = i1; Assert Deref(Address(i2)) = i2;
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
-	
-	globalSwap();
-	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i2); Write p2 = Address(i1);
-	Write Deref(p1) = i2; Write Deref(p2) = i1;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	globalSwap();
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i2); Assert p2 = Address(i1);
+	Assert Deref(p1) = i2; Assert Deref(p2) = i1;
+	
+	globalSwap();
+	
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	p1 := p2;
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 = p2; Write p1 = Address(i2); Write p2 = Address(i2);
-	Write Deref(p1) = i2; Write Deref(p2) = i2;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 = p2; Assert p1 = Address(i2); Assert p2 = Address(i2);
+	Assert Deref(p1) = i2; Assert Deref(p2) = i2;
 	
 	p1 := Address(i1);
 	p2 := Address(i1);
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 = p2; Write p1 = Address(i1); Write p2 = Address(i1);
-	Write Deref(p1) = i1; Write Deref(p2) = i1;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 = p2; Assert p1 = Address(i1); Assert p2 = Address(i1);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i1;
 	
 	initialize(); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALL BY VALUE
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	swap1(i1, i2);
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	swap2(p1, p2);
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	initialize(); %%%%%%%% FUNCTIONS WITH INDIRECT MANIPULATIONS USING POINTERS
 	
-	Write i1 = 1; Write i2 = -1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	Assert i1 = 1; Assert i2 = -1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	swap3(p1, p2);
 	
-	Write i1 = -1; Write i2 = 1;
-	Write p1 # p2; Write p1 = Address(i1); Write p2 = Address(i2);
-	Write Deref(p1) = i1; Write Deref(p2) = i2;
+	Assert i1 = -1; Assert i2 = 1;
+	Assert p1 # p2; Assert p1 = Address(i1); Assert p2 = Address(i2);
+	Assert Deref(p1) = i1; Assert Deref(p2) = i2;
 	
 	swap4(Address(p1), Address(p2));
 	
-	Write i1 = -1; Write i2 = 1;
-	Write p1 # p2; Write p1 = Address(i2); Write p2 = Address(i1);
-	Write Deref(p1) = i2; Write Deref(p2) = i1;
+	Assert i1 = -1; Assert i2 = 1;
+	Assert p1 # p2; Assert p1 = Address(i2); Assert p2 = Address(i1);
+	Assert Deref(p1) = i2; Assert Deref(p2) = i1;
 	
 	initialize(); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTION POINTERS
 	
 	procp := procDummyOne;
-	Write Call(procp : p1, 1) = 1;
+	Assert Call(procp : p1, 1) = 1;
 	
 	procp := procDummyTwo;
-	Write Call(procp : p1, 1) = 2;
+	Assert Call(procp : p1, 1) = 2;
 	
 	procp := procDummyOne;
-	Write Call(procp : p1, 1) = 1;
+	Assert Call(procp : p1, 1) = 1;
 End;

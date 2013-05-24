@@ -14,13 +14,13 @@
   token-type
   token-value
   construct-lexer)
- (import (rnrs))
+ (import (rnrs) (siple exception-api))
  
  (define-record-type token
    (fields source line column type value))
  
  (define construct-lexer
-   (lambda (input-name input-port tabulator-size error-continuation)
+   (lambda (input-name input-port tabulator-size)
      (letrec (;;; Lexer IO support functions:
               (line-position 1)
               (column-position 1)
@@ -44,9 +44,9 @@
                (lambda () (peek-char input-port)))
               (lexer-error
                (lambda (message character)
-                 (error-continuation ; Abort lexing with error message
+                 (throw-siple-exception ; Abort lexing with error message
                   (string-append
-                   "Lexical Error ("
+                   "Lexer Error ("
                    (number->string line-position)
                    ","
                    (number->string column-position)
@@ -215,6 +215,8 @@
                    (new-token 'Write id))
                   ((string=? id "Read")
                    (new-token 'Read id))
+                  ((string=? id "Assert")
+                   (new-token 'Assert id))
                   ((string=? id "Boolean")
                    (new-token 'Boolean id))
                   ((string=? id "Integer")

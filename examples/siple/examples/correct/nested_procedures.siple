@@ -7,10 +7,10 @@ Var x:Integer;
 Var y:Integer;
 Var z:Integer;
 
-Procedure writeGlob() Begin
-	Write x;
-	Write y;
-	Write z;
+Procedure writeGlob(Var a:Integer, Var b:Integer, Var c:Integer) Begin
+	Assert x = a;
+	Assert y = b;
+	Assert z = c;
 End;
 
 Procedure incGlobVars() Begin
@@ -27,48 +27,48 @@ Procedure main() Begin
 	Var x:Integer;
 	x := 100;
 	
-	Procedure writeMain() Begin
-		Write x;
-		Write y;
-		Write z;
+	Procedure writeMain(Var a:Integer, Var b:Integer, Var c:Integer) Begin
+		Assert x = a;
+		Assert y = b;
+		Assert z = c;
 	End;
 	
 	Procedure l1() Begin
 		Var y:Integer;
 		y := x + 100;
 		
-		Procedure writeL1() Begin
-			Write x;
-			Write y;
-			Write z;
+		Procedure writeL1(Var a:Integer, Var b:Integer, Var c:Integer) Begin
+			Assert x = a;
+			Assert y = b;
+			Assert z = c;
 		End;
 		
 		Procedure l2() Begin
 			Var z:Integer;
 			z := y + 100;
 			
-			Procedure writeL2() Begin
-				Write x;
-				Write y;
-				Write z;
+			Procedure writeL2(Var a:Integer, Var b:Integer, Var c:Integer) Begin
+				Assert x = a;
+				Assert y = b;
+				Assert z = c;
 			End;
 			
 			incGlobVars();
-			writeGlob();
-			writeMain();
-			writeL1();
-			writeL2();
+			writeGlob(1,1,1);
+			writeMain(100,1,1);
+			writeL1(100,200,1);
+			writeL2(100,200,300);
 		End;
 		
 		l2();
 		incGlobVars();
-		writeGlob();
-		writeMain();
-		writeL1();
+		writeGlob(2,2,2);
+		writeMain(100,2,2);
+		writeL1(100,200,2);
 	End;
 	
 	l1();
 	incGlobVars();
-	writeGlob();
-	writeMain();
+	writeGlob(3,3,3);
+	writeMain(100,3,3);
 End;

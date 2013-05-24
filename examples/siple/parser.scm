@@ -9,10 +9,10 @@
  (siple parser)
  (export
   construct-parser)
- (import (rnrs) (racr) (siple type) (siple lexer) (siple type-coercion))
+ (import (rnrs) (racr) (siple exception-api) (siple type) (siple lexer) (siple type-coercion))
  
  (define construct-parser
-   (lambda (lexer siple-specification perform-type-coercions? error-continuation)
+   (lambda (lexer siple-specification perform-type-coercions?)
      (with-specification
       siple-specification
       (letrec (;;; Parser IO support functions:
@@ -36,9 +36,9 @@
                       (parser-error error-message))))
                (parser-error
                 (lambda (message)
-                  (error-continuation ; Abort parsing with error message
+                  (throw-siple-exception ; Abort parsing with error message
                    (string-append
-                    "Syntax Error ("
+                    "Parser Error ("
                     (number->string line)
                     ","
                     (number->string column)
@@ -168,6 +168,9 @@
                                ((match-token? 'Read)
                                 (read-next-token) ; Consume the "Read"
                                 (create-ast 'Read (list (parse-l-value-expression))))
+                               ((match-token? 'Assert)
+                                (read-next-token) ; Consume the "Assert"
+                                (create-ast 'Assertion (list (parse-expression))))
                                (else (parser-error "Malformed statement. Unexpected token.")))))
                         (match-token! 'SEMICOLON "Malformed statement. Statement not properly finished; Missing [;].")
                         stmt))))

@@ -22,15 +22,15 @@ Procedure main() Begin
 	Var pc02:Procedure ():Integer;
 	pc02 := c0(100);
 	
-	Write pc01 # pc02;
-	Write pc01() = -103;
-	Write pc02() = 97;
+	Assert pc01 # pc02;
+	Assert pc01() = -103;
+	Assert pc02() = 97;
 	
 	pc01 := pc02;
 	
-	Write pc01 = pc02;
-	Write pc01() = 97;
-	Write pc02() = 97;
+	Assert pc01 = pc02;
+	Assert pc01() = 97;
+	Assert pc02() = 97;
 	
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMPLE POINTER CLOSURES
 	
@@ -63,18 +63,18 @@ Procedure main() Begin
 	Var p6:Pointer(Integer);
 	p6 := c1();
 	
-	Write p1 # p2 And p1 # p3 And p1 # p4 And p1 # p5 And p1 # p6;
-	Write p2 # p3 And p2 # p4 And p2 # p5 And p2 # p6;
-	Write p3 # p4 And p3 # p5 And p3 # p6;
-	Write p4 # p5 And p4 # p6;
-	Write p5 # p6;
+	Assert p1 # p2 And p1 # p3 And p1 # p4 And p1 # p5 And p1 # p6;
+	Assert p2 # p3 And p2 # p4 And p2 # p5 And p2 # p6;
+	Assert p3 # p4 And p3 # p5 And p3 # p6;
+	Assert p4 # p5 And p4 # p6;
+	Assert p5 # p6;
 	
-	Write Deref(p1) = 1;
-	Write Deref(p2) = 2;
-	Write Deref(p3) = -1; 
-	Write Deref(p4) = 1;
-	Write Deref(p5) = 2;
-	Write Deref(p6) = 1;
+	Assert Deref(p1) = 1;
+	Assert Deref(p2) = 2;
+	Assert Deref(p3) = -1; 
+	Assert Deref(p4) = 1;
+	Assert Deref(p5) = 2;
+	Assert Deref(p6) = 1;
 	
 	Deref(p1) := -Deref(p1);
 	Deref(p2) := -Deref(p2);
@@ -82,18 +82,18 @@ Procedure main() Begin
 	Deref(p4) := -Deref(p4);
 	Deref(p5) := -Deref(p5);
 	
-	Write p1 # p2 And p1 # p3 And p1 # p4 And p1 # p5 And p1 # p6;
-	Write p2 # p3 And p2 # p4 And p2 # p5 And p2 # p6;
-	Write p3 # p4 And p3 # p5 And p3 # p6;
-	Write p4 # p5 And p4 # p6;
-	Write p5 # p6;
+	Assert p1 # p2 And p1 # p3 And p1 # p4 And p1 # p5 And p1 # p6;
+	Assert p2 # p3 And p2 # p4 And p2 # p5 And p2 # p6;
+	Assert p3 # p4 And p3 # p5 And p3 # p6;
+	Assert p4 # p5 And p4 # p6;
+	Assert p5 # p6;
 	
-	Write Deref(p1) = -1;
-	Write Deref(p2) = -2;
-	Write Deref(p3) = 1; 
-	Write Deref(p4) = -1;
-	Write Deref(p5) = -2;
-	Write Deref(p6) = 1;
+	Assert Deref(p1) = -1;
+	Assert Deref(p2) = -2;
+	Assert Deref(p3) = 1; 
+	Assert Deref(p4) = -1;
+	Assert Deref(p5) = -2;
+	Assert Deref(p6) = 1;
 	
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COMPLEX POINTER CLOSURES
 	
@@ -115,17 +115,17 @@ Procedure main() Begin
 	Var ap2:Pointer(Integer);
 	ap2 := proc();
 	
-	Write ap1 = ap2;
-	Write Deref(ap1) = 100; Write Deref(ap2) = 100;
+	Assert ap1 = ap2;
+	Assert Deref(ap1) = 100; Assert Deref(ap2) = 100;
 	
 	Deref(ap1) := -99;
 	Deref(ap2) := 99;
 	
-	Write ap1 = ap2;
-	Write Deref(ap1) = 99; Write Deref(ap2) = 99;
+	Assert ap1 = ap2;
+	Assert Deref(ap1) = 99; Assert Deref(ap2) = 99;
 	
 	ap2 := Call(c4());
 	
-	Write ap1 # ap2;
-	Write Deref(ap1) = 99; Write Deref(ap2) = 100;
+	Assert ap1 # ap2;
+	Assert Deref(ap1) = 99; Assert Deref(ap2) = 100;
 End;

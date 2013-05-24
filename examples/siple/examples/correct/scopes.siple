@@ -10,50 +10,50 @@ Procedure main() Begin
 	x := 1;
 	y := 2;
 	
-	Write x = 1;
-	Write y = 2;
+	Assert x = 1;
+	Assert y = 2;
 	
 	Begin
-		Write x = 1;
-		Write y = 2;
+		Assert x = 1;
+		Assert y = 2;
 		
 		Var x:Boolean;
 		x := true;
 		
-		Write x = true;
-		Write y = 2;
+		Assert x = true;
+		Assert y = 2;
 		
 		Begin
-			Write x = true;
-			Write y = 2;
+			Assert x = true;
+			Assert y = 2;
 			
 			Var y:Boolean;
 			y := true;
 			
-			Write x = true;
-			Write y = true;
+			Assert x = true;
+			Assert y = true;
 		End;
 		
-		Write x = true;
-		Write y = 2;
+		Assert x = true;
+		Assert y = 2;
 		
 		Begin
-			Write x = true;
-			Write y = 2;
+			Assert x = true;
+			Assert y = 2;
 			
 			Var x:Real;
 			Var y:Real;
 			x := -1.0;
 			y := -2.0;
 			
-			Write x = -1.0;
-			Write y = -2.0;
+			Assert x = -1.0;
+			Assert y = -2.0;
 		End;
 		
-		Write x = true;
-		Write y = 2;
+		Assert x = true;
+		Assert y = 2;
 	End;
 	
-	Write x = 1;
-	Write y = 2;
+	Assert x = 1;
+	Assert y = 2;
 End;

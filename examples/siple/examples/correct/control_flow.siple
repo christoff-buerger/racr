@@ -5,15 +5,20 @@
 
 Procedure main() Begin
 	Var t:Boolean;
-	Var f:Boolean;
+	Var f1:Boolean;
+	Var f2:Boolean;
+	Var f3:Boolean;
 	
 	t := true;
-	f := false;
+	f1 := true;
+	f2 := true;
+	f3 := true;
 	
-	If t Then Write 1; Fi;
-	If t Then Write 2; Else Write 3; Fi;
-	If f Then Write 4; Fi;
-	If f Then Write 5; Else Write 6; Fi;
+	If t Then f1 := false; Fi;
+	If t Then f2 := false; Else Assert false; Fi;
+	If f1 Then Assert false; Fi;
+	If f2 Then Assert false; Else f3 := false; Fi;
+	Assert Not f3;
 	
 	% Compute the faculty of r
 	Var r:Integer;
@@ -24,5 +29,5 @@ Procedure main() Begin
 		n := n - 1;
 		r := n * r;
 	Od;
-	Write r;
+	Assert r = 479001600;
 End;

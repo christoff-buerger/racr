@@ -4,10 +4,10 @@
 % author: C. Bürger
 
 Procedure main() Begin
-	Write id(3);
-	Write faculty(12);
-	Write fibonacci(10);
-	mr(10);
+	Assert id(3) = 3;
+	Assert faculty(12) = 479001600;
+	Assert fibonacci(10) = 89;
+	Assert mr(10) = -1;
 End;
 
 % Identity
@@ -35,18 +35,18 @@ Procedure fibonacci(Var n:Integer):Integer Begin
 End;
 
 % Mutual recursive example function
-Procedure mr(Var n:Integer) Begin
-	mr1(n, n);
+Procedure mr(Var n:Integer):Integer Begin
+	Return mr1(n, n);
 End;
 
-Procedure mr1(Var lb:Integer, Var ub:Integer) Begin
+Procedure mr1(Var lb:Integer, Var ub:Integer):Integer Begin
 	If lb >= 0 Then
-		Write lb;
-		mr2(lb - 1, ub);
+		Return mr2(lb - 1, ub);
+	Else
+		Return lb;
 	Fi;
 End;
 
-Procedure mr2(Var lb:Integer, Var ub:Integer) Begin
-	Write ub;
-	mr1(lb, ub + 1);
+Procedure mr2(Var lb:Integer, Var ub:Integer):Integer Begin
+	Return mr1(lb, ub + 1);
 End;

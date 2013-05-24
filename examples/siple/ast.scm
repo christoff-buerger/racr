@@ -27,6 +27,7 @@
       (ast-rule 'ProcedureReturn:Statement->Expression*)
       (ast-rule 'Write:Statement->Expression)
       (ast-rule 'Read:Statement->Expression)
+      (ast-rule 'Assertion:Statement->Expression)
       
       (ast-rule 'Declaration:Statement->name)
       (ast-rule 'ProcedureDeclaration:Declaration->VariableDeclaration*<Parameters-returntype-Block<Body)

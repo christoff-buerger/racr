@@ -27,7 +27,7 @@ Procedure test3() Begin
 End;
 
 Procedure main() Begin
-	test1(true);
-	test2(2);
+	Assert test1(true) = 1;
+	Assert test2(2) = 2;
 	test3();
 End;

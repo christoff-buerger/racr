@@ -9,10 +9,11 @@
  (siple main)
  (export
   siple-specification
-  interpret)
+  siple-interpret)
  (import
   (rnrs)
   (racr)
+  (siple exception-api)
   (siple type)
   (siple state)
   (siple lexer)
@@ -26,22 +27,36 @@
   (siple well-formedness)
   (siple interpreter))
  
- (define interpret
-   (lambda (input-file-name)
-     (let* ((input-port (open-input-file input-file-name)))
-       (dynamic-wind
-        (lambda () #f)
-        (lambda ()
-          (display
-           (call/cc
-            (lambda (k)
-              (let* ((lexer (construct-lexer input-file-name input-port 4 k))
-                     (parser (construct-parser lexer siple-specification #t k))
-                     (ast (parser)))
-                (weave-interpreter ast)
-                (k (state-std-out ((ast-annotation ast 'interpret)))))))))
-        (lambda ()
-          (close-port input-port))))))
+ (define siple-interpret
+   (case-lambda
+     (()
+      (display "Enter SiPLE Program (Finish with EOF Character).\n")
+      (let ((program (get-string-all (current-input-port))))
+        (display "Program Entered. Process Program...\n")
+        (siple-interpret (open-string-input-port program))))
+     ((input)
+      (siple-interpret input (current-output-port)))
+     ((input output-port)
+      (let* ((input-port
+              (cond
+                ((string? input)
+                 (open-input-file input))
+                ((input-port? input)
+                 input)
+                (else (throw-siple-exception "Unknown input; File name or input-port expected.")))))
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+           (let* ((lexer (construct-lexer input-port input-port 4))
+                  (parser (construct-parser lexer siple-specification #t))
+                  (ast (parser)))
+             (weave-interpreter ast)
+             ((ast-annotation ast 'interpret) output-port)
+             ; Arbitrary procedure application that does not return anything.
+             ; Avoids printing the interpretation's result state:
+             (let ((dummy-var #f)) (set! dummy-var #f))))
+         (lambda ()
+           (close-port input-port)))))))
  
  ; Initialize SiPLE:
  (define siple-specification (create-specification))

@@ -19,7 +19,6 @@ Procedure main() Begin
 	If p Then Write 7; Fi;
 	If p Then Write 8; Else Write 9; Fi;
 	
-	% Compute the faculty of r
 	While i Do Od;
 	While r Do Od;
 	While p Do Od;

@@ -10,23 +10,23 @@ Procedure main() Begin
 	i := 3;
 	r := 3.5;
 	
-	Write i + i;
-	Write i + r;
-	Write i - i;
-	Write i - r;
-	Write i * i;
-	Write i * r;
-	Write i / i;
-	Write i / r;
+	Assert (i + i) = 6;
+	Assert (i + r) = 6.5;
+	Assert (i - i) = 0;
+	Assert (i - r) = -0.5;
+	Assert (i * i) = 9;
+	Assert (i * r) = 10.5;
+	Assert (i / i) = 1;
+	Assert (i / r) = 0.8571428571428571;
 	
-	Write r + r;
-	Write r + i;
-	Write r - r;
-	Write r - i;
-	Write r * r;
-	Write r * i;
-	Write r / r;
-	Write r / i;
+	Assert (r + r) = 7.0;
+	Assert (r + i) = 6.5;
+	Assert (r - r) = 0.0;
+	Assert (r - i) = 0.5;
+	Assert (r * r) = 12.25;
+	Assert (r * i) = 10.5;
+	Assert (r / r) = 1.0;
+	Assert (r / i) = 1.1666666666666667;
 	
-	Write i * (r - i) + r;
+	Assert (i * (r - i) + r) = 5.0;
 End;

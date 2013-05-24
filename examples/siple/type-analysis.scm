@@ -18,7 +18,9 @@
       
       (ag-rule
        type
-       ;;; Statements with Type Constraints:
+       
+       ;;; Declarations' Type:
+       
        (VariableDeclaration
         (lambda (n)
           (ast-child 'declaredtype n)))
@@ -33,42 +35,6 @@
                 (set! paras (append paras (list (att-value 'type n)))))
               (ast-child 'Parameters n))
              paras))))
-       
-       (VariableAssignment
-        (lambda (n)
-          (let ((l-type (att-value 'type (ast-child 'LHand n))))
-            (if (type-pointer? l-type)
-                (type-eq? (type-rtype l-type) (att-value 'type (ast-child 'RHand n)))
-                (type-error-type)))))
-       
-       (ProcedureReturn
-        (lambda (n)
-          (let ((procedure-decl (att-value 'procedure-in-context n)))
-            (if procedure-decl
-                (let ((procedure-rtype (type-rtype (att-value 'type procedure-decl))))
-                  (if (> (ast-num-children (ast-child 'Expression* n)) 0)
-                      (type-eq? (att-value 'type (ast-child 1 (ast-child 'Expression* n))) procedure-rtype)
-                      (if (type-undefined? procedure-rtype)
-                          procedure-rtype
-                          (type-error-type))))
-                (type-error-type)))))
-       
-       (Write
-        (lambda (n)
-          (let ((r-type (att-value 'type (ast-child 'Expression n))))
-            (if (or (type-pointer? r-type) (type-procedure? r-type) (type-undefined? r-type))
-                (type-error-type)
-                r-type))))
-       
-       (Read
-        (lambda (n)
-          (let* ((type (att-value 'type (ast-child 'Expression n)))
-                 (rtype (type-rtype type)))
-            (if (type-pointer? type)
-                (if (or (type-pointer? rtype) (type-procedure? rtype) (type-undefined? rtype))
-                    (type-error-type)
-                    type)
-                (type-error-type)))))
        
        ;;; Expressions' Type:
        

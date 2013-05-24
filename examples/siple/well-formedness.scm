@@ -67,8 +67,8 @@
             (and
              (not (null? (att-value 'cf-local-exits (ast-child 'Body n))))
              (for-all
-               (lambda (n)
-                 (att-value 'procedure-return-in-context n))
+                 (lambda (n)
+                   (att-value 'procedure-return-in-context n))
                (att-value 'cf-local-exits (ast-child 'Body n))))))))
        
        (VariableDeclaration
@@ -85,19 +85,46 @@
        
        (VariableAssignment
         (lambda (n)
-          (not (type-error-type? (att-value 'type n)))))
+          (let ((l-type (att-value 'type (ast-child 'LHand n))))
+            (and
+             (type-pointer? l-type)
+             (type-beq? (type-rtype l-type) (att-value 'type (ast-child 'RHand n)))))))
        
        (ProcedureReturn
         (lambda (n)
-          (not (type-error-type? (att-value 'type n)))))
+          (let* ((procedure-decl (att-value 'procedure-in-context n))
+                 (procedure-rtype (and procedure-decl (type-rtype (att-value 'type procedure-decl)))))
+            (and
+             procedure-rtype
+             (not (type-error-type? procedure-rtype))
+             (if (> (ast-num-children (ast-child 'Expression* n)) 0)
+                 (type-beq? (att-value 'type (ast-child 1 (ast-child 'Expression* n))) procedure-rtype)
+                 (type-undefined? procedure-rtype))))))
        
        (Write
         (lambda (n)
-          (not (type-error-type? (att-value 'type n)))))
+          (let ((r-type (att-value 'type (ast-child 'Expression n))))
+            (not
+             (or
+              (type-pointer? r-type)
+              (type-procedure? r-type)
+              (type-undefined? r-type))))))
        
        (Read
         (lambda (n)
-          (not (type-error-type? (att-value 'type n)))))
+          (let* ((type (att-value 'type (ast-child 'Expression n)))
+                 (rtype (type-rtype type)))
+            (and
+             (type-pointer? type)
+             (not
+              (or
+               (type-pointer? rtype)
+               (type-procedure? rtype)
+               (type-undefined? rtype)))))))
+       
+       (Assertion
+        (lambda (n)
+          (type-boolean? (att-value 'type (ast-child 'Expression n)))))
        
        (Expression
         (lambda (n)

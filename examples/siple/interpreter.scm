@@ -9,7 +9,7 @@
  (siple interpreter)
  (export
   weave-interpreter)
- (import (rnrs) (racr) (siple type) (siple state))
+ (import (rnrs) (racr) (siple type) (siple state) (siple exception-api))
  
  (define weave-interpreter
    (lambda (ast)
@@ -20,17 +20,14 @@
                 node-type
                 'interpret
                 (lambda (n . args)
-                  (if (not (att-value 'local-correct? n))
-                      (assertion-violation
-                       'interpret
-                       "SiPLE interpreter exception: The program is not well-formed."
-                       "no-irritant-available"))
+                  (unless (att-value 'local-correct? n)
+                    (throw-siple-exception "SiPLE Interpreter Error: The program is not well-formed."))
                   (apply interpreter-function n args))))))
        
        (weave
         'CompilationUnit
-        (lambda (n)
-          (let ((vm (make-state (make-frame #f #f (list) 'siple:nil) "")))
+        (lambda (n output-port)
+          (let ((vm (make-state (make-frame #f #f (list) 'siple:nil) output-port)))
             ; Allocate all global variables:
             (ast-for-each-child
              (lambda (i n)
@@ -108,15 +105,9 @@
        (weave
         'Write
         (lambda (n s)
-          (let* ((out-value ((ast-annotation (ast-child 'Expression n) 'interpret) s))
-                 (out
-                  (cond
-                    ((type-number? (att-value 'type n))
-                     (number->string out-value))
-                    (out-value
-                     "true")
-                    (else "false"))))
-            (state-std-out-set! s (string-append (state-std-out s) out "\n")))))
+          (let* ((out-value ((ast-annotation (ast-child 'Expression n) 'interpret) s)))
+            (display out-value (state-output-port s))
+            (display #\newline (state-output-port s)))))
        
        (weave
         'Read
@@ -136,6 +127,12 @@
                  (else
                   (display (string-append "Unexpected value; Expected [" (type-pretty-print type) "]; Enter valid value!\n"))
                   (loop (read)))))))))
+       
+       (weave
+        'Assertion
+        (lambda (n s)
+          (unless ((ast-annotation (ast-child 'Expression n) 'interpret) s)
+            (throw-siple-exception "Assertion Failed!"))))
        
        (weave
         'Constant

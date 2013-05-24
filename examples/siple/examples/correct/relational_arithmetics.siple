@@ -14,61 +14,61 @@ Procedure main() Begin
 	i := 3;
 	r := 3.5;
 	
-	Write t = t;
-	Write t = f;
-	Write f = t;
-	Write f = f;
+	Assert t = t;
+	Assert Not (t = f);
+	Assert Not (f = t);
+	Assert f = f;
 	
-	Write t # t;
-	Write t # f;
-	Write f # t;
-	Write f # f;
+	Assert Not (t # t);
+	Assert t # f;
+	Assert f # t;
+	Assert Not (f # f);
 	
-	Write i = 3;
-	Write i = 2;
-	Write 3 = i;
-	Write 2 = i;
+	Assert i = 3;
+	Assert Not (i = 2);
+	Assert 3 = i;
+	Assert Not (2 = i);
 	
-	Write i # 3;
-	Write i # 2;
-	Write 3 # i;
-	Write 2 # i;
+	Assert Not (i # 3);
+	Assert i # 2;
+	Assert Not (3 # i);
+	Assert 2 # i;
 	
-	Write r = 3.5;
-	Write r = 2.5;
-	Write 3.5 = r;
-	Write 2.5 = r;
+	Assert r = 3.5;
+	Assert Not (r = 2.5);
+	Assert 3.5 = r;
+	Assert Not (2.5 = r);
 	
-	Write r # 3.5;
-	Write r # 2.5;
-	Write 3.5 # r;
-	Write 2.5 # r;
+	Assert Not (r # 3.5);
+	Assert r # 2.5;
+	Assert Not (3.5 # r);
+	Assert 2.5 # r;
 	
-	Write i = 3.0;
-	Write i = r;
-	Write 3.0 = i;
-	Write r = i;
+	Assert i = 3.0;
+	Assert Not (i = r);
+	Assert 3.0 = i;
+	Assert Not (r = i);
 	
-	Write i # 3.0;
-	Write i # r;
-	Write 3.0 # i;
-	Write r # i;
+	Assert Not (i # 3.0);
+	Assert i # r;
+	Assert Not (3.0 # i);
+	Assert r # i;
 	
-	Write i > i;
-	Write i > r;
-	Write i < i;
-	Write i < r;
-	Write i >= i;
-	Write i >= r;
-	Write i <= i;
-	Write i <= r;
+	Assert Not (i > i);
+	Assert Not (i > r);
+	Assert Not (i < i);
+	Assert i < r;
+	Assert i >= i;
+	Assert Not (i >= r);
+	Assert i <= i;
+	Assert i <= r;
 	
-	Write r > r;
-	Write r > i;
-	Write r < r;
-	Write r < i;
-	Write r >= r;
-	Write r >= i;
-	Write r <= r;
-	Write r <= i;
+	Assert Not (r > r);
+	Assert r > i;
+	Assert Not (r < r);
+	Assert Not (r < i);
+	Assert r >= r;
+	Assert r >= i;
+	Assert r <= r;
+	Assert Not (r <= i);
 End;

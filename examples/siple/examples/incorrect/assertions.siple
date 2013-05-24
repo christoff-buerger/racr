@@ -4,13 +4,5 @@
 % author: C. Bürger
 
 Procedure main() Begin
-	Assert 1 = 1.0;
-	Assert 1.0 = 1;
-	Var r:Real;
-	r := 1;
-		
-	Procedure coerce(Var n:Real):Real Begin
-		Return 1;
-	End;
-	Assert coerce(1) = 1.0;
+	Assert false;
 End;

@@ -11,8 +11,7 @@
   make-state
   state-current-frame
   state-current-frame-set!
-  state-std-out
-  state-std-out-set!
+  state-output-port
   state-allocate
   state-access
   make-frame
@@ -28,7 +27,7 @@
  (import (rnrs) (racr))
  
  (define-record-type state
-   (fields (mutable current-frame) (mutable std-out)))
+   (fields (mutable current-frame) output-port))
  
  (define state-allocate
    (lambda (state decl value)
@@ -41,15 +40,10 @@
  (define state-access
    (lambda (state decl)
      (let loop ((frame (state-current-frame state)))
-       (let ((entity (assq decl (frame-environment frame))))
-         (if entity
-             (cdr entity)
-             (if (frame-closure frame)
-                 (loop (frame-closure frame))
-                 (assertion-violation
-                  'state-access
-                  (string-append "SiPLE interpreter implementation error: Access to unallocated variable [" (ast-child 1 decl) "].")
-                  (list state decl))))))))
+       (let ((entity? (assq decl (frame-environment frame))))
+         (if entity?
+             (cdr entity?)
+             (loop (frame-closure frame)))))))
  
  (define-record-type frame
    (fields procedure closure (mutable environment) (mutable return-value)))
