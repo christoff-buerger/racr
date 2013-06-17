@@ -19,7 +19,9 @@
   ; Specification query interface:
   (rename
    (racr-specification-specification-phase specification->phase)
+   (racr-specification-start-symbol specification->start-symbol)
    (racr-specification-find-rule specification->find-ast-rule)
+   (ast-rule-as-symbol ast-rule->symbolic-representation)
    (ast-rule-supertype? ast-rule->supertype)
    (symbol-name symbol->name)
    (symbol-non-terminal? symbol->non-terminal?)

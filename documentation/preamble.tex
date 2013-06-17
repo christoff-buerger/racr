@@ -24,7 +24,7 @@
 % Configure table of contents depth:
 \setcounter{tocdepth}{1}
 
-% Provide support for non-eps pictures:
+% Support non-eps pictures:
 \usepackage{graphicx}
 
 % Define colours (e.g., background colours of listings): 
@@ -93,11 +93,11 @@
 \renewcommand\indexname{API Index}
 \newcommand{\indexfunction}[1]{\index{#1@\lstinline[style=lisp-style];#1;}}
 
-% Support for user specified line space (e.g., in the abstract):
+% Support user specified line space (e.g., in the abstract):
 \usepackage{setspace}
 
 % Configure bibliography:
-\usepackage{biblatex}
+\usepackage[backend=bibtex]{biblatex}
 \DeclareBibliographyCategory{Scheme}
 \DeclareBibliographyCategory{CompilerConstruction}
 \DeclareBibliographyCategory{AG:Foundations}

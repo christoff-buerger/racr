@@ -30,7 +30,7 @@
       (with-output-to-file
           racr-manual.tex
         (lambda ()
-          (write-string "\\documentclass[a4paper,headsepline,abstracton,11pt,twoside,DIV=12,BCOR=15mm]{scrbook}\n\n")
+          (write-string "\\documentclass[a4paper,headsepline,11pt,twoside,DIV=12,BCOR=15mm]{scrbook}\n\n")
           (write-string "\\input{preamble}\n\n")
           (write-string "\\begin{document}\n")
           (write-string "\t\\input{title}\n")
