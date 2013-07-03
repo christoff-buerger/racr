@@ -20,4 +20,4 @@
        containing-petrinet
        ((AtomicPetrinet Place*)
         (lambda (n)
-          n)))))))
+          (ast-parent (ast-parent n)))))))))

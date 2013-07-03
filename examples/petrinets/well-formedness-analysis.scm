@@ -52,12 +52,13 @@
        ; Petri net it is part of and its arcs are well-formed:
        (Transition
         (lambda (n)
-          (unique-node/terminal n 'name)
-          (not
-           (find
-            (lambda (arc)
-              (not (att-value 'well-formed? arc)))
-            (append (ast-children (ast-child 'In n)) (ast-children (ast-child 'Out n)))))))
+          (and
+           (unique-node/terminal n 'name)
+           (not
+            (find
+             (lambda (arc)
+               (not (att-value 'well-formed? arc)))
+             (append (ast-children (ast-child 'In n)) (ast-children (ast-child 'Out n))))))))
        
        ; An arc is well-formed, if its designated place exits and is atmost once source
        ; and/or target of any arc of the transition the arc is part of:

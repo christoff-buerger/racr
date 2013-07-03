@@ -67,7 +67,7 @@
  (define interpreter-repl
    (lambda (petrinet)
      (display "================================================================================\n")
-     (display "                          Petrinet Interperet REPL                              \n")
+     (display "                         Petri Net Interpreter REPL                             \n")
      (display "================================================================================\n\n")
      (unless (att-value 'well-formed? petrinet)
        (throw-petrinets-exception "Cannot interpret Petrinet; The given petrinet is not well-formed."))
