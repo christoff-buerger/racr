@@ -11,6 +11,7 @@
   print-marking
   print-enabled
   interpreter-repl
+  fire-transition!
   run-petrinet!)
  (import
   (rnrs)
@@ -97,7 +98,7 @@
               ((not choice)
                (abort))
               (else
-               (display "\tSelection Error: Enter net and transitition pair (E.g.: my-net . my-transition) or #f to abort:\n")
+               (display "\tSelection Error: Enter net and transitition pair, e.g., (my-net . my-transition) or #f to abort:\n")
                (loop (read)))))
           (loop))))
      (display "============================= Interpretation Aborted ===========================\n")
@@ -106,7 +107,7 @@
  (define run-petrinet!
    (lambda (petrinet)
      (unless (att-value 'well-formed? petrinet)
-       (throw-petrinets-exception "Cannot run Petrinet; The given petrinet is not well-formed."))
+       (throw-petrinets-exception "Cannot run Petri Net; The given net is not well-formed."))
      (let ((enabled (att-value 'enabled? petrinet)))
        (unless (null? enabled)
          (fire-transition! (car enabled))

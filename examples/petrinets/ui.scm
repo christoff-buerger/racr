@@ -84,8 +84,8 @@
             (initialize-places pn)
             ; Ensure, that the petrinet is well-formed:
             (unless (att-value 'well-formed? pn)
-              (throw-petrinets-exception "Cannot construct Petrinet; The Petrinet is not well-formed."))
-            ; Return the constructed Petrinet:
+              (throw-petrinets-exception "Cannot construct Petri Net; The Petri Net is not well-formed."))
+            ; Return the constructed Petri Net:
             pn)))))
  
  (define-syntax make-transition
@@ -130,21 +130,27 @@
      (syntax-case x ()
        ((_ net1 net2 (((out-net out-port) (in-net in-port)) ...))
         (for-all identifier? #'(out-net ... out-port ... in-net ... in-port ...))
-        #'(begin
+        #'(let ((pn
+                 (create-ast
+                  petrinet-spec
+                  'ComposedPetrinet
+                  (list
+                   #f
+                   net1
+                   net2
+                   (create-ast-list
+                    (list
+                     (create-ast
+                      petrinet-spec
+                      'Glueing
+                      (list
+                       (cons 'out-net 'out-port)
+                       (cons 'in-net 'in-port))) ...))))))
+            ; Mark the given nets to be subnets of their respective composition:
             (rewrite-terminal 'issubnet net1 #t)
             (rewrite-terminal 'issubnet net2 #t)
-            (create-ast
-             petrinet-spec
-             'ComposedPetrinet
-             (list
-              #f
-              net1
-              net2
-              (create-ast-list
-               (list
-                (create-ast
-                 petrinet-spec
-                 'Glueing
-                 (list
-                  (cons 'out-net 'out-port)
-                  (cons 'in-net 'in-port))) ...))))))))))
+            ; Ensure, that the composed net is well-formed:
+            (unless (att-value 'well-formed? pn)
+              (throw-petrinets-exception "Cannot compose Petri Nets; The composed net is not well-formed."))
+            ; Return the composed net:
+            pn))))))
