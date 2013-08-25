@@ -34,7 +34,7 @@
              (rewrite-add
               (ast-child 'Place* petrinet)
               (create-ast
-               petrinet-spec
+               petrinet-specification
                'Place
                (list
                 (ast-child 'place arc)
@@ -58,7 +58,7 @@
          (identifier-list? #'(place ...)))
         #`(let ((pn
                  (create-ast
-                  petrinet-spec
+                  petrinet-specification
                   'AtomicPetrinet
                   (list
                    #f
@@ -66,20 +66,20 @@
                    (create-ast-list
                     (list
                      (create-ast
-                      petrinet-spec
+                      petrinet-specification
                       'Place
                       (list
                        'place
                        (create-ast-list
                         (list
-                         (create-ast petrinet-spec 'Token (list start-marking)) ...)))) ...))
+                         (create-ast petrinet-specification 'Token (list start-marking)) ...)))) ...))
                    (create-ast-list
                     (list
                      transition ...))
                    (create-ast-list
                     (list
-                     (create-ast petrinet-spec 'InPort (list 'inport)) ...
-                     (create-ast petrinet-spec 'OutPort (list 'outport)) ...))))))
+                     (create-ast petrinet-specification 'InPort (list 'inport)) ...
+                     (create-ast petrinet-specification 'OutPort (list 'outport)) ...))))))
             ; Initialize the places without explicit start marking:
             (initialize-places pn)
             ; Ensure, that the petrinet is well-formed:
@@ -101,14 +101,14 @@
          (identifier-list? #'(input-place ...))
          (identifier-list? #'(output-place ...)))
         #`(create-ast
-           petrinet-spec
+           petrinet-specification
            'Transition
            (list
             'name
             (create-ast-list
              (list
               (create-ast
-               petrinet-spec
+               petrinet-specification
                'Arc
                (list
                 'input-place
@@ -118,7 +118,7 @@
             (create-ast-list
              (list
               (create-ast
-               petrinet-spec
+               petrinet-specification
                'Arc
                (list
                 'output-place
@@ -130,25 +130,27 @@
      (syntax-case x ()
        ((_ net1 net2 (((out-net out-port) (in-net in-port)) ...))
         (for-all identifier? #'(out-net ... out-port ... in-net ... in-port ...))
-        #'(let ((pn
-                 (create-ast
-                  petrinet-spec
-                  'ComposedPetrinet
-                  (list
-                   #f
-                   net1
-                   net2
-                   (create-ast-list
-                    (list
-                     (create-ast
-                      petrinet-spec
-                      'Glueing
-                      (list
-                       (cons 'out-net 'out-port)
-                       (cons 'in-net 'in-port))) ...))))))
+        #'(let* ((net1* net1)
+                 (net2* net2)
+                 (pn
+                  (create-ast
+                   petrinet-specification
+                   'ComposedPetrinet
+                   (list
+                    #f
+                    net1*
+                    net2*
+                    (create-ast-list
+                     (list
+                      (create-ast
+                       petrinet-specification
+                       'Glueing
+                       (list
+                        (cons 'out-net 'out-port)
+                        (cons 'in-net 'in-port))) ...))))))
             ; Mark the given nets to be subnets of their respective composition:
-            (rewrite-terminal 'issubnet net1 #t)
-            (rewrite-terminal 'issubnet net2 #t)
+            (rewrite-terminal 'issubnet net1* #t)
+            (rewrite-terminal 'issubnet net2* #t)
             ; Ensure, that the composed net is well-formed:
             (unless (att-value 'well-formed? pn)
               (throw-petrinets-exception "Cannot compose Petri Nets; The composed net is not well-formed."))

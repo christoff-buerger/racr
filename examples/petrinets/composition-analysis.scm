@@ -45,35 +45,54 @@
   specify-composition-analysis)
  (import (rnrs) (racr) (petrinets ast))
  
+ (define list-union
+  (lambda (l1 l2)
+    (append
+     (filter
+      (lambda (e1)
+        (not (memq e1 l2)))
+      l1)
+     l2)))
+ 
  (define specify-composition-analysis
    (lambda ()
      (with-specification
-      petrinet-spec
+      petrinet-specification
       
       (ag-rule
        fused-places
        (Place
         (lambda (n)
-          (let* ((inport-glueing? (att-value 'is-glued-as-inport? n))
-                 (fused-place? (and inport-glueing? (att-value 'place (att-value 'outport inport-glueing?)))))
-            (if inport-glueing?
-                (let ((fused-places (att-value 'fused-places fused-place?)))
-                  (if (not (memq fused-place? fused-places))
-                      (cons fused-place? fused-places)
-                      fused-places))
-                (list))))
+          (let* ((inport-glueing? (cdr (att-value 'find-glueings n)))
+                 (outport-glueing? (car (att-value 'find-glueings n)))
+                 (fused-place?+ (and inport-glueing? (att-value 'place (att-value 'outport inport-glueing?))))
+                 (fused-place?- (and outport-glueing? (att-value 'place (att-value 'inport outport-glueing?))))
+                 (fused-places+ (and fused-place?+ (att-value 'fused-places fused-place?+)))
+                 (fused-places- (and fused-place?- (att-value 'fused-places fused-place?-))))
+            (list-union
+             (if fused-place?+
+                 (if (memq fused-place?+ fused-places+)
+                     fused-places+
+                     (cons fused-place?+ fused-places+))
+                 (list))
+             (if fused-place?-
+                 (if (memq fused-place?- fused-places-)
+                     fused-places-
+                     (cons fused-place?- fused-places-))
+                 (list)))))
         (list)
         (lambda (r1 r2)
           (= (length r1) (length r2)))))
       
       (ag-rule
-       is-glued-as-inport?
+       find-glueings
        (Place
         (lambda (n)
-          (let ((inport? (att-value 'find-inport n (ast-child 'name n))))
-            (and
-             inport?
-             (att-value 'find-glueing-for-port n inport?))))))
+          (let ((outport? (att-value 'find-outport n (ast-child 'name n)))
+                (inport? (att-value 'find-inport n (ast-child 'name n))))
+            (cons
+              (and outport? (att-value 'find-glueing-for-port n outport?))
+              (and inport? (att-value 'find-glueing-for-port n inport?)))))))
       
       (ag-rule
        find-glueing-for-port
@@ -101,11 +120,18 @@
       
       (ag-rule
        qualified-name
+       
        ((AtomicPetrinet Port*)
         (lambda (n)
           (cons
            (ast-child 'name (ast-parent (ast-parent n)))
-           (ast-child 'place n)))))
+           (ast-child 'place n))))
+       
+       ((AtomicPetrinet Place*)
+        (lambda (n)
+          (cons
+           (ast-child 'name (ast-parent (ast-parent n)))
+           (ast-child 'name n)))))
       
       (ag-rule
        outport

@@ -14,7 +14,7 @@
  (define specify-access-support
    (lambda ()
      (with-specification
-      petrinet-spec
+      petrinet-specification
       
       (ag-rule
        containing-petrinet

@@ -29,7 +29,7 @@
  (define specify-well-formedness-analysis
    (lambda ()
      (with-specification
-      petrinet-spec
+      petrinet-specification
       
       (ag-rule
        well-formed?
@@ -43,9 +43,11 @@
            (not
             (find
              (lambda (fused-place)
-               (eq?
-                (att-value 'containing-petrinet fused-place)
-                (att-value 'containing-petrinet n)))
+               (and
+                (not (eq? fused-place n))
+                (eq?
+                 (att-value 'containing-petrinet fused-place)
+                 (att-value 'containing-petrinet n))))
              (att-value 'fused-places n))))))
        
        ; A transition is well-formed, if its name is unique within the atomic

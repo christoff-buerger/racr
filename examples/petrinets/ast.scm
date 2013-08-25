@@ -9,15 +9,15 @@
  (petrinets ast)
  (export
   specify-ast
-  petrinet-spec)
+  petrinet-specification)
  (import (rnrs) (racr))
  
- (define petrinet-spec (create-specification))
+ (define petrinet-specification (create-specification))
  
  (define specify-ast
    (lambda ()
      (with-specification
-      petrinet-spec
+      petrinet-specification
       (ast-rule 'Petrinet->issubnet)
       (ast-rule 'AtomicPetrinet:Petrinet->name-Place*-Transition*-Port*)
       (ast-rule 'ComposedPetrinet:Petrinet->Petrinet<Net1-Petrinet<Net2-Glueing*)

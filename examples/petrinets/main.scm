@@ -12,7 +12,8 @@
   print-enabled
   interpreter-repl
   fire-transition!
-  run-petrinet!)
+  run-petrinet!
+  petrinet-specification)
  (import
   (rnrs)
   (rnrs mutable-pairs)
@@ -132,7 +133,7 @@
              (rewrite-add
               (ast-child 'Token* (att-value 'place out))
               (create-ast
-               petrinet-spec
+               petrinet-specification
                'Token
                (list
                 new-token))))
@@ -142,11 +143,11 @@
         (ast-child 'Out transition)))))
  
  ; Initialize the Petrinet Language:
- (when (= (specification->phase petrinet-spec) 1)
+ (when (= (specification->phase petrinet-specification) 1)
    (specify-ast)
    (specify-access-support)
    (specify-name-analysis)
    (specify-composition-analysis)
    (specify-well-formedness-analysis)
    (specify-enabled-analysis)
-   (compile-ag-specifications petrinet-spec)))
+   (compile-ag-specifications petrinet-specification)))

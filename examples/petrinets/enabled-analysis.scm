@@ -18,13 +18,13 @@
  (define specify-enabled-analysis
    (lambda ()
      (with-specification
-      petrinet-spec
+      petrinet-specification
       
       (ag-rule
        enabled?
        
        ; An arc whose target is a transition is enabled if its source
-       ; place, or any place it fused with, provides the tokens the arc consumes:
+       ; place, or any place it is fused with, provides the tokens the arc consumes:
        (Arc
         (lambda (n)
           (let ((bindings
@@ -55,13 +55,16 @@
                             car
                             bindings))))))
                   (ast-child 'Token* place))
-                 (let* ((inport-glueing? (att-value 'is-glued-as-inport? place))
-                        (fused-place?
-                         (and
-                          inport-glueing?
-                          (att-value 'place (att-value 'outport inport-glueing?)))))
-                   (when (and inport-glueing? (not (memq fused-place? places-checked)))
-                     (loop fused-place? (cons fused-place? places-checked)))))
+                 
+                 (let* ((inport-glueing? (cdr (att-value 'find-glueings place)))
+                        (fused-place?+ (and inport-glueing? (att-value 'place (att-value 'outport inport-glueing?)))))
+                   (when (and inport-glueing? (not (memq fused-place?+ places-checked)))
+                     (loop fused-place?+ (cons fused-place?+ places-checked))))
+                 
+                 (let* ((outport-glueing? (car (att-value 'find-glueings place)))
+                        (fused-place?- (and outport-glueing? (att-value 'place (att-value 'inport outport-glueing?)))))
+                   (when (and outport-glueing? (not (memq fused-place?- places-checked)))
+                     (loop fused-place?- (cons fused-place?- places-checked)))))
                #f)))))
        
        ; A transition is enabled if all the arcs which

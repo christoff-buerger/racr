@@ -84,6 +84,8 @@ then
 	# Testing Petri net example:
 	echo ./examples/petrinets/examples/purchase-processing.scm
 	$1/bin/plt-r6rs ./examples/petrinets/examples/purchase-processing.scm
+	echo ./examples/petrinets/examples/runtime-structure-example-slide.scm
+	$1/bin/plt-r6rs ./examples/petrinets/examples/runtime-structure-example-slide.scm
 	# Testing SiPLE example:
 	for ((i=0; i<${#siple_correct[*]}; i++ )) do
 		echo ${siple_correct[i]}

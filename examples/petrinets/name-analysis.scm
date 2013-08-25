@@ -14,7 +14,7 @@
  (define specify-name-analysis
    (lambda ()
      (with-specification
-      petrinet-spec
+      petrinet-specification
       
       (ag-rule
        find-transition
@@ -33,6 +33,17 @@
            (lambda (i place)
              (eq? (ast-child 'name place) name))
            (ast-child 'Place* n)))))
+      
+      (ag-rule
+       find-outport
+       (AtomicPetrinet
+        (lambda (n name)
+          (ast-find-child
+           (lambda (i port)
+             (and
+              (eq? (ast-child 'place port) name)
+              (ast-subtype? port 'OutPort)))
+           (ast-child 'Port* n)))))
       
       (ag-rule
        find-inport
