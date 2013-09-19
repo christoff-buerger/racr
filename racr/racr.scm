@@ -1966,16 +1966,23 @@
        (throw-exception
         "Cannot add list element; "
         "The given list is part of the AST spaned by the element to add."))
-     (when (node-parent l)
-       (let ((expected-type
-              (symbol-non-terminal?
-               (list-ref
-                (ast-rule-production (node-ast-rule (node-parent l)))
-                (node-child-index l)))))
-         (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type)) ; ...it can be a child of the list-node.
+     (if (node-parent l) ; ...it can be a child of the list-node, i.e., either...
+         ; ...its type fits w.r.t. the list's type restrictions or,...
+         (let ((expected-type
+                (symbol-non-terminal?
+                 (list-ref
+                  (ast-rule-production (node-ast-rule (node-parent l)))
+                  (node-child-index l)))))
+           (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type))
+             (throw-exception
+              "Cannot add list element; "
+              "The new element does not fit.")))
+         ; ...in case no parent is restricting the type of the list's elements but the list already contains elements,
+         ; the added element's specification is the one of the already contained:
+         (unless (and (null? (node-children l)) (eq? (ast-specification l) (ast-specification e)))
            (throw-exception
             "Cannot add list element; "
-            "The new element does not fit."))))
+            "The new element does not fit.")))
      ;;; When all rewrite constraints are satisfied,...
      (for-each ; ...flush all attribute cache entries influenced by the list-node's number of children,...
       (lambda (influence)
@@ -2072,16 +2079,23 @@
        (throw-exception
         "Cannot insert list element; "
         "The given list is part of the AST spaned by the element to insert."))
-     (when (node-parent l)
-       (let ((expected-type
-              (symbol-non-terminal?
-               (list-ref
-                (ast-rule-production (node-ast-rule (node-parent l)))
-                (node-child-index l)))))
-         (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type)) ; ...it can be a child of the list-node.
+     (if (node-parent l) ; ...it can be a child of the list-node, i.e., either...
+         ; ...its type fits w.r.t. the list's type restrictions or,...
+         (let ((expected-type
+                (symbol-non-terminal?
+                 (list-ref
+                  (ast-rule-production (node-ast-rule (node-parent l)))
+                  (node-child-index l)))))
+           (unless (or (node-bud-node? e) (ast-rule-subtype? (node-ast-rule e) expected-type))
+             (throw-exception
+              "Cannot insert list element; "
+              "The new element does not fit.")))
+         ; ...in case no parent is restricting the type of the list's elements but the list already contains elements,
+         ; the added element's specification is the one of the already contained:
+         (unless (and (null? (node-children l)) (eq? (ast-specification l) (ast-specification e)))
            (throw-exception
             "Cannot insert list element; "
-            "The new element does not fit."))))
+            "The new element does not fit.")))
      ;;; When all rewrite constraints are satisfied...
      (for-each ; ...flush all attribute cache entries influenced by the list-node's number of children. Further,...
       (lambda (influence)
