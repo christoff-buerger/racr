@@ -42,6 +42,7 @@
   create-ast-mockup
   ; AST & attribute query interface:
   (rename (node? ast-node?))
+  ast-specification
   ast-node-type
   ast-list-node?
   (rename (node-bud-node? ast-bud-node?))
@@ -1254,6 +1255,15 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Access Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (define ast-specification
+   (lambda (n)
+     (when (or (node-list-node? n) (node-bud-node? n)) ; Remember: (node-terminal? n) is not possible
+       (throw-exception
+        "Cannot access specification; "
+        "List and bud nodes are not part of any specification."))
+     ; The specification of a node can never change => no need to add dependencies!
+     (ast-rule-specification (node-ast-rule n))))
  
  (define ast-node-type
    (lambda (n)
