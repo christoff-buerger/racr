@@ -14,6 +14,9 @@
 
 (import (rnrs) (racr) (petrinets main) (petrinets ui))
 
+(init-ast)
+(init-attribution)
+
 (let ((cookie-automata
        (make-petrinet
         cookie-automata () ()

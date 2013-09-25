@@ -9,10 +9,10 @@
  (petrinets name-analysis)
  (export
   specify-name-analysis)
- (import (rnrs) (racr) (petrinets ast))
+ (import (rnrs) (racr))
  
  (define specify-name-analysis
-   (lambda ()
+   (lambda (petrinet-specification)
      (with-specification
       petrinet-specification
       

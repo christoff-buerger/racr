@@ -10,19 +10,8 @@
  (export
   make-petrinet
   make-transition
-  compose-petrinets
-  petrinets-exception?
-  throw-petrinets-exception)
- (import (rnrs) (racr) (petrinets ast))
- 
- (define-condition-type petrinets-exception &violation make-petrinets-exception petrinets-exception?)
- 
- (define throw-petrinets-exception
-   (lambda (message)
-     (raise-continuable
-      (condition
-       (make-petrinets-exception)
-       (make-message-condition message)))))
+  compose-petrinets)
+ (import (rnrs) (racr) (petrinets main))
  
  (define initialize-places
    (lambda (petrinet)

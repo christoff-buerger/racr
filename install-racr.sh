@@ -46,8 +46,8 @@ declare -a petrinets_sources=(
 	composition-analysis
 	well-formedness-analysis
 	enabled-analysis
-	ui
-	main)
+	main
+	ui)
 
 # Array of RACR tests:
 tests=( $(ls ./tests/*.scm) )

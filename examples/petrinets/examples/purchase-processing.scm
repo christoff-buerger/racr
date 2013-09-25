@@ -24,6 +24,9 @@
 
 (import (rnrs) (racr) (petrinets main) (petrinets ui))
 
+(init-ast)
+(init-attribution)
+
 (define make-buyer-net
   (lambda ()
     (make-petrinet

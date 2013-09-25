@@ -9,10 +9,10 @@
  (petrinets access-support)
  (export
   specify-access-support)
- (import (rnrs) (racr) (petrinets ast))
+ (import (rnrs) (racr))
  
  (define specify-access-support
-   (lambda ()
+   (lambda (petrinet-specification)
      (with-specification
       petrinet-specification
       

@@ -13,7 +13,11 @@
   interpreter-repl
   fire-transition!
   run-petrinet!
-  petrinet-specification)
+  petrinet-specification
+  init-ast
+  init-attribution
+  petrinets-exception?
+  throw-petrinets-exception)
  (import
   (rnrs)
   (rnrs mutable-pairs)
@@ -23,8 +27,40 @@
   (petrinets name-analysis)
   (petrinets composition-analysis)
   (petrinets well-formedness-analysis)
-  (petrinets enabled-analysis)
-  (petrinets ui))
+  (petrinets enabled-analysis))
+ 
+ ;;; Initialisation:
+ 
+ (define petrinet-specification (create-specification))
+ 
+ (define init-ast
+   (lambda ()
+     (when (= (specification->phase petrinet-specification) 1)
+       (specify-ast petrinet-specification)
+       (compile-ast-specifications petrinet-specification 'Petrinet))))
+ 
+ (define init-attribution
+   (lambda ()
+     (when (= (specification->phase petrinet-specification) 2)
+       (specify-access-support petrinet-specification)
+       (specify-name-analysis petrinet-specification)
+       (specify-composition-analysis petrinet-specification)
+       (specify-well-formedness-analysis petrinet-specification)
+       (specify-enabled-analysis petrinet-specification)
+       (compile-ag-specifications petrinet-specification))))
+ 
+ ;;; Exceptions:
+ 
+ (define-condition-type petrinets-exception &violation make-petrinets-exception petrinets-exception?)
+ 
+ (define throw-petrinets-exception
+   (lambda (message)
+     (raise-continuable
+      (condition
+       (make-petrinets-exception)
+       (make-message-condition message)))))
+ 
+ ;;; REPL-Interpreter:
  
  (define print-marking
    (lambda (petrinet)
@@ -105,6 +141,8 @@
      (display "============================= Interpretation Aborted ===========================\n")
      petrinet))
  
+ ;;; Execution:
+ 
  (define run-petrinet!
    (lambda (petrinet)
      (unless (att-value 'well-formed? petrinet)
@@ -140,14 +178,4 @@
            (apply
             (ast-child 'functionlabel out)
             argument-list)))
-        (ast-child 'Out transition)))))
- 
- ; Initialize the Petrinet Language:
- (when (= (specification->phase petrinet-specification) 1)
-   (specify-ast)
-   (specify-access-support)
-   (specify-name-analysis)
-   (specify-composition-analysis)
-   (specify-well-formedness-analysis)
-   (specify-enabled-analysis)
-   (compile-ag-specifications petrinet-specification)))
+        (ast-child 'Out transition))))))

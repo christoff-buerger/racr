@@ -9,14 +9,14 @@
  (petrinets enabled-analysis)
  (export
   specify-enabled-analysis)
- (import (rnrs) (rnrs mutable-pairs) (racr) (petrinets ast))
+ (import (rnrs) (rnrs mutable-pairs) (racr))
  
  ; Constructor for unique entities internally used by the Petrinet Language
  (define-record-type petrinet-nil-record (sealed #t) (opaque #t))
  (define UNDEFINED (make-petrinet-nil-record)) ; Unique entity indicating undefined values
  
  (define specify-enabled-analysis
-   (lambda ()
+   (lambda (petrinet-specification)
      (with-specification
       petrinet-specification
       

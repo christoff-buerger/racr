@@ -9,7 +9,7 @@
  (petrinets well-formedness-analysis)
  (export
   specify-well-formedness-analysis)
- (import (rnrs) (racr) (petrinets ast))
+ (import (rnrs) (racr))
  
  ; Given a node n (which usually is child of a list-node) and a child name t
  ; (which usually is a terminal), return, if all siblings of n with the same
@@ -27,7 +27,7 @@
          (ast-parent n))))))
  
  (define specify-well-formedness-analysis
-   (lambda ()
+   (lambda (petrinet-specification)
      (with-specification
       petrinet-specification
       

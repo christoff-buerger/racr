@@ -43,7 +43,7 @@
  (petrinets composition-analysis)
  (export
   specify-composition-analysis)
- (import (rnrs) (racr) (petrinets ast))
+ (import (rnrs) (racr))
  
  (define list-union
   (lambda (l1 l2)
@@ -55,7 +55,7 @@
      l2)))
  
  (define specify-composition-analysis
-   (lambda ()
+   (lambda (petrinet-specification)
      (with-specification
       petrinet-specification
       

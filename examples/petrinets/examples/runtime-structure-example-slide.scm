@@ -7,6 +7,9 @@
 
 (import (rnrs) (racr) (petrinets main) (petrinets ui))
 
+(init-ast)
+(init-attribution)
+
 (let* ((net1
         (make-petrinet
          net1 (p2) (p1)

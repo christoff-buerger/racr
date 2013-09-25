@@ -8,14 +8,11 @@
 (library
  (petrinets ast)
  (export
-  specify-ast
-  petrinet-specification)
+  specify-ast)
  (import (rnrs) (racr))
  
- (define petrinet-specification (create-specification))
- 
  (define specify-ast
-   (lambda ()
+   (lambda (petrinet-specification)
      (with-specification
       petrinet-specification
       (ast-rule 'Petrinet->issubnet)
@@ -28,5 +25,4 @@
       (ast-rule 'Place->name-Token*)
       (ast-rule 'Token->value)
       (ast-rule 'Transition->name-Arc*<In-Arc*<Out)
-      (ast-rule 'Arc->place-functionlabel)
-      (compile-ast-specifications 'Petrinet)))))
+      (ast-rule 'Arc->place-functionlabel)))))
