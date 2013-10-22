@@ -1558,7 +1558,7 @@
             (make-node
              'list-node
              #f
-             children)))
+             (append children (list))))) ; BEWARE: create copy of children!
        (for-each ; ...set it as parent for every of its elements,...
         (lambda (child)
           (node-parent-set! child list-node))
