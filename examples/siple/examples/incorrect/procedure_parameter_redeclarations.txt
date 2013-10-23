@@ -3,17 +3,13 @@
 
 % author: C. Bürger
 
-Procedure test(Var j:Integer):Integer Begin
-	If j = 1 Then
-		Return 1;
-	Else
-		If j = 2 Then
-			Return 2;
-		Fi;
-		j := 3;
-	Fi;
+Procedure test1(Var i:Integer, Var i:Integer) Begin End;
+
+Procedure test2(Var i:Integer) Begin
+	Var i:Integer;
 End;
 
 Procedure main() Begin
-	test(2);
+	test1(1,2);
+	test2(1);
 End;

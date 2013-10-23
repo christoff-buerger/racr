@@ -30,40 +30,38 @@
         (lambda () #f)
         (lambda ()
           (display
-           (call/cc
-            (lambda (k)
-              (let ((lexer (construct-lexer input-file-name input-port 4 k)))
-                (let lexer-loop ((token (lexer)))
-                  (if (eq? (token-type token) '*eoi*)
-                      (k "Input successfully processed.") ; Finish lexing with success message
-                      (begin
-                        (my-display (token-type token))
-                        (let loop ((n (- 30 (string-length (symbol->string (token-type token))))))
-                          (if (= n 0)
-                              #t
-                              (begin
-                                (my-display " ")
-                                (loop (- n 1)))))
-                        (my-display "Line: ")
-                        (let loop ((n (- 5 (string-length (number->string (token-line token))))))
-                          (if (= n 0)
-                              #t
-                              (begin
-                                (my-display " ")
-                                (loop (- n 1)))))
-                        (my-display (token-line token))
-                        (my-display " Column: ")
-                        (let loop ((n (- 5 (string-length (number->string (token-column token))))))
-                          (if (= n 0)
-                              #t
-                              (begin
-                                (my-display " ")
-                                (loop (- n 1)))))
-                        (my-display (token-column token))
-                        (my-display " Value: ")
-                        (my-display (token-value token))
-                        (my-display #\newline)
-                        (lexer-loop (lexer))))))))))
+           (let ((lexer (construct-lexer input-file-name input-port 4)))
+             (let lexer-loop ((token (lexer)))
+               (if (eq? (token-type token) '*eoi*)
+                   "Input successfully processed." ; Finish lexing with success message
+                   (begin
+                     (my-display (token-type token))
+                     (let loop ((n (- 30 (string-length (symbol->string (token-type token))))))
+                       (if (= n 0)
+                           #t
+                           (begin
+                             (my-display " ")
+                             (loop (- n 1)))))
+                     (my-display "Line: ")
+                     (let loop ((n (- 5 (string-length (number->string (token-line token))))))
+                       (if (= n 0)
+                           #t
+                           (begin
+                             (my-display " ")
+                             (loop (- n 1)))))
+                     (my-display (token-line token))
+                     (my-display " Column: ")
+                     (let loop ((n (- 5 (string-length (number->string (token-column token))))))
+                       (if (= n 0)
+                           #t
+                           (begin
+                             (my-display " ")
+                             (loop (- n 1)))))
+                     (my-display (token-column token))
+                     (my-display " Value: ")
+                     (my-display (token-value token))
+                     (my-display #\newline)
+                     (lexer-loop (lexer))))))))
         (lambda ()
           (close-port input-port)
           (close-port output-port))))))
@@ -76,13 +74,11 @@
         (lambda () #f)
         (lambda ()
           (display
-           (call/cc
-            (lambda (k)
-              (let* ((lexer (construct-lexer input-file-name input-port 4 k))
-                     (parser (construct-parser lexer siple-specification perform-type-coercions? k))
-                     (ast (parser)))
-                (print-ast ast attribute-pretty-printer-list output-port)
-                (k "Input successfully processed."))))))
+           (let* ((lexer (construct-lexer input-file-name input-port 4))
+                  (parser (construct-parser lexer siple-specification perform-type-coercions?))
+                  (ast (parser)))
+             (print-ast ast attribute-pretty-printer-list output-port)
+             "Input successfully processed.")))
         (lambda ()
           (close-port input-port)
           (close-port output-port))))))
@@ -100,4 +96,4 @@
        (cons 'main-procedure (lambda (n) (if n (att-value 'dewey-address n) #f)))
        (cons 'declaration (lambda (n) (if n (att-value 'dewey-address n) #f)))
        (cons 'type (lambda (n) (type-pretty-print n)))
-       (cons 'local-correct? (lambda (n) n)))))))
+       (cons 'local-correct? (lambda (n) (if n #t #f))))))))

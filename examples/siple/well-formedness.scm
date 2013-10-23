@@ -32,37 +32,25 @@
         (lambda (n)
           #t))
        
-       ; Simple version not considering programs, that are still valid regarding procedure termination
-       ; although the last statement is not a procedure return. E.g., the following procedure is correct:
-       ;
-       ; Procedure test(Var j:Integer):Integer Begin
-       ;    If j = 1 Then
-       ;       Return 1;
-       ;    Else
-       ;       If j = 2 Then
-       ;          Return 2;
-       ;       Else
-       ;          Return 3;
-       ;       Fi;
-       ;    Fi;
-       ; End;
-       ;
-       ;(ProcedureDeclaration
-       ; (lambda (n)
-       ;   (and
-       ;    (or
-       ;     (type-undefined? (ast-child 'returntype n))
-       ;     (let ((statement-list (ast-child 1 (ast-child 'Body n))))
-       ;       (and
-       ;        (> (ast-num-children statement-list) 0)
-       ;        (ast-subtype? (ast-child (ast-num-children statement-list) statement-list) 'ProcedureReturn))))
-       ;    (<= (length (att-value 'lookup n (ast-child 'name n))) 1))))
-       
+       ; A procedure declaration is well-formed, if (1) it is no redeclaration, (2) its
+       ; parameters have unique names and (3) its last executed statement always is a
+       ; return statement if it has a return type.
        (ProcedureDeclaration
         (lambda (n)
           (and
-           (<= (length (att-value 'lookup n (ast-child 'name n))) 1)
-           (or
+           (eq? (att-value 'lookup n (ast-child 'name n)) n) ; (1)
+           (not ; (2)
+            (ast-find-child
+             (lambda (i par1)
+               (not
+                (eq?
+                 par1
+                 (ast-find-child
+                  (lambda (i par2)
+                    (string=? (ast-child 'name par2) (ast-child 'name par1)))
+                  (ast-child 'Parameters n)))))
+             (ast-child 'Parameters n)))
+           (or ; (3)
             (type-undefined? (ast-child 'returntype n))
             (and
              (not (null? (att-value 'cf-local-exits (ast-child 'Body n))))
@@ -71,9 +59,11 @@
                    (att-value 'procedure-return-in-context n))
                (att-value 'cf-local-exits (ast-child 'Body n))))))))
        
+       ; A variable declaration (except parameter declarations, which are checked by
+       ; their respective procedure declaration) is well formed, if it is no redeclaration.
        (VariableDeclaration
         (lambda (n)
-          (<= (length (att-value 'lookup n (ast-child 'name n))) 1)))
+          (eq? (att-value 'lookup n (ast-child 'name n)) n)))
        
        (If
         (lambda (n)
