@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ -z "$1" ] || [ -z "$2" ]
+then
+	echo "Usage: $0 filename modulename ..."
+	exit 85
+fi
+
+LIBS=""
+for i in ${@:2}
+do
+	LIBS="$LIBS ++lib $i"
+done
+
+mkdir -p build
+TMP=$(mktemp)
+TMP_SRC="$TMP".c
+TMP_BIN="$TMP".out
+
+./../racket/racket/bin/raco ctool --c-mods "$TMP" $LIBS
+
+cat "$TMP" | head -n -6 | tail -n +5 > "$TMP_SRC"
+cat >> "$TMP_SRC" << EOF
+#include <stdio.h>
+int main() {
+	for (int i = 0; i < sizeof(data); i++) putchar(data[i]);
+	return 0;
+}
+EOF
+c99 -Wall -O2 "$TMP_SRC" -o "$TMP_BIN"
+"$TMP_BIN" > "$1"
+
+rm -f "$TMP"
+rm -f "$TMP_SRC"
+rm -f "$TMP_BIN"
