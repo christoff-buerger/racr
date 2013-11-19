@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <error.h>
-#include <racket/scheme.h>
+#include <scheme.h>
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
 
 
@@ -14,7 +14,6 @@ static void declare_modules(Scheme_Env *env, const char* bc_file) {
 
 	char data[size];
 	fread(data, 1, size, file);
-	data[size] = 0;
 	fclose(file);
 
 	scheme_register_embedded_load(size, data);
@@ -22,10 +21,10 @@ static void declare_modules(Scheme_Env *env, const char* bc_file) {
 }
 
 
+
 static const char* module_names[] = {
 	"racket/base",
 	"racr",
-
 	"petrinets/access-support",
 	"petrinets/ast",
 	"petrinets/composition-analysis",
@@ -33,7 +32,6 @@ static const char* module_names[] = {
 	"petrinets/name-analysis",
 	"petrinets/ui",
 	"petrinets/well-formedness-analysis",
-/*
 	"siple/access-support",
 	"siple/ast",
 	"siple/control-flow-analysis",
@@ -47,19 +45,14 @@ static const char* module_names[] = {
 	"siple/type-analysis",
 	"siple/type-coercion",
 	"siple/well-formedness",
-*/
 };
-
 
 static int run(Scheme_Env* env, int argc, char** argv) {
 
-	printf("%p\n", scheme_current_thread);
-
 	declare_modules(env, "bc");
 
-//	scheme_namespace_require(scheme_intern_symbol("racket/base"));
-//	scheme_namespace_require(scheme_intern_symbol("racr"));
-	for (int i = 0; i < ARRAY_SIZE(module_names); i++) {
+	int i;
+	for (i = 0; i < ARRAY_SIZE(module_names); i++) {
 		scheme_namespace_require(scheme_intern_symbol(module_names[i]));
 	}
 
@@ -67,44 +60,69 @@ static int run(Scheme_Env* env, int argc, char** argv) {
 		scheme_current_config(), MZCONFIG_OUTPUT_PORT);
 
 
-
 	mz_jmp_buf * volatile save, fresh;
 	save = scheme_current_thread->error_buf;
 	scheme_current_thread->error_buf = &fresh;
 	if (scheme_setjmp(scheme_error_buf)) {
+		// error
 
 	}
 	else {
 
-		Scheme_Object* q[2] = {
+		FILE* file = fopen("a.scm", "r");
+		fseek(file, 0, SEEK_END);
+		long size = ftell(file);
+		rewind(file);
+		char data[size + 1];
+		fread(data, 1, size, file);
+		data[size] = 0;
+		fclose(file);
+
+		Scheme_Object* node;
+		Scheme_Object* f;
+		Scheme_Object* v;
+		node = scheme_eval_string(data, env);
+
+
+		if (0) {
+			f = scheme_dynamic_require(2, (Scheme_Object*[]) {
+				scheme_intern_symbol("racr"),
+				scheme_intern_symbol("ast-node?")
+			});
+			v = scheme_apply(f, 1, (Scheme_Object*[]) { node });
+			scheme_display(v, curout);
+			scheme_display(scheme_make_char('\n'), curout);
+
+
+
+			scheme_add_global("node", node, env);
+			v = scheme_eval_string("(att-value 'state node)", env);
+			scheme_display(v, curout);
+			scheme_display(scheme_make_char('\n'), curout);
+		}
+
+		// access attribute
+		f = scheme_dynamic_require(2, (Scheme_Object*[]) {
 			scheme_intern_symbol("racr"),
-			scheme_intern_symbol("ast-node?")
-		};
-		Scheme_Object* n = scheme_dynamic_require(2, q);
-		n = scheme_apply(n, 0, NULL);
+			scheme_intern_symbol("att-value")
+		});
+		v = scheme_apply(f, 2, (Scheme_Object*[]) {
+			scheme_intern_symbol("state"),
+			node
+		});
 
-		scheme_display(n, curout);
+		scheme_display(v, curout);
 		scheme_display(scheme_make_char('\n'), curout);
-
 
 	}
 	scheme_current_thread->error_buf = save;
 
-
-
-
-
 /*
-	// add global to environment
-	scheme_add_global("a", scheme_make_integer(100), env);
-*/
-
-
-	Scheme_Object* a[2] = {
+	scheme_apply(f, 2, (Scheme_Object*[]) {
 		scheme_intern_symbol("racket/base"),
 		scheme_intern_symbol("read-eval-print-loop")
-	};
-	scheme_apply(scheme_dynamic_require(2, a), 0, NULL);
+	});
+*/
 
 	return 0;
 }
@@ -113,3 +131,4 @@ static int run(Scheme_Env* env, int argc, char** argv) {
 int main(int argc, char** argv) {
 	return scheme_main_setup(1, run, argc, argv);
 }
+

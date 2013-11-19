@@ -1,8 +1,22 @@
-LDFLAGS=-lm -lpthread -ldl -lffi\
+C = -Wall -c -O2 -fPIC -I../../racket/racket/include
+L = -lm -lpthread -ldl -lffi\
 	../../racket/racket/src/build/racket/libracket.a\
 	../../racket/racket/src/build/racket/libmzgc.a
+SRC = src/main.c
+OBJ = $(SRC:src/%.c=build/%.o)
+TRG = a.out
 
-MODULES=\
+$(TRG): $(OBJ) Makefile
+	gcc $< $(L) -o $@
+
+
+build/%.o: src/%.c Makefile
+	@mkdir -p $(@D)
+	gcc -Wall $(C) $< -o $@
+
+
+# byte code generation
+MODULES =\
 racr\
 petrinets/access-support\
 petrinets/ast\
@@ -25,18 +39,6 @@ siple/type-analysis\
 siple/type-coercion\
 siple/well-formedness
 
-SRC=src/main.c
-OBJ=$(SRC:src/%.c=build/%.o)
-
-a.out: $(OBJ) Makefile
-	c99 $< $(LDFLAGS)
-
-build/%.o: src/%.c Makefile
-	@mkdir -p $(@D)
-	c99 -Wall -c $< -o $@
-
-
-# byte code generation
 bc: src/make_bc Makefile
 	./src/make_bc bc $(MODULES)
 
