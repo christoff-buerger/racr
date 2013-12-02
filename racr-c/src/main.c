@@ -69,7 +69,6 @@ Scheme_Env* racr_init(void* stack_addr) {
 Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...) {
 
 	Scheme_Object* o;
-
 	mz_jmp_buf * volatile save, fresh;
 	save = scheme_current_thread->error_buf;
 	scheme_current_thread->error_buf = &fresh;
@@ -84,15 +83,20 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 		int count;
 		va_list ap;
 		va_start(ap, fmt);
+
 		for (count = 0; fmt[count] != '\0'; count++) {
+
 			if (count >= 16) error(1, 0, "too many arguments");
 			switch (fmt[count]) {
+
 			case 'i':
 				o = scheme_make_integer(va_arg(ap, int));
 				break;
+
 			case '*':
 				o = va_arg(ap, Scheme_Object*);
 				break;
+
 			default:
 				error(1, 0, "invalid format: %c", fmt[count]);
 			}
@@ -101,11 +105,10 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 		va_end(ap);
 		o = scheme_apply(f, count, args);
 	}
-	else { // error
+	else {
 		o = NULL;
 	}
 	scheme_current_thread->error_buf = save;
-
 	return o;
 }
 
@@ -122,13 +125,12 @@ int main(int argc, char** argv) {
 
 	Scheme_Object* v;
 
-
+	// test
 	v = racr_call("racket/base", "~", "ii", 10, 20);
-	if (v) {
+	if (v) { // should fail
 		scheme_display(v, curout);
 		scheme_display(scheme_make_char('\n'), curout);
 	}
-
 
 
 	v = racr_call("racket/base", "+", "ii", 10, 20);
@@ -136,9 +138,6 @@ int main(int argc, char** argv) {
 		scheme_display(v, curout);
 		scheme_display(scheme_make_char('\n'), curout);
 	}
-
-
-
 
 	return 0;
 }
