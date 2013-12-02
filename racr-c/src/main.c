@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <error.h>
 #include <scheme.h>
+#include <stdarg.h>
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
 
 
@@ -47,6 +48,104 @@ static const char* module_names[] = {
 	"siple/well-formedness",
 };
 
+
+
+Scheme_Env* racr_init(void* stack_addr) {
+
+	scheme_set_stack_base(stack_addr, 1);
+	Scheme_Env* env = scheme_basic_env();
+	declare_modules(env, "bc");
+
+	int i;
+	for (i = 0; i < ARRAY_SIZE(module_names); i++) {
+		scheme_namespace_require(scheme_intern_symbol(module_names[i]));
+	}
+	return env;
+}
+
+
+
+
+Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...) {
+
+	Scheme_Object* o;
+
+	mz_jmp_buf * volatile save, fresh;
+	save = scheme_current_thread->error_buf;
+	scheme_current_thread->error_buf = &fresh;
+
+	if (!scheme_setjmp(scheme_error_buf)) {
+
+		Scheme_Object* args[16] = {
+			scheme_intern_symbol(mod),
+			scheme_intern_symbol(func)
+		};
+		Scheme_Object* f = scheme_dynamic_require(2, args);
+		int count;
+		va_list ap;
+		va_start(ap, fmt);
+		for (count = 0; fmt[count] != '\0'; count++) {
+			if (count >= 16) error(1, 0, "too many arguments");
+			switch (fmt[count]) {
+			case 'i':
+				o = scheme_make_integer(va_arg(ap, int));
+				break;
+			case '*':
+				o = va_arg(ap, Scheme_Object*);
+				break;
+			default:
+				error(1, 0, "invalid format: %c", fmt[count]);
+			}
+			args[count] = o;
+		}
+		va_end(ap);
+		o = scheme_apply(f, count, args);
+	}
+	else { // error
+		o = NULL;
+	}
+	scheme_current_thread->error_buf = save;
+
+	return o;
+}
+
+
+
+
+
+int main(int argc, char** argv) {
+	int dummy;
+
+	Scheme_Env* env = racr_init(&dummy);
+	Scheme_Object* curout = scheme_get_param(scheme_current_config(), MZCONFIG_OUTPUT_PORT);
+
+
+	Scheme_Object* v;
+
+
+	v = racr_call("racket/base", "~", "ii", 10, 20);
+	if (v) {
+		scheme_display(v, curout);
+		scheme_display(scheme_make_char('\n'), curout);
+	}
+
+
+
+	v = racr_call("racket/base", "+", "ii", 10, 20);
+	if (v) {
+		scheme_display(v, curout);
+		scheme_display(scheme_make_char('\n'), curout);
+	}
+
+
+
+
+	return 0;
+}
+
+
+
+/*
 static int run(Scheme_Env* env, int argc, char** argv) {
 
 	declare_modules(env, "bc");
@@ -117,12 +216,12 @@ static int run(Scheme_Env* env, int argc, char** argv) {
 	}
 	scheme_current_thread->error_buf = save;
 
-/*
-	scheme_apply(f, 2, (Scheme_Object*[]) {
-		scheme_intern_symbol("racket/base"),
-		scheme_intern_symbol("read-eval-print-loop")
-	});
-*/
+
+//	scheme_apply(f, 2, (Scheme_Object*[]) {
+//		scheme_intern_symbol("racket/base"),
+//		scheme_intern_symbol("read-eval-print-loop")
+//	});
+
 
 	return 0;
 }
@@ -131,4 +230,4 @@ static int run(Scheme_Env* env, int argc, char** argv) {
 int main(int argc, char** argv) {
 	return scheme_main_setup(1, run, argc, argv);
 }
-
+*/

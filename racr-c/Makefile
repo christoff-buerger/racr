@@ -1,4 +1,4 @@
-C = -Wall -c -O2 -fPIC -I../../racket/racket/include
+C = -Wall -c -fPIC -I../../racket/racket/include
 L = -lm -lpthread -ldl -lffi\
 	../../racket/racket/src/build/racket/libracket.a\
 	../../racket/racket/src/build/racket/libmzgc.a
