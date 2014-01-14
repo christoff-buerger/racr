@@ -1,13 +1,16 @@
-C = -Wall -c -fPIC -I../../racket/racket/include
-L = -lm -lpthread -ldl -lffi\
-	../../racket/racket/src/build/racket/libracket.a\
-	../../racket/racket/src/build/racket/libmzgc.a
-SRC = src/main.c
+C = -Wall -c -fPIC -Iinclude
+C += -I../../racket/racket/include
+
+L = -lm -lpthread -ldl -lffi
+L += ../../racket/racket/src/build/racket/libracket.a
+L += ../../racket/racket/src/build/racket/libmzgc.a
+
+SRC = src/main.c src/racr.c
 OBJ = $(SRC:src/%.c=build/%.o)
 TRG = a.out
 
 $(TRG): $(OBJ) Makefile
-	gcc $< $(L) -o $@
+	gcc $(OBJ) $(L) -o $@
 
 
 build/%.o: src/%.c Makefile
