@@ -34,6 +34,13 @@
                   (lambda (n)
                     (ast-num-children (ast-child 'A (ast-parent n)))))))
                (ag-rule
+                A-has-B2-child?
+                (D
+                 (rt-equation
+                  'A-has-B2-child?
+                  (lambda (n)
+                    (ast-has-child? 'B2 (ast-child 'A (ast-parent n)))))))
+               (ag-rule
                 A-type
                 (D
                  (rt-equation
@@ -129,32 +136,15 @@
                 (ast-child 'B1 (A))))
              (B2
               (lambda ()
-                (ast-child 'B2 (A))))
-             
-             (invariant
-              (lambda ()
-                (append
-                 (list
-                  (S) 's
-                  (A) 's
-                  (D) 'A-child-count
-                  (D) 'A-type
-                  (D) 'A-sub-type
-                  (D) 'Ab-sub-type
-                  (D) 'A-super-type
-                  (D) 'Ab-super-type
-                  (B1) 'i)
-                 (if (ast-subtype? (A) 'Ab)
-                     (list (B2) 'i)
-                     (list))))))
+                (ast-child 'B2 (A)))))
         (with-specification
          spec
          
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-child-count
+          (D) 'A-has-B2-child?
           (D) 'A-type
           (D) 'A-sub-type
           (D) 'Ab-sub-type
@@ -164,7 +154,6 @@
          
          (rewrite-refine (A) 'Aa)
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-type
@@ -174,7 +163,6 @@
          
          (rewrite-abstract (A) 'A)
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-type
@@ -184,8 +172,8 @@
          
          (rewrite-refine (A) 'Ab (create-ast 'B (list)))
          (influenced:
-          (invariant)
           (D) 'A-child-count
+          (D) 'A-has-B2-child?
           (D) 'A-type
           (D) 'A-super-type
           (D) 'Ab-sub-type
@@ -193,7 +181,6 @@
          
          (rewrite-refine (A) 'Ac)
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-type
@@ -201,7 +188,6 @@
          
          (rewrite-abstract (A) 'Ab)
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-type
@@ -209,18 +195,18 @@
          
          (rewrite-abstract (A) 'A)
          (influenced:
-          (invariant)
           (D) 'A-child-count
+          (D) 'A-has-B2-child?
           (D) 'A-type
           (D) 'Ab-sub-type
           (D) 'A-super-type)
          
          (rewrite-refine (A) 'Ac (create-ast 'B (list)))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-child-count
+          (D) 'A-has-B2-child?
           (D) 'A-type
           (D) 'Ab-sub-type
           (D) 'A-super-type
@@ -229,10 +215,10 @@
          
          (rewrite-abstract (A) 'A)
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (D) 'A-child-count
+          (D) 'A-has-B2-child?
           (D) 'A-type
           (D) 'Ab-sub-type
           (D) 'A-super-type

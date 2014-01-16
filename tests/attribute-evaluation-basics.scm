@@ -4,7 +4,7 @@
 ; Author: C. Bürger
 
 #!r6rs
-(import (rnrs) (racr))
+(import (rnrs) (racr) (racr-test-api))
 
 (define initialize-basic-tests
   (lambda (cached?)
@@ -72,17 +72,7 @@
       (assert (= 2 (att-value 'non-circular ast)))
       (assert (equal? (att-value 'circular ast) (cons 10 32)))
       (assert (equal? (att-value 'circular ast) (cons 10 43)))
-      (assert
-       (call/cc
-        (lambda (k)
-          (with-exception-handler
-           (lambda (exc)
-             (if (racr-exception? exc)
-                 (k #t)
-                 (raise exc)))
-           (lambda ()
-             (att-value 'cycle-error ast)
-             #f))))))
+      (assert-exception racr-exception? (att-value 'cycle-error ast)))
     
     (let ((ast (initialize-basic-tests #t)))
       (assert (equal? (att-value 'circular ast) (cons 10 10)))
@@ -91,17 +81,7 @@
       (assert (= 1 (att-value 'non-circular ast)))
       (assert (equal? (att-value 'circular ast) (cons 10 10)))
       (assert (equal? (att-value 'circular ast) (cons 10 10)))
-      (assert
-       (call/cc
-        (lambda (k)
-          (with-exception-handler
-           (lambda (exc)
-             (if (racr-exception? exc)
-                 (k #t)
-                 (raise exc)))
-           (lambda ()
-             (att-value 'cycle-error ast)
-             #f))))))
+      (assert-exception racr-exception? (att-value 'cycle-error ast)))
     
     (letrec ((ast-cached (initialize-fibonacci-numbers #t))
              (ast-not-cached (initialize-fibonacci-numbers #f))

@@ -29,8 +29,8 @@
        (null?
         (filter
          (lambda (bud)
-           (not (memq bud actual-buds)))
-         expected-buds))))))
+           (not (memq bud expected-buds)))
+         actual-buds))))))
 
 (define run-tests
   (lambda ()

@@ -5,16 +5,8 @@
 
 #!r6rs
 
-(import (rnrs) (siple exception-api) (siple main))
+(import (rnrs) (siple main) (siple exception-api) (racr-test-api))
 
-(assert
- (call/cc
-  (lambda (k)
-    (with-exception-handler
-     (lambda (exc)
-       (if (siple-exception? exc)
-           (k #t)
-           (raise exc)))
-     (lambda ()
-       (siple-interpret (car (reverse (command-line))))
-       #f)))))
+(assert-exception
+ siple-exception?
+ (siple-interpret (car (reverse (command-line)))))

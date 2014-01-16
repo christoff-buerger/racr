@@ -108,23 +108,11 @@
                 (ast-child 2 (A))))
              (D
               (lambda()
-                (ast-child 1 (C))))
-             
-             (invariant
-              (lambda ()
-                (list
-                 (S) 'att
-                 (A) 'att
-                 (B) 'att
-                 (C) 'att
-                 (D) 'att
-                 (C) 'att2
-                 (D) 'att2))))
+                (ast-child 1 (C)))))
         (with-specification
          spec
          
          (influenced:
-          (invariant)
           (S) 'att
           (A) 'att
           (B) 'att
@@ -135,7 +123,6 @@
          
          (rewrite-terminal 1 (D) 10)
          (influenced:
-          (invariant)
           (S) 'att
           (A) 'att
           (B) 'att
@@ -144,13 +131,8 @@
           (C) 'att2
           (D) 'att2)
          
-         (rewrite-terminal 1 (D) (ast-child 1 (D)))
-         (influenced:
-          (invariant))
-         
          (rewrite-subtree (B) (create-ast 'Ba (list -10)))
          (influenced:
-          (invariant)
           (S) 'att
           (A) 'att
           (B) 'att
@@ -159,13 +141,11 @@
          
          (rewrite-terminal 1 (D) 20)
          (influenced:
-          (invariant)
           (C) 'att
           (D) 'att)
          
          (rewrite-subtree (B) (create-ast 'B (list)))
          (influenced:
-          (invariant)
           (S) 'att
           (A) 'att
           (B) 'att
@@ -174,7 +154,6 @@
          
          (rewrite-terminal 1 (D) 1)
          (influenced:
-          (invariant)
           (S) 'att
           (A) 'att
           (B) 'att
