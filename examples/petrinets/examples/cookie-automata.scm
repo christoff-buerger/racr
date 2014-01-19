@@ -32,11 +32,6 @@
          ((A 'Euro)))
         
         (make-transition
-         c-cold
-         ()
-         ((A 'Euro)))
-        
-        (make-transition
          e
          ((A (euro (eq? euro 'Euro))))
          ((D 'Token)))

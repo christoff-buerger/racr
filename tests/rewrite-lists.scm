@@ -116,27 +116,11 @@
               (E
                (case-lambda
                  ((lb) (ast-child lb (A-E-list)))
-                 ((lb ub) (ast-children (A-E-list) (cons lb ub)))))
-             
-             (invariant
-              (lambda ()
-                (append
-                 (list
-                  (S) 's
-                  (A) 's
-                  (A) 'i
-                  (S) 'A-length
-                  (A) 'A-length)
-                 (if (not (null? (ast-children (A-E-list))))
-                     (list
-                      (E 1 (ast-num-children (A-E-list))) 's
-                      (E 1 (ast-num-children (A-E-list))) 'i)
-                     (list))))))
+                 ((lb ub) (ast-children (A-E-list) (cons lb ub))))))
         (with-specification
          spec
          
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -148,7 +132,6 @@
          ; insert hit:
          (rewrite-insert (A-E-list) 3 (create-ast 'E (list #t)))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -160,7 +143,6 @@
          ; add with hit:
          (rewrite-add (A-E-list) (create-ast 'E (list #f)))
          (influenced:
-          (invariant)
           (S) 'A-length
           (A) 'A-length
           (E 6) 'i
@@ -169,14 +151,12 @@
          ; delete after hit:
          (rewrite-delete (E 4))
          (influenced:
-          (invariant)
           (S) 'A-length
           (A) 'A-length)
          
          ; delete before hit:
          (rewrite-delete (E 2))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -187,7 +167,6 @@
          ; insert after hit:
          (rewrite-insert (A-E-list) 3 (create-ast 'E (list #f)))
          (influenced:
-          (invariant)
           (S) 'A-length
           (A) 'A-length
           (E 3) 'i
@@ -196,7 +175,6 @@
          ; insert before hit:
          (rewrite-insert (A-E-list) 1 (create-ast 'E (list #f)))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -208,7 +186,6 @@
          ; cancel hit:
          (rewrite-terminal 1 (E 3) #f)
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -218,7 +195,6 @@
          ; add without hit:
          (rewrite-add (A-E-list) (create-ast 'E (list #f)))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -230,7 +206,6 @@
          ; delete without hit:
          (rewrite-delete (E 4))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
@@ -241,7 +216,6 @@
          ; insert without hit:
          (rewrite-insert (A-E-list) 2 (create-ast 'E (list #f)))
          (influenced:
-          (invariant)
           (S) 's
           (A) 's
           (A) 'i
