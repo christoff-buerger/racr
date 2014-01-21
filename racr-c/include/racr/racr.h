@@ -2,10 +2,10 @@
 #include <stdarg.h>
 
 
-Scheme_Env* racr_init(void* stack_addr);
-#define RACR_INIT(env)\
-	int _dummy;\
-	Scheme_Env* __attribute__((unused)) env = racr_init(&_dummy);
+Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names);
+#define RACR_INIT(env, bc, mods)\
+int _dummy;\
+Scheme_Env* __attribute__((unused)) env = racr_init(&_dummy, bc, mods)
 
 
 // racr helper functions
@@ -25,21 +25,17 @@ Scheme_Object*	racr_create_ast(Scheme_Object* spec, const char* non_terminal, Sc
 Scheme_Object*	racr_create_ast_list(Scheme_Object* list_of_children);
 Scheme_Object*	racr_create_ast_bud(void);
 Scheme_Object*	racr_ast_parent(Scheme_Object* n);
-Scheme_Object*	racr_ast_child_by_index(Scheme_Object* n, int index);
-Scheme_Object*	racr_ast_child_by_name(Scheme_Object* n, const char* name);
-Scheme_Object*	racr_ast_sibling_by_index(Scheme_Object* n, int index);
-Scheme_Object*	racr_ast_sibling_by_name(Scheme_Object* n, const char* name);
-
-// TODO: define-syntax
-// Scheme_Object*	racr_ast_children(Scheme_Object* n, Scheme_Object* b);
-// void				racr_ast_for_each_child(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b);
-// Scheme_Object*	racr_ast_find_child(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b);
-// Scheme_Object*	racr_ast_find_child_(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b);
-// TODO: missing functions
-// int				racr_ast_has_parent(Scheme_Object* n);
-// int				racr_ast_has_child(Scheme_Object* n);
-// int				racr_ast_has_sibling(Scheme_Object* n);
-
+Scheme_Object*	racr_ast_child_by_index(int index, Scheme_Object* n);
+Scheme_Object*	racr_ast_child_by_name(const char* name, Scheme_Object* n);
+Scheme_Object*	racr_ast_sibling_by_index(int index, Scheme_Object* n);
+Scheme_Object*	racr_ast_sibling_by_name(const char* name, Scheme_Object* n);
+Scheme_Object*	racr_ast_children(Scheme_Object* n, Scheme_Object* b);
+void			racr_ast_for_each_child(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b);
+Scheme_Object*	racr_ast_find_child(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b);
+Scheme_Object*	racr_ast_find_child_(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b);
+int				racr_ast_has_parent(Scheme_Object* n);
+int				racr_ast_has_child(Scheme_Object* n);
+int				racr_ast_has_sibling(Scheme_Object* n);
 int				racr_ast_child_index(Scheme_Object* n);
 int				racr_ast_num_children(Scheme_Object* n);
 const char*		racr_ast_node_type(Scheme_Object* n);

@@ -2,7 +2,8 @@
 #include <error.h>
 
 
-static void declare_modules(Scheme_Env *env, const char* bc_file) {
+
+static void load_bytecode(Scheme_Env *env, const char* bc_file) {
 	FILE* file = fopen(bc_file, "r");
 	if (!file) error(1, 0, "coudln't read file: %s", bc_file);
 
@@ -20,42 +21,46 @@ static void declare_modules(Scheme_Env *env, const char* bc_file) {
 
 
 
-static const char* module_names[] = {
-	"racket/base",
-	"racr",
-	"petrinets/access-support",
-	"petrinets/ast",
-	"petrinets/composition-analysis",
-	"petrinets/enabled-analysis",
-	"petrinets/name-analysis",
-	"petrinets/ui",
-	"petrinets/well-formedness-analysis",
-	"siple/access-support",
-	"siple/ast",
-	"siple/control-flow-analysis",
-	"siple/exception-api",
-	"siple/interpreter",
-	"siple/lexer",
-	"siple/name-analysis",
-	"siple/parser",
-	"siple/state",
-	"siple/type",
-	"siple/type-analysis",
-	"siple/type-coercion",
-	"siple/well-formedness",
-	NULL
-};
+static Scheme_Object* mcons;
+
+
+Scheme_Object* racr_build_bounds(int len, int bounds[][2]) {
+	Scheme_Object* b[len];
+	int i;
+	for (i = 0; i < len; i++) {
+		Scheme_Object* args[] = {
+			scheme_make_integer(bounds[i][0]),
+			(bounds[i][1] > 0)
+				? scheme_make_integer(bounds[i][1])
+				: scheme_intern_symbol("*")
+		};
+		b[i] = scheme_apply(mcons, 2, args);
+	}
+	return scheme_build_list(len, b);
+}
 
 
 
-Scheme_Env* racr_init(void* stack_addr) {
+Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names) {
 	scheme_set_stack_base(stack_addr, 1);
 	Scheme_Env* env = scheme_basic_env();
+	load_bytecode(env, bytecode);
 
-	declare_modules(env, "bc");
+	scheme_namespace_require(scheme_intern_symbol("rnrs"));
+	scheme_namespace_require(scheme_intern_symbol("rnrs/mutable-pairs-6"));
+	scheme_namespace_require(scheme_intern_symbol("racr"));
+	if (module_names) {
+		for (; *module_names; module_names++) {
+			scheme_namespace_require(scheme_intern_symbol(*module_names));
+		}
+	}
 
-	const char** mods = module_names;
-	for (; *mods; mods++) scheme_namespace_require(scheme_intern_symbol(*mods));
+	Scheme_Object* args[] = {
+		scheme_intern_symbol("racket/base"),
+		scheme_intern_symbol("mcons")
+	};
+	mcons = scheme_dynamic_require(2, args);
+
 
 	return env;
 }
@@ -72,9 +77,7 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 	save = scheme_current_thread->error_buf;
 	scheme_current_thread->error_buf = &fresh;
 
-
 	if (!scheme_setjmp(scheme_error_buf)) {
-
 		Scheme_Object* args[16] = {
 			scheme_intern_symbol(mod),
 			scheme_intern_symbol(func)
@@ -122,7 +125,10 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 		if (!rest) o = scheme_apply(f, count, args);
 		else {
 			Scheme_Object* l = scheme_append(scheme_build_list(count - 1, args), rest);
-			scheme_apply_to_list(f, l);
+			// DEBUG
+			//racr_call("rnrs", "display", "*", l);
+			//racr_call("rnrs", "newline", "");
+			o = scheme_apply_to_list(f, l);
 		}
 	}
 	else {
@@ -131,22 +137,6 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 	scheme_current_thread->error_buf = save;
 	return o;
 }
-
-Scheme_Object* racr_build_bounds(int len, int bounds[][2]) {
-	Scheme_Object* b[len];
-	int i;
-	for (i = 0; i < len; i++) {
-		b[i] = scheme_make_pair(
-			scheme_make_integer(bounds[i][0]),
-			(bounds[i][1] <= 0)
-				? scheme_make_integer(bounds[i][1])
-				: scheme_intern_symbol("*"));
-	}
-	return scheme_build_list(len, b);
-}
-
-
-
 
 
 
@@ -182,20 +172,18 @@ Scheme_Object* racr_create_ast_bud(void) {
 Scheme_Object* racr_ast_parent(Scheme_Object* n) {
 	return racr_call("racr", "ast-parent", "*", n);
 }
-Scheme_Object* racr_ast_child_by_index(Scheme_Object* n, int index) {
-	return racr_call("racr", "ast-child", "*i", n, index);
+Scheme_Object* racr_ast_child_by_index(int index, Scheme_Object* n) {
+	return racr_call("racr", "ast-child", "i*", index, n);
 }
-Scheme_Object* racr_ast_child_by_name(Scheme_Object* n, const char* name) {
-	return racr_call("racr", "ast-child", "*s", n, name);
+Scheme_Object* racr_ast_child_by_name(const char* name, Scheme_Object* n) {
+	return racr_call("racr", "ast-child", "s*", name, n);
 }
-Scheme_Object* racr_ast_sibling_by_index(Scheme_Object* n, int index) {
-	return racr_call("racr", "ast-sibling", "*i", n, index);
+Scheme_Object* racr_ast_sibling_by_index(int index, Scheme_Object* n) {
+	return racr_call("racr", "ast-sibling", "i*", index, n);
 }
-Scheme_Object* racr_ast_sibling_by_name(Scheme_Object* n, const char* name) {
-	return racr_call("racr", "ast-sibling", "*s", n, name);
+Scheme_Object* racr_ast_sibling_by_name(const char* name, Scheme_Object* n) {
+	return racr_call("racr", "ast-sibling", "*s", name, n);
 }
-/*
-// TODO: define-syntax
 Scheme_Object* racr_ast_children(Scheme_Object* n, Scheme_Object* b) {
 	return racr_call("racr", "ast-children", "*.", n, b);
 }
@@ -208,7 +196,6 @@ Scheme_Object* racr_ast_find_child(Scheme_Object* f, Scheme_Object* n, Scheme_Ob
 Scheme_Object* racr_ast_find_child_(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b) {
 	return racr_call("racr", "ast-find-child*", "**.", f, n, b);
 }
-// TODO: missing functions
 int racr_ast_has_parent(Scheme_Object* n) {
 	return SCHEME_TRUEP(racr_call("racr", "ast-has-parent?", "*", n));
 }
@@ -218,7 +205,6 @@ int racr_ast_has_child(Scheme_Object* n) {
 int racr_ast_has_sibling(Scheme_Object* n) {
 	return SCHEME_TRUEP(racr_call("racr", "ast-has-sibling?", "*", n));
 }
-*/
 int racr_ast_child_index(Scheme_Object* n) {
 	return SCHEME_INT_VAL(racr_call("racr", "ast-child-index", "*", n));
 }
