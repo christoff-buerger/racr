@@ -518,10 +518,13 @@
  
  (define-syntax with-bindings
    (syntax-rules ()
-     ((_ (binding ...) body)
-      (lambda (l)
+     ((_ ((parameter ...) (binding ...)) body body* ...)
+      (lambda (l parameter ...)
         (let ((binding (cdr (assq 'binding l))) ...)
-          body)))))
+          body
+          body* ...)))
+     ((_ (binding ...) body body* ...)
+      (with-bindings (() (binding ...)) body body* ...))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
