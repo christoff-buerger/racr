@@ -17,6 +17,7 @@
   specify-pattern-attribute
   compile-ast-specifications
   compile-ag-specifications
+  with-bindings
   ; Specification query interface:
   (rename
    (racr-specification-specification-phase specification->phase)
@@ -507,13 +508,20 @@
                   (lambda (att-name non-terminal index cached? equation circ-def)
                     (specify-attribute spec* att-name non-terminal index cached? equation circ-def)))
                  (#,(datum->syntax #'k 'specify-pattern-attribute)
-                  (lambda (att-name distinguished-node fragments references)
-                    (specify-pattern-attribute spec* att-name distinguished-node fragments references))))
+                  (lambda (att-name distinguished-node fragments references condition)
+                    (specify-pattern-attribute spec* att-name distinguished-node fragments references condition))))
             (let-syntax ((#,(datum->syntax #'k 'ag-rule)
                           (syntax-rules ()
                             ((_ attribute-name definition (... ...))
                              (specify-ag-rule spec* attribute-name definition (... ...))))))
               body ...))))))
+ 
+ (define-syntax with-bindings
+   (syntax-rules ()
+     ((_ (binding ...) body)
+      (lambda (l)
+        (let ((binding (cdr (assq 'binding l))) ...)
+          body)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2312,7 +2320,7 @@
  (define pattern-language (make-racr-specification))
  
  (define specify-pattern-attribute
-   (lambda (spec att-name distinguished-node fragments references)
+   (lambda (spec att-name distinguished-node fragments references condition)
      (define process-fragment
        (lambda (context type binding children)
          (unless (and
@@ -2354,15 +2362,15 @@
        (rewrite-terminal 'dnode ast (att-value 'lookup-node ast distinguished-node))
        (for-each
         (lambda (ref)
-          (let ((source (att-value 'lookup-node ast (ast-child 'source ref)))
-                (target (att-value 'lookup-node ast (ast-child 'target ref))))
-            (if source
-                (rewrite-terminal 'source ref source)
+          (let ((source? (att-value 'lookup-node ast (ast-child 'source ref)))
+                (target? (att-value 'lookup-node ast (ast-child 'target ref))))
+            (if source?
+                (rewrite-terminal 'source ref source?)
                 (throw-exception
                  "Invalid pattern definition; "
                  "Undefined reference source " (ast-child 'source ref) "."))
-            (if target
-                (rewrite-terminal 'target ref target)
+            (if target?
+                (rewrite-terminal 'target ref target?)
                 (throw-exception
                  "Invalid pattern definition; "
                  "Undefined reference target " (ast-child 'target ref) "."))))
@@ -2379,7 +2387,14 @@
         (ast-child 'type (ast-child 'dnode ast))
         '*
         #t
-        (att-value 'pmm-code ast)
+        (let ((pmm (att-value 'pmm-code ast))) ; Precompute the PMM, such that just it and not the pattern AST is in the equation's closure
+          (if condition
+              (lambda (n)
+                (let ((bindings (pmm n)))
+                  (if (and bindings (condition bindings))
+                      bindings
+                      #f)))
+              pmm))
         #f))))
  
  ;;; -------------------------------------------
@@ -2460,7 +2475,7 @@
  
  (define pmmi-terminate ; Construct association list of all binded nodes.
    (lambda (bindings)
-     (let ((bindings ; Precompute (key, index) pairs, such that the instruction's closure has no references to the pattern AST
+     (let ((bindings ; Precompute list L of (key, index) pairs, such that just L and not the pattern AST is in the instruction's closure
             (map
              (lambda (n)
                (cons (ast-child 'binding n) (att-value 'node-memory-index n)))

@@ -69,7 +69,8 @@
       '((A
          #f
          ()))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Distinguished node has no type
@@ -79,7 +80,8 @@
       '((#f
          D
          ()))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Distinguished node is list-node
@@ -89,7 +91,8 @@
       '((*
          D
          ()))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Bounded name redeclaration
@@ -100,7 +103,8 @@
          J
          ((1 A D ())
           (2 A J ()))))
-      '()))
+      '()
+      #f))
     
     ;;; Reachability errors:
     
@@ -127,7 +131,8 @@
       '((ref D F1)
         (ref F1 F2)
         (ref F2 F3)
-        (ref F4 F2))))
+        (ref F4 F2))
+      #f))
     
     ;;; Type errors:
     
@@ -139,7 +144,8 @@
       '((B
          D
          ((A1 Undefined #f ()))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: User defined nested lists
@@ -152,7 +158,8 @@
         (*
          R
          ((1 * #f ()))))
-      '((ref D R))))
+      '((ref D R))
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Context defined nested lists
@@ -168,7 +175,8 @@
            #f
            #f
            ((1 #f #f ()))))))
-      '((ref D R))))
+      '((ref D R))
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Mixed list/non-list node
@@ -179,7 +187,8 @@
          #f
          ((1 A D ())
           (A1 #f #f ()))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Undefined context
@@ -189,7 +198,8 @@
       '((B
          D
          ((Undefined #f #f ()))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: No unique non-list contexts
@@ -200,7 +210,8 @@
          D
          ((A1 #f #f ())
           (A1 #f #f ()))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: No unique list contexts
@@ -211,7 +222,8 @@
          #f
          ((1 A D ())
           (1 #f #f ()))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Unsatisfyable context type
@@ -224,7 +236,8 @@
            Z ; Type = A (A3 child of type C is of type A)
            #f
            ()))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Unsatisfyable pattern
@@ -243,7 +256,8 @@
                A ; Type = Z (Z child of type C is of type Z)
                #f
                ()))))))))
-      '()))
+      '()
+      #f))
     
     (assert-exception
      (specify-pattern-attribute ; ERROR: Unsatisfyable pattern
@@ -253,7 +267,8 @@
       '((* ; Type Z never is subject of a Kleene closure
          #f
          ((1 Z D ()))))
-      '()))))
+      '()
+      #f))))
 
 (define correct-pattern-tests
   (lambda ()
@@ -274,7 +289,8 @@
              'pattern1
              'D
              '((A D ()))
-             '())
+             '()
+             #f)
             
             (specify-pattern-attribute
              'pattern2
@@ -287,7 +303,8 @@
                   #f
                   ((1 A #f ())
                    (3 #f #f ()))))))
-             '())
+             '()
+             #f)
             
             (specify-pattern-attribute
              'pattern3
@@ -303,7 +320,8 @@
                   ((3 #f R1t ())))))
                (A R2t ()))
              '((ref R1s R1t)
-               (ref R2s R2t)))
+               (ref R2s R2t))
+             #f)
             
             (specify-pattern-attribute
              'pattern4
@@ -318,7 +336,17 @@
                   #f
                   ((3 #f R1t ()))))))
              '((ref R1s R1t)
-               (ref R2s D)))
+               (ref R2s D))
+             #f)
+            
+            (specify-pattern-attribute
+             'pattern5
+             'D
+             '((A D ()))
+             '()
+             (with-bindings
+              (D)
+              (ast-child 'ref D)))
             
             (compile-ag-specifications)
             
@@ -364,6 +392,7 @@
       (assert (= (length (filter-matches ast 'pattern2 'B)) 2))
       (assert (null? (filter-matches ast 'pattern3 'C)))
       (assert (null? (filter-matches ast 'pattern4 'C)))
+      (assert (null? (filter-matches ast 'pattern5 'A)))
       
       (rewrite-terminal
        1
@@ -383,6 +412,7 @@
         (cdr (assq 'R2t (att-value 'pattern3 (car (filter-matches ast 'pattern3 'C)))))
         (ast-child 1 (ast-child 'A2 (ast-child 'A1 ast)))))
       (assert (null? (filter-matches ast 'pattern4 'C)))
+      (assert (= (length (filter-matches ast 'pattern5 'A)) 2))
       
       (rewrite-terminal
        1
@@ -401,7 +431,8 @@
       (assert
        (eq?
         (cdr (assq 'R2t (att-value 'pattern3 (car (filter-matches ast 'pattern4 'C)))))
-        (ast-child 'A1 (ast-child 'A1 ast)))))))
+        (ast-child 'A1 (ast-child 'A1 ast))))
+      (assert (= (length (filter-matches ast 'pattern5 'A)) 2)))))
 
 (define run-tests
   (lambda ()
