@@ -2389,9 +2389,9 @@
         #t
         (let ((pmm (att-value 'pmm-code ast))) ; Precompute the PMM, such that just it and not the pattern AST is in the equation's closure
           (if condition
-              (lambda (n)
+              (lambda (n . args)
                 (let ((bindings (pmm n)))
-                  (if (and bindings (condition bindings))
+                  (if (and bindings (apply condition bindings args))
                       bindings
                       #f)))
               pmm))
