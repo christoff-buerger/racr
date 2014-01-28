@@ -1,17 +1,19 @@
 #include <scheme.h>
 #include <stdarg.h>
 
-
-Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names);
-#define RACR_INIT(env, bc, mods)\
-int _dummy;\
-Scheme_Env* __attribute__((unused)) env = racr_init(&_dummy, bc, mods)
-
-
-// racr helper functions
-Scheme_Object*	racr_call(const char* mod, const char* func, const char* fmt, ...);
+// functions not particular to racr
+Scheme_Env*		racr_init(void* stack_addr, const char* bytecode, char const** module_names);
+void			racr_set_exception_handler(void(*f)(void));
+int				racr_got_exception(void);
+Scheme_Object*	racr_call(Scheme_Object* func, const char* fmt, ...);
 Scheme_Object*	racr_build_bounds(int len, int bounds[][2]);
 
+#define RACR_INIT(env, bc, mods)\
+	int _dummy;\
+	Scheme_Env* __attribute__((unused)) env = racr_init(&_dummy, bc, mods)
+
+
+Scheme_Object*	racr_list(const char* fmt, ...);
 
 
 

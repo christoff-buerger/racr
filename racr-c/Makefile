@@ -1,26 +1,29 @@
-C = -Wall -c -fPIC -Iinclude
-C += -I../../racket/racket/include
+RACKET_PATH = ../../racket/
 
-L = -lm -lpthread -ldl -lffi
-L += ../../racket/racket/src/build/racket/libracket.a
-L += ../../racket/racket/src/build/racket/libmzgc.a
-
-SRC = src/main.c src/racr.c
-OBJ = $(SRC:src/%.c=build/%.o)
-TRG = a.out
-
-$(TRG): $(OBJ) Makefile
-	gcc $(OBJ) $(L) -o $@
+CFLAGS = -Wall -fPIC -Iinclude -I$(RACKET_PATH)/racket/include
+LFLAGS = -lm -lpthread -ldl -lffi
+LFLAGS += $(RACKET_PATH)/racket/src/build/racket/libracket.a
+LFLAGS += $(RACKET_PATH)/racket/src/build/racket/libmzgc.a
 
 
-build/%.o: src/%.c Makefile
+TESTS = $(patsubst src/tests/%.c,bin/tests/%,$(wildcard src/tests/*.c))
+
+
+all: $(TESTS)
+
+
+build/racr.o: src/racr.c Makefile
 	@mkdir -p $(@D)
-	gcc -Wall $(C) $< -o $@
+	gcc $(CFLAGS) $< -c -o $@
+
+
+bin/tests/%: src/tests/%.c build/racr.o Makefile
+	@mkdir -p $(@D)
+	gcc $(CFLAGS) build/racr.o $(LFLAGS) $< -o $@
 
 
 # byte code generation
 MODULES =\
-racr\
 petrinets/access-support\
 petrinets/ast\
 petrinets/composition-analysis\
@@ -42,10 +45,10 @@ siple/type-analysis\
 siple/type-coercion\
 siple/well-formedness
 
-bc: src/make_bc Makefile
-	./src/make_bc bc $(MODULES)
+bin/bc: bin/make_bc Makefile
+	./bin/make_bc $@ $(MODULES)
 
 clean:
 	rm -rf build
-	rm -rf a.out
+	rm -rf bin/tests
 

@@ -17,7 +17,7 @@ TMP=$(mktemp)
 TMP_SRC="$TMP".c
 TMP_BIN="$TMP".out
 
-./../../racket/racket/bin/raco ctool --c-mods "$TMP" ++lib rnrs ++lib racr ++lib racr-test-api $LIBS
+./../../racket/racket/bin/raco ctool --c-mods "$TMP" ++lib racket/base ++lib r5rs/main ++lib racr ++lib racr-test-api $LIBS
 
 cat "$TMP" | head -n -6 | tail -n +5 > "$TMP_SRC"
 cat >> "$TMP_SRC" << EOF

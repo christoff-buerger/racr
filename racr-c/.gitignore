@@ -1,3 +1,4 @@
-bc
-a.out
 build
+bin/tests
+bin/bc
+*.swp

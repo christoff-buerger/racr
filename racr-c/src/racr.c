@@ -19,6 +19,100 @@ static void load_bytecode(Scheme_Env *env, const char* bc_file) {
 	scheme_embedded_load(size, data, 1);
 }
 
+static const char* racr_function_strings[] = {
+	"list",
+	"cons",
+
+	"create-specification",
+	"ast-rule",
+	"compile-ast-specifications",
+	"ast-node?",
+	"create-ast",
+	"create-ast-list",
+	"create-ast-bud",
+	"ast-parent",
+	"ast-child",
+	"ast-sibling",
+	"ast-children",
+	"ast-for-each-child",
+	"ast-find-child",
+	"ast-find-child*",
+	"ast-has-parent?",
+	"ast-has-child?",
+	"ast-has-sibling?",
+	"ast-child-index",
+	"ast-num-children",
+	"ast-node-type",
+	"ast-list-node?",
+	"ast-bud-node?",
+	"ast-subtype?",
+	"specify-attribute",
+	"compile-ag-specifications",
+	"att-value",
+	"rewrite-terminal",
+	"rewrite-refine",
+	"rewrite-abstract",
+	"rewrite-subtree",
+	"rewrite-add",
+	"rewrite-insert",
+	"rewrite-delete",
+	"perform-rewrites",
+	"ast-annotation-set!",
+	"ast-weave-annotations",
+	"ast-annotation-remove!",
+	"ast-annotation?",
+	"ast-annotation"
+};
+
+
+static union {
+	Scheme_Object* array[0];
+	struct {
+		Scheme_Object* list;
+		Scheme_Object* cons;
+
+		Scheme_Object* create_specification;
+		Scheme_Object* ast_rule;
+		Scheme_Object* compile_ast_specifications;
+		Scheme_Object* ast_node_q;
+		Scheme_Object* create_ast;
+		Scheme_Object* create_ast_list;
+		Scheme_Object* create_ast_bud;
+		Scheme_Object* ast_parent;
+		Scheme_Object* ast_child;
+		Scheme_Object* ast_sibling;
+		Scheme_Object* ast_children;
+		Scheme_Object* ast_for_each_child;
+		Scheme_Object* ast_find_child;
+		Scheme_Object* ast_find_child_m;
+		Scheme_Object* ast_has_parent_q;
+		Scheme_Object* ast_has_child_q;
+		Scheme_Object* ast_has_sibling_q;
+		Scheme_Object* ast_child_index;
+		Scheme_Object* ast_num_children;
+		Scheme_Object* ast_node_type;
+		Scheme_Object* ast_list_node_q;
+		Scheme_Object* ast_bud_node_q;
+		Scheme_Object* ast_subtype_q;
+		Scheme_Object* specify_attribute;
+		Scheme_Object* compile_ag_specifications;
+		Scheme_Object* att_value;
+		Scheme_Object* rewrite_terminal;
+		Scheme_Object* rewrite_refine;
+		Scheme_Object* rewrite_abstract;
+		Scheme_Object* rewrite_subtree;
+		Scheme_Object* rewrite_add;
+		Scheme_Object* rewrite_insert;
+		Scheme_Object* rewrite_delete;
+		Scheme_Object* perform_rewrites;
+		Scheme_Object* ast_annotation_set_e;
+		Scheme_Object* ast_weave_annotations;
+		Scheme_Object* ast_annotation_remove_e;
+		Scheme_Object* ast_annotation_q;
+		Scheme_Object* ast_annotation;
+	};
+} racr;
+
 
 
 static Scheme_Object* mcons;
@@ -40,14 +134,15 @@ Scheme_Object* racr_build_bounds(int len, int bounds[][2]) {
 }
 
 
+static Scheme_Env* global_env;
 
 Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names) {
 	scheme_set_stack_base(stack_addr, 1);
-	Scheme_Env* env = scheme_basic_env();
+	Scheme_Env* env = global_env = scheme_basic_env();
 	load_bytecode(env, bytecode);
 
+	scheme_namespace_require(scheme_intern_symbol("racket/base"));
 	scheme_namespace_require(scheme_intern_symbol("rnrs"));
-	scheme_namespace_require(scheme_intern_symbol("rnrs/mutable-pairs-6"));
 	scheme_namespace_require(scheme_intern_symbol("racr"));
 	if (module_names) {
 		for (; *module_names; module_names++) {
@@ -55,12 +150,17 @@ Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** modul
 		}
 	}
 
+/*
 	Scheme_Object* args[] = {
 		scheme_intern_symbol("racket/base"),
 		scheme_intern_symbol("mcons")
 	};
 	mcons = scheme_dynamic_require(2, args);
-
+*/
+	int i;
+	for (i = 0; i < sizeof(racr_function_strings) / sizeof(*racr_function_strings); i++) {
+		racr.array[i] = scheme_eval_string(racr_function_strings[i], env);
+	}
 
 	return env;
 }
@@ -68,8 +168,19 @@ Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** modul
 
 
 // racr helper functions
+static int got_exception = 0;
+static void(*exception_handler)(void) = NULL;
+int racr_got_exception(void) {
+	return got_exception;
+}
+void racr_set_exception_handler(void(*f)(void)) {
+	exception_handler = f;
+}
 
-Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...) {
+
+
+
+static Scheme_Object* vracr_call(Scheme_Object* func, const char* fmt, va_list ap) {
 
 	Scheme_Object* o;
 	Scheme_Object* rest = NULL;
@@ -78,15 +189,9 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 	scheme_current_thread->error_buf = &fresh;
 
 	if (!scheme_setjmp(scheme_error_buf)) {
-		Scheme_Object* args[16] = {
-			scheme_intern_symbol(mod),
-			scheme_intern_symbol(func)
-		};
-		Scheme_Object* f = scheme_dynamic_require(2, args);
-		int count;
-		va_list ap;
-		va_start(ap, fmt);
 
+		Scheme_Object* args[16];
+		int count;
 		for (count = 0; fmt[count] != '\0'; count++) {
 
 			if (count >= 16) error(1, 0, "too many arguments");
@@ -120,114 +225,130 @@ Scheme_Object* racr_call(const char* mod, const char* func, const char* fmt, ...
 			}
 			args[count] = o;
 		}
-		va_end(ap);
 
-		if (!rest) o = scheme_apply(f, count, args);
+
+		if (!rest) o = scheme_apply(func, count, args);
 		else {
 			Scheme_Object* l = scheme_append(scheme_build_list(count - 1, args), rest);
-			// DEBUG
-			//racr_call("rnrs", "display", "*", l);
-			//racr_call("rnrs", "newline", "");
-			o = scheme_apply_to_list(f, l);
+			o = scheme_apply_to_list(func, l);
 		}
+		got_exception = 0;
 	}
 	else {
 		o = NULL;
+		got_exception = 1;
+		if (exception_handler) exception_handler();
 	}
 	scheme_current_thread->error_buf = save;
 	return o;
 }
 
 
+Scheme_Object* racr_call(Scheme_Object* func, const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	Scheme_Object* o = vracr_call(func, fmt, ap);
+	va_end(ap);
+	return o;
+}
+
+Scheme_Object*	racr_list(const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	Scheme_Object* o = vracr_call(racr.list, fmt, ap);
+	va_end(ap);
+	return o;
+}
+
 
 Scheme_Object* racr_create_specification(void) {
-	return racr_call("racr", "create-specification", "");
+	return racr_call(racr.create_specification, "");
 }
 
 // Abstract Syntax Trees
 void racr_ast_rule(Scheme_Object* spec, const char* symbol_encoding_rule) {
-	racr_call("racr", "ast-rule", "*s", spec, symbol_encoding_rule);
+	racr_call(racr.ast_rule, "*s", spec, symbol_encoding_rule);
 }
 void racr_compile_ast_specifications(Scheme_Object* spec, const char* start_symbol) {
-	racr_call("racr", "compile-ast-specifications", "*s", spec, start_symbol);
+	racr_call(racr.compile_ast_specifications, "*s", spec, start_symbol);
 }
 int racr_is_ast_node(Scheme_Object* scheme_entity) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-node?", "*", scheme_entity));
+	return SCHEME_TRUEP(racr_call(racr.ast_node_q, "*", scheme_entity));
 }
 Scheme_Object* racr_create_ast(
 		Scheme_Object* spec,
 		const char* non_terminal,
 		Scheme_Object* list_of_children) {
-	return racr_call("racr", "create-ast", "*s*",
+	return racr_call(racr.create_ast, "*s*",
 		spec,
 		non_terminal,
 		list_of_children);
 }
 Scheme_Object* racr_create_ast_list(Scheme_Object* list_of_children) {
-	return racr_call("racr", "create-ast-list", "*", list_of_children);
+	return racr_call(racr.create_ast_list, "*", list_of_children);
 }
 Scheme_Object* racr_create_ast_bud(void) {
-	return racr_call("racr", "create-ast-bud", "");
+	return racr_call(racr.create_ast_bud, "");
 }
 Scheme_Object* racr_ast_parent(Scheme_Object* n) {
-	return racr_call("racr", "ast-parent", "*", n);
+	return racr_call(racr.ast_parent, "*", n);
 }
 Scheme_Object* racr_ast_child_by_index(int index, Scheme_Object* n) {
-	return racr_call("racr", "ast-child", "i*", index, n);
+	return racr_call(racr.ast_child, "i*", index, n);
 }
 Scheme_Object* racr_ast_child_by_name(const char* name, Scheme_Object* n) {
-	return racr_call("racr", "ast-child", "s*", name, n);
+	return racr_call(racr.ast_child, "s*", name, n);
 }
 Scheme_Object* racr_ast_sibling_by_index(int index, Scheme_Object* n) {
-	return racr_call("racr", "ast-sibling", "i*", index, n);
+	return racr_call(racr.ast_sibling, "i*", index, n);
 }
 Scheme_Object* racr_ast_sibling_by_name(const char* name, Scheme_Object* n) {
-	return racr_call("racr", "ast-sibling", "*s", name, n);
+	return racr_call(racr.ast_sibling, "*s", name, n);
 }
 Scheme_Object* racr_ast_children(Scheme_Object* n, Scheme_Object* b) {
-	return racr_call("racr", "ast-children", "*.", n, b);
+	return racr_call(racr.ast_children, "*.", n, b);
 }
 void racr_ast_for_each_child(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b) {
-	racr_call("racr", "ast-for-each-child", "**.", f, n, b);
+	racr_call(racr.ast_for_each_child, "**.", f, n, b);
 }
 Scheme_Object* racr_ast_find_child(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b) {
-	return racr_call("racr", "ast-find-child", "**.", f, n, b);
+	return racr_call(racr.ast_find_child, "**.", f, n, b);
 }
 Scheme_Object* racr_ast_find_child_(Scheme_Object* f, Scheme_Object* n, Scheme_Object* b) {
-	return racr_call("racr", "ast-find-child*", "**.", f, n, b);
+	return racr_call(racr.ast_find_child_m, "**.", f, n, b);
 }
 int racr_ast_has_parent(Scheme_Object* n) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-has-parent?", "*", n));
+	return SCHEME_TRUEP(racr_call(racr.ast_has_parent_q, "*", n));
 }
 int racr_ast_has_child(Scheme_Object* n) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-has-child?", "*", n));
+	return SCHEME_TRUEP(racr_call(racr.ast_has_child_q, "*", n));
 }
 int racr_ast_has_sibling(Scheme_Object* n) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-has-sibling?", "*", n));
+	return SCHEME_TRUEP(racr_call(racr.ast_has_sibling_q, "*", n));
 }
 int racr_ast_child_index(Scheme_Object* n) {
-	return SCHEME_INT_VAL(racr_call("racr", "ast-child-index", "*", n));
+	return SCHEME_INT_VAL(racr_call(racr.ast_child_index, "*", n));
 }
 int racr_ast_num_children(Scheme_Object* n) {
-	return SCHEME_INT_VAL(racr_call("racr", "ast-num-children", "*", n));
+	return SCHEME_INT_VAL(racr_call(racr.ast_num_children, "*", n));
 }
 const char* racr_ast_node_type(Scheme_Object* n) {
-	return SCHEME_SYM_VAL(racr_call("racr", "ast-node-type", "*", n));
+	return SCHEME_SYM_VAL(racr_call(racr.ast_node_type, "*", n));
 }
 int racr_is_ast_list_node(Scheme_Object* n) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-list-node?", "*", n));
+	return SCHEME_TRUEP(racr_call(racr.ast_list_node_q, "*", n));
 }
 int racr_is_ast_bud_node(Scheme_Object* n) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-bud-node?", "*", n));
+	return SCHEME_TRUEP(racr_call(racr.ast_bud_node_q, "*", n));
 }
 int racr_is_ast_subtype_nn(Scheme_Object* a1, Scheme_Object* a2) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-subtype?", "**", a1, a2));
+	return SCHEME_TRUEP(racr_call(racr.ast_subtype_q, "**", a1, a2));
 }
 int racr_is_ast_subtype_nt(Scheme_Object* a, const char* t) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-subtype?", "*s", a, t));
+	return SCHEME_TRUEP(racr_call(racr.ast_subtype_q, "*s", a, t));
 }
 int racr_is_ast_subtype_tn(const char* t, Scheme_Object* a) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-subtype?", "s*", t, a));
+	return SCHEME_TRUEP(racr_call(racr.ast_subtype_q, "s*", t, a));
 }
 
 // Attribution
@@ -239,7 +360,7 @@ void racr_specify_attribute_by_index(
 		int is_cached,
 		Scheme_Object* equation,
 		Scheme_Object* circ_def) {
-	racr_call("racr", "specify-attribute", "*ssib**",
+	racr_call(racr.specify_attribute, "*ssib**",
 		spec,
 		att_name,
 		non_terminal,
@@ -256,7 +377,7 @@ void racr_specify_attribute_by_name(
 		int is_cached,
 		Scheme_Object* equation,
 		Scheme_Object* circ_def) {
-	racr_call("racr", "specify-attribute", "*ss*b**",
+	racr_call(racr.specify_attribute, "*ss*b**",
 		spec,
 		att_name,
 		non_terminal,
@@ -266,14 +387,14 @@ void racr_specify_attribute_by_name(
 		circ_def);
 }
 void racr_compile_ag_specifications(Scheme_Object* spec) {
-	racr_call("racr", "compile-ag-specifications", "*", spec);
+	racr_call(racr.compile_ag_specifications, "*", spec);
 }
 Scheme_Object* racr_att_value(
 		Scheme_Object* spec,
 		const char* attribute_name,
 		Scheme_Object* node,
 		Scheme_Object* arguments) {
-	return racr_call("racr", "att-value", "*s*.",
+	return racr_call(racr.att_value, "*s*.",
 		spec,
 		attribute_name,
 		node,
@@ -282,51 +403,49 @@ Scheme_Object* racr_att_value(
 
 // Rewriting
 Scheme_Object* racr_rewrite_terminal(int i, Scheme_Object* n, Scheme_Object* new_value) {
-	return racr_call("racr", "rewrite-terminal", "i**", i, n, new_value);
+	return racr_call(racr.rewrite_terminal, "i**", i, n, new_value);
 }
 void racr_rewrite_refine(Scheme_Object* n, const char* t, Scheme_Object* c) {
-	racr_call("racr", "rewrite-refine", "*s.", n, t, c);
+	racr_call(racr.rewrite_refine, "*s.", n, t, c);
 }
 Scheme_Object* racr_rewrite_abstract(Scheme_Object* n, const char* t) {
-	return racr_call("racr", "rewrite-abstract", "*s", n, t);
+	return racr_call(racr.rewrite_abstract, "*s", n, t);
 }
 Scheme_Object* racr_rewrite_subtree(
 		Scheme_Object* old_fragment,
 		Scheme_Object* new_fragment) {
-	return racr_call("racr", "rewrite-subtree", "**", old_fragment, new_fragment);
+	return racr_call(racr.rewrite_subtree, "**", old_fragment, new_fragment);
 }
 void racr_rewrite_add(Scheme_Object* l, Scheme_Object* e) {
-	racr_call("racr", "rewrite-add", "**", l, e);
+	racr_call(racr.rewrite_add, "**", l, e);
 }
 void racr_rewrite_insert(Scheme_Object* l, int i, Scheme_Object* e) {
-	racr_call("racr", "rewrite-insert", "*i*", l, i, e);
+	racr_call(racr.rewrite_insert, "*i*", l, i, e);
 }
 Scheme_Object* racr_rewrite_delete(Scheme_Object* n) {
-	return racr_call("racr", "rewrite-delete", "*", n);
+	return racr_call(racr.rewrite_delete, "*", n);
 }
 Scheme_Object* racr_perform_rewrites(
 		Scheme_Object* n,
 		Scheme_Object* strategy,
 		Scheme_Object* transformers) {
-	return racr_call("racr", "perform-rewrites", "**.", n, strategy, transformers);
+	return racr_call(racr.perform_rewrites, "**.", n, strategy, transformers);
 }
 
 // AST Annotations
 void racr_ast_annotation_set(Scheme_Object* n, const char* a, Scheme_Object* v) {
-	racr_call("racr", "ast-annotation-set!", "*s*", n, a, v);
+	racr_call(racr.ast_annotation_set_e, "*s*", n, a, v);
 }
 void racr_ast_weave_annotations(Scheme_Object* n, const char* t, const char* a, Scheme_Object* v) {
-	racr_call("racr", "ast-weave-annotations", "*ss*", n, t, a, v);
+	racr_call(racr.ast_weave_annotations, "*ss*", n, t, a, v);
 }
 void racr_ast_annotation_remove(Scheme_Object* n, const char* a) {
-	racr_call("racr", "ast-annotation-remove!", "*s", n, a);
+	racr_call(racr.ast_annotation_remove_e, "*s", n, a);
 }
 int racr_is_ast_annotation(Scheme_Object* n, const char* a) {
-	return SCHEME_TRUEP(racr_call("racr", "ast-annotation?", "*s", n, a));
+	return SCHEME_TRUEP(racr_call(racr.ast_annotation_q, "*s", n, a));
 }
 Scheme_Object* racr_ast_annotation(Scheme_Object* n, const char* a) {
-	return racr_call("racr", "ast-annotation", "*s", n, a);
+	return racr_call(racr.ast_annotation, "*s", n, a);
 }
-
-
 
