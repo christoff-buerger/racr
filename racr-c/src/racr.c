@@ -3,22 +3,6 @@
 
 
 
-static void load_bytecode(Scheme_Env *env, const char* bc_file) {
-	FILE* file = fopen(bc_file, "r");
-	if (!file) error(1, 0, "coudln't read file: %s", bc_file);
-
-	fseek(file, 0, SEEK_END);
-	long size = ftell(file) - 1;
-	rewind(file);
-
-	char data[size];
-	fread(data, 1, size, file);
-	fclose(file);
-
-	scheme_register_embedded_load(size, data);
-	scheme_embedded_load(size, data, 1);
-}
-
 static const char* racr_function_strings[] = {
 	"list",
 	"cons",
@@ -114,8 +98,61 @@ static union {
 } racr;
 
 
+static void load_bytecode(Scheme_Env *env, const char* bc_file) {
+	FILE* file = fopen(bc_file, "r");
+	if (!file) error(1, 0, "coudln't read file: %s", bc_file);
 
-static Scheme_Object* mcons;
+	fseek(file, 0, SEEK_END);
+	long size = ftell(file) - 1;
+	rewind(file);
+
+	char data[size];
+	fread(data, 1, size, file);
+	fclose(file);
+
+	scheme_register_embedded_load(size, data);
+	scheme_embedded_load(size, data, 1);
+}
+
+
+Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names) {
+	scheme_set_stack_base(stack_addr, 1);
+	Scheme_Env* env = scheme_basic_env();
+	load_bytecode(env, bytecode);
+
+	scheme_namespace_require(scheme_intern_symbol("racket/base"));
+	scheme_namespace_require(scheme_intern_symbol("rnrs"));
+	scheme_namespace_require(scheme_intern_symbol("racr"));
+	if (module_names) {
+		for (; *module_names; module_names++) {
+			scheme_namespace_require(scheme_intern_symbol(*module_names));
+		}
+	}
+
+	int i;
+	for (i = 0; i < sizeof(racr_function_strings) / sizeof(*racr_function_strings); i++) {
+		racr.array[i] = scheme_eval_string(racr_function_strings[i], env);
+	}
+
+	return env;
+}
+
+
+
+
+
+static int got_exception = 0;
+static void(*exception_handler)(void) = NULL;
+
+
+int racr_got_exception(void) {
+	return got_exception;
+}
+
+
+void racr_set_exception_handler(void(*f)(void)) {
+	exception_handler = f;
+}
 
 
 Scheme_Object* racr_build_bounds(int len, int bounds[][2]) {
@@ -128,56 +165,10 @@ Scheme_Object* racr_build_bounds(int len, int bounds[][2]) {
 				? scheme_make_integer(bounds[i][1])
 				: scheme_intern_symbol("*")
 		};
-		b[i] = scheme_apply(mcons, 2, args);
+		b[i] = scheme_apply(racr.cons, 2, args);
 	}
 	return scheme_build_list(len, b);
 }
-
-
-static Scheme_Env* global_env;
-
-Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names) {
-	scheme_set_stack_base(stack_addr, 1);
-	Scheme_Env* env = global_env = scheme_basic_env();
-	load_bytecode(env, bytecode);
-
-	scheme_namespace_require(scheme_intern_symbol("racket/base"));
-	scheme_namespace_require(scheme_intern_symbol("rnrs"));
-	scheme_namespace_require(scheme_intern_symbol("racr"));
-	if (module_names) {
-		for (; *module_names; module_names++) {
-			scheme_namespace_require(scheme_intern_symbol(*module_names));
-		}
-	}
-
-/*
-	Scheme_Object* args[] = {
-		scheme_intern_symbol("racket/base"),
-		scheme_intern_symbol("mcons")
-	};
-	mcons = scheme_dynamic_require(2, args);
-*/
-	int i;
-	for (i = 0; i < sizeof(racr_function_strings) / sizeof(*racr_function_strings); i++) {
-		racr.array[i] = scheme_eval_string(racr_function_strings[i], env);
-	}
-
-	return env;
-}
-
-
-
-// racr helper functions
-static int got_exception = 0;
-static void(*exception_handler)(void) = NULL;
-int racr_got_exception(void) {
-	return got_exception;
-}
-void racr_set_exception_handler(void(*f)(void)) {
-	exception_handler = f;
-}
-
-
 
 
 static Scheme_Object* vracr_call(Scheme_Object* func, const char* fmt, va_list ap) {
