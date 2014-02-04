@@ -1,6 +1,6 @@
 RACKET_PATH = ../../racket/
 
-CFLAGS = -Wall -fPIC -Iinclude -I$(RACKET_PATH)/racket/include
+CFLAGS = -Wall -Iinclude -I$(RACKET_PATH)/racket/include
 LFLAGS = -lm -lpthread -ldl -lffi
 LFLAGS += $(RACKET_PATH)/racket/src/build/racket/libracket.a
 LFLAGS += $(RACKET_PATH)/racket/src/build/racket/libmzgc.a
