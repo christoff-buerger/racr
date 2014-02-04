@@ -42,22 +42,22 @@ However, all desired libraries must first be properly installed.
 
 1. Install scheme libraries into racket:
 
-	$ $RACKET_PATH/racket/bin/plt-r6rs --install ../racr/racr.scm
-	$ $RACKET_PATH/racket/bin/plt-r6rs --install ../racr/racr-test-api.scm
+        $ $RACKET_PATH/racket/bin/plt-r6rs --install ../racr/racr.scm
+        $ $RACKET_PATH/racket/bin/plt-r6rs --install ../racr/racr-test-api.scm
 
 
-  You may likewise also install any other libraries:
+   You may likewise also install any other libraries:
 
-	$ $RACKET_PATH/racket/bin/plt-r6rs --install my-scm-lib.scm
+        $ $RACKET_PATH/racket/bin/plt-r6rs --install my-scm-lib.scm
 
 
 2. Generate the byte-code file:
 
-	$ bin/make_bc bc
+        $ bin/make_bc bc
 
-  If you wish to include libraries of you own, do this instead:
+   If you wish to include libraries of you own, do this instead:
 
-	$ bin/make_bc bc my-scm-lib
+        $ bin/make_bc bc my-scm-lib
 
 
 
