@@ -22,17 +22,7 @@ You may wish to adjust the Makefile by setting the variable `RACKET_PATH` accord
 Throughout the remaining document, it is assumed that the environment variable `RACKET_PATH` be valid.
 
 
-
-#### 1.2 RACR-C ####
-
-A racr-c application must be linked to `libracket.a` and `libmzgc.a`, both of which residing in
-`$RACKET_PATH/racket/src/build/racket/`. These libraries, in turn, require `-lm -lpthread -ldl -lffi`.
-
-...
-
-
-
-#### 1.3 BYTE-CODE ####
+#### 1.2 BYTE-CODE ####
 
 Any racr-c application needs a byte-code file containing racr's encoded scheme code,
 as well as any library's which you may wish to access from within racr-c.
@@ -60,5 +50,12 @@ However, all desired libraries must first be properly installed.
         $ bin/make_bc bc my-scm-lib
 
 
+#### 1.3 RACR-C ####
+
+Racr-c and its test cases may be built as simply as calling `make`. The makefile is kept plain.
+
+Racr-c applications must be linked to `libracket.a` and `libmzgc.a`, containing racket's interpreter and
+garbage collector, respectively. Both libraries reside in `$RACKET_PATH/racket/src/build/racket/`
+and, in turn, have dependencies to `-lm -lpthread -ldl -lffi`.
 
 
