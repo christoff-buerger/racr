@@ -55,8 +55,7 @@ void			racr_specify_attribute_by_name(Scheme_Object* spec, const char* att_name,
 				   const char* non_terminal, const char* name, int is_cached,
 				   Scheme_Object* equation, Scheme_Object* circ_def);
 void			racr_compile_ag_specifications(Scheme_Object* spec);
-Scheme_Object*	racr_att_value(Scheme_Object* spec, const char* attribute_name,
-					Scheme_Object* node, Scheme_Object* arguments);
+Scheme_Object*	racr_att_value(const char* attribute_name, Scheme_Object* node, Scheme_Object* arguments);
 
 // Rewriting
 Scheme_Object*	racr_rewrite_terminal(int i, Scheme_Object* n, Scheme_Object* new_value);
