@@ -5,6 +5,8 @@
 
 static const char* racr_function_strings[] = {
 	"list",
+	"append",
+	"apply",
 	"cons",
 
 	"create-specification",
@@ -53,6 +55,8 @@ static union {
 	Scheme_Object* array[0];
 	struct {
 		Scheme_Object* list;
+		Scheme_Object* append;
+		Scheme_Object* apply;
 		Scheme_Object* cons;
 
 		Scheme_Object* create_specification;
@@ -217,11 +221,13 @@ static Scheme_Object* vracr_call(Scheme_Object* func, const char* fmt, va_list a
 			args[count] = o;
 		}
 
-
 		if (!rest) o = scheme_apply(func, count, args);
 		else {
-			Scheme_Object* l = scheme_append(scheme_build_list(count - 1, args), rest);
-			o = scheme_apply_to_list(func, l);
+			args[0] = scheme_apply(racr.list, count - 1, args);
+			args[1] = rest;
+			args[1] = scheme_apply(racr.append, 2, args);
+			args[0] = func;
+			o = scheme_apply(racr.apply, 2, args);
 		}
 		got_exception = 0;
 	}
@@ -381,12 +387,10 @@ void racr_compile_ag_specifications(Scheme_Object* spec) {
 	racr_call(racr.compile_ag_specifications, "*", spec);
 }
 Scheme_Object* racr_att_value(
-		Scheme_Object* spec,
 		const char* attribute_name,
 		Scheme_Object* node,
 		Scheme_Object* arguments) {
-	return racr_call(racr.att_value, "*s*.",
-		spec,
+	return racr_call(racr.att_value, "s*.",
 		attribute_name,
 		node,
 		arguments);
