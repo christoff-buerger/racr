@@ -29,8 +29,9 @@ petrinets/ast\
 petrinets/composition-analysis\
 petrinets/enabled-analysis\
 petrinets/name-analysis\
-petrinets/ui\
 petrinets/well-formedness-analysis\
+petrinets/main_\
+petrinets/ui\
 siple/access-support\
 siple/ast\
 siple/control-flow-analysis\
