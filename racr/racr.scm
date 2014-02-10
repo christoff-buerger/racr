@@ -10,61 +10,61 @@
  (export
   ; Specification interface:
   (rename (make-racr-specification create-specification))
-  with-specification
-  (rename (specify-ast-rule ast-rule))
-  (rename (specify-ag-rule ag-rule))
-  specify-attribute
-  specify-pattern-attribute
-  compile-ast-specifications
-  compile-ag-specifications
-  with-bindings
   ; Specification query interface:
-  (rename
-   (racr-specification-specification-phase specification->phase)
-   (racr-specification-start-symbol specification->start-symbol)
-   (racr-specification-rules-list specification->ast-rules)
-   (racr-specification-find-rule specification->find-ast-rule)
-   (ast-rule-as-symbol ast-rule->symbolic-representation)
-   (ast-rule-supertype? ast-rule->supertype)
-   (symbol-name symbol->name)
-   (symbol-non-terminal? symbol->non-terminal?)
-   (symbol-kleene? symbol->kleene?)
-   (symbol-context-name symbol->context-name)
-   (attribute-definition-name attribute->name)
-   (attribute-definition-circular? attribute->circular?)
-   (attribute-definition-synthesized? attribute->synthesized?)
-   (attribute-definition-inherited? attribute->inherited?)
-   (attribute-definition-cached? attribute->cached?))
+  specification->phase
+  specification->start-symbol
+  specification->ast-rules
+  specification->find-ast-rule
+  ast-rule->symbolic-representation
+  ast-rule->supertype
   ast-rule->production
+  symbol->name
+  symbol->non-terminal?
+  symbol->kleene?
+  symbol->context-name
   symbol->attributes
-  ; AST construction interface:
+  attribute->name
+  attribute->circular?
+  attribute->synthesized?
+  attribute->inherited?
+  attribute->cached?
+  ; ASTs: Specification
+  (rename (specify-ast-rule ast-rule))
+  compile-ast-specifications
+  ; ASTs: Construction
   create-ast
   create-ast-list
   create-ast-bud
   create-ast-mockup
-  ; AST & attribute query interface:
-  (rename (node? ast-node?))
-  ast-specification
-  ast-node-type
-  (rename
-   (node-list-node? ast-list-node?)
-   (node-bud-node? ast-bud-node?))
-  ast-subtype?
-  ast-has-parent?
+  ; ASTs: Traversal
   ast-parent
-  ast-has-child?
   ast-child
-  ast-has-sibling?
   ast-sibling
-  ast-child-index
-  ast-num-children
   ast-children
   ast-for-each-child
   ast-find-child
   ast-find-child*
+  ; ASTs: Node Information
+  ast-node?
+  ast-specification
+  ast-has-parent?
+  ast-child-index
+  ast-has-child?
+  ast-num-children
+  ast-has-sibling?
+  ast-node-type
+  ast-node-rule
+  ast-list-node?
+  ast-bud-node?
+  ast-subtype?
+  ; Attribution: Specification
+  specify-attribute
+  specify-pattern
+  (rename (specify-ag-rule ag-rule))
+  compile-ag-specifications
+  ; Attribution: Querying
   att-value
-  ; Rewrite interface:
-  perform-rewrites
+  ; Rewriting: Primitive Rewrite Functions
   rewrite-terminal
   rewrite-refine
   rewrite-abstract
@@ -72,14 +72,20 @@
   rewrite-add
   rewrite-insert
   rewrite-delete
-  ; AST annotation interface:
+  ; Rewriting: Rewrite Strategies
+  perform-rewrites
+  create-transformer-for-pattern
+  ; Annotations: Attachment
+  ast-annotation-set!
   ast-weave-annotations
+  ast-annotation-remove!
+  ; Annotations: Querying
   ast-annotation?
   ast-annotation
-  ast-annotation-set!
-  ast-annotation-remove!
+  ; Support
+  with-specification
+  with-bindings
   ; Utility interface:
-  print-ast
   racr-exception?)
  (import (rnrs) (rnrs mutable-pairs))
  
@@ -235,10 +241,12 @@
    (lambda (n)
      (not (node-terminal? n))))
  
+ ; INTERNAL FUNCTION: Given a node, return whether it is a list node or not.
  (define node-list-node?
    (lambda (n)
      (eq? (node-ast-rule n) 'list-node)))
  
+ ; INTERNAL FUNCTION: Given a node, return whether it is a bud node or not.
  (define node-bud-node?
    (lambda (n)
      (eq? (node-ast-rule n) 'bud-node)))
@@ -349,18 +357,6 @@
      (and (not (null? (evaluator-state-evaluation-stack state))) (car (evaluator-state-evaluation-stack state)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Specification Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 
- (define ast-rule->production
-   (lambda (rule)
-     (append (ast-rule-production rule) (list)))) ; Create copy!
- 
- (define symbol->attributes
-   (lambda (symbol)
-     (append (symbol-attributes symbol) (list)))) ; Create copy!
- 
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utility ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
@@ -419,71 +415,6 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Support API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; Given an AST, an association list L of attribute pretty-printers and an output port, print a
- ; human-readable ASCII representation of the AST on the output port. The elements of the association list
- ; L are (attribute-name pretty-printing-function) pairs. Every attribute for which L contains an entry is
- ; printed when the AST node it is associated with is printed. Thereby, the given pretty printing function
- ; is applied to the attribute's value before printing it. Beware: The output port is never closed by this
- ; function - neither in case of an io-exception nor after finishing printing the AST.
- (define print-ast
-   (lambda (ast attribute-pretty-printer-list output-port)
-     (letrec ((print-indentation
-               (lambda (n)
-                 (if (> n 0)
-                     (begin
-                       (print-indentation (- n 1))
-                       (my-display " |"))
-                     (my-display #\newline))))
-              (my-display
-               (lambda (to-display)
-                 (display to-display output-port))))
-       (let loop ((ast-depth 0)
-                  (ast ast))
-         (cond
-           ((node-list-node? ast) ; Print list nodes
-            (print-indentation ast-depth)
-            (print-indentation ast-depth)
-            (my-display "-* ")
-            (my-display
-             (symbol->string
-              (symbol-name
-               (list-ref
-                (ast-rule-production (node-ast-rule (node-parent ast)))
-                (ast-child-index ast)))))
-            (for-each
-             (lambda (element)
-               (loop (+ ast-depth 1) element))
-             (node-children ast)))
-           ((node-bud-node? ast) ; Print bud nodes
-            (print-indentation ast-depth)
-            (print-indentation ast-depth)
-            (my-display "-@ bud-node"))
-           ((node-non-terminal? ast) ; Print non-terminal
-            (print-indentation ast-depth)
-            (print-indentation ast-depth)
-            (my-display "-\\ ")
-            (my-display (symbol->string (ast-node-type ast)))
-            (for-each
-             (lambda (att)
-               (let* ((name (attribute-definition-name (attribute-instance-definition att)))
-                      (pretty-printer-entry (assq name attribute-pretty-printer-list)))
-                 (when pretty-printer-entry
-                   (print-indentation (+ ast-depth 1))
-                   (my-display " <")
-                   (my-display (symbol->string name))
-                   (my-display "> ")
-                   (my-display ((cdr pretty-printer-entry) (att-value name ast))))))
-             (node-attributes ast))
-            (for-each
-             (lambda (child)
-               (loop (+ ast-depth 1) child))
-             (node-children ast)))
-           (else ; Print terminal
-            (print-indentation ast-depth)
-            (my-display "- ")
-            (my-display (node-children ast)))))
-       (my-display #\newline))))
- 
  (define-syntax with-specification
    (lambda (x)
      (syntax-case x ()
@@ -501,15 +432,18 @@
                  (#,(datum->syntax #'k 'create-ast)
                   (lambda (rule children)
                     (create-ast spec* rule children)))
-                 (#,(datum->syntax #'k 'specification-phase)
+                 (#,(datum->syntax #'k 'specification->phase)
                   (lambda ()
-                    (racr-specification-specification-phase spec*)))
+                    (specification->phase spec*)))
                  (#,(datum->syntax #'k 'specify-attribute)
                   (lambda (att-name non-terminal index cached? equation circ-def)
                     (specify-attribute spec* att-name non-terminal index cached? equation circ-def)))
-                 (#,(datum->syntax #'k 'specify-pattern-attribute)
+                 (#,(datum->syntax #'k 'specify-pattern)
                   (lambda (att-name distinguished-node fragments references condition)
-                    (specify-pattern-attribute spec* att-name distinguished-node fragments references condition))))
+                    (specify-pattern spec* att-name distinguished-node fragments references condition)))
+                 (#,(datum->syntax #'k 'create-transformer-for-pattern)
+                  (lambda (node-type pattern-attribute rewrite-function . pattern-arguments)
+                    (apply create-transformer-for-pattern spec* node-type pattern-attribute rewrite-function pattern-arguments))))
             (let-syntax ((#,(datum->syntax #'k 'ag-rule)
                           (syntax-rules ()
                             ((_ attribute-name definition (... ...))
@@ -518,13 +452,13 @@
  
  (define-syntax with-bindings
    (syntax-rules ()
-     ((_ ((parameter ...) (binding ...)) body body* ...)
+     ((_ ((binding ...) (parameter ...)) body body* ...)
       (lambda (l parameter ...)
         (let ((binding (cdr (assq 'binding l))) ...)
           body
           body* ...)))
      ((_ (binding ...) body body* ...)
-      (with-bindings (() (binding ...)) body body* ...))))
+      (with-bindings ((binding ...) ()) body body* ...))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -538,11 +472,11 @@
         "There are attributes in evaluation."))
      (when (not (ast-annotation? node name))
        (cond
-         ((and (not (node-list-node? node)) (not (node-bud-node? node)) (ast-subtype? node type))
+         ((and (not (ast-list-node? node)) (not (ast-bud-node? node)) (ast-subtype? node type))
           (ast-annotation-set! node name value))
-         ((and (node-list-node? node) (eq? type 'list-node))
+         ((and (ast-list-node? node) (eq? type 'list-node))
           (ast-annotation-set! node name value))
-         ((and (node-bud-node? node) (eq? type 'bud-node))
+         ((and (ast-bud-node? node) (eq? type 'bud-node))
           (ast-annotation-set! node name value))))
      (for-each
       (lambda (child)
@@ -1278,36 +1212,136 @@
               (cdr (evaluator-state-evaluation-stack evaluator-state))))))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Access Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Specification Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ ; General Note: Because RACR specifications never change after compilation, there is no need to add and
+ ;   maintain dependencies when attributes query specifications. The specification query API therefore just
+ ;   forwards to the respective internal functions. Lists must be copied before they are returned however.
+ 
+ ; Specification Queries:
+ 
+ (define specification->phase
+   (lambda (spec)
+     (racr-specification-specification-phase spec)))
+ 
+ (define specification->start-symbol
+   (lambda (spec)
+     (racr-specification-start-symbol spec)))
+ 
+ (define specification->ast-rules
+   (lambda (spec)
+     (racr-specification-rules-list spec))) ; Already creates copy!
+ 
+ (define specification->find-ast-rule
+   (lambda (spec node-type)
+     (racr-specification-find-rule spec node-type)))
+ 
+ ; AST Rule Queries:
+ 
+ (define ast-rule->symbolic-representation
+   (lambda (ast-rule)
+     (ast-rule-as-symbol ast-rule)))
+ 
+ (define ast-rule->supertype
+   (lambda (ast-rule)
+     (ast-rule-supertype? ast-rule)))
+ 
+ (define ast-rule->production
+   (lambda (rule)
+     (append (ast-rule-production rule) (list)))) ; Create copy!
+ 
+ ; Production Symbol Queries:
+ 
+ (define symbol->name
+   (lambda (symb)
+     (symbol-name symb)))
+ 
+ (define symbol->non-terminal?
+   (lambda (symb)
+     (symbol-non-terminal? symb)))
+ 
+ (define symbol->kleene?
+   (lambda (symb)
+     (symbol-kleene? symb)))
+ 
+ (define symbol->context-name
+   (lambda (symb)
+     (symbol-context-name symb)))
+ 
+ (define symbol->attributes
+   (lambda (symbol)
+     (append (symbol-attributes symbol) (list)))) ; Create copy!
+ 
+ ; Attribute Definition Queries:
+ 
+ (define attribute->name
+   (lambda (att-def)
+     (attribute-definition-name att-def)))
+ 
+ (define attribute->circular?
+   (lambda (att-def)
+     (attribute-definition-circular? att-def)))
+ 
+ (define attribute->synthesized?
+   (lambda (att-def)
+     (attribute-definition-synthesized? att-def)))
+ 
+ (define attribute->inherited?
+   (lambda (att-def)
+     (attribute-definition-inherited? att-def)))
+ 
+ (define attribute->cached?
+   (lambda (att-def)
+     (attribute-definition-cached? att-def)))
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (define ast-node? ; Scheme entities are either allocated as AST nodes or never will be => No need to add dependencies!
+   (lambda (n)
+     (node? n)))
  
  (define ast-specification
    (lambda (n)
-     (when (or (node-list-node? n) (node-bud-node? n)) ; Remember: (node-terminal? n) is not possible
+     (when (or (ast-list-node? n) (ast-bud-node? n)) ; Remember: Terminal nodes as such are never exposed to users.
        (throw-exception
         "Cannot query specification; "
         "List and bud nodes are not part of any specification."))
-     ; The specification of a node can never change => no need to add dependencies!
+     ; The specification of a node can never change => No need to add dependencies!
      (ast-rule-specification (node-ast-rule n))))
  
- (define ast-node-type
+ (define ast-list-node? ; No dependency tracking needed!
    (lambda (n)
-     (when (or (node-list-node? n) (node-bud-node? n)) ; Remember: (node-terminal? n) is not possible
+     (node-list-node? n)))
+ 
+ (define ast-bud-node? ; No dependency tracking needed!
+   (lambda (n)
+     (node-bud-node? n)))
+ 
+ (define ast-node-rule
+   (lambda (n)
+     (when (or (ast-list-node? n) (ast-bud-node? n)) ; Remember: Terminal nodes as such are never exposed to users.
        (throw-exception
         "Cannot query type; "
         "List and bud nodes have no type."))
      (add-dependency:cache->node-type n)
-     (symbol-name (car (ast-rule-production (node-ast-rule n))))))
+     (node-ast-rule n)))
+ 
+ (define ast-node-type
+   (lambda (n)
+     (symbol-name (car (ast-rule-production (ast-node-rule n))))))
  
  (define ast-subtype?
    (lambda (a1 a2)
      (when (or
-            (and (node? a1) (or (node-list-node? a1) (node-bud-node? a1)))
-            (and (node? a2) (or (node-list-node? a2) (node-bud-node? a2))))
+            (and (ast-node? a1) (or (ast-list-node? a1) (ast-bud-node? a1)))
+            (and (ast-node? a2) (or (ast-list-node? a2) (ast-bud-node? a2))))
        (throw-exception
         "Cannot perform subtype check; "
         "List and bud nodes cannot be tested for subtyping."))
-     (when (and (not (node? a1)) (not (node? a2)))
+     (when (and (not (ast-node? a1)) (not (ast-node? a2)))
        (throw-exception
         "Cannot perform subtype check; "
         "At least one argument must be an AST node."))
@@ -1589,15 +1623,15 @@
                   (ast-rule-production (node-ast-rule (node-parent list-node)))
                   (node-child-index? list-node)))
                 #f)))
-       (and ; The given candidate can be element of the list,...
-        (if expected-type? ; ...if either,...
+       (and ; The given candidate can be element of the list, if (1)...
+        (if expected-type? ; ...either,...
             (satisfies-context? candidate expected-type? #f) ; ...the candidate fits regarding the context in which the list is, or,...
             (and ; ...in case no type is induced for the list's elements,...
-             (node? candidate) ; ...the candiate is a non-terminal node,...
+             (ast-node? candidate) ; ...the candiate is a non-terminal node,...
              (not (node-list-node? candidate)) ; ...not a list node,...
              (not (node-parent candidate)) ; ...not already part of another AST and...
-             (not (evaluator-state-in-evaluation? (node-evaluator-state candidate))))) ; ...non of its attributes are in evaluation, and...
-        (not (node-inside-of? list-node candidate)))))) ; ...its spaned AST does not contain the list node.
+             (not (evaluator-state-in-evaluation? (node-evaluator-state candidate))))) ; ...non of its attributes are in evaluation,...
+        (not (node-inside-of? list-node candidate)))))) ; ...and (2) its spaned AST does not contain the list node.
  
  ; INTERNAL FUNCTION: Given a node or terminal value and a context, return if the
  ; node/terminal value can become a child of the given context.
@@ -1609,7 +1643,7 @@
       (or ; The given child is valid if either,...
        (not non-terminal?) ; ...a terminal is expected or,...
        (and ; ...in case a non-terminal is expected,...
-        (node? child) ; ...the given child is an AST node,...
+        (ast-node? child) ; ...the given child is an AST node,...
         (not (node-parent child)) ; ...does not already belong to another AST,...
         (not (evaluator-state-in-evaluation? (node-evaluator-state child))) ; ...non of its attributes are in evaluation and...
         (or
@@ -2173,8 +2207,8 @@
  
  (define rewrite-subtree
    (lambda (old-fragment new-fragment)
-     ;;; Before replacing the subtree ensure, that...
-     (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment)) ; ...no attributes of the old fragment are in evaluation and...
+     ;;; Before replacing the subtree ensure, that no attributes of the old fragment are in evaluation and...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment))
        (throw-exception
         "Cannot replace subtree; "
         "There are attributes in evaluation."))
@@ -2287,6 +2321,15 @@
  
  (define perform-rewrites
    (lambda (n strategy . transformers)
+     (define root
+       (let loop ((n n))
+          (if (ast-has-parent? n)
+              (loop (ast-parent n))
+              n)))
+     (define root-deleted/inserted?
+       (let ((evaluator-state (node-evaluator-state root)))
+         (lambda ()
+           (not (eq? evaluator-state (node-evaluator-state root))))))
      (define find-and-apply
        (case strategy
          ((top-down)
@@ -2294,7 +2337,7 @@
             (and
              (not (node-terminal? n))
              (or
-              (find (lambda (r) (r n)) transformers)
+              (find (lambda (transformer) (transformer n)) transformers)
               (find find-and-apply (node-children n))))))
          ((bottom-up)
           (lambda (n)
@@ -2302,19 +2345,42 @@
              (not (node-terminal? n))
              (or
               (find find-and-apply (node-children n))
-              (find (lambda (r) (r n)) transformers)))))
+              (find (lambda (transformer) (transformer n)) transformers)))))
          (else (throw-exception
                 "Cannot perform rewrites; "
                 "Unknown " strategy " strategy."))))
      (let loop ()
-       (when (node-parent n)
+       (when (root-deleted/inserted?)
          (throw-exception
           "Cannot perform rewrites; "
-          "The given starting point is not (anymore) an AST root."))
-       (let ((match (find-and-apply n)))
+          "A given transformer manipulated the root of the AST."))
+       (let ((match (find-and-apply root)))
          (if match
              (cons match (loop))
              (list))))))
+ 
+ (define create-transformer-for-pattern
+   (lambda (spec node-type pattern-attribute rewrite-function . pattern-arguments)
+     (let ((ast-rule (specification->find-ast-rule spec node-type)))
+       (unless ast-rule
+         (throw-exception
+          "Cannot construct transformer; "
+          "Undefined " node-type " node type."))
+       (unless (find
+                (lambda (attribute-definition)
+                  (eq? (attribute->name attribute-definition) pattern-attribute))
+                (symbol->attributes (car (ast-rule->production ast-rule))))
+         (throw-exception
+          "Cannot construct transformer; "
+          "No " pattern-attribute " attribute defined in the context of " node-type " nodes.")))
+     (lambda (n)
+       (when (and (not (or (ast-bud-node? n) (ast-list-node? n))) (ast-subtype? n node-type))
+         (let ((match? (apply att-value pattern-attribute n pattern-arguments)))
+           (if match?
+               (or
+                (apply rewrite-function match? pattern-arguments)
+                #t)
+               #f))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pattern Matching ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2322,8 +2388,8 @@
  
  (define pattern-language (make-racr-specification))
  
- (define specify-pattern-attribute
-   (lambda (spec att-name distinguished-node fragments references condition)
+ (define specify-pattern
+   (lambda (spec att-name distinguished-node fragments references condition?)
      (define process-fragment
        (lambda (context type binding children)
          (unless (and
@@ -2390,19 +2456,17 @@
         (ast-child 'type (ast-child 'dnode ast))
         '*
         #t
-        (let ((pmm (att-value 'pmm-code ast))) ; Precompute the PMM, such that just it and not the pattern AST is in the equation's closure
-          (if condition
+        (let ((pmm (att-value 'pmm-code ast))) ; Precompute the PMM => The pattern AST is not in the equation's closure
+          (if condition?
               (lambda (n . args)
                 (let ((bindings (pmm n)))
-                  (if (and bindings (apply condition bindings args))
+                  (if (and bindings (apply condition? bindings args))
                       bindings
                       #f)))
               pmm))
         #f))))
  
- ;;; -------------------------------------------
- ;;; -- Pattern Matching Machine Instructions --
- ;;; -------------------------------------------
+ ;;; Pattern Matching Machine Instructions:
  
  (define pmmi-load-node ; Make already stored node the new current one.
    (lambda (next-instruction index)
@@ -2435,8 +2499,8 @@
    (lambda (next-instruction super-type)
      (lambda (current-node node-memory)
        (if (and
-            (not (node-list-node? current-node))
-            (not (node-bud-node? current-node))
+            (not (ast-list-node? current-node))
+            (not (ast-bud-node? current-node))
             (ast-subtype? current-node super-type))
            (next-instruction current-node node-memory)
            #f))))
@@ -2444,7 +2508,7 @@
  (define pmmi-ensure-list ; Ensure, the current node is a list node.
    (lambda (next-instruction)
      (lambda (current-node node-memory)
-       (if (node-list-node? current-node)
+       (if (ast-list-node? current-node)
            (next-instruction current-node node-memory)
            #f))))
  
@@ -2469,16 +2533,16 @@
            (next-instruction current-node node-memory)
            #f))))
  
- (define pmmi-traverse-reference ; Evaluate certain attribute of current node, ensure its value is a node & make it the new current one.
+ (define pmmi-traverse-reference ; Evaluate attribute of current node, ensure value is a node & make it the new current one.
    (lambda (next-instruction reference-name)
      (lambda (current-node node-memory)
-       (if (and (not (node-bud-node? current-node)) (att-value reference-name current-node))
+       (if (and (not (ast-bud-node? current-node)) (ast-node? (att-value reference-name current-node)))
            (next-instruction (att-value reference-name current-node) node-memory)
            #f))))
  
  (define pmmi-terminate ; Construct association list of all binded nodes.
    (lambda (bindings)
-     (let ((bindings ; Precompute list L of (key, index) pairs, such that just L and not the pattern AST is in the instruction's closure
+     (let ((bindings ; Precompute list of (key, index) pairs => The pattern AST is not in the instruction's closure
             (map
              (lambda (n)
                (cons (ast-child 'binding n) (att-value 'node-memory-index n)))
@@ -2494,11 +2558,9 @@
      (lambda (current-node)
        (next-instruction current-node (make-vector node-memory-size)))))
  
- ;;; ----------------------
- ;;; -- Pattern Language --
- ;;; ----------------------
+ ;;; Pattern Language:
  
- (when (= (racr-specification-specification-phase pattern-language) 1)
+ (when (= (specification->phase pattern-language) 1)
    (with-specification
     pattern-language
     
@@ -2533,7 +2595,7 @@
      lookup-type
      (Pattern
       (lambda (n type)
-        (racr-specification-find-rule (ast-child 'spec n) type))))
+        (specification->find-ast-rule (ast-child 'spec n) type))))
     
     ;;; Support API:
     
@@ -2630,11 +2692,11 @@
                 (lambda (result ast-rule)
                   (fold-left
                    (lambda (result symbol)
-                     (if (and (symbol-kleene? symbol) (not (memq (symbol-non-terminal? symbol) result)))
-                         (cons (symbol-non-terminal? symbol) result)
+                     (if (and (symbol->kleene? symbol) (not (memq (symbol->non-terminal? symbol) result)))
+                         (cons (symbol->non-terminal? symbol) result)
                          result))
                    result
-                   (cdr (ast-rule-production ast-rule))))
+                   (cdr (ast-rule->production ast-rule))))
                 (list)
                 (att-value 'most-concrete-types n))))
           (filter
@@ -2656,7 +2718,7 @@
          (filter
           (lambda (type)
             (null? (ast-rule-subtypes type)))
-          (racr-specification-rules-list (ast-child 'spec n))))
+          (specification->ast-rules (ast-child 'spec n))))
         ((n type)
          (filter
           (lambda (type)
@@ -2700,13 +2762,13 @@
                  (let* ((context? (ast-rule-find-child-context type (ast-child 'context child)))
                         (context-types?
                          (cond
-                           ((not (and context? (symbol-non-terminal? context?))) (list))
-                           ((symbol-kleene? context?) (list (symbol-non-terminal? context?)))
-                           (else (att-value 'most-concrete-types n (symbol-non-terminal? context?))))))
+                           ((not (and context? (symbol->non-terminal? context?))) (list))
+                           ((symbol->kleene? context?) (list (symbol->non-terminal? context?)))
+                           (else (att-value 'most-concrete-types n (symbol->non-terminal? context?))))))
                    (not
                     (find
                      (lambda (type)
-                       (att-value 'valid-type? child type (symbol-kleene? context?)))
+                       (att-value 'valid-type? child type (symbol->kleene? context?)))
                      context-types?))))
                (ast-child 'Node* n))))))))
     
@@ -2853,7 +2915,7 @@
      (Pattern
       (lambda (n)
         (and
-         (node? (ast-child 'dnode n)) ; A distinguished node must be defined, whose...
+         (ast-node? (ast-child 'dnode n)) ; A distinguished node must be defined, whose...
          (ast-child 'type (ast-child 'dnode n)) ; ...type is user specified and...
          (not (att-value 'must-be-list? (ast-child 'dnode n))) ; ...not a list.
          (= ; All fragments must be reachable from the distinguished node:

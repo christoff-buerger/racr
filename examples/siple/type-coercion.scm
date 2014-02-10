@@ -31,7 +31,7 @@
       'bottom-up
       (lambda (n)
         (let ((coercion? (att-value 'has-local-integer->real-coercion? n)))
-          (and coercion? (perform-type-coercion coercion?)))))))
+          (if coercion? (perform-type-coercion coercion?) #f))))))
  
  (define specify-type-coercion
    (lambda (siple-specification)

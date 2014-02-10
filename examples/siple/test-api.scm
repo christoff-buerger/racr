@@ -14,6 +14,7 @@
  (import
   (rnrs)
   (racr)
+  (racr-test-api)
   (siple lexer)
   (siple parser)
   (siple type)

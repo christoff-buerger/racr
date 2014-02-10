@@ -32,7 +32,8 @@ declare -a siple_sources=(
 	control-flow-analysis
 	well-formedness
 	interpreter
-	main)
+	main
+	test-api)
 
 # Array of SiPLE test programs:
 siple_correct=( $(ls ./examples/siple/examples/correct/*.siple) )
@@ -146,4 +147,5 @@ then
 	$1/larceny --r6rs --path $1/lib/racr --program ./examples/state-machines/state-machines.scm
 else
 	echo "Unknown Scheme distribution - only Larceny and Racket are supported."
+	exit 3
 fi fi

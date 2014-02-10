@@ -62,7 +62,7 @@
     ;;; Distinguished node and redeclaration errors:
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Undefined distinguished node
+     (specify-pattern ; ERROR: Undefined distinguished node
       (ast-spec)
       'pattern
       'D
@@ -73,7 +73,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Distinguished node has no type
+     (specify-pattern ; ERROR: Distinguished node has no type
       (ast-spec)
       'pattern
       'D
@@ -84,7 +84,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Distinguished node is list-node
+     (specify-pattern ; ERROR: Distinguished node is list-node
       (ast-spec)
       'pattern
       'D
@@ -95,7 +95,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Bounded name redeclaration
+     (specify-pattern ; ERROR: Bounded name redeclaration
       (ast-spec)
       'pattern
       'D
@@ -109,7 +109,7 @@
     ;;; Reachability errors:
     
     (assert-exception
-     (specify-pattern-attribute
+     (specify-pattern
       (ast-spec)
       'pattern
       'D
@@ -137,7 +137,7 @@
     ;;; Type errors:
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Undefined node type
+     (specify-pattern ; ERROR: Undefined node type
       (ast-spec)
       'pattern
       'D
@@ -148,7 +148,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: User defined nested lists
+     (specify-pattern ; ERROR: User defined nested lists
       (ast-spec)
       'pattern
       'D
@@ -162,7 +162,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Context defined nested lists
+     (specify-pattern ; ERROR: Context defined nested lists
       (ast-spec)
       'pattern
       'D
@@ -179,7 +179,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Mixed list/non-list node
+     (specify-pattern ; ERROR: Mixed list/non-list node
       (ast-spec)
       'pattern
       'D
@@ -191,7 +191,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Undefined context
+     (specify-pattern ; ERROR: Undefined context
       (ast-spec)
       'pattern
       'D
@@ -202,7 +202,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: No unique non-list contexts
+     (specify-pattern ; ERROR: No unique non-list contexts
       (ast-spec)
       'pattern
       'D
@@ -214,7 +214,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: No unique list contexts
+     (specify-pattern ; ERROR: No unique list contexts
       (ast-spec)
       'pattern
       'D
@@ -226,7 +226,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Unsatisfyable context type
+     (specify-pattern ; ERROR: Unsatisfyable context type
       (ast-spec)
       'pattern
       'D
@@ -240,7 +240,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Unsatisfyable pattern
+     (specify-pattern ; ERROR: Unsatisfyable pattern
       (ast-spec)
       'pattern
       'D
@@ -260,7 +260,7 @@
       #f))
     
     (assert-exception
-     (specify-pattern-attribute ; ERROR: Unsatisfyable pattern
+     (specify-pattern ; ERROR: Unsatisfyable pattern
       (ast-spec)
       'pattern
       'D
@@ -285,14 +285,14 @@
               (lambda (n)
                 (ast-child 'ref n))))
             
-            (specify-pattern-attribute
+            (specify-pattern
              'pattern1
              'D
              '((A D ()))
              '()
              #f)
             
-            (specify-pattern-attribute
+            (specify-pattern
              'pattern2
              'D
              '((B
@@ -306,7 +306,7 @@
              '()
              #f)
             
-            (specify-pattern-attribute
+            (specify-pattern
              'pattern3
              'D
              '((C
@@ -323,7 +323,7 @@
                (ref R2s R2t))
              #f)
             
-            (specify-pattern-attribute
+            (specify-pattern
              'pattern4
              'D
              '((C
@@ -339,7 +339,7 @@
                (ref R2s D))
              #f)
             
-            (specify-pattern-attribute
+            (specify-pattern
              'pattern5
              'D
              '((A D ()))
