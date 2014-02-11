@@ -53,12 +53,10 @@ done
 
 ######################### Generate RACR Documentation #########################
 
-clear
-
-echo "=========================================>>> Delete Old Manual"
-cd ${basedir}/documentation
-echo "${basedir}/documentation/racr-manual.pdf"
-rm racr-manual.pdf
+#echo "=========================================>>> Delete Old Manual"
+#cd ${basedir}/documentation
+#echo "${basedir}/documentation/racr-manual.pdf"
+#rm racr-manual.pdf
 
 if [ $pullwiki ]
 then
