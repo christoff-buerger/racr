@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <error.h>
 
+/*
+	This test uses the petrinets/ui module.
+	That module must be included in the bc-file.
+*/
 
 
 Scheme_Env* global_env;
@@ -53,7 +57,6 @@ int main(int argc, char** argv) {
 		"petrinets/ui",
 		NULL
 	};
-
 
 	RACR_INIT(env, "bin/bc", modules);
 	global_env = env;
