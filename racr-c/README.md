@@ -7,11 +7,11 @@ RACR-C
 #### 1.1 RACKET ####
 
 Racr-c uses racket's virtual machine to load and execute r6rs scheme code.
-It also utilizes racket's conservative garbage collector library `libmzgc.a` which, unfortunately,
+It also utilizes racket's conservative garbage collector library `libmzgc.a` which
 is not provided through racket's binary package.
 
-Thus, in order to build racr-c, racket is required to be built afresh from its sources.
-It is most likely easiest to simply execute the following commands:
+Thus, in order to build racr-c, racket is required to be built from its sources.
+This is achieved simply by executing the following commands:
 
 	$ git clone https://github.com/plt/racket/
 	$ cd racket
@@ -43,19 +43,19 @@ However, all desired libraries must first be properly installed.
 
 2. Generate the byte-code file:
 
-        $ bin/make_bc bc
+        $ bin/make_bc bin/bc
 
    If you wish to include libraries of you own, do this instead:
 
-        $ bin/make_bc bc my-scm-lib
+        $ bin/make_bc bin/bc my-scm-lib
 
 
 #### 1.3 RACR-C ####
 
 Racr-c and its test cases may be built as simply as calling `make`. The makefile is kept plain.
 
-Racr-c applications must be linked to `libracket.a` and `libmzgc.a`, containing racket's interpreter and
+Racr-c applications must be linked to `libracket.a` and `libmzgc.a`, which contain racket's interpreter and
 garbage collector, respectively. Both libraries reside in `$RACKET_PATH/racket/src/build/racket/`
-and, in turn, have dependencies to `-lm -lpthread -ldl -lffi`.
+and have dependencies to `-lm -lpthread -ldl -lffi`.
 
 
