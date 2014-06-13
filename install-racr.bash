@@ -66,18 +66,21 @@ then
 	# Install new:
 	$1/bin/plt-r6rs --all-users --install ./racr/racr.scm
 	$1/bin/plt-r6rs --all-users --install ./racr/racr-test-api.scm
-	for (( i=0; i<${#siple_sources[*]}; i++ )) do
-		$1/bin/plt-r6rs --all-users --install ./examples/siple/${siple_sources[i]}.scm
+	for f in ${siple_sources[@]}
+	do
+		$1/bin/plt-r6rs --all-users --install ./examples/siple/${f}.scm
 	done
-	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
-		$1/bin/plt-r6rs --all-users --install ./examples/petrinets/${petrinets_sources[i]}.scm
+	for f in ${petrinets_sources[@]}
+	do
+		$1/bin/plt-r6rs --all-users --install ./examples/petrinets/${f}.scm
 	done
 	
 	echo "=========================================>>> Run tests to validate installation:"
 	# Basic API tests:
-	for ((i=0; i<${#tests[*]}; i++ )) do
-		echo ${tests[i]}
-		$1/bin/plt-r6rs ${tests[i]}
+	for f in ${tests[@]}
+	do
+		echo $f
+		$1/bin/plt-r6rs $f
 	done
 	# Testing state machine example:
 	echo ./examples/state-machines/state-machines.scm
@@ -88,13 +91,15 @@ then
 	echo ./examples/petrinets/examples/runtime-structure-example-slide.scm
 	$1/bin/plt-r6rs ./examples/petrinets/examples/runtime-structure-example-slide.scm
 	# Testing SiPLE example:
-	for ((i=0; i<${#siple_correct[*]}; i++ )) do
-		echo ${siple_correct[i]}
-		$1/bin/plt-r6rs ./examples/siple/examples/run-correct.scm ${siple_correct[i]}
+	for f in ${siple_correct[@]}
+	do
+		echo $f
+		$1/bin/plt-r6rs ./examples/siple/examples/run-correct.scm $f
 	done
-	for ((i=0; i<${#siple_incorrect[*]}; i++ )) do
-		echo ${siple_incorrect[i]}
-		$1/bin/plt-r6rs ./examples/siple/examples/run-incorrect.scm ${siple_incorrect[i]}
+	for f in ${siple_incorrect[@]}
+	do
+		echo $f
+		$1/bin/plt-r6rs ./examples/siple/examples/run-incorrect.scm $f
 	done
 else if [ -f $1/larceny ]
 then
@@ -111,11 +116,13 @@ then
 	# Copy source files:
 	cp ./racr/racr.scm $1/lib/racr/racr.sls
 	cp ./racr/racr-test-api.scm $1/lib/racr/racr-test-api.sls
-	for (( i=0; i<${#siple_sources[*]}; i++ )) do
-		cp ./examples/siple/${siple_sources[i]}.scm $1/lib/siple/${siple_sources[i]}.sls
+	for f in ${siple_sources[@]}
+	do
+		cp ./examples/siple/${f}.scm $1/lib/siple/${f}.sls
 	done
-	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
-		cp ./examples/petrinets/${petrinets_sources[i]}.scm $1/lib/petrinets/${petrinets_sources[i]}.sls
+	for f in ${petrinets_sources[@]}
+	do
+		cp ./examples/petrinets/${f}.scm $1/lib/petrinets/${f}.sls
 	done
 	
 	# Create temporary compile script:
@@ -123,11 +130,13 @@ then
 	echo "(import (larceny compiler))" >> racr-compile.sch
 	echo "(compile-library \"$1/lib/racr/racr.sls\")" >> racr-compile.sch
 	echo "(compile-library \"$1/lib/racr/racr-test-api.sls\")" >> racr-compile.sch
-	for (( i=0; i<${#siple_sources[*]}; i++ )) do
-		echo "(compile-library \"$1/lib/siple/${siple_sources[i]}.sls\")" >> racr-compile.sch
+	for f in ${siple_sources[@]}
+	do
+		echo "(compile-library \"$1/lib/siple/${f}.sls\")" >> racr-compile.sch
 	done
-	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
-		echo "(compile-library \"$1/lib/petrinets/${petrinets_sources[i]}.sls\")" >> racr-compile.sch
+	for f in ${petrinets_sources[@]}
+	do
+		echo "(compile-library \"$1/lib/petrinets/${f}.sls\")" >> racr-compile.sch
 	done
 	
 	# Execute compile script:
@@ -138,9 +147,10 @@ then
 	
 	echo "=========================================>>> Run tests to validate installation:"
 	# Basic API tests:
-	for ((i=0; i<${#tests[*]}; i++ )) do
-		echo ${tests[i]}
-		$1/larceny --r6rs --path $1/lib/racr --program ${tests[i]}
+	for f in ${tests[@]}
+	do
+		echo $f
+		$1/larceny --r6rs --path $1/lib/racr --program $f
 	done
 	# Testing state machine example:
 	echo ./examples/state-machines/state-machines.scm

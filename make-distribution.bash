@@ -14,9 +14,7 @@ fi
 
 # Collect all sources:
 find . |
-# Ignore documentation sources:
-grep -v documentation |
 # Ignore hidden directories and files:
 grep -v "/\." |
-# Zip all together with the manual:
-xargs zip -0 racr-v$1.zip documentation/racr-manual.pdf
+# Zip all together:
+xargs zip -0 racr-v$1.zip
