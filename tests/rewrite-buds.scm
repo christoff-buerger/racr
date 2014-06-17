@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr) (racr-test-api))
+(import (rnrs) (racr core) (racr testing))
 
 ; Given an AST node, return a list of the buds within its spaned tree.
 (define collect-all-buds

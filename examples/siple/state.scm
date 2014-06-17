@@ -24,7 +24,7 @@
   make-memory-location
   memory-location-value
   memory-location-value-set!)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  (define-record-type state
    (fields (mutable current-frame) output-port))

@@ -6,7 +6,7 @@
 #!r6rs
 
 (library
- (racr)
+ (racr core)
  (export
   ; Specification interface:
   (rename (make-racr-specification create-specification))

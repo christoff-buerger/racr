@@ -11,7 +11,7 @@
 ;                            Springer, 1968
 
 #!r6rs
-(import (rnrs) (racr))
+(import (rnrs) (racr core))
 
 (define bn-specification (create-specification))
 

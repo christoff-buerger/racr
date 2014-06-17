@@ -9,7 +9,7 @@
  (petrinets access-support)
  (export
   specify-access-support)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  (define specify-access-support
    (lambda (petrinet-specification)

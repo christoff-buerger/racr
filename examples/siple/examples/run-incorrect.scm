@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (siple main) (siple exception-api) (racr-test-api))
+(import (rnrs) (siple main) (siple exception-api) (racr testing))
 
 (assert-exception
  siple-exception?

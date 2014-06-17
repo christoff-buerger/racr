@@ -9,7 +9,7 @@
  (petrinets enabled-analysis)
  (export
   specify-enabled-analysis)
- (import (rnrs) (rnrs mutable-pairs) (racr))
+ (import (rnrs) (rnrs mutable-pairs) (racr core))
  
  ; Constructor for unique entities internally used by the Petrinet Language
  (define-record-type petrinet-nil-record (sealed #t) (opaque #t))

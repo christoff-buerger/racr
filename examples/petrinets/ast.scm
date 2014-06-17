@@ -9,7 +9,7 @@
  (petrinets ast)
  (export
   specify-ast)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  (define specify-ast
    (lambda (petrinet-specification)

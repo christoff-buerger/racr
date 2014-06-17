@@ -9,7 +9,7 @@
  (siple name-analysis)
  (export
   specify-name-analysis)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  (define specify-name-analysis
    (lambda (siple-specification)

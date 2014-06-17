@@ -12,7 +12,7 @@
   siple-interpret)
  (import
   (rnrs)
-  (racr)
+  (racr core)
   (siple exception-api)
   (siple type)
   (siple state)

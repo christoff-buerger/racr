@@ -12,7 +12,7 @@
   specify-type-coercion)
  (import
   (rnrs)
-  (racr)
+  (racr core)
   (siple type))
  
  (define perform-type-coercions

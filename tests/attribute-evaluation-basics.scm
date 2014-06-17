@@ -4,7 +4,7 @@
 ; Author: C. Bürger
 
 #!r6rs
-(import (rnrs) (racr) (racr-test-api))
+(import (rnrs) (racr core) (racr testing))
 
 (define initialize-basic-tests
   (lambda (cached?)

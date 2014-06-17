@@ -43,7 +43,7 @@
  (petrinets composition-analysis)
  (export
   specify-composition-analysis)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  (define list-union
   (lambda (l1 l2)

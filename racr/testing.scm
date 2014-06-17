@@ -6,12 +6,12 @@
 #!r6rs
 
 (library
- (racr-test-api)
+ (racr testing)
  (export
   print-ast
   assert-exception
   construct-reevaluation-tests)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  ; Given an AST, an association list L of attribute pretty-printers and an output port, print a
  ; human-readable text representation of the AST on the output port. The elements of the association list

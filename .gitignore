@@ -3,7 +3,11 @@
 
 # author: C. Bürger
 
+# Ignore backup files of common text editors:
 **/*~
+# Ignore Mac Os X Desktop Services Store configuration files:
 **/.DS_Store
-racr/racket-bin
-racr/larceny-bin
+# Ignore generated binary directories:
+**/*-bin
+# Ignore generated Java Archives:
+**/*.jar
