@@ -62,29 +62,4 @@ then
 	rm compile-stale
 fi
 
-if which petite > /dev/null
-then
-	echo "=========================================>>> Generating RACR Load Scripts for Petite Chez Scheme:"
-	
-	for l in ${libraries[@]}
-	do
-		echo " Generating $l/chez-scheme-bin/load.scm"
-		cd $l
-		rm -rf chez-scheme-bin
-		mkdir chez-scheme-bin
-		cd chez-scheme-bin
-		echo "#!r6rs" > load.scm
-		if [ $l != ${libraries[0]} ]
-		then
-			echo "(load \"${libraries[0]}/chez-scheme-bin/load.scm\")" >> load.scm
-		fi
-		ll=`echo $l | rev | cut -d/ -f1 | rev` # extract last file part of string
-		cat $l/dependencies.txt | while read line
-		do
-			echo "(load-library \"$l/$line.scm\")" >> load.scm
-			echo "(import ($ll $line))" >> load.scm
-		done
-	done
-fi
-
 cd $old_pwd
