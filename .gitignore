@@ -11,5 +11,7 @@
 **/*-bin
 # Ignore generated Java Archives:
 **/*.jar
+# Ignore generated source code:
+**/src-gen
 # Ignore profiling measurements:
 profiling/cjava/measurements
