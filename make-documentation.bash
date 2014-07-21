@@ -8,7 +8,7 @@
 ############################# Initialise Variables ############################
 
 # The absolute path of the current directory:
-basedir=`pwd`
+old_pwd=`pwd`
 
 # Array of Wiki pages to process:
 declare -a wiki_pages=(
@@ -22,17 +22,12 @@ declare -a wiki_pages=(
 
 ######################### Parse Command Line Arguments ########################
 
-if [ $# -lt 2 ]
+if [ $# -lt 1 ]
 then
-	echo "Wrong number of arguments - at least two arguments expected:"
-	echo "	(1) Racket distribution directory"
-	echo "	(2) RACR Wiki Git repository"
+	echo "Wrong number of arguments - at least one argument expected:"
+	echo "	(1) RACR Wiki Git repository"
 	exit 1
 else
-	cd  $1
-	scheme_distro=`pwd`
-	shift
-	cd $basedir
 	cd $1
 	wiki_sources=`pwd`
 	shift
@@ -53,11 +48,6 @@ done
 
 ######################### Generate RACR Documentation #########################
 
-#echo "=========================================>>> Delete Old Manual"
-#cd ${basedir}/documentation
-#echo "${basedir}/documentation/racr-manual.pdf"
-#rm racr-manual.pdf
-
 if [ $pullwiki ]
 then
 	echo "=========================================>>> Pull Wiki"
@@ -69,17 +59,17 @@ echo "=========================================>>> Copy Sources"
 for f in `ls ${wiki_sources}/documentation/print/*`
 do
 	echo "$f"
-	cp $f ${basedir}/documentation
+	cp -p $f ${old_pwd}/documentation
 done
 for f in ${wiki_pages[@]}
 do
 	echo "${wiki_sources}/${f}.wiki"
-	cp ${wiki_sources}/${f}.wiki ${basedir}/documentation
+	cp -p ${wiki_sources}/${f}.wiki ${old_pwd}/documentation
 done
 
 echo "=========================================>>> Wiki -> Tex"
-cd ${basedir}/documentation
-${scheme_distro}/bin/plt-r6rs wiki-to-latex.scm ${wiki_pages[@]}
+cd ${old_pwd}/documentation
+plt-r6rs wiki-to-latex.scm ${wiki_pages[@]}
 
 echo "=========================================>>> PDF Latex 1"
 pdflatex -interaction=nonstopmode racr-manual.tex | grep !

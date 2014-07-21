@@ -5,8 +5,6 @@
 
 #!r6rs
 
-(import (rnrs) (siple main) (siple exception-api) (racr testing))
+(import (rnrs) (cjava-racr main))
 
-(assert-exception
- siple-exception?
- (siple-interpret (cadr (command-line))))
+(apply compile (cdr (command-line)))

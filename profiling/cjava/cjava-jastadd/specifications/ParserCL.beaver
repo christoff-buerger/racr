@@ -1,0 +1,35 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author M. Tasić, C. Bürger
+ */
+
+%package "cjava";
+%import "cjava.ast.*";
+
+%class "ParserCL";
+
+%terminals BIND, IDENTIFIER, SEMICOLON;
+
+%typeof composition_program = "CompositionProgram";
+%typeof composer_list = "List<BindComposer>";
+%typeof composer = "BindComposer";
+
+%typeof IDENTIFIER = "String";
+
+%goal composition_program;
+
+composition_program = composer_list.list
+		{: return new Symbol(new CompositionProgram(list)); :}
+	;
+
+composer_list = composer.comp
+		{: return new Symbol(new List<BindComposer>().add(comp)); :}
+	| composer_list.list composer.comp
+		{: list.add(comp); return _symbol_list; :}
+	;
+
+composer = BIND IDENTIFIER.target IDENTIFIER.source SEMICOLON
+		{: return new Symbol(new BindComposer (target, source)); :}
+	;

@@ -1,0 +1,43 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author M. Tasić, C. Bürger
+ */
+
+aspect WellFormedness {	
+	syn boolean CompilationUnit.isCorrect() {
+		for (Declaration d : getBodyList())
+			if (!d.isCorrect())
+				return false;
+		return true;
+	}
+	syn boolean Statement.isCorrect() = isCorrectLocal();
+	eq ClassDeclaration.isCorrect() {
+		if (!isCorrectLocal())
+			return false;
+		for (Declaration d : getBodyList())
+			if (!d.isCorrect())
+				return false;
+		return true;
+	}
+	eq MethodDeclaration.isCorrect() {
+		if (!isCorrectLocal())
+			return false;
+		for (Declaration d : getParametersList())
+			if (!d.isCorrect())
+				return false;
+		for (Statement d : getBodyList())
+			if (!d.isCorrect())
+				return false;
+		return true;
+	}
+	eq VariableAssignment.isCorrect() = getLHand().isCorrect() && getRHand().isCorrect();
+	
+	syn boolean Statement.isCorrectLocal() = true;
+	eq Declaration.isCorrectLocal() = this == getParent().getParent().localLookup(getName());
+	eq Reference.isCorrectLocal() {
+		Declaration decl = lookupRef(getName());
+		return decl != null && decl instanceof FieldDeclaration;
+	}
+}

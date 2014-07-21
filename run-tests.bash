@@ -95,7 +95,7 @@ for f in *.siple
 do
 	begin_run $f
 	racket_run "./../../racket-bin" "./../run-correct.scm $f"
-	larceny_run "./../../larceny-bin" "./../run-correct.scm -- <argument> $f"
+	larceny_run "./../../larceny-bin" "./../run-correct.scm -- $f"
 	petite_run "./../../.." "./../run-correct.scm $f"
 	end_run
 done
@@ -104,7 +104,7 @@ for f in *.siple
 do
 	begin_run $f
 	racket_run "./../../racket-bin" "./../run-incorrect.scm $f"
-	larceny_run "./../../larceny-bin" "./../run-incorrect.scm -- <argument> $f"
+	larceny_run "./../../larceny-bin" "./../run-incorrect.scm -- $f"
 	petite_run "./../../.." "./../run-incorrect.scm $f"
 	end_run
 done

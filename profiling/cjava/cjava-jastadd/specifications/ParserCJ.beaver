@@ -1,0 +1,109 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author M. Tasić, C. Bürger
+ */
+
+%package "cjava";
+%import "cjava.ast.*";
+
+%class "ParserCJ";
+
+%terminals PUBLIC, STATIC, CLASS, INT, VOID;					// public, static, class, int, void
+%terminals LPAREN, RPAREN, LBRACE, RBRACE, LSQUARE, RSQUARE;	// (, ), {, }, [, ]
+%terminals EQUAL, SEMICOLON, POINT, COMMA;						// =, ;, ., ,
+%terminals IDENTIFIER;
+
+%typeof compilation_unit = "ClassDeclaration";
+%typeof declaration = "Declaration";
+%typeof class_declaration = "ClassDeclaration";
+%typeof method_declaration = "MethodDeclaration";
+%typeof field_declaration = "FieldDeclaration";
+%typeof hook_declaration = "DeclarationHook";
+%typeof field_or_assignment = "Statement";
+%typeof assignment = "VariableAssignment";
+
+%typeof declaration_list = "List<Declaration>";
+%typeof param_list = "List<FieldDeclaration>";
+%typeof field_or_assignment_list = "List<Statement>";
+
+%typeof IDENTIFIER = "String";
+%typeof qualified_name = "String";
+
+%goal compilation_unit;
+
+%embed {: public String source = null; :};
+
+compilation_unit = PUBLIC class_declaration.decl 
+		{: return _symbol_decl; :}
+	;
+
+class_declaration = CLASS IDENTIFIER.id LBRACE declaration_list.decls RBRACE 
+		{: return new Symbol(new ClassDeclaration(id, decls, source)); :}
+	| CLASS IDENTIFIER.id LBRACE RBRACE 
+		{: return new Symbol(new ClassDeclaration(id, new List<Declaration>(), source)); :}
+	;
+
+declaration_list = declaration.decl
+		{: return new Symbol(new List<Declaration>().add(decl)); :}
+	| declaration_list.list declaration.decl
+		{: list.add(decl); return _symbol_list; :}
+	;
+
+declaration = PUBLIC STATIC class_declaration.decl
+		{: return _symbol_decl; :}
+	| PUBLIC STATIC method_declaration.decl
+		{: return _symbol_decl; :}
+	| PUBLIC STATIC field_declaration.decl SEMICOLON
+		{: return _symbol_decl; :}
+	| hook_declaration.decl
+		{: return _symbol_decl; :}
+	;
+
+hook_declaration = LSQUARE LSQUARE IDENTIFIER.id RSQUARE RSQUARE
+		{: return new Symbol(new DeclarationHook(id)); :}
+	;
+
+method_declaration = VOID IDENTIFIER.id LPAREN param_list.params RPAREN LBRACE field_or_assignment_list.body RBRACE
+		{: return new Symbol(new MethodDeclaration(id, params, body)); :}
+	| VOID IDENTIFIER.id LPAREN RPAREN LBRACE field_or_assignment_list.body RBRACE
+		{: return new Symbol(new MethodDeclaration(id, new List<FieldDeclaration>(), body)); :}
+	| VOID IDENTIFIER.id LPAREN param_list.params RPAREN LBRACE RBRACE
+		{: return new Symbol(new MethodDeclaration(id, params, new List<Statement>())); :}
+	| VOID IDENTIFIER.id LPAREN RPAREN LBRACE RBRACE
+		{: return new Symbol(new MethodDeclaration(id, new List<FieldDeclaration>(), new List<Statement>())); :}
+	;
+
+param_list = field_declaration.decl
+		{: return new Symbol(new List<FieldDeclaration>().add(decl)); :}
+	| param_list.list COMMA field_declaration.decl
+		{: list.add(decl); return _symbol_list; :}
+	;
+
+field_or_assignment_list =
+	  field_or_assignment.stmt
+		{: return new Symbol(new List<Statement>().add(stmt)); :}
+	| field_or_assignment_list.list field_or_assignment.stmt
+		{: list.add(stmt); return _symbol_list; :}
+	;
+
+field_or_assignment = field_declaration.decl SEMICOLON
+		{: return _symbol_decl; :}
+	| assignment.stmt SEMICOLON
+		{: return _symbol_stmt; :}
+	;
+
+field_declaration = INT IDENTIFIER.id
+		{: return new Symbol(new FieldDeclaration(id)); :}
+	;
+
+assignment = qualified_name.lhand EQUAL qualified_name.rhand
+		{: return new Symbol(new VariableAssignment(new Reference(lhand), new Reference(rhand))); :}
+	;
+
+qualified_name = IDENTIFIER.id
+		{: return new Symbol(id); :}
+	| qualified_name.id1 POINT IDENTIFIER.id2
+		{: return new Symbol(id1 + "." + id2); :}
+	;
