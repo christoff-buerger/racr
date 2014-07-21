@@ -10,7 +10,7 @@
 # Ignore generated binary directories:
 **/*-bin
 # Ignore generated Java Archives:
-**/*.jar
+**/cjava-*.jar
 # Ignore generated source code:
 **/src-gen
 # Ignore profiling measurements:
