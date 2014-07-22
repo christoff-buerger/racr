@@ -15,7 +15,7 @@ echo "./make-measurements.bash << EOF" >> rerun-measurements.bash
 my_exit(){
 	# Ensure, the temporary rerun script is always deleted:
 	cd $old_pwd
-	rm  rerun-measurements.bash
+	rm rerun-measurements.bash
 	exit
 }
 trap 'my_exit' 1 2 3 9 15
@@ -66,7 +66,7 @@ declare -a composition_systems=( Larceny Petite Racket Java_d Java_i Java_ic )
 echo "=========================================>>> Create ComSysPE Measurements:"
 
 # Query measurement parameters:
-check_parameter "Max. execution time (ms): " maxtime
+check_parameter "Max. execution time (s) : " maxtime
 check_parameter "Number of hooks         : " hooks
 check_parameter "Number of rewrites      : " rewrites
 check_parameter "Rewrite step size       : " stepsize
@@ -175,7 +175,13 @@ done
 
 # Perform measurements:
 
+aborted=( )
 measure(){
+	if [ "`echo ${aborted[@]} | awk ' BEGIN { RS=" " } $1=="'"$system-$mode-h$hooks"'" '`" != "" ]
+	then
+		echo " ABORTED"
+		return
+	fi
 	error_file=$measurement_dir/result-fragments/$system-$mode-h$hooks-r$i-errors.txt
 	start=`date +"%s"`
 	$* 2>&1 > $error_file
@@ -195,6 +201,10 @@ measure(){
 		printf " %-8s | %-8s | %8i | %8i | %8i \n" \
 			$system $mode $hooks $i $elapsed >> $measurement_dir/measurements.table
 		echo " ${elapsed}s"
+		if (( $elapsed > maxtime ))
+		then
+			aborted+=($system-$mode-h$hooks)
+		fi
 	fi
 }
 

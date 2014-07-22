@@ -11,6 +11,7 @@ old_pwd=`pwd`
 system="*"
 mode="*"
 hook="*"
+rewrite="*"
 while getopts s:m:h:r: opt
 do
 	case $opt in
