@@ -102,7 +102,7 @@ static union {
 } racr;
 
 
-static void load_bytecode(Scheme_Env *env, const char* bc_file) {
+static void load_bytecode(Scheme_Env* env, const char* bc_file) {
 	FILE* file = fopen(bc_file, "r");
 	if (!file) error(1, 0, "coudln't read file: %s", bc_file);
 
@@ -119,9 +119,12 @@ static void load_bytecode(Scheme_Env *env, const char* bc_file) {
 }
 
 
+static Scheme_Env* global_env;
+
+
 Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** module_names) {
 	scheme_set_stack_base(stack_addr, 1);
-	Scheme_Env* env = scheme_basic_env();
+	Scheme_Env* env = global_env = scheme_basic_env();
 	load_bytecode(env, bytecode);
 
 	scheme_namespace_require(scheme_intern_symbol("racket/base"));
@@ -248,6 +251,17 @@ Scheme_Object* racr_call(Scheme_Object* func, const char* fmt, ...) {
 	va_end(ap);
 	return o;
 }
+
+
+Scheme_Object*	racr_call_str(const char* func, const char* fmt, ...) {
+	Scheme_Object* f = scheme_eval_string(func, global_env);
+	va_list ap;
+	va_start(ap, fmt);
+	Scheme_Object* o = vracr_call(f, fmt, ap);
+	va_end(ap);
+	return o;
+}
+
 
 Scheme_Object*	racr_list(const char* fmt, ...) {
 	va_list ap;

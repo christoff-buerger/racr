@@ -6,6 +6,7 @@ Scheme_Env*		racr_init(void* stack_addr, const char* bytecode, char const** modu
 void			racr_set_exception_handler(void(*f)(void));
 int				racr_got_exception(void);
 Scheme_Object*	racr_call(Scheme_Object* func, const char* fmt, ...);
+Scheme_Object*	racr_call_str(const char* func, const char* fmt, ...);
 Scheme_Object*	racr_build_bounds(int len, int bounds[][2]);
 
 #define RACR_INIT(env, bc, mods)\
