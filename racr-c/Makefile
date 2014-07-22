@@ -1,7 +1,7 @@
 RACKET_PATH = ../../racket/
 
 CFLAGS = -Wall -Iinclude -I$(RACKET_PATH)/racket/include
-LFLAGS = -lm -lpthread -ldl -lffi
+LFLAGS = -lm -lpthread -ldl -lffi build/racr.o
 LFLAGS += $(RACKET_PATH)/racket/src/build/racket/libracket.a
 LFLAGS += $(RACKET_PATH)/racket/src/build/racket/libmzgc.a
 
@@ -19,7 +19,7 @@ build/racr.o: src/racr.c Makefile
 
 bin/tests/%: src/tests/%.c build/racr.o Makefile
 	@mkdir -p $(@D)
-	gcc $(CFLAGS) build/racr.o $(LFLAGS) $< -o $@
+	gcc $(CFLAGS) $(LFLAGS) $< -o $@
 
 
 # byte code generation
