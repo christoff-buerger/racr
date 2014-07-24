@@ -27,7 +27,7 @@ do
 			exit 2
 	esac
 done
-shift $(($OPTIND - 1))
+shift $(( OPTIND - 1 ))
 
 # Combine measurements tables according to given filter arguments:
 cd measurements
@@ -66,6 +66,6 @@ done | awk \
 			printf " %-8s | %-8s | %8i | %8i | %8i \n", \
 				separate[1], separate[2], separate[3], separate[4], times[key]
 		}
-	}' > measurements.table
+	}' > combined-measurements.table
 
 cd $old_pwd

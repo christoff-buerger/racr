@@ -16,7 +16,7 @@ my_exit(){
 	# Ensure, the temporary rerun script is always deleted:
 	cd $old_pwd
 	rm rerun-measurements.bash
-	exit
+	exit 0
 }
 trap 'my_exit' 1 2 3 9 15
 
@@ -26,9 +26,9 @@ check_parameter(){
 	then
 		echo "$1$choice" # ...print the read input.
 	fi
-	if [[ $choice == *[!0-9]* ]]
+	if [[ ! $choice =~ ^[1-9][0-9]*$ ]]
 	then
-		echo "ERROR: No number entered!"
+		echo "ERROR: No integer number > 0 entered!"
 		my_exit
 	else
 		eval $2=$choice
@@ -81,11 +81,11 @@ done
 echo ""
 
 # Check plausibility of parameters:
-if [ $(( rewrites % stepsize )) -ne 0 ]
+if (( (rewrites % stepsize) != 0 ))
 then
 	check_abort "WARNING: Number of rewrites not multiple of step size!"
 fi
-if [ $(( depth % stepsize )) -ne 0 ]
+if (( (depth % stepsize) != 0 ))
 then
 	check_abort "WARNING: Depth not multiple of step size!"
 fi
@@ -103,7 +103,7 @@ echo "EOF" >> rerun-measurements.bash
 chmod +x rerun-measurements.bash
 cp -p rerun-measurements.bash $measurement_dir
 
-# Generate target fragments:
+# Generate target & source fragments:
 cd $old_pwd/measurements/fragments
 if [ ! -f Targets-h$hooks.cjava ]
 then
@@ -126,7 +126,6 @@ then
 	done
 	echo "}" >> Targets-h$hooks.cjava
 	
-	# Generate source fragments:
 	echo "public class Sources {" > Sources-h$hooks.cjava
 	for (( i = 1; i <= hooks; i++ ))
 	do
@@ -177,7 +176,7 @@ done
 
 aborted=( )
 measure(){
-	if [ "`echo ${aborted[@]} | awk ' BEGIN { RS=" " } $1=="'"$system-$mode-h$hooks"'" '`" != "" ]
+	if [ "`echo ${aborted[@]} | grep $system-$mode-h$hooks`" != "" ]
 	then
 		echo " ABORTED"
 		return
@@ -203,7 +202,7 @@ measure(){
 		echo " ${elapsed}s"
 		if (( $elapsed > maxtime ))
 		then
-			aborted+=($system-$mode-h$hooks)
+			aborted+=( $system-$mode-h$hooks )
 		fi
 	fi
 }
