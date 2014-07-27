@@ -252,7 +252,7 @@
              ((char=? c #\:)
               (if (char=? (my-peek-char) #\=)
                   (begin
-                    (my-read-char) ; Consume the second "="
+                    (my-read-char) ; Consume the "="
                     (new-token 'ASSIGNMENT ":="))
                   (new-token 'COLON ":")))
              ((char=? c #\,)

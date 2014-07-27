@@ -105,43 +105,49 @@ cp -p rerun-measurements.bash $measurement_dir
 
 # Generate target & source fragments:
 cd $old_pwd/measurements/fragments
-if [ ! -f Targets-h$hooks.cjava ]
+if [ ! -f Targets-h$hooks-r$i.cjava ]
 then
-	echo "public class Targets {" > Targets-h$hooks.cjava
-	echo "	public static class InnerA {" >> Targets-h$hooks.cjava
-	echo "		public static int field1;" >> Targets-h$hooks.cjava
-	echo "		public static int field2;" >> Targets-h$hooks.cjava
-	echo "		public static int field3;" >> Targets-h$hooks.cjava
-	echo "		public static int field4;" >> Targets-h$hooks.cjava
-	echo "		public static class InnerB {" >> Targets-h$hooks.cjava
-	echo "			public static int field1;" >> Targets-h$hooks.cjava
-	echo "			public static int field2;" >> Targets-h$hooks.cjava
-	echo "			public static int field3;" >> Targets-h$hooks.cjava
-	echo "			public static int field4;" >> Targets-h$hooks.cjava
-	echo "		}" >> Targets-h$hooks.cjava
-	echo "	}" >> Targets-h$hooks.cjava
-	for (( i = 1; i <= hooks; i++ ))
+	for (( i = stepsize; i <= rewrites; i = i + stepsize ))
 	do
-		echo "	[[classhook$i]]" >> Targets-h$hooks.cjava
+		echo "public class Targets {" > Targets-h$hooks-r$i.cjava
+		echo "	public static class InnerA {" >> Targets-h$hooks-r$i.cjava
+		echo "		public static int field1;" >> Targets-h$hooks-r$i.cjava
+		echo "		public static int field2;" >> Targets-h$hooks-r$i.cjava
+		echo "		public static class InnerB {" >> Targets-h$hooks-r$i.cjava
+		echo "			public static int field1;" >> Targets-h$hooks-r$i.cjava
+		echo "			public static int field2;" >> Targets-h$hooks-r$i.cjava
+		echo "		}" >> Targets-h$hooks-r$i.cjava
+		echo "	}" >> Targets-h$hooks-r$i.cjava
+		for (( h = 1; h <= hooks; h++ ))
+		do
+			echo "	[[classhook$h]]" >> Targets-h$hooks-r$i.cjava
+		done
+		echo "}" >> Targets-h$hooks-r$i.cjava
+		
+		echo "public class Sources {" > Sources-h$hooks-r$i.cjava
+		for (( h = 1; h <= hooks; h++ ))
+		do
+			echo "	public static class Source$h {" >> Sources-h$hooks-r$i.cjava
+			echo "		public static int field1;" >> Sources-h$hooks-r$i.cjava
+			echo "		public static void method(int a, int b) {" >> Sources-h$hooks-r$i.cjava
+			echo "			Targets.InnerA.InnerB.field1 = a;" >> Sources-h$hooks-r$i.cjava
+			echo "			Targets.InnerA.InnerB.field2 = b;" >> Sources-h$hooks-r$i.cjava
+			if (( h > 1 ))
+			then
+				printf "			Targets." >> Sources-h$hooks-r$i.cjava
+				depth=$(( i / hooks ))
+				for (( j = 1; j <= depth; j++))
+				do
+					printf "Source%i." $(( h - 1 )) >> Sources-h$hooks-r$i.cjava
+				done
+				echo "field1 = b;" >> Sources-h$hooks-r$i.cjava
+			fi
+			echo "		}" >> Sources-h$hooks-r$i.cjava
+			echo "		[[classhook$h]]" >> Sources-h$hooks-r$i.cjava
+			echo "	}" >> Sources-h$hooks-r$i.cjava
+		done
+		echo "}" >> Sources-h$hooks-r$i.cjava
 	done
-	echo "}" >> Targets-h$hooks.cjava
-	
-	echo "public class Sources {" > Sources-h$hooks.cjava
-	for (( i = 1; i <= hooks; i++ ))
-	do
-		echo "	public static class Source$i {" >> Sources-h$hooks.cjava
-		echo "		public static void method(int aa, int bb) {" >> Sources-h$hooks.cjava
-		echo "			Targets.InnerA.InnerB.field1 = aa;" >> Sources-h$hooks.cjava
-		echo "			Targets.InnerA.InnerB.field2 = bb;" >> Sources-h$hooks.cjava
-		echo "			Targets.InnerA.InnerB.field1 = aa;" >> Sources-h$hooks.cjava
-		echo "			Targets.InnerA.InnerB.field2 = bb;" >> Sources-h$hooks.cjava
-		echo "			Targets.InnerA.InnerB.field1 = aa;" >> Sources-h$hooks.cjava
-		echo "			Targets.InnerA.InnerB.field2 = bb;" >> Sources-h$hooks.cjava
-		echo "		}" >> Sources-h$hooks.cjava
-		echo "		[[classhook$i]]" >> Sources-h$hooks.cjava
-		echo "	}" >> Sources-h$hooks.cjava
-	done
-	echo "}" >> Sources-h$hooks.cjava
 fi
 
 # Generate recipes:
@@ -183,7 +189,7 @@ measure(){
 	fi
 	error_file=$measurement_dir/result-fragments/$system-$mode-h$hooks-r$i-errors.txt
 	start=`date +"%s"`
-	$* 2>&1 > $error_file
+	$* &> $error_file
 	elapsed=$(( `date +"%s"` - start ))
 	if [ -s $error_file ]
 	then
@@ -222,8 +228,8 @@ do
 					recipe=$old_pwd/measurements/recipes/h$hooks-r$i.cjava-recipe
 					targets=$measurement_dir/result-fragments/Targets-$system-$mode-h$hooks-r$i.cjava
 					sources=$measurement_dir/result-fragments/Sources-$system-$mode-h$hooks-r$i.cjava
-					cp $old_pwd/measurements/fragments/Targets-h$hooks.cjava $targets
-					cp $old_pwd/measurements/fragments/Sources-h$hooks.cjava $sources
+					cp $old_pwd/measurements/fragments/Targets-h$hooks-r$i.cjava $targets
+					cp $old_pwd/measurements/fragments/Sources-h$hooks-r$i.cjava $sources
 					case $system in
 					Larceny)
 						measure larceny --r6rs --path "$old_pwd/cjava-racr/larceny-bin:$old_pwd/../../racr/larceny-bin" \

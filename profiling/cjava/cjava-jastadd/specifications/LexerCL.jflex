@@ -29,12 +29,14 @@ import cjava.ParserCL.Terminals;
 LineTerminator	= \r|\n|\r\n
 Comment			= "//" [^\r\n]*
 WhiteSpace		= {LineTerminator} | [ \t\f] | {Comment}
-Identifier = [:jletter:]([:jletterdigit:] | "." | "*")*
+Number			= [0-9]([0-9])*
+Identifier		= [:jletter:]([:jletterdigit:])* | "**" | "*" {Number}
 
 %%
 
 {WhiteSpace}	{ /* ignore */ }
 "bind"			{ return sym(Terminals.BIND); }
 {Identifier}	{ return sym(Terminals.IDENTIFIER); }
+"."				{ return sym(Terminals.POINT); }
 ";"				{ return sym(Terminals.SEMICOLON); }
 <<EOF>>			{ return sym(Terminals.EOF); }

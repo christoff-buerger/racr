@@ -21,7 +21,7 @@ public class Main {
 	private static class CheckStrategy implements Strategy {
 		public CompilationUnit ast = null;
 		public CheckStrategy(CompilationUnit ast) {this.ast=ast;}
-		public void execute() {ast.isCorrect();}
+		public void execute() { ast.isCorrect(); }
 	}
 	public static Strategy strategy = null;
 	

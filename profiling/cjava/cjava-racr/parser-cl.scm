@@ -1,7 +1,7 @@
 ; This program and the accompanying materials are made available under the
 ; terms of the MIT license (X11 license) which accompanies this distribution.
 
-; Author: M. Tasić
+; Author: M. Tasić, C. Bürger
 
 #!r6rs
 
@@ -10,29 +10,6 @@
  (export
   construct-parser-cl)
  (import (rnrs) (racr core) (cjava-racr exception-api) (cjava-racr lexer-cl))
- 
- (define (str-split str ch)
-   (let ((len (string-length str)))
-     (letrec ((split
-               (lambda (a b)
-                 (cond
-                   ((>= b len)
-                    (if (= a b)
-                        (list)
-                        (cons (substring str a b) '())))
-                   ((char=? ch (string-ref str b))
-                    (if (= a b)
-                        (split (+ 1 a) (+ 1 b))
-                        (cons (substring str a b) (split b b))))
-                   (else (split a (+ 1 b)))))))
-       (split 0 0))))
- 
- (define strings->symbols
-   (lambda (strings)
-     (map
-      (lambda (str)
-        (string->symbol str))
-      strings)))     
  
  (define construct-parser-cl
    (lambda (lexer specification)
@@ -82,11 +59,19 @@
                   (let ((targetname (list))
                         (sourcename (list)))
                     (match-token! 'Bind "Missing composition operation name.")
-                    (set! targetname (strings->symbols (str-split (match-token! 'IDENTIFIER "Missing target name.") #\.)))
-                    (set! sourcename (strings->symbols (str-split (match-token! 'IDENTIFIER "Missing source name.") #\.)))
+                    (set! targetname (parse-qualified-wildcard-name))
+                    (set! sourcename (parse-qualified-wildcard-name))
                     (match-token! 'SEMICOLON "Malformed composition program. Missing [;].")
-                    (create-ast 'BindComposer (list targetname sourcename))))))
-        
+                    (create-ast 'BindComposer (list targetname sourcename)))))
+               
+               (parse-qualified-wildcard-name
+                (lambda ()
+                  (let ((id (string->symbol (match-token! 'IDENTIFIER "Malformed qualified wildcard name. Missing identifier/wildcard."))))
+                    (if (match-token? 'POINT)
+                        (begin
+                          (read-next-token) ; Consume the "."
+                          (cons id (parse-qualified-wildcard-name)))
+                        (list id))))))
         
         ;;; Return parser function:
         (lambda ()

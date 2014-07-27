@@ -27,17 +27,16 @@
  (define compile
    (lambda (composition-mode composition-recipe . cjava-programs)
      (let ((ast (apply parse composition-recipe cjava-programs)))
-       (define ensure-wellformedness
+       (define check-wellformedness
          (lambda ()
-           (unless (att-value 'correct? ast)
-             (throw-cjava-racr-exception "System wellformedness violated."))))
+           (att-value 'correct? ast)))
        (cond
          ((string=? composition-mode "always")
-          (do-compositions ast ensure-wellformedness)
-          (ensure-wellformedness))
+          (do-compositions ast check-wellformedness)
+          (check-wellformedness))
          ((string=? composition-mode "once")
           (do-compositions ast (lambda () #t))
-          (ensure-wellformedness))
+          (check-wellformedness))
          ((string=? composition-mode "never")
           (do-compositions ast (lambda () #t)))
          (else (throw-cjava-racr-exception "Unknown composition mode.")))

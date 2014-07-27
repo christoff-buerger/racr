@@ -10,11 +10,12 @@
 
 %class "ParserCL";
 
-%terminals BIND, IDENTIFIER, SEMICOLON;
+%terminals BIND, IDENTIFIER, POINT, SEMICOLON;
 
 %typeof composition_program = "CompositionProgram";
 %typeof composer_list = "List<BindComposer>";
 %typeof composer = "BindComposer";
+%typeof qualified_wildcard_name = "String";
 
 %typeof IDENTIFIER = "String";
 
@@ -30,6 +31,12 @@ composer_list = composer.comp
 		{: list.add(comp); return _symbol_list; :}
 	;
 
-composer = BIND IDENTIFIER.target IDENTIFIER.source SEMICOLON
+composer = BIND qualified_wildcard_name.target qualified_wildcard_name.source SEMICOLON
 		{: return new Symbol(new BindComposer (target, source)); :}
+	;
+
+qualified_wildcard_name = IDENTIFIER.id
+		{: return new Symbol(id); :}
+	| qualified_wildcard_name.id1 POINT IDENTIFIER.id2
+		{: return new Symbol(id1 + "." + id2); :}
 	;

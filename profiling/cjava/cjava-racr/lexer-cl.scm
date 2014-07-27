@@ -68,12 +68,19 @@
                      (char=? c (integer->char #x0008)) ; Backspace
                      (char=? c (integer->char #x000C))))) ; Formfeed
               
-              (read-identifier ; Read sequence of letters and digits (can contain . | * | _)
+              (read-identifier ; Read sequence of letters and digits
                (lambda (id)
                  (let ((c (my-peek-char)))
-                   (if (or (char-alphabetic? c) (char-numeric? c) (char=? #\. c) (char=? #\* c) (char=? #\_ c))
+                   (if (or (char-alphabetic? c) (char-numeric? c))
                        (read-identifier (cons (my-read-char) id))
-                       (apply string (reverse id)))))))
+                       (apply string (reverse id))))))
+              
+              (read-number ; Read sequence of digits
+               (lambda (n)
+                 (let ((c (my-peek-char)))
+                   (if (char-numeric? c)
+                       (read-number (cons (my-read-char) n))
+                       (apply string (reverse n)))))))
        
        ;;; Return lexer function:
        (lambda ()
@@ -89,6 +96,14 @@
                   ((string=? id "bind")
                    (new-token 'Bind id))
                   (else (new-token 'IDENTIFIER id)))))                      
+             ((char=? c #\*)
+              (if (char=? (my-peek-char) #\*)
+                  (begin
+                    (my-read-char) ; Consume the "*"
+                    (new-token 'IDENTIFIER "**"))
+                  (new-token 'IDENTIFIER (read-number (list c)))))
+             ((char=? c #\.)
+              (new-token 'POINT "."))
              ((char=? c #\;)
               (new-token 'SEMICOLON ";"))             
              (else
