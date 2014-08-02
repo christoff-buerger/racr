@@ -13,7 +13,8 @@
   test-compiler)
  (import
   (rnrs)
-  (racr)
+  (racr core)
+  (racr testing)
   (siple lexer)
   (siple parser)
   (siple type)

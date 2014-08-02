@@ -5,145 +5,61 @@
 
 # author: C. Bürger
 
-if [ ! $# == 1 ]
+old_pwd=`pwd`
+
+# Array of libraries to compile; First element must be RACR:
+declare -a libraries=(
+	$old_pwd/racr
+	# Find all directories with 'dependencies.txt'; Each such directory contains Scheme libraries:
+	$(find $old_pwd -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
+
+if which plt-r6rs > /dev/null
 then
-	echo "Wrong number of arguments - one argument expected:"
-	echo "	(1) Scheme distribution directory"
-	exit 1
+	echo "=========================================>>> Compile RACR for Racket:"
+	
+	for l in ${libraries[@]}
+	do
+		ll=`echo $l | rev | cut -d/ -f1 | rev` # extract last file part of string
+		cd $l
+		rm -rf racket-bin
+		mkdir -p racket-bin/$ll
+		cat dependencies.txt | while read line
+		do
+			plt-r6rs ++path ${libraries[0]}/racket-bin --install --collections $l/racket-bin $line.scm
+		done
+	done
 fi
-if [ ! -d $1 ]
+
+if which larceny > /dev/null
 then
-	echo "The given Scheme distribution directory [$1] does not exist."
-	exit 2
-fi
-
-# Array of SiPLE source files ordered w.r.t. their compilation dependencies:
-declare -a siple_sources=(
-	exception-api
-	type
-	state
-	lexer
-	ast
-	type-coercion
-	parser
-	access-support
-	name-analysis
-	type-analysis
-	control-flow-analysis
-	well-formedness
-	interpreter
-	main)
-
-# Array of SiPLE test programs:
-siple_correct=( $(ls ./examples/siple/examples/correct/*.siple) )
-siple_incorrect=( $(ls ./examples/siple/examples/incorrect/*.siple) )
-
-# Array of Petri Net Language source files ordered w.r.t. their compilation dependencies:
-declare -a petrinets_sources=(
-	ast
-	access-support
-	name-analysis
-	composition-analysis
-	well-formedness-analysis
-	enabled-analysis
-	main
-	ui)
-
-# Array of RACR tests:
-tests=( $(ls ./tests/*.scm) )
-
-if [ -f $1/bin/plt-r6rs ]
-then
-	echo "=========================================>>> Install RACR for Racket:"
+	echo "=========================================>>> Compile RACR for Larceny:"
 	
-	# Delete old:
-	rm -rf $1/collects/racr
-	rm -rf $1/collects/racr-test-api
-	rm -rf $1/collects/siple
-	rm -rf $1/collects/petrinets
+	# Create compile script
+	cd $old_pwd
+	echo "#!r6rs" > compile-stale
+	echo "(import (larceny compiler))" >> compile-stale
+	echo "(compile-stale-libraries)" >> compile-stale
 	
-	# Install new:
-	$1/bin/plt-r6rs --all-users --install ./racr/racr.scm
-	$1/bin/plt-r6rs --all-users --install ./racr/racr-test-api.scm
-	for (( i=0; i<${#siple_sources[*]}; i++ )) do
-		$1/bin/plt-r6rs --all-users --install ./examples/siple/${siple_sources[i]}.scm
+	# Compile libraries:
+	for l in ${libraries[@]}
+	do
+		ll=`echo $l | rev | cut -d/ -f1 | rev` # extract last file part of string
+		cd $l
+		rm -rf larceny-bin
+		mkdir -p larceny-bin/$ll
+		for f in *.scm
+		do
+			cp -p $f larceny-bin/$ll/${f%.*}.sls
+		done
+		cd larceny-bin/$ll
+		cp -p $old_pwd/compile-stale .
+		larceny --r6rs --path "${libraries[0]}/larceny-bin:./.." --program compile-stale
+		rm compile-stale
 	done
-	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
-		$1/bin/plt-r6rs --all-users --install ./examples/petrinets/${petrinets_sources[i]}.scm
-	done
-	
-	echo "=========================================>>> Run tests to validate installation:"
-	# Basic API tests:
-	for ((i=0; i<${#tests[*]}; i++ )) do
-		echo ${tests[i]}
-		$1/bin/plt-r6rs ${tests[i]}
-	done
-	# Testing state machine example:
-	echo ./examples/state-machines/state-machines.scm
-	$1/bin/plt-r6rs ./examples/state-machines/state-machines.scm
-	# Testing Petri net example:
-	echo ./examples/petrinets/examples/purchase-processing.scm
-	$1/bin/plt-r6rs ./examples/petrinets/examples/purchase-processing.scm
-	echo ./examples/petrinets/examples/runtime-structure-example-slide.scm
-	$1/bin/plt-r6rs ./examples/petrinets/examples/runtime-structure-example-slide.scm
-	# Testing SiPLE example:
-	for ((i=0; i<${#siple_correct[*]}; i++ )) do
-		echo ${siple_correct[i]}
-		$1/bin/plt-r6rs ./examples/siple/examples/run-correct.scm ${siple_correct[i]}
-	done
-	for ((i=0; i<${#siple_incorrect[*]}; i++ )) do
-		echo ${siple_incorrect[i]}
-		$1/bin/plt-r6rs ./examples/siple/examples/run-incorrect.scm ${siple_incorrect[i]}
-	done
-else if [ -f $1/larceny ]
-then
-	echo "=========================================>>> Install RACR for Larceny:"
-	
-	# Delete old:
-	rm -rf $1/lib/racr
-	mkdir $1/lib/racr
-	rm -rf $1/lib/siple
-	mkdir $1/lib/siple
-	rm -rf $1/lib/petrinets
-	mkdir $1/lib/petrinets
-	
-	# Copy source files:
-	cp ./racr/racr.scm $1/lib/racr/racr.sls
-	cp ./racr/racr-test-api.scm $1/lib/racr/racr-test-api.sls
-	for (( i=0; i<${#siple_sources[*]}; i++ )) do
-		cp ./examples/siple/${siple_sources[i]}.scm $1/lib/siple/${siple_sources[i]}.sls
-	done
-	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
-		cp ./examples/petrinets/${petrinets_sources[i]}.scm $1/lib/petrinets/${petrinets_sources[i]}.sls
-	done
-	
-	# Create temporary compile script:
-	echo "#!r6rs" > racr-compile.sch
-	echo "(import (larceny compiler))" >> racr-compile.sch
-	echo "(compile-library \"$1/lib/racr/racr.sls\")" >> racr-compile.sch
-	echo "(compile-library \"$1/lib/racr/racr-test-api.sls\")" >> racr-compile.sch
-	for (( i=0; i<${#siple_sources[*]}; i++ )) do
-		echo "(compile-library \"$1/lib/siple/${siple_sources[i]}.sls\")" >> racr-compile.sch
-	done
-	for (( i=0; i<${#petrinets_sources[*]}; i++ )) do
-		echo "(compile-library \"$1/lib/petrinets/${petrinets_sources[i]}.sls\")" >> racr-compile.sch
-	done
-	
-	# Execute compile script:
-	$1/larceny --r6rs --path $1/lib/racr --program racr-compile.sch
 	
 	# Delete compile script:
-	rm racr-compile.sch
-	
-	echo "=========================================>>> Run tests to validate installation:"
-	# Basic API tests:
-	for ((i=0; i<${#tests[*]}; i++ )) do
-		echo ${tests[i]}
-		$1/larceny --r6rs --path $1/lib/racr --program ${tests[i]}
-	done
-	# Testing state machine example:
-	echo ./examples/state-machines/state-machines.scm
-	$1/larceny --r6rs --path $1/lib/racr --program ./examples/state-machines/state-machines.scm
-else
-	echo "Unknown Scheme distribution - only Larceny and Racket are supported."
-fi fi
+	cd $old_pwd
+	rm compile-stale
+fi
+
+cd $old_pwd

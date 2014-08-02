@@ -9,7 +9,7 @@
  (petrinets well-formedness-analysis)
  (export
   specify-well-formedness-analysis)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  ; Given a node n (which usually is child of a list-node) and a child name t
  ; (which usually is a terminal), return, if all siblings of n with the same

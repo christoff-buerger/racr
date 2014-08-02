@@ -11,7 +11,7 @@
   make-petrinet
   make-transition
   compose-petrinets)
- (import (rnrs) (racr) (petrinets main))
+ (import (rnrs) (racr core) (petrinets main))
  
  (define initialize-places
    (lambda (petrinet)

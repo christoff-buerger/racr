@@ -9,7 +9,7 @@
  (siple parser)
  (export
   construct-parser)
- (import (rnrs) (racr) (siple exception-api) (siple type) (siple lexer) (siple type-coercion))
+ (import (rnrs) (racr core) (siple exception-api) (siple type) (siple lexer) (siple type-coercion))
  
  (define construct-parser
    (lambda (lexer siple-specification perform-type-coercions?)

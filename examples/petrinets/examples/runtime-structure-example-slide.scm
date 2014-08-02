@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr) (petrinets main) (petrinets ui))
+(import (rnrs) (racr core) (petrinets main) (petrinets ui))
 
 (init-ast)
 (init-attribution)

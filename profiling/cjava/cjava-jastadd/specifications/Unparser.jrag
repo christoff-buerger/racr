@@ -1,0 +1,73 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author M. Tasić, C. Bürger
+ */
+
+import java.io.*;
+
+aspect Unparser {
+	public abstract void Statement.pp(Writer writer, int indent) throws IOException;
+	
+	public void Statement.printIdent(Writer writer, int indent) throws IOException {
+		for (int i = 0; i < indent; i++)
+			writer.write("\t");
+	}
+	
+	public void ClassDeclaration.pp(Writer writer, int indent) throws IOException {
+		printIdent(writer, indent);
+		if (getParent().getParent() instanceof CompilationUnit)
+			writer.write("public class " + getName() + " {\n");
+		else
+			writer.write("public static class " + getName() + " {\n");
+		for (Declaration d:getBodyList())
+			d.pp(writer, indent + 1);
+		printIdent(writer, indent);
+		writer.write("}\n");
+	}
+	
+	public void MethodDeclaration.pp(Writer writer, int indent) throws IOException {
+		printIdent(writer, indent);
+		writer.write("public static void " + getName() + "(");
+		if (hasParameters()) {
+			getParameters(0).pp(writer, 0);
+			for (int i = 1; i<getNumParameters(); i++) {
+				writer.write(", ");
+				getParameters(i).pp(writer, 0);
+			}
+		}
+		writer.write(") {\n");
+		for (Statement d:getBodyList()) {
+			d.pp(writer, indent + 1);
+			writer.write(";\n");
+		}
+		printIdent(writer, indent);
+		writer.write("}\n");
+	}
+	
+	public void VariableAssignment.pp(Writer writer, int indent) throws IOException {
+		printIdent(writer, indent);
+		getLHand().pp(writer, 0);
+		writer.write(" = ");
+		getRHand().pp(writer, 0);
+	}
+	
+	public void FieldDeclaration.pp(Writer writer, int indent) throws IOException {
+		printIdent(writer, indent);
+		if (getParent().getParent() instanceof ClassDeclaration)
+			writer.write("public static int " + getName() + ";\n");
+		else
+			writer.write("int " + getName());
+	}
+	
+	public void DeclarationHook.pp(Writer writer, int indent) throws IOException {
+		printIdent(writer, indent);
+		writer.write("[[" + getName() + "]]\n");
+	}
+	
+	public void Reference.pp(Writer writer, int indent) throws IOException {
+		printIdent(writer, indent);
+		writer.write(getName());
+	}
+}

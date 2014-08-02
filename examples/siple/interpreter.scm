@@ -9,7 +9,7 @@
  (siple interpreter)
  (export
   weave-interpreter)
- (import (rnrs) (racr) (siple type) (siple state) (siple exception-api))
+ (import (rnrs) (racr core) (siple type) (siple state) (siple exception-api))
  
  (define weave-interpreter
    (lambda (ast)

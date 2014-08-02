@@ -7,4 +7,4 @@
 
 (import (rnrs) (siple main))
 
-(siple-interpret (car (reverse (command-line))))
+(siple-interpret (cadr (command-line)))

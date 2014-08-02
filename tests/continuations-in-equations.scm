@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr))
+(import (rnrs) (racr core))
 
 (define initialize-tests
   (lambda ()

@@ -9,7 +9,7 @@
  (siple control-flow-analysis)
  (export
   specify-control-flow-analysis)
- (import (rnrs) (racr))
+ (import (rnrs) (racr core))
  
  (define union
    (lambda (s1 s2)

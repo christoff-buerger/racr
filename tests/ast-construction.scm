@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr) (racr-test-api))
+(import (rnrs) (racr core) (racr testing))
 
 (define test-language (create-specification))
 

@@ -9,7 +9,7 @@
  (siple well-formedness)
  (export
   specify-well-formedness)
- (import (rnrs) (racr) (siple type))
+ (import (rnrs) (racr core) (siple type))
  
  (define specify-well-formedness
    (lambda (siple-specification)

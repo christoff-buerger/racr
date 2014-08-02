@@ -1,0 +1,36 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author M. Tasić, C. Bürger
+ */
+
+aspect CompositionsDeclarative {
+	public void CompilationUnit.performCompositions() {
+		traverse(); // Traverse triggers rewrites.
+	}
+	
+	public void ASTNode.traverse() {
+		for (int i=0; i < getNumChild(); i++) {
+			ASTNode next = getChild(i);
+			if (next != null)
+				next.traverse();
+		}
+	}
+	
+	// Broadcast nextComposition() attribute:
+	inh BindComposer DeclarationHook.nextComposition();
+	eq CompilationUnit.getBody(int i).nextComposition() = nextComposition();
+	
+	rewrite DeclarationHook {
+		when (nextComposition() != null && nextComposition().Target() == this)
+		to Declaration {
+			cjava.Main.strategy.execute();
+			BindComposer composer = nextComposition();
+			Declaration source = composer.Source();
+			if (source == null)
+				throw new cjava.CompositionException("Incorrect composition source fragment."); 
+			return (Declaration)source.treeCopyNoTransform();
+		}
+	}
+}

@@ -21,7 +21,7 @@
  (import
   (rnrs)
   (rnrs mutable-pairs)
-  (racr)
+  (racr core)
   (petrinets ast)
   (petrinets access-support)
   (petrinets name-analysis)

@@ -1,0 +1,21 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+aspect CompositionsIterative {
+	public void CompilationUnit.performCompositions() {
+		for (BindComposer next = nextComposition(); next != null; next = nextComposition()) {
+			cjava.Main.strategy.execute();
+			Declaration source = next.Source();
+			Declaration target = next.Target();
+			if (source == null)
+				throw new cjava.CompositionException("Incorrect composition source fragment."); 
+			ASTNode parent = target.getParent();
+			int index = parent.getIndexOfChild(target);
+			parent.setChild(source.treeCopyNoTransform(), index);
+		}
+	}
+}
