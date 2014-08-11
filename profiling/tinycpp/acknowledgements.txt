@@ -1,0 +1,1 @@
+The Tiny C++ example is the successor of and based on the CJava example of M. Tasić (cf. https://code.google.com/p/racr/wiki/Publications).

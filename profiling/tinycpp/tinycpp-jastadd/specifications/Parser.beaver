@@ -1,0 +1,97 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+%package "tinycpp";
+%import "tinycpp.ast.*";
+
+%class "Parser";
+
+%terminals PUBLIC, STATIC, CLASS, INT, VOID;				// public, static, class, int, void
+%terminals LPAREN, RPAREN, LBRACE, RBRACE;					// (, ), {, }
+%terminals EQUAL, SEMICOLON, COLON, COLON_COLON, COMMA;		// =, ;, :, ::, ,
+%terminals IDENTIFIER;
+
+%typeof compilation_unit = "CompilationUnit";
+%typeof global_class_declaration = "ClassDeclaration";
+%typeof inner_class_declaration = "ClassDeclaration";
+%typeof class_member_declaration = "Declaration";
+%typeof method_declaration = "MethodDeclaration";
+%typeof field_declaration = "FieldDeclaration";
+%typeof assignment = "VariableAssignment";
+
+%typeof global_class_declaration_list = "List<Declaration>";
+%typeof class_member_declaration_list = "List<Declaration>";
+%typeof param_list = "List<FieldDeclaration>";
+%typeof assignment_list = "List<VariableAssignment>";
+
+%typeof qualified_name = "String";
+%typeof IDENTIFIER = "String";
+
+%goal compilation_unit;
+
+compilation_unit = global_class_declaration_list.list INT IDENTIFIER.id LPAREN RPAREN LBRACE RBRACE
+		{: if (!id.equals("main")) throw new TinyCPPException("Parsing error!"); return new Symbol(new CompilationUnit(list)); :}
+	;
+
+global_class_declaration_list = global_class_declaration_list.list global_class_declaration.decl
+		{: list.add(decl); return _symbol_list; :}
+	|	{: return new Symbol(new List<Declaration>()); :}
+	;
+
+global_class_declaration = CLASS qualified_name.id LBRACE PUBLIC COLON class_member_declaration_list.list RBRACE SEMICOLON
+		{: return new Symbol(new ClassDefinition(id, list)); :}
+	| CLASS qualified_name.id SEMICOLON
+		{: if (id.contains("::")) throw new TinyCPPException("Parsing error!"); return new Symbol(new ClassDeclaration(id)); :}
+	;
+
+class_member_declaration_list = class_member_declaration_list.list class_member_declaration.decl
+		{: list.add(decl); return _symbol_list; :}
+	|	{: return new Symbol(new List<Declaration>()); :}
+	;
+
+class_member_declaration = inner_class_declaration.decl
+		{: return _symbol_decl; :}
+	| STATIC method_declaration.decl
+		{: return _symbol_decl; :}
+	| STATIC field_declaration.decl SEMICOLON
+		{: return _symbol_decl; :}
+	;
+
+inner_class_declaration = global_class_declaration.decl
+		{: if (decl.getName().contains("::")) throw new TinyCPPException("Parsing error!"); return _symbol_decl; :}
+	;
+
+method_declaration = VOID IDENTIFIER.id LPAREN param_list.params RPAREN LBRACE assignment_list.body RBRACE
+		{: return new Symbol(new MethodDeclaration(id, params, body)); :}
+	| VOID IDENTIFIER.id LPAREN RPAREN LBRACE assignment_list.body RBRACE
+		{: return new Symbol(new MethodDeclaration(id, new List<FieldDeclaration>(), body)); :}
+	;
+
+param_list = param_list.list COMMA field_declaration.decl
+		{: list.add(decl); return _symbol_list; :}
+	| field_declaration.decl
+		{: return new Symbol(new List<FieldDeclaration>().add(decl)); :}
+	;
+
+assignment_list = assignment_list.list assignment.ass
+	  	{: list.add(ass); return _symbol_list; :}
+	|	{: return new Symbol(new List<VariableAssignment>()); :}
+	;
+
+field_declaration = INT IDENTIFIER.id
+		{: return new Symbol(new FieldDeclaration(id)); :}
+	;
+
+assignment = qualified_name.lhand EQUAL qualified_name.rhand SEMICOLON
+		{: return new Symbol(new VariableAssignment(new Reference(lhand), new Reference(rhand))); :}
+	;
+
+qualified_name = IDENTIFIER.id
+		{: return new Symbol(id); :}
+	| qualified_name.id1 COLON_COLON IDENTIFIER.id2
+		{: return new Symbol(id1 + "::" + id2); :}
+	;

@@ -1,2 +1,0 @@
-Main-Class: cjava.Main
-Class-Path: tools/beaver-rt.jar

@@ -1,0 +1,2 @@
+Main-Class: tinycpp.Main
+Class-Path: tools/beaver-rt.jar
