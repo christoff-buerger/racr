@@ -82,7 +82,7 @@
        
        (Reference
         (lambda (n)
-          (let ((decl (att-value 'lookup-reference n (ast-child 'name n))))
+          (let ((decl (att-value 'declaration n)))
             (and
              decl
              (eq? (ast-node-type decl) 'FieldDeclaration))))))))))

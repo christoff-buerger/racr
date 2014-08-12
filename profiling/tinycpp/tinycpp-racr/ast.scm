@@ -20,6 +20,7 @@
       (ast-rule 'FieldDeclaration:Declaration->)
       (ast-rule 'ClassDeclaration:Declaration->)
       (ast-rule 'ClassDefinition:ClassDeclaration->Declaration*<Body)
+      (ast-rule 'WovenClassDefinition:ClassDefinition->)
       (ast-rule 'MethodDeclaration:Declaration->FieldDeclaration*<Parameters-VariableAssignment*<Body)
       (ast-rule 'Constructor:MethodDeclaration->)
       (ast-rule 'VariableAssignment->Reference<LHand-Reference<RHand)

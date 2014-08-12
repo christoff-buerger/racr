@@ -58,7 +58,7 @@ aspect WellFormedness {
 	}
 	
 	syn boolean Reference.IsCorrectLocal() {
-		Declaration decl = LookupReference(getName());
+		Declaration decl = Declaration();
 		return decl != null && decl instanceof FieldDeclaration;
 	}
 }

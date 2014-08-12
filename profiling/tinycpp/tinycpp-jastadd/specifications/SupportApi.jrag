@@ -29,11 +29,4 @@ aspect SupportApi {
 	eq ClassDefinition.IsDefinition() = true;
 	
 	syn boolean Declaration.IsQualifiedDeclaration() = getName().contains(":");
-	
-	syn Declaration CompilationUnit.NextQualifiedDeclaration() {
-		for (Declaration decl:getBodyList())
-			if (decl.IsQualifiedDeclaration())
-				return decl;
-		return null;
-	}
 }

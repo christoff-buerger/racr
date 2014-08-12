@@ -48,13 +48,4 @@
        qualified-declaration?
        (Declaration
         (lambda (n)
-          (list? (ast-child 'name n)))))
-      
-      (ag-rule
-       next-qualified-declaration?
-       (CompilationUnit
-        (lambda (n)
-          (ast-find-child
-           (lambda (i n)
-             (att-value 'qualified-declaration? n))
-           (ast-child 'Body n)))))))))
+          (list? (ast-child 'name n)))))))))

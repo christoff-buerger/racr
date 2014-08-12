@@ -100,4 +100,6 @@ aspect NameAnalysis {
 		}
 		return LookupReference(label);
 	}
+	
+	syn Declaration Reference.Declaration() = LookupReference(getName());
 }

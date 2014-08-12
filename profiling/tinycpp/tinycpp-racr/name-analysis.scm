@@ -47,8 +47,8 @@
       
       (ag-rule
        lookup-subtree
-       (CompilationUnit (lambda (n label) (lookup-subtree n label)))
-       (ClassDefinition (lambda (n label) (lookup-subtree n label)))
+       (CompilationUnit lookup-subtree)
+       (ClassDefinition lookup-subtree)
        (ClassDeclaration (lambda (n label) #f)))
       
       (ag-rule
@@ -98,4 +98,10 @@
              (and
               (null? (cdr label))
               (att-value 'lookup-local method (car label)))
-             (att-value 'lookup-reference method label))))))))))
+             (att-value 'lookup-reference method label))))))
+      
+      (ag-rule
+       declaration
+       (Reference
+        (lambda (n)
+          (att-value 'lookup-reference n (ast-child 'name n)))))))))

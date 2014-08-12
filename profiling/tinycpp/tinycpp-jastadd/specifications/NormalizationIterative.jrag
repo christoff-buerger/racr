@@ -20,14 +20,22 @@ aspect Normalization {
 	
 	public void CompilationUnit.transformToNormalform() {
 		for (Declaration decl:getBodyList())
-			addDefaultConstructors(decl);
+			if (!decl.IsQualifiedDeclaration())
+				addDefaultConstructors(decl);
 		weaveInnerClasses();
+	}
+	
+	syn Declaration CompilationUnit.NextInnerClassToWeave() {
+		for (Declaration decl:getBodyList())
+			if (decl.IsQualifiedDeclaration() && (! (decl instanceof WovenClassDefinition)))
+				return decl;
+		return null;
 	}
 	
 	private void CompilationUnit.weaveInnerClasses() {
 		do {
 			boolean wellFormed = IsCorrect();
-			Declaration sourceDefinition = wellFormed ? NextQualifiedDeclaration() : null;
+			Declaration sourceDefinition = wellFormed ? NextInnerClassToWeave() : null;
 			Declaration targetDeclaration = sourceDefinition != null ?
 				sourceDefinition.LookupReference(sourceDefinition.getName()) :
 				null;
@@ -39,7 +47,11 @@ aspect Normalization {
 				throw new TinyCPPException("ERROR: Program not well-formed.");
 			int sourceIndex = sourceDefinition.getParent().getIndexOfChild(sourceDefinition);
 			int targetIndex = targetDeclaration.getParent().getIndexOfChild(targetDeclaration);
-			sourceDefinition.getParent().removeChild(sourceIndex);
+			sourceDefinition.getParent().setChild(
+				new WovenClassDefinition(
+					sourceDefinition.getName(),
+					new List<Declaration>()),
+				sourceIndex);
 			sourceDefinition.setName(targetDeclaration.getName());
 			targetDeclaration.getParent().setChild(sourceDefinition, targetIndex);
 			addDefaultConstructors(sourceDefinition);

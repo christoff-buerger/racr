@@ -18,6 +18,8 @@ ClassDeclaration : Declaration;
 ClassDefinition : ClassDeclaration ::=
 	Body:Declaration*;
 
+WovenClassDefinition : ClassDefinition;
+
 MethodDeclaration : Declaration ::=
 	Parameters:FieldDeclaration*
 	Body:VariableAssignment*;

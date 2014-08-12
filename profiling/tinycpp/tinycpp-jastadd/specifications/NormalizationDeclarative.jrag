@@ -39,12 +39,19 @@ aspect Normalization {
 	inh CompilationUnit Declaration.CompilationUnit();
 	eq CompilationUnit.getBody(int i).CompilationUnit() = this;
 	
+	syn Declaration CompilationUnit.NextInnerClassToWeave() {
+		for (Declaration decl:getBodyList())
+			if (decl.IsQualifiedDeclaration() && (! (decl instanceof WovenClassDefinition)))
+				return decl;
+		return null;
+	}
+	
 	private Declaration ClassDeclaration.RewriteToDefinition() {
 		if (IsDefinition())
 			return null;
 		CompilationUnit comp = CompilationUnit();
 		boolean wellFormed = comp.IsCorrect();
-		Declaration sourceDefinition = wellFormed ? comp.NextQualifiedDeclaration() : null;
+		Declaration sourceDefinition = wellFormed ? comp.NextInnerClassToWeave() : null;
 		if (sourceDefinition != null && sourceDefinition.LookupReference(sourceDefinition.getName()) == this)
 			return sourceDefinition;
 		return null;

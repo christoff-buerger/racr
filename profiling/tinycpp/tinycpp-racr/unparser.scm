@@ -22,7 +22,8 @@
    (lambda (compilation-unit out-port)
      (define my-display
        (lambda (m)
-         (display m out-port)))
+         (display m out-port)
+         #t))
      
      (define print-indentation
        (lambda (i)
@@ -34,6 +35,11 @@
        (lambda (n indent)
          (let ((type (ast-node-type n)))
            (cond
+             ((eq? type 'ClassDeclaration)
+              (print-indentation indent)
+              (my-display "class ")
+              (my-display (symbol->string (ast-child 'name n)))
+              (my-display ";\n"))
              ((eq? type 'ClassDefinition)
               (print-indentation indent)
               (my-display "class ")
@@ -51,11 +57,8 @@
                (ast-child 'Body n))
               (print-indentation indent)
               (my-display "};\n"))
-             ((eq? type 'ClassDeclaration)
-              (print-indentation indent)
-              (my-display "class ")
-              (my-display (symbol->string (ast-child 'name n)))
-              (my-display ";\n"))
+             ((eq? type 'WovenClassDefinition)
+              #f)
              ((eq? type 'MethodDeclaration)
               (print-indentation indent)
               (my-display "static void ")
@@ -103,7 +106,7 @@
      
      (ast-for-each-child
       (lambda (i n)
-        (print-node n 0)
-        (my-display #\newline))
+        (when (print-node n 0)
+          (my-display #\newline)))
       (ast-child 'Body compilation-unit))
      (my-display "int main()\n{\n}\n"))))

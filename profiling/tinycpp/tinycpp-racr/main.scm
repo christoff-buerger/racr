@@ -67,5 +67,6 @@
    (compile-ast-specifications specification 'CompilationUnit)
    (specify-support-api specification)
    (specify-name-analysis specification)
+   (specify-normalization specification)
    (specify-well-formedness specification)
    (compile-ag-specifications specification)))

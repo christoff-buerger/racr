@@ -8,7 +8,8 @@
 (library
  (tinycpp-racr normalization)
  (export
-  transform-to-normalform)
+  transform-to-normalform
+  specify-normalization)
  (import (rnrs) (racr core) (tinycpp-racr exception-api))
  
  (define transform-to-normalform
@@ -37,12 +38,28 @@
           (add-default-constructors n))
         (ast-child 'Body n)))))
  
+ (define specify-normalization
+   (lambda (specification)
+     (with-specification
+      specification
+      
+      (ag-rule
+       next-inner-class-to-weave?
+       (CompilationUnit
+        (lambda (n)
+          (ast-find-child
+           (lambda (i n)
+             (and
+              (att-value 'qualified-declaration? n)
+              (not (ast-subtype? n 'WovenClassDefinition))))
+           (ast-child 'Body n))))))))
+ 
  (define weave-inner-classes
    (lambda (compilation-unit)
      (let* ((well-formed?
              (att-value 'correct? compilation-unit))
             (source-definition?
-             (and well-formed? (att-value 'next-qualified-declaration? compilation-unit)))
+             (and well-formed? (att-value 'next-inner-class-to-weave? compilation-unit)))
             (target-declaration?
              (and source-definition? (att-value 'lookup-reference source-definition? (ast-child 'name source-definition?)))))
        (when source-definition?
@@ -54,6 +71,8 @@
           (rewrite-subtree
            (ast-child 'Body source-definition?)
            (create-ast-list (list))))
+         (rewrite-refine
+          source-definition?
+          'WovenClassDefinition)
          (add-default-constructors target-declaration?)
-         (rewrite-delete source-definition?)
          (weave-inner-classes compilation-unit))))))
