@@ -171,12 +171,17 @@
                
                (parse-qualified-name
                 (lambda ()
-                  (let loop ((id (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier."))))
-                    (if (match-token? 'COLON-COLON)
-                        (begin
-                          (read-next-token) ; Consume the "::"
-                          (loop (cons id (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier.")))))
-                        id)))))
+                  (let ((name
+                         (reverse
+                          (let loop ((name (list (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier.")))))
+                            (if (match-token? 'COLON-COLON)
+                                (begin
+                                  (read-next-token) ; Consume the "::"
+                                  (loop (cons (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier.")) name)))
+                                name)))))
+                    (if (null? (cdr name))
+                        (car name)
+                        name)))))
         ;;; Return parser function:
         (lambda ()
           (parse-compilation-unit)))))))

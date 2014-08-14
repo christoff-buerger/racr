@@ -61,9 +61,21 @@
             (source-definition?
              (and well-formed? (att-value 'next-inner-class-to-weave? compilation-unit)))
             (target-declaration?
-             (and source-definition? (att-value 'lookup-reference source-definition? (ast-child 'name source-definition?)))))
+             (and
+              source-definition?
+              (att-value
+               'lookup-global
+               compilation-unit
+               (fold-left
+                (lambda (result prefix)
+                  (cons result prefix))
+                (car (ast-child 'name source-definition?))
+                (cdr (ast-child 'name source-definition?)))))))
        (when source-definition?
-         (unless (and target-declaration? (eq? (ast-node-type target-declaration?) 'ClassDeclaration))
+         (unless (and
+                  target-declaration?
+                  (<= (att-value 'global-index target-declaration?) (ast-child-index source-definition?))
+                  (eq? (ast-node-type target-declaration?) 'ClassDeclaration))
            (throw-tinycpp-racr-exception "ERROR: Program not well-formed."))
          (rewrite-refine
           target-declaration?

@@ -48,4 +48,20 @@
        qualified-declaration?
        (Declaration
         (lambda (n)
-          (pair? (ast-child 'name n)))))))))
+          (pair? (ast-child 'name n)))))
+      
+      (ag-rule
+       compilation-unit
+       (CompilationUnit (lambda (n) n)))
+      
+      (ag-rule
+       full-qualified-name
+       
+       (CompilationUnit (lambda (n) #f))
+       
+       (Declaration
+        (lambda (n)
+          (let ((prefixes (att-value 'full-qualified-name (ast-parent n))))
+            (if prefixes
+                (cons prefixes (ast-child 'name n))
+                (ast-child 'name n))))))))))
