@@ -3,21 +3,37 @@
 
 // Author: C. Bürger
 
-class C;
-
 class C
 {
 public:
-	class D;
 	class D
 	{
 	public:
+		static void m(int v)
+		{
+			::C::D::v = v;
+			//::E::v = v; // ::E::v not declared yet.
+		};
+		static int v;
 	};
-	class E;
+};
+
+class E
+{
+public:
+	static void m(int v)
+	{
+		::C::D::v = v;
+	}
 	class F;
 };
 
-class C::E
+class ::E::F
+{
+public:
+};
+
+class E::F // Redefinition error.
 {
 public:
 };

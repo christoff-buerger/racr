@@ -77,14 +77,9 @@
                         (body #f)
                         (result #f))
                     (match-token! 'Class "Malformed class declaration. Missing class declaration start delimiter [class].")
-                    (set!
-                     name
-                     (let ((name (parse-qualified-name)))
-                       (if (null? (cdr name))
-                           (car name)
-                           (if inner-class?
-                               (parser-error "Malformed class declaration. Inner class declarations cannot have qualified names.")
-                               name))))
+                    (set! name (parse-qualified-name))
+                    (when (and inner-class? (pair? name))
+                      (parser-error "Malformed class declaration. Inner class declarations cannot have qualified names."))
                     (if (match-token? 'BRACE-OPEN)
                         (begin
                           (read-next-token) ; Consume the "{"
@@ -99,7 +94,7 @@
                                   body))))
                           (read-next-token) ; Consume the "}"
                           (set! result (create-ast 'ClassDefinition (list name (create-ast-list body)))))
-                        (if (list? name)
+                        (if (pair? name)
                             (parser-error "Malformed class definition. Missing class body.")
                             (set! result (create-ast 'ClassDeclaration (list name)))))
                     (match-token! 'SEMICOLON "Malformed class declaration. Missing [;].")
@@ -176,12 +171,12 @@
                
                (parse-qualified-name
                 (lambda ()
-                  (let ((id (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier."))))
+                  (let loop ((id (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier."))))
                     (if (match-token? 'COLON-COLON)
                         (begin
                           (read-next-token) ; Consume the "::"
-                          (cons id (parse-qualified-name)))
-                        (list id))))))
+                          (loop (cons id (string->symbol (match-token! 'IDENTIFIER "Malformed qualified name. Missing identifier.")))))
+                        id)))))
         ;;; Return parser function:
         (lambda ()
           (parse-compilation-unit)))))))

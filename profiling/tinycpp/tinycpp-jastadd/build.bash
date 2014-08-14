@@ -30,20 +30,20 @@ rm *.jar
 # Build declarative version:
 clear_all
 make_syntax
-java -jar tools/jastadd2.jar --rewrite --novisitcheck --package="tinycpp.ast" --o=src-gen \
+java -jar tools/jastadd2.jar --rewrite --package="tinycpp.ast" --o=src-gen \
 	specifications/*.ast `ls specifications/*.jrag | grep -v NormalizationIterative.jrag`
 make_binary tinycpp-declarative.jar
 
 # Build iterative version:
 clear_all
 make_syntax
-java -jar tools/jastadd2.jar --novisitcheck --package="tinycpp.ast" --o=src-gen \
+java -jar tools/jastadd2.jar --package="tinycpp.ast" --o=src-gen \
 	specifications/*.ast `ls specifications/*.jrag | grep -v NormalizationDeclarative.jrag`
 make_binary tinycpp-iterative.jar
 
 # Build iterative, cached, incremental version:
 clear_all
 make_syntax
-java -jar tools/jastadd2.jar --rewrite --novisitcheck --cache all --incremental full --package="tinycpp.ast" --o=src-gen \
+java -jar tools/jastadd2.jar --rewrite --cache all --incremental full --package="tinycpp.ast" --o=src-gen \
 	specifications/*.ast `ls specifications/*.jrag | grep -v NormalizationDeclarative.jrag`
 make_binary tinycpp-iterative-cached.jar

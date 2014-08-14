@@ -8,19 +8,19 @@ class C
 public:
 	class D;
 	class E;
-	class C::E
-	{
-	public:
-	};
+	//class C::E // Nested qualified definitions not permitted.
+	//{
+	//public:
+	//};
 };
 
 class F
 {
 public:
-	//class C::D
-	//{
-	//public:
-	//};
+	class C::D // Nested qualified definitions not permitted.
+	{
+	public:
+	};
 };
 
 int main()

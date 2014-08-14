@@ -48,4 +48,4 @@
        qualified-declaration?
        (Declaration
         (lambda (n)
-          (list? (ast-child 'name n)))))))))
+          (pair? (ast-child 'name n)))))))))

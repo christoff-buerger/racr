@@ -16,10 +16,10 @@ aspect WellFormedness {
 	syn boolean Declaration.IsCorrect() = IsCorrectLocal();
 	
 	eq ClassDefinition.IsCorrect() {
-		if (!IsCorrectLocal())
-			return false;
 		if (IsQualifiedDeclaration())
 			return true;
+		if (!IsCorrectLocal())
+			return false;
 		for (Declaration d : getBodyList())
 			if (!d.IsCorrect())
 				return false;

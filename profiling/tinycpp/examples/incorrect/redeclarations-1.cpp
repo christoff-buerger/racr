@@ -4,13 +4,13 @@
 // Author: C. Bürger
 
 class C;
-//class C; // Redeclaration.
+class C; // Redeclaration.
 
 class C
 {
 public:
     class D;
-    class D; // Redeclaration
+    //class D; // Redeclaration
     class D
     {
     public:
@@ -19,9 +19,20 @@ public:
     //{
     //public:
     //};
+    class E;
 };
 
 //class C // Redefinition.
+//{
+//public:
+//};
+
+class C::E
+{
+public:
+};
+
+//class C::E // Redefinition
 //{
 //public:
 //};

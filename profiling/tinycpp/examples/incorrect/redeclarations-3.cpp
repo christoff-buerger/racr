@@ -4,7 +4,7 @@
 // Author: C. Bürger
 
 class C;
-class C; // Redeclaration.
+//class C; // Redeclaration.
 
 class C
 {
@@ -15,13 +15,24 @@ public:
     {
     public:
     };
-    //class D // Redefinition.
-    //{
-    //public:
-    //};
+    class D // Redefinition.
+    {
+    public:
+    };
+    class E;
 };
 
 //class C // Redefinition.
+//{
+//public:
+//};
+
+class C::E
+{
+public:
+};
+
+//class C::E // Redefinition
 //{
 //public:
 //};

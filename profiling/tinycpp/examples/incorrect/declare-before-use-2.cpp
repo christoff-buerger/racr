@@ -9,7 +9,7 @@ public:
     static int a;
     static void m()
     {
-        D::a = a; // D not defined yet.
+    	//D::a = a; // D not defined yet.
     }
 };
 
@@ -21,6 +21,17 @@ public:
     {
         C::a = a;
     }
+};
+
+class E::F // Class E not declared yet.
+{
+public:
+};
+
+class E
+{
+public:
+	class F;
 };
 
 int main()

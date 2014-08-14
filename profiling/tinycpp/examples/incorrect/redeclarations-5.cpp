@@ -19,9 +19,20 @@ public:
     //{
     //public:
     //};
+    class E;
 };
 
-class C // Redefinition.
+//class C // Redefinition.
+//{
+//public:
+//};
+
+class C::E
+{
+public:
+};
+
+class C::E // Redefinition
 {
 public:
 };

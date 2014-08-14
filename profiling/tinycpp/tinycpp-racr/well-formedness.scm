@@ -33,10 +33,10 @@
        
        (ClassDefinition
         (lambda (n)
-          (and
-           (att-value 'local-correct? n)
-           (or
-            (att-value 'qualified-declaration? n)
+          (or
+           (att-value 'qualified-declaration? n)
+           (and
+            (att-value 'local-correct? n)
             (not
              (ast-find-child
               (lambda (i n)

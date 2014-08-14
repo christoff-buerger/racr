@@ -9,7 +9,7 @@ public:
     static int a;
     static void m()
     {
-    	//D::a = a; // D not defined yet.
+    	D::a = a; // D not defined yet.
     }
 };
 

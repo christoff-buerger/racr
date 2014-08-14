@@ -24,9 +24,10 @@ aspect NameAnalysis {
 			return n.LookupLocal(label);
 		String[] parts = {label.substring(0, indexOfLastPart - 1),
 						label.substring(indexOfLastPart + 1)};
-		ASTNode newN = n.LookupSubtree(parts[0]);
-		if (newN != null && newN instanceof ClassDeclaration)
-			return newN.LookupLocal(parts[1]);
+		Declaration new_decl = n.LookupSubtree(parts[0]);
+		Declaration new_def = new_decl != null ? new_decl.LookupDefinition() : null;
+		if (new_def != null && new_def instanceof ClassDeclaration)
+			return new_def.LookupLocal(parts[1]);
 		return null;
 	}
 	

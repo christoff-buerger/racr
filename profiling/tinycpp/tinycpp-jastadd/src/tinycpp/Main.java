@@ -35,14 +35,14 @@ public class Main {
 			ast.transformToNormalform();
 			if (!ast.IsCorrect())
 				throw new TinyCPPException("ERROR: Program not well-formed.");
-			if (fail)
-				throw new RuntimeException("ERROR: Program is well-formed.");
 			Writer writer = new BufferedWriter(
 				new OutputStreamWriter(
 				new FileOutputStream(program_file), "utf-8"));
 			try {
 				ast.prettyPrint(writer);
-			} finally {writer.close();}
+			} finally { writer.close();}
+			if (fail)
+				throw new RuntimeException("ERROR: Program is well-formed.");
 		} catch (TinyCPPException exc) {
 			if (fail)
 				System.exit(0);

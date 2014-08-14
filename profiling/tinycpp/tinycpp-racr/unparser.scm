@@ -12,11 +12,9 @@
  
  (define qualified-name->string
    (lambda (qualified-name)
-     (fold-left
-      (lambda (result symbol)
-        (string-append result "::" (symbol->string symbol)))
-      (symbol->string (car qualified-name))
-      (cdr qualified-name))))
+     (if (pair? qualified-name)
+         (string-append (qualified-name->string (car qualified-name)) "::" (symbol->string (cdr qualified-name)))
+         (symbol->string qualified-name))))
  
  (define pretty-print
    (lambda (compilation-unit out-port)
@@ -38,14 +36,12 @@
              ((eq? type 'ClassDeclaration)
               (print-indentation indent)
               (my-display "class ")
-              (my-display (symbol->string (ast-child 'name n)))
+              (my-display (qualified-name->string (ast-child 'name n)))
               (my-display ";\n"))
              ((eq? type 'ClassDefinition)
               (print-indentation indent)
               (my-display "class ")
-              (if (att-value 'qualified-declaration? n)
-                  (my-display (qualified-name->string (ast-child 'name n)))
-                  (my-display (symbol->string (ast-child 'name n))))
+              (my-display (qualified-name->string (ast-child 'name n)))
               (my-display #\newline)
               (print-indentation indent)
               (my-display "{\n")
@@ -62,7 +58,7 @@
              ((eq? type 'MethodDeclaration)
               (print-indentation indent)
               (my-display "static void ")
-              (my-display (symbol->string (ast-child 'name n)))
+              (my-display (qualified-name->string (ast-child 'name n)))
               (my-display "(")
               (ast-for-each-child
                (lambda (i c)
@@ -81,7 +77,7 @@
               (my-display "}\n"))
              ((eq? type 'Constructor)
               (print-indentation indent)
-              (my-display (ast-child 'name n))
+              (my-display (qualified-name->string (ast-child 'name n)))
               (my-display "() { /* Added default constructor */ }\n"))
              ((eq? type 'FieldDeclaration)
               (if (eq? (ast-node-type (ast-parent (ast-parent n))) 'ClassDefinition)
@@ -89,7 +85,7 @@
                     (print-indentation indent)
                     (my-display "static int "))
                   (my-display "int "))
-              (my-display (symbol->string (ast-child 'name n)))
+              (my-display (qualified-name->string (ast-child 'name n)))
               (when (eq? (ast-node-type (ast-parent (ast-parent n))) 'ClassDefinition)
                 (my-display ";\n")))
              ((eq? type 'VariableAssignment)

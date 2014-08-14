@@ -14,16 +14,15 @@
  (define lookup-subtree
    (lambda (n label)
      (cond
-       ((null? (cdr label))
-        (att-value 'lookup-local n (car label)))
+       ((not (pair? label))
+        (att-value 'lookup-local n label))
        (else
-        (let* ((reversed-label (reverse label))
-               (still-to-lookup (car reversed-label))
-               (new-n (att-value 'lookup-subtree n (reverse (cdr reversed-label)))))
+        (let* ((new-decl (att-value 'lookup-subtree n (car label)))
+               (new-def (and new-decl (att-value 'lookup-definition new-decl))))
           (and
-           new-n
-           (ast-subtype? new-n 'ClassDeclaration)
-           (att-value 'lookup-local new-n still-to-lookup)))))))
+           new-def
+           (ast-subtype? new-def 'ClassDeclaration)
+           (att-value 'lookup-local new-def (cdr label))))))))
  
  (define lookup-local
    (lambda (n label to-search . bounds)
@@ -85,9 +84,14 @@
        
        ((ClassDefinition Body)
         (lambda (n label)
+          (define deep-car
+            (lambda (label)
+              (if (pair? label)
+                  (deep-car (car label))
+                  label)))
           (let* ((class (ast-parent (ast-parent n)))
-                 (local-decl (att-value 'lookup-local class (car label))))
-            (if (and local-decl (or (not (ast-subtype? local-decl 'Constructor)) (null? (cdr label))))
+                 (local-decl (att-value 'lookup-local class (deep-car label))))
+            (if (and local-decl (or (not (ast-subtype? local-decl 'Constructor)) (not (pair? label))))
                 (att-value 'lookup-subtree class label)
                 (att-value 'lookup-reference class label)))))
        
@@ -96,8 +100,8 @@
           (let ((method (ast-parent (ast-parent n))))
             (or
              (and
-              (null? (cdr label))
-              (att-value 'lookup-local method (car label)))
+              (not (pair? label))
+              (att-value 'lookup-local method label))
              (att-value 'lookup-reference method label))))))
       
       (ag-rule
