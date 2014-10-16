@@ -1,0 +1,69 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+aspect Normalization {
+	public void CompilationUnit.transformToNormalform() {
+		traverse(); // Traverse triggers rewrites.
+	}
+	
+	public void ASTNode.traverse() {
+		for (int i=0; i < getNumChild(); i++) {
+			ASTNode next = getChild(i);
+			if (next != null)
+				next.traverse();
+		}
+	}
+	
+	syn boolean ClassDefinition.hasConstructor() {
+		for (Declaration d:getBodyList())
+			if (d instanceof Constructor)
+				return true;
+		return false;
+	}
+	
+	rewrite ClassDefinition {
+		when (!hasConstructor())
+		to ClassDefinition {
+			getBodyList().addChild(new Constructor(
+				getName(),
+				new List<FieldDeclaration>(),
+				new List<VariableAssignment>()));
+			return this;
+		}
+	}
+	
+	inh CompilationUnit Declaration.CompilationUnit();
+	eq CompilationUnit.getBody(int i).CompilationUnit() = this;
+	
+	syn Declaration CompilationUnit.NextInnerClassToWeave() {
+		for (Declaration decl:getBodyList())
+			if (decl.IsQualifiedDeclaration() && (! (decl instanceof WovenClassDefinition)))
+				return decl;
+		return null;
+	}
+	
+	private Declaration ClassDeclaration.RewriteToDefinition() {
+		if (IsDefinition())
+			return null;
+		CompilationUnit comp = CompilationUnit();
+		boolean wellFormed = comp.IsCorrect();
+		Declaration sourceDefinition = wellFormed ? comp.NextInnerClassToWeave() : null;
+		if (sourceDefinition != null && sourceDefinition.LookupReference(sourceDefinition.getName()) == this)
+			return sourceDefinition;
+		return null;
+	}
+	
+	rewrite ClassDeclaration {
+		when (RewriteToDefinition() != null)
+		to ClassDefinition {
+			Declaration sourceDefinition = RewriteToDefinition();
+			int sourceIndex = sourceDefinition.getParent().getIndexOfChild(sourceDefinition);
+			sourceDefinition.getParent().removeChild(sourceIndex);
+			return (ClassDefinition)sourceDefinition;
+		}
+	}
+}

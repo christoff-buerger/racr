@@ -1,0 +1,106 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+import java.util.regex.*;
+
+import tinycpp.TinyCPPException;
+
+aspect NameAnalysis {
+	
+	public Declaration ASTNode.LookupSubtree(String label)
+		{ throw new TinyCPPException("IMPLEMENTATION ERROR"); }
+	public Declaration ASTNode.LookupLocal(String label)
+		{ throw new TinyCPPException("IMPLEMENTATION ERROR"); }
+	public List ASTNode.getBodyList()
+		{ throw new TinyCPPException("IMPLEMENTATION ERROR"); }
+	
+	protected static Declaration ASTNode.lookupSubtree(ASTNode n, String label) {
+		int indexOfLastPart = label.lastIndexOf(':');
+		if (indexOfLastPart < 0)
+			return n.LookupLocal(label);
+		String[] parts = {label.substring(0, indexOfLastPart - 1),
+						label.substring(indexOfLastPart + 1)};
+		Declaration new_decl = n.LookupSubtree(parts[0]);
+		Declaration new_def = new_decl != null ? new_decl.LookupDefinition() : null;
+		if (new_def != null && new_def instanceof ClassDeclaration)
+			return new_def.LookupLocal(parts[1]);
+		return null;
+	}
+	
+	protected static Declaration ASTNode.lookupLocal(ASTNode n, String label,
+			List<? extends Declaration> toSearch, int lowerBound) {
+		if (lowerBound < 0)
+			lowerBound = 0;
+		for (int i = lowerBound; i < toSearch.numChildren(); i++)
+			if (toSearch.getChild(i).getName().equals(label))
+				return toSearch.getChild(i);
+		return null;
+	}
+	
+	inh int Declaration.GlobalIndex();
+	eq CompilationUnit.getBody(int i).GlobalIndex() = i;
+	
+	syn Declaration CompilationUnit.LookupSubtree(String label) =
+		lookupSubtree(this, label);
+	syn Declaration ClassDefinition.LookupSubtree(String label) =
+		lookupSubtree(this, label);
+	syn Declaration ClassDeclaration.LookupSubtree(String label) =
+		null;
+	
+	syn Declaration CompilationUnit.LookupLocal(String label) =
+		lookupLocal(this, label, getBodyList(), -1);
+	syn Declaration ClassDefinition.LookupLocal(String label) =
+		lookupLocal(this, label, getBodyList(), -1);
+	syn Declaration ClassDeclaration.LookupLocal(String label) =
+		null;
+	syn Declaration MethodDeclaration.LookupLocal(String label) =
+		lookupLocal(this, label, getParametersList(), -1);
+	
+	syn Declaration Declaration.LookupDefinition() {
+		if (IsDefinition())
+			return this;
+		Declaration def = lookupLocal(getParent().getParent(),
+							getName(),
+							getParent().getParent().getBodyList(),
+							getParent().getIndexOfChild(this) + 1);
+		if (def != null && def.IsDefinition())
+			return def;
+		return null;
+	}
+	
+	inh Declaration Declaration.LookupReference(String label);
+	inh Declaration Reference.LookupReference(String label);
+	
+	eq CompilationUnit.getBody(int i).LookupReference(String label) {
+		Declaration decl = LookupSubtree(label);
+		if (decl != null && decl.GlobalIndex() <= i)
+			return decl;
+		return null;
+	}
+	
+	eq ClassDefinition.getBody(int i).LookupReference(String label) {
+		int indexOfFirstPart = label.indexOf(':');
+		String firstPart = label;
+		if (indexOfFirstPart > 0)
+			firstPart = label.substring(0, indexOfFirstPart);
+		Declaration decl = LookupLocal(firstPart);
+		return decl != null && ( (! (decl instanceof Constructor)) || indexOfFirstPart < 0) ?
+			LookupSubtree(label) :
+			LookupReference(label);
+	}
+	
+	eq MethodDeclaration.getBody(int i).LookupReference(String label) {
+		if (label.indexOf(':') < 0) {
+			Declaration decl = LookupLocal(label);
+			if (decl != null)
+				return decl;
+		}
+		return LookupReference(label);
+	}
+	
+	syn Declaration Reference.Declaration() = LookupReference(getName());
+}

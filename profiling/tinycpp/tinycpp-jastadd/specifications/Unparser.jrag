@@ -1,0 +1,100 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+import java.io.*;
+
+aspect Unparser {
+	public boolean CompilationUnit.prettyPrint(Writer writer) throws IOException {
+		for (Declaration d:getBodyList())
+			if (d.prettyPrint(writer, 0))
+				writer.write("\n");
+		writer.write("int main()\n{\n}\n");
+		return true;
+	}
+	
+	public boolean ASTNode.prettyPrint(Writer writer, int indent) throws IOException
+		{ throw new TinyCPPException("IMPLEMENTATION ERROR"); }
+	
+	public boolean ASTNode.printIndentation(Writer writer, int indent) throws IOException {
+		for (int i = 0; i < indent; i++)
+			writer.write("\t");
+		return true;
+	}
+	
+	public boolean ClassDeclaration.prettyPrint(Writer writer, int indent) throws IOException {
+		printIndentation(writer, indent);
+		writer.write("class " + getName() + ";\n");
+		return true;
+	}
+	
+	public boolean ClassDefinition.prettyPrint(Writer writer, int indent) throws IOException {
+		printIndentation(writer, indent);
+		writer.write("class " + getName() + "\n");
+		printIndentation(writer, indent);
+		writer.write("{\n");
+		printIndentation(writer, indent);
+		writer.write("public:\n");
+		for (Declaration d:getBodyList())
+			d.prettyPrint(writer, indent + 1);
+		printIndentation(writer, indent);
+		writer.write("};\n");
+		return true;
+	}
+	
+	public boolean WovenClassDefinition.prettyPrint(Writer writer, int indent) throws IOException {
+		return false;
+	}
+	
+	public boolean MethodDeclaration.prettyPrint(Writer writer, int indent) throws IOException {
+		printIndentation(writer, indent);
+		writer.write("static void " + getName() + "(");
+		if (hasParameters()) {
+			getParameters(0).prettyPrint(writer, 0);
+			for (int i = 1; i < getNumParameters(); i++) {
+				writer.write(", ");
+				getParameters(i).prettyPrint(writer, 0);
+			}
+		}
+		writer.write(")\n");
+		printIndentation(writer, indent);
+		writer.write("{\n");
+		for (VariableAssignment d:getBodyList())
+			d.prettyPrint(writer, indent + 1);
+		printIndentation(writer, indent);
+		writer.write("}\n");
+		return true;
+	}
+	
+	public boolean Constructor.prettyPrint(Writer writer, int indent) throws IOException {
+		printIndentation(writer, indent);
+		writer.write(getName() + "() { /* Added default constructor */ }\n");
+		return true;
+	}
+	
+	public boolean FieldDeclaration.prettyPrint(Writer writer, int indent) throws IOException {
+		printIndentation(writer, indent);
+		if (getParent().getParent() instanceof ClassDeclaration)
+			writer.write("static int " + getName() + ";\n");
+		else
+			writer.write("int " + getName());
+		return true;
+	}
+	
+	public boolean VariableAssignment.prettyPrint(Writer writer, int indent) throws IOException {
+		printIndentation(writer, indent);
+		getLHand().prettyPrint(writer, 0);
+		writer.write(" = ");
+		getRHand().prettyPrint(writer, 0);
+		writer.write(";\n");
+		return true;
+	}
+	
+	public boolean Reference.prettyPrint(Writer writer, int indent) throws IOException {
+		writer.write(getName());
+		return true;
+	}
+}

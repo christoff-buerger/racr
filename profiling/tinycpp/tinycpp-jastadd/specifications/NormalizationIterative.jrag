@@ -1,0 +1,60 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+aspect Normalization {
+	static private void CompilationUnit.addDefaultConstructors(Declaration decl) {
+		if (decl instanceof ClassDefinition) {
+			ClassDefinition n = (ClassDefinition)decl;
+			n.getBodyList().addChild(new Constructor(
+					n.getName(),
+					new List<FieldDeclaration>(),
+					new List<VariableAssignment>()));
+			for (Declaration newDecl:n.getBodyList())
+				addDefaultConstructors(newDecl);
+		}
+	}
+	
+	public void CompilationUnit.transformToNormalform() {
+		for (Declaration decl:getBodyList())
+			if (!decl.IsQualifiedDeclaration())
+				addDefaultConstructors(decl);
+		weaveInnerClasses();
+	}
+	
+	syn Declaration CompilationUnit.NextInnerClassToWeave() {
+		for (Declaration decl:getBodyList())
+			if (decl.IsQualifiedDeclaration() && (! (decl instanceof WovenClassDefinition)))
+				return decl;
+		return null;
+	}
+	
+	private void CompilationUnit.weaveInnerClasses() {
+		do {
+			boolean wellFormed = IsCorrect();
+			Declaration sourceDefinition = wellFormed ? NextInnerClassToWeave() : null;
+			Declaration targetDeclaration = sourceDefinition != null ?
+				sourceDefinition.LookupReference(sourceDefinition.getName()) :
+				null;
+			if (sourceDefinition == null)
+				break;
+			if (targetDeclaration == null ||
+				targetDeclaration.IsDefinition() ||
+				(! (targetDeclaration instanceof ClassDeclaration)))
+				throw new TinyCPPException("ERROR: Program not well-formed.");
+			int sourceIndex = sourceDefinition.getParent().getIndexOfChild(sourceDefinition);
+			int targetIndex = targetDeclaration.getParent().getIndexOfChild(targetDeclaration);
+			sourceDefinition.getParent().setChild(
+				new WovenClassDefinition(
+					sourceDefinition.getName(),
+					new List<Declaration>()),
+				sourceIndex);
+			sourceDefinition.setName(targetDeclaration.getName());
+			targetDeclaration.getParent().setChild(sourceDefinition, targetIndex);
+			addDefaultConstructors(sourceDefinition);
+		} while (true);
+	}
+}

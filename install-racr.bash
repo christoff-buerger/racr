@@ -13,9 +13,26 @@ declare -a libraries=(
 	# Find all directories with 'dependencies.txt'; Each such directory contains Scheme libraries:
 	$(find $old_pwd -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
 
+if (( $# > 0 ))
+then
+	new_libraries=( )
+	for l in ${libraries[@]}
+	do
+		for name in $*
+		do
+			if `echo "$l" | grep -q "/$name"$`
+			then
+				new_libraries+=( $l )
+				break
+			fi
+		done
+	done
+	libraries=( ${new_libraries[@]} )
+fi
+
 if which plt-r6rs > /dev/null
 then
-	echo "=========================================>>> Compile RACR for Racket:"
+	echo "=========================================>>> Compile for Racket:"
 	
 	for l in ${libraries[@]}
 	do
@@ -25,14 +42,14 @@ then
 		mkdir -p racket-bin/$ll
 		cat dependencies.txt | while read line
 		do
-			plt-r6rs ++path ${libraries[0]}/racket-bin --install --collections $l/racket-bin $line.scm
+			plt-r6rs ++path $old_pwd/racr/racket-bin --install --collections $l/racket-bin $line.scm
 		done
 	done
 fi
 
 if which larceny > /dev/null
 then
-	echo "=========================================>>> Compile RACR for Larceny:"
+	echo "=========================================>>> Compile for Larceny:"
 	
 	# Create compile script
 	cd $old_pwd
@@ -53,7 +70,7 @@ then
 		done
 		cd larceny-bin/$ll
 		cp -p $old_pwd/compile-stale .
-		larceny --r6rs --path "${libraries[0]}/larceny-bin:./.." --program compile-stale
+		larceny --r6rs --path "$old_pwd/racr/larceny-bin:./.." --program compile-stale
 		rm compile-stale
 	done
 	

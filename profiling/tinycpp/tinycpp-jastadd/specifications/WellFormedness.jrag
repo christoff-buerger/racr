@@ -1,0 +1,64 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+aspect WellFormedness {
+	syn boolean CompilationUnit.IsCorrect() {
+		for (Declaration d : getBodyList())
+			if (!d.IsCorrect())
+				return false;
+		return true;
+	}
+	
+	syn boolean Declaration.IsCorrect() = IsCorrectLocal();
+	
+	eq ClassDefinition.IsCorrect() {
+		if (IsQualifiedDeclaration())
+			return true;
+		if (!IsCorrectLocal())
+			return false;
+		for (Declaration d : getBodyList())
+			if (!d.IsCorrect())
+				return false;
+		return true;
+	}
+	
+	eq MethodDeclaration.IsCorrect() {
+		if (!IsCorrectLocal())
+			return false;
+		for (Declaration d : getParametersList())
+			if (!d.IsCorrect())
+				return false;
+		for (VariableAssignment d : getBodyList())
+			if (!d.IsCorrect())
+				return false;
+		return true;
+	}
+	
+	syn boolean VariableAssignment.IsCorrect() =
+		getLHand().IsCorrect() && getRHand().IsCorrect();
+	
+	syn boolean Reference.IsCorrect() = IsCorrectLocal();
+	
+	syn boolean Declaration.IsCorrectLocal() {
+		boolean wellDeclared = false;
+		Declaration decl = getParent().getParent().LookupLocal(getName());
+		if (decl == this)
+			wellDeclared = true;
+		else {
+			Declaration def = decl.LookupDefinition();
+			if (def == this)
+				wellDeclared = true;
+		}
+		Declaration def = LookupDefinition();
+		return wellDeclared && (def == null || equalTypes(def, this));
+	}
+	
+	syn boolean Reference.IsCorrectLocal() {
+		Declaration decl = Declaration();
+		return decl != null && decl instanceof FieldDeclaration;
+	}
+}

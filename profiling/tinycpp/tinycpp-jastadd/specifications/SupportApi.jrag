@@ -1,0 +1,32 @@
+/**
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT license (X11 license) which accompanies this distribution.
+ *
+ * @author C. Bürger
+ */
+
+aspect SupportApi {
+	public static boolean ASTNode.equalTypes(ASTNode n1, ASTNode n2) {
+		if (n1 instanceof ClassDeclaration)
+			return n2 instanceof ClassDeclaration;
+		if (n2 instanceof FieldDeclaration)
+			return n2 instanceof FieldDeclaration;
+		if (! (n2 instanceof MethodDeclaration))
+			return false;
+		MethodDeclaration m1 = (MethodDeclaration)n1;
+		MethodDeclaration m2 = (MethodDeclaration)n2;
+		if (m1.getNumParameters() != m2.getNumParameters())
+			return false;
+		for (int i = 0; i < m1.getNumParameters(); i++)
+			if (!equalTypes(m1.getParameters(i), m2.getParameters(i)))
+				return false;
+		return true;
+	}
+	
+	syn boolean Declaration.IsDefinition() = false;
+	eq FieldDeclaration.IsDefinition() = true;
+	eq MethodDeclaration.IsDefinition() = true;
+	eq ClassDefinition.IsDefinition() = true;
+	
+	syn boolean Declaration.IsQualifiedDeclaration() = getName().contains(":");
+}

@@ -109,4 +109,22 @@ do
 	end_run
 done
 
+# Test Tiny C++ example:
+cd $old_pwd/profiling/tinycpp/examples
+if which plt-r6rs > /dev/null
+then
+	echo "Tiny C++ Racket:"
+	./run-examples.bash Racket
+fi
+if which larceny > /dev/null
+then
+	echo "Tiny C++ Larceny:"
+	./run-examples.bash Larceny
+fi
+if which petite > /dev/null
+then
+	echo "Tiny C++ Petite Chez Scheme:"
+	./run-examples.bash Petite
+fi
+
 cd $old_pwd
