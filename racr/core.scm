@@ -357,7 +357,7 @@
      (and (not (null? (evaluator-state-evaluation-stack state))) (car (evaluator-state-evaluation-stack state)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utility ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Support API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: Given an arbitrary Scheme entity, construct a string
@@ -410,10 +410,6 @@
          (when to-resolve ; ...If such a rule exists,...
            (func to-resolve) ; ...process it and...
            (loop (cons to-resolve resolved) (remq to-resolve to-check))))))) ; ...recur.
- 
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Support API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define-syntax with-specification
    (lambda (x)
@@ -539,7 +535,7 @@
        (node-annotations node)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Specifications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Specification ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define specify-ast-rule
@@ -827,7 +823,7 @@
             "The rules " (map ast-rule-as-symbol to-check) " are not productive."))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Grammar Specifications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Specification ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define-syntax specify-ag-rule
@@ -965,7 +961,7 @@
       (racr-specification-rules-list spec))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Evaluator ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Evaluation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: Given a node n find a certain attribute associated with it, whereas in case no proper
@@ -1212,7 +1208,7 @@
               (cdr (evaluator-state-evaluation-stack evaluator-state))))))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Specification Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Specification Queries ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; General Note: Because RACR specifications never change after compilation, there is no need to add and
@@ -1296,7 +1292,7 @@
      (attribute-definition-cached? att-def)))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Query Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Queries ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define ast-node? ; Scheme entities are either allocated as AST nodes or never will be => No need to add dependencies!
@@ -1496,7 +1492,7 @@
         #f))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Construction Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Construction ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define create-ast
@@ -1800,7 +1796,7 @@
         (node-children n)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dependency Tracking Support ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dependency Tracking ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
@@ -1906,7 +1902,7 @@
            (attribute-cache-entry-cache-influences influencing-cache)))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Primitive Rewrite Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Rewriting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: Given an attribute instance, flush all its cache entries.
@@ -2276,9 +2272,15 @@
        (lambda (influence)
          (vector-ref (cdr influence) 1))
        (node-cache-influences e)))
-     (let ((insert-head (list-tail (node-children l) (- i 1)))) ; ...insert the new element,...
-       (set-cdr! insert-head (cons (car insert-head) (cdr insert-head)))
-       (set-car! insert-head e))
+     (cond ; ...insert the new element,...
+       ((null? (node-children l))
+        (node-children-set! l (list e)))
+       ((= (length (node-children l)) (- i 1))
+        (node-children-set! l (append (node-children l) (list e))))
+       (else
+        (let ((insert-head (list-tail (node-children l) (- i 1))))
+          (set-cdr! insert-head (cons (car insert-head) (cdr insert-head)))
+          (set-car! insert-head e))))
      (node-parent-set! e l)
      (distribute-evaluator-state (node-evaluator-state l) e) ; ...initialize its evaluator state and...
      (when (node-parent l)
@@ -2315,17 +2317,13 @@
      (distribute-evaluator-state (make-evaluator-state) n) ; ...reset its evaluator state and...
      n)) ; ...return it.
  
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Rewrite Interface ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 
  (define perform-rewrites
    (lambda (n strategy . transformers)
      (define root
        (let loop ((n n))
-          (if (ast-has-parent? n)
-              (loop (ast-parent n))
-              n)))
+         (if (ast-has-parent? n)
+             (loop (ast-parent n))
+             n)))
      (define root-deleted/inserted?
        (let ((evaluator-state (node-evaluator-state root)))
          (lambda ()
@@ -2387,6 +2385,8 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define pattern-language (make-racr-specification))
+ 
+ ;;; Pattern Specification:
  
  (define specify-pattern
    (lambda (spec att-name distinguished-node fragments references condition?)
@@ -2466,7 +2466,7 @@
               pmm))
         #f))))
  
- ;;; Pattern Matching Machine Instructions:
+ ;;; Pattern Matching Machine:
  
  (define pmmi-load-node ; Make already stored node the new current one.
    (lambda (next-instruction index)
@@ -2597,7 +2597,7 @@
       (lambda (n type)
         (specification->find-ast-rule (ast-child 'spec n) type))))
     
-    ;;; Support API:
+    ;;; Abstract Syntax Tree Query Support:
     
     (ag-rule ; Root of the AST fragment a node is part of.
      fragment-root
