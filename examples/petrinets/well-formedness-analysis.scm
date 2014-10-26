@@ -95,7 +95,7 @@
             (att-value
              'find-subnet
              (let loop ((n n))
-               (if (ast-child 'issubnet n)
+               (if (ast-has-parent? n)
                    (loop (ast-parent n))
                    n))
              (ast-child 'name n))

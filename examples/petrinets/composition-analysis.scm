@@ -100,7 +100,7 @@
        (AtomicPetrinet
         (lambda (n port)
           (and
-           (ast-child 'issubnet n)
+           (ast-has-parent? n)
            (att-value 'find-glueing-for-port (ast-parent n) port))))
        
        (ComposedPetrinet
@@ -115,7 +115,7 @@
             (or
              glueing?
              (and
-              (ast-child 'issubnet n)
+              (ast-has-parent? n)
               (att-value 'find-glueing-for-port (ast-parent n) port)))))))
       
       (ag-rule
