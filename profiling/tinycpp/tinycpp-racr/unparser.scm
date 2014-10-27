@@ -13,7 +13,11 @@
  (define qualified-name->string
    (lambda (qualified-name)
      (if (pair? qualified-name)
-         (string-append (qualified-name->string (car qualified-name)) "::" (symbol->string (cdr qualified-name)))
+         (fold-left
+          (lambda (result prefix)
+            (string-append result "::" (symbol->string prefix)))
+          (symbol->string (car qualified-name))
+          (cdr qualified-name))
          (symbol->string qualified-name))))
  
  (define pretty-print

@@ -51,9 +51,7 @@
                         (set! num-to-bind (- num-to-bind 1))
                         (when (= num-to-bind 0)
                           (abort-search
-                           (map
-                            car
-                            bindings))))))
+                           (map car bindings))))))
                   (ast-child 'Token* place))
                  
                  (let* ((inport-glueing? (cdr (att-value 'find-glueings place)))

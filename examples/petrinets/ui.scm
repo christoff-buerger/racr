@@ -50,7 +50,6 @@
                   petrinet-specification
                   'AtomicPetrinet
                   (list
-                   #f
                    'name
                    (create-ast-list
                     (list
@@ -126,7 +125,6 @@
                    petrinet-specification
                    'ComposedPetrinet
                    (list
-                    #f
                     net1*
                     net2*
                     (create-ast-list
@@ -137,9 +135,6 @@
                        (list
                         (cons 'out-net 'out-port)
                         (cons 'in-net 'in-port))) ...))))))
-            ; Mark the given nets to be subnets of their respective composition:
-            (rewrite-terminal 'issubnet net1* #t)
-            (rewrite-terminal 'issubnet net2* #t)
             ; Ensure, that the composed net is well-formed:
             (unless (att-value 'well-formed? pn)
               (throw-petrinets-exception "Cannot compose Petri Nets; The composed net is not well-formed."))
