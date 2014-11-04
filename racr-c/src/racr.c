@@ -199,6 +199,10 @@ static Scheme_Object* vracr_call(Scheme_Object* func, const char* fmt, va_list a
 				o = scheme_make_integer(va_arg(ap, int));
 				break;
 
+			case 'd':
+				o = scheme_make_double(va_arg(ap, double));
+				break;
+
 			case 's':
 				o = scheme_intern_symbol(va_arg(ap, char*));
 				break;
