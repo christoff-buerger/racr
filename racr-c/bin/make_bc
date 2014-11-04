@@ -12,24 +12,16 @@ do
 	LIBS="$LIBS ++lib $i"
 done
 
-mkdir -p build
 TMP=$(mktemp)
-TMP_SRC="$TMP".c
-TMP_BIN="$TMP".out
 
-./../../racket/racket/bin/raco ctool --c-mods "$TMP" ++lib racket/base ++lib rnrs ++lib racr ++lib racr-test-api $LIBS
+#../../racket/racket/bin/raco ctool --c-mods "$TMP" ++lib racket/base ++lib rnrs ++lib racr ++lib racr-test-api $LIBS
 
-cat "$TMP" | head -n -6 | tail -n +5 > "$TMP_SRC"
-cat >> "$TMP_SRC" << EOF
-#include <stdio.h>
-int main() {
-	for (int i = 0; i < sizeof(data); i++) putchar(data[i]);
-	return 0;
-}
-EOF
-c99 -Wall -O2 "$TMP_SRC" -o "$TMP_BIN"
-"$TMP_BIN" > "$1"
+../../racket/racket/bin/racket -S ../racr/racket-bin/ -l- raco/main.rkt ctool --c-mods "$TMP" ++lib racket/base ++lib rnrs ++lib racr/core ++lib racr/testing $LIBS
+cat "$TMP" | head -n -7 | tail -n +6 | perl -ne 'for (split /,/) { printf"%c",$_ if /\d/ }' > "$1"
 
-rm -f "$TMP"
-rm -f "$TMP_SRC"
-rm -f "$TMP_BIN"
+if ! [ -s "$1" ]
+then
+	rm "$1"
+	echo "ERROR"
+	exit 1
+fi
