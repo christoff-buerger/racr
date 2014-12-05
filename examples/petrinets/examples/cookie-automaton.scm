@@ -3,7 +3,7 @@
 
 ; Author: C. Bürger
 
-; Specification of the cookie automata given on page 21, Figure 2.1 in
+; Specification of the cookie automaton given on page 21, Figure 2.1 in
 ; 
 ;               "Petrinetze: Modellierungstechnik, Analysemethoden, Fallstudien"
 ;                                     Wolfgang Reisig
@@ -17,9 +17,9 @@
 (init-ast)
 (init-attribution)
 
-(define cookie-automata
+(define cookie-automaton
   (make-petrinet
-   cookie-automata () ()
+   cookie-automaton () ()
    
    ((H 'Box 'Box 'Box 'Box 'Box 'Box* 'Box*)
     (D 'Token)

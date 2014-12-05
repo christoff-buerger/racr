@@ -86,7 +86,12 @@
   with-specification
   with-bindings
   ; Utility interface:
-  racr-exception?)
+  racr-exception?
+  
+  ; TODO Delete following exports when properly integrated:
+  (rename (make-racr-specification-2 create-specification-2))
+  racr-specification-2-ast-scheme
+  (rename (specify-ast-rule-2 ast-rule-2)))
  (import (rnrs) (rnrs mutable-pairs))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -677,6 +682,357 @@
                (racr-specification-rules-table spec)
                (symbol-name l-hand)
                ast-rule))))
+ 
+ (define specify-ast-rule-2
+   (lambda (spec rule)
+     (define rule-string (symbol->string rule)) ; The characters to parse.
+     (define rule-string-length (string-length rule-string)) ; The number of characters to parse.
+     (define pos 0) ; The current parsing position.
+     
+     (define peek-char ; Return the next character if it satisfies optional constraints and exists.
+       (lambda constraints
+         (let ((char-read? (and (< pos rule-string-length) (string-ref rule-string pos))))
+           (and char-read? (for-all (lambda (f) (f char-read?)) constraints) char-read?))))
+     
+     (define read-char ; Similar to peek-char but additionally increments the parsing position.
+       (lambda constraints
+         (let ((char-read? (apply peek-char constraints)))
+           (unless char-read?
+             (throw-exception "Invalid AST rule " rule ";"))
+           (set! pos (+ pos 1))
+           char-read?)))
+     
+     (define char= ; Construct filter for certain character that can be used by peek- and read-char. 
+       (lambda (to-read)
+         (lambda (char-read)
+           (char=? char-read to-read))))
+     
+     (define parse-rule ; Parse complete rule.
+       (lambda ()
+         (let ((name #f)
+               (supertype? #f)
+               (rhand #f))
+           (unless (peek-char char-upper-case?)
+             (throw-exception "Invalid AST rule " rule ";"))
+           (set! name (parse-identifier))
+           (when (peek-char (char= #\:))
+             (read-char)
+             (unless (peek-char char-upper-case?)
+               (throw-exception "Invalid AST rule " rule ";"))
+             (set! supertype? (parse-identifier)))
+           (read-char (char= #\-))
+           (read-char (char= #\>))
+           (set!
+            rhand
+            (reverse
+             (if (peek-char char-alphabetic?)
+                 (let loop ()
+                   (let ((symbol (parse-symbol)))
+                     (if (peek-char (char= #\-))
+                         (begin
+                           (read-char)
+                           (cons symbol (loop)))
+                         (list symbol))))
+                 (list))))
+           (when (peek-char)
+             (throw-exception "Invalid AST rule " rule ";"))
+           (create-ast ast-language 'AstRule (list name supertype? (create-ast-list rhand))))))
+     
+     (define parse-symbol ; Parse right hand symbol including optional klenee closure and context name.
+       (lambda ()
+         (let* ((non-terminal? (peek-char char-upper-case?))
+                (name (parse-identifier))
+                (klenee? (and non-terminal? (peek-char (char= #\*)) (read-char)))
+                (contextname? (and non-terminal? (peek-char (char= #\<)) (read-char) (parse-identifier))))
+           (create-ast ast-language 'Symbol (list name klenee? contextname?)))))
+     
+     (define parse-identifier ; Parse ordinary identifier, i.e., [a-zA-Z][a-zA-Z0-9]*
+       (lambda ()
+         (let loop ((id (list (read-char char-alphabetic?))))
+           (let ((next-char? (peek-char)))
+             (if (and next-char? (or (char-alphabetic? next-char?) (char-numeric? next-char?)))
+                 (loop (cons (read-char) id))
+                 (string->symbol (apply string (reverse id))))))))
+     
+     ; Ensure, that the language is in the correct specification phase:
+     (when (> (racr-specification-2-specification-phase spec) 1)
+       (throw-exception
+        "Unexpected AST rule " rule ";"
+        "AST rules can only be defined in the AST specification phase."))
+     ; Parse the rule and add it to the RACR specification:
+     (rewrite-add (ast-child 'rules (racr-specification-2-ast-scheme spec)) (parse-rule))))
+ 
+ (define-record-type racr-specification-2
+   (fields (mutable specification-phase) ast-scheme)
+   (opaque #t)(sealed #t)
+   (protocol
+    (lambda (new)
+      (lambda ()
+        (let ((ast-scheme (create-ast ast-language 'AstScheme (list (create-ast-list (list)) #f))))
+          (rewrite-add
+           (ast-child 'rules ast-scheme)
+           (create-ast ast-language 'AstRule (list racr-nil #f (create-ast-list (list)))))
+          (new 1 ast-scheme))))))
+ 
+ (define ast-language (make-racr-specification))
+ 
+ (define load-ast-language
+   (lambda ()
+     ;;; AST Scheme:
+     
+     (let* ((AstScheme (make-ast-rule ast-language 'AstScheme->AstRule*<rules-startsymbol #f #f))
+            (AstRule (make-ast-rule ast-language 'AstRule->name-supertype-Symbol*<rhand #f #f))
+            (Symbol (make-ast-rule ast-language 'Symbol->name-klenee-contextname #f #f))
+            (prod-AstScheme
+             (list
+              (make-production-symbol 'AstScheme AstScheme AstScheme #f 'AstScheme (list))
+              (make-production-symbol 'AstRule AstScheme AstRule #t 'rules (list))
+              (make-production-symbol 'startsymbol AstScheme #f #f 'startsymbol (list))))
+            (prod-AstRule
+             (list
+              (make-production-symbol 'AstRule AstRule AstRule #f 'AstRule (list))
+              (make-production-symbol 'name AstRule #f #f 'name (list))
+              (make-production-symbol 'supertype AstRule #f #f 'supertype (list))
+              (make-production-symbol 'Symbol AstRule Symbol #t 'rhand (list))))
+            (prod-Symbol
+             (list
+              (make-production-symbol 'Symbol Symbol Symbol #f 'Symbol (list))
+              (make-production-symbol 'name Symbol #f #f 'name (list))
+              (make-production-symbol 'klenee Symbol #f #f 'klenee (list))
+              (make-production-symbol 'contextname Symbol #f #f 'contextname (list)))))
+       (ast-rule-production-set! AstScheme prod-AstScheme)
+       (ast-rule-production-set! AstRule prod-AstRule)
+       (ast-rule-production-set! Symbol prod-Symbol)
+       (hashtable-set! (racr-specification-rules-table ast-language) 'AstScheme AstScheme)
+       (hashtable-set! (racr-specification-rules-table ast-language) 'AstRule AstRule)
+       (hashtable-set! (racr-specification-rules-table ast-language) 'Symbol Symbol)
+       (racr-specification-start-symbol-set! ast-language 'AstScheme)
+       (racr-specification-specification-phase-set! ast-language 2))
+     
+     (with-specification
+      ast-language
+      
+      ;;; AST Query Support:
+      
+      (define list-union ; Given a set and list, return the set union of both (elements are compared using eq?).
+        (lambda (s l) ; Faster if (> (legth s) (length l)).
+          (fold-left
+           (lambda (result e)
+             (if (memq e result) result (cons e result)))
+           s
+           l)))
+      
+      (ag-rule
+       error-rule ; Childless, non-inheriting rule with invalid name referd to by undeclared rule references.
+       (AstScheme
+        (lambda (n)
+          (att-value 'lookup-rule n racr-nil))))
+      
+      (ag-rule
+       error-rule? ; Is the rule the error rule?
+       (AstRule
+        (lambda (n)
+          (eq? n (att-value 'error-rule n)))))
+      
+      (ag-rule
+       terminal? ; Is the symbol a terminal?
+       (Symbol
+        (lambda (n)
+          (char-lower-case? (string-ref (symbol->string (ast-child 'name n)) 0)))))
+      
+      (ag-rule
+       contextname ; User-specified, and otherwise implicit, context name of the symbol.
+       (Symbol
+        (lambda (n)
+          (or
+           (ast-child 'contextname n)
+           (if (ast-child 'klenee n)
+               (string->symbol (string-append (symbol->string (ast-child 'name n)) "*"))
+               (ast-child 'name n))))))
+      
+      ;;; Name Analysis:
+      
+      (ag-rule
+       lookup-rule ; Given a symbolic name, find the respective AST rule (error-rule if not defined).
+       (AstScheme
+        (lambda (n name)
+          (or
+           (ast-find-child
+            (lambda (i n)
+              (eq? (ast-child 'name n) name))
+            (ast-child 'rules n))
+           (att-value 'error-rule n)))))
+      
+      (ag-rule
+       startsymbol ; The grammar's start rule (error-rule if not defined).
+       (AstScheme
+        (lambda (n)
+          (att-value 'lookup-rule n (ast-child 'startsymbol n)))))
+      
+      (ag-rule
+       supertype? ; The rule's supertype (error-rule if not defined) or #f if the rule does not inherite.
+       (AstRule
+        (lambda (n)
+          (and
+           (ast-child 'supertype n)
+           (att-value 'lookup-rule n (ast-child 'supertype n))))))
+      
+      (ag-rule
+       non-terminal? ; The symbol's defining rule (error-rule if not defined) or #f if the symbol is a terminal.
+       (Symbol
+        (lambda (n)
+          (and
+           (not (att-value 'terminal? n))
+           (att-value 'lookup-rule n (ast-child 'name n))))))
+      
+      (ag-rule
+       lookup-contextname ; Given a symbolic name, find the respective child (#f if not defined).
+       (AstRule
+        (lambda (n name)
+          (find
+           (lambda (n)
+             (eq? (att-value 'contextname n) name))
+           (att-value 'expanded-rhand n)))))
+      
+      ;;; Inheritance Analysis:
+      
+      (ag-rule
+       supertypes ; List of all supertypes ordered w.r.t. inheritance.
+       (AstRule
+        (lambda (n)
+          (reverse
+           (let loop ((current-rule n))
+             (let ((supertype? (att-value 'supertype? current-rule)))
+               (cond
+                 ((or (not supertype?) (att-value 'error-rule? supertype?))
+                  (list))
+                 ((eq? supertype? n)
+                  (list supertype?))
+                 (else (cons supertype? (loop supertype?))))))))))
+      
+      (ag-rule
+       subtypes ; List of all subtypes (transitive but, if well-formed, not reflexive).
+       ((AstScheme rules)
+        (lambda (n)
+          (filter
+           (lambda (rule)
+             (memq n (att-value 'supertypes rule)))
+           (ast-children (ast-parent n))))))
+      
+      ;;; Derivability Analysis:
+      
+      (ag-rule
+       expanded-rhand ; List of right-hand symbols including inherited ones.
+       (AstRule
+        (lambda (n)
+          (append
+           (fold-left
+            (lambda (result n)
+              (append
+               result
+               (ast-children (ast-child 'rhand n))))
+            (list)
+            (att-value 'supertypes n))
+           (ast-children (ast-child 'rhand n))))))
+      
+      (ag-rule
+       rhand-non-terminal-symbols ; List of right-hand symbols that are non-terminals.
+       (AstRule
+        (lambda (n)
+          (filter
+           (lambda (n)
+             (att-value 'non-terminal? n))
+           (att-value 'expanded-rhand n)))))
+      
+      (ag-rule
+       direct-derivable ; List of rules that are non-transitive applicable.
+       (AstRule
+        (lambda (n)
+          (fold-left
+           (lambda (result symbol)
+             (let ((rule (att-value 'non-terminal? symbol)))
+               (list-union
+                (list-union
+                 (list-union result (att-value 'supertypes rule))
+                 (list rule))
+                (att-value 'subtypes rule))))
+           (list)
+           (att-value 'rhand-non-terminal-symbols n)))))
+      
+      (ag-rule
+       derivable ; List of rules that are transitive applicable.
+       (AstRule
+        (lambda (n)
+          (fold-left
+           (lambda (result rule)
+             (list-union result (att-value 'derivable rule)))
+           (att-value 'direct-derivable n)
+           (att-value 'direct-derivable n)))
+        (list)
+        (lambda (r1 r2) (= (length r1) (length r2)))))
+      
+      ;;; Termination Analysis:
+      
+      (ag-rule
+       productive? ; Does there exist a finite AST whose root is typed with the rule?
+       (AstRule
+        (lambda (n)
+          (for-all
+              (lambda (n)
+                (or
+                 (ast-child 'klenee n)
+                 (att-value 'productive? (att-value 'non-terminal? n))))
+            (att-value 'rhand-non-terminal-symbols n)))
+        #f
+        (lambda (r1 r2) (if r1 r2 (not r2)))))
+      
+      ;;; Well-formedness Analysis:
+      
+      (let ((well-formed?-visitor ; Is a node and all nodes of the AST of a child of it are local correct?
+             (lambda (n to-visit)
+               (and
+                (att-value 'local-correct? n)
+                (not
+                 (ast-find-child
+                  (lambda (i n)
+                    (not (att-value 'well-formed? n)))
+                  to-visit))))))
+        
+        (ag-rule
+         well-formed? ; Is the specification valid, such that attributed AST instances can be constructed?
+         
+         (AstScheme (lambda (n) (well-formed?-visitor n (ast-child 'rules n))))
+         (AstRule (lambda (n) (well-formed?-visitor n (ast-child 'rhand n))))
+         (Symbol (lambda (n) (att-value 'local-correct? n)))))
+      
+      (ag-rule
+       local-correct? ; Is a certain part of the specification valid?
+       
+       (AstScheme
+        (lambda (n)
+          (not (att-value 'error-rule? (att-value 'startsymbol n))))) ; The start rule is defined.
+       
+       (AstRule
+        (lambda (n)
+          (or ; Either,...
+           (att-value 'error-rule? n) ; ...the rule is the error rule or...
+           (and
+            (eq? (att-value 'lookup-rule n (ast-child 'name n)) n) ; ...its name is unique,...
+            (let ((supertype? (att-value 'supertype? n))) ; ...if it has a supertype it exists,...
+              (or (not supertype?) (not (att-value 'error-rule? supertype?))))
+            (not (memq n (att-value 'supertypes n))) ; ...if it inherits inheritance is cycle free,...
+            (att-value 'productive? n) ; ...it is productive and...
+            (memq n (att-value 'derivable (att-value 'startsymbol n))))))) ; ...reachable from the startsymbol.
+       
+       (Symbol
+        (lambda (n)
+          (let ((rule? (att-value 'non-terminal? n)))
+            (and
+             (not (and (ast-child 'klenee n) (not rule?))) ; Klenee closure implies the symbol must be a non-terminal,...
+             (or (not rule?) (not (att-value 'error-rule? rule?))) ; ...it is a terminal or a defined non-terminal and...
+             (eq? (att-value 'lookup-contextname n (att-value 'contextname n)) n)))))) ; its context name is unique.
+      
+      (compile-ag-specifications))))
  
  (define compile-ast-specifications
    (lambda (spec start-symbol)
@@ -2560,488 +2916,498 @@
  
  ;;; Pattern Language:
  
- (when (= (specification->phase pattern-language) 1)
-   (with-specification
-    pattern-language
-    
-    (ast-rule 'Pattern->Node*-Ref*-dnode-spec)
-    (ast-rule 'Node->context-type-binding-Node*)
-    (ast-rule 'Ref->name-source-target)
-    (compile-ast-specifications 'Pattern)
-    
-    ;;; Name Analysis:
-    
-    (ag-rule ; Given a binding name, find its respective binded node.
-     lookup-node
-     (Pattern
-      (lambda (n name)
-        (ast-find-child*
-         (lambda (i n)
-           (att-value 'local-lookup-node n name))
-         (ast-child 'Node* n)))))
-    
-    (ag-rule
-     local-lookup-node
-     (Node
-      (lambda (n name)
-        (if (eq? (ast-child 'binding n) name)
-            n
-            (ast-find-child*
-             (lambda (i n)
-               (att-value 'local-lookup-node n name))
-             (ast-child 'Node* n))))))
-    
-    (ag-rule ; Given a non-terminal, find its respective RACR AST rule.
-     lookup-type
-     (Pattern
-      (lambda (n type)
-        (specification->find-ast-rule (ast-child 'spec n) type))))
-    
-    ;;; Abstract Syntax Tree Query Support:
-    
-    (ag-rule ; Root of the AST fragment a node is part of.
-     fragment-root
-     ((Pattern Node*)
-      (lambda (n)
-        n)))
-    
-    (ag-rule ; Is the node a fragment root?
-     fragment-root?
-     ((Pattern Node*)
-      (lambda (n) #t))
-     ((Node Node*)
-      (lambda (n) #f)))
-    
-    (ag-rule ; List of all references of the pattern.
-     references
-     (Pattern
-      (lambda (n)
-        (ast-children (ast-child 'Ref* n)))))
-    
-    (ag-rule ; List of all named nodes of the pattern.
-     bindings
-     (Pattern
-      (lambda (n)
-        (fold-left
-         (lambda (result n)
-           (append result (att-value 'bindings n)))
-         (list)
-         (ast-children (ast-child 'Node* n)))))
-     (Node
-      (lambda (n)
-        (fold-left
-         (lambda (result n)
-           (append result (att-value 'bindings n)))
-         (if (ast-child 'binding n) (list n) (list))
-         (ast-children (ast-child 'Node* n))))))
-    
-    (ag-rule ; Number of pattern nodes of the pattern/the subtree spaned by a node (including the node itself).
-     nodes-count
-     (Pattern
-      (lambda (n)
-        (fold-left
-         (lambda (result n)
-           (+ result (att-value 'nodes-count n)))
-         0
-         (ast-children (ast-child 'Node* n)))))
-     (Node
-      (lambda (n)
-        (fold-left
-         (lambda (result n)
-           (+ result (att-value 'nodes-count n)))
-         1
-         (ast-children (ast-child 'Node* n))))))
-    
-    ;;; Type Analysis:
-    
-    (ag-rule ; Must the node be a list?
-     must-be-list?
-     (Node ; A node must be a list if:
-      (lambda (n)
-        (or
-         (eq? (ast-child 'type n) '*) ; (1) the pattern developer defines so,
-         (ast-find-child ; (2) any of its children is referenced by index.
-          (lambda (i n)
-            (integer? (ast-child 'context n)))
-          (ast-child 'Node* n))))))
-    
-    (ag-rule ; Must the node not be a list?
-     must-not-be-list?
-     (Node ; A node must not be a list if:
-      (lambda (n)
-        (or
-         (and ; (1) the pattern developer defines so,
-          (ast-child 'type n)
-          (not (eq? (ast-child 'type n) '*)))
-         (and ; (2) it is child of a list,
-          (not (att-value 'fragment-root? n))
-          (att-value 'must-be-list? (ast-parent n)))
-         (ast-find-child ; (3) any of its children is referenced by name or must be a list.
-          (lambda (i n)
-            (or
-             (symbol? (ast-child 'context n))
-             (att-value 'must-be-list? n)))
-          (ast-child 'Node* n))))))
-    
-    (ag-rule ; List of all types being subject of a Kleene closure, i.e., all list types.
-     most-general-list-types
-     (Pattern
-      (lambda (n)
-        (let ((list-types
-               (fold-left
-                (lambda (result ast-rule)
-                  (fold-left
-                   (lambda (result symbol)
-                     (if (and (symbol->kleene? symbol) (not (memq (symbol->non-terminal? symbol) result)))
-                         (cons (symbol->non-terminal? symbol) result)
-                         result))
-                   result
-                   (cdr (ast-rule->production ast-rule))))
-                (list)
-                (att-value 'most-concrete-types n))))
-          (filter
-           (lambda (type1)
-             (not
-              (find
-               (lambda (type2)
+ (define load-pattern-language
+   (lambda ()
+     (with-specification
+      pattern-language
+      
+      (ast-rule 'Pattern->Node*-Ref*-dnode-spec)
+      (ast-rule 'Node->context-type-binding-Node*)
+      (ast-rule 'Ref->name-source-target)
+      (compile-ast-specifications 'Pattern)
+      
+      ;;; Name Analysis:
+      
+      (ag-rule ; Given a binding name, find its respective binded node.
+       lookup-node
+       (Pattern
+        (lambda (n name)
+          (ast-find-child*
+           (lambda (i n)
+             (att-value 'local-lookup-node n name))
+           (ast-child 'Node* n)))))
+      
+      (ag-rule
+       local-lookup-node
+       (Node
+        (lambda (n name)
+          (if (eq? (ast-child 'binding n) name)
+              n
+              (ast-find-child*
+               (lambda (i n)
+                 (att-value 'local-lookup-node n name))
+               (ast-child 'Node* n))))))
+      
+      (ag-rule ; Given a non-terminal, find its respective RACR AST rule.
+       lookup-type
+       (Pattern
+        (lambda (n type)
+          (specification->find-ast-rule (ast-child 'spec n) type))))
+      
+      ;;; Abstract Syntax Tree Query Support:
+      
+      (ag-rule ; Root of the AST fragment a node is part of.
+       fragment-root
+       ((Pattern Node*)
+        (lambda (n)
+          n)))
+      
+      (ag-rule ; Is the node a fragment root?
+       fragment-root?
+       ((Pattern Node*)
+        (lambda (n) #t))
+       ((Node Node*)
+        (lambda (n) #f)))
+      
+      (ag-rule ; List of all references of the pattern.
+       references
+       (Pattern
+        (lambda (n)
+          (ast-children (ast-child 'Ref* n)))))
+      
+      (ag-rule ; List of all named nodes of the pattern.
+       bindings
+       (Pattern
+        (lambda (n)
+          (fold-left
+           (lambda (result n)
+             (append result (att-value 'bindings n)))
+           (list)
+           (ast-children (ast-child 'Node* n)))))
+       (Node
+        (lambda (n)
+          (fold-left
+           (lambda (result n)
+             (append result (att-value 'bindings n)))
+           (if (ast-child 'binding n) (list n) (list))
+           (ast-children (ast-child 'Node* n))))))
+      
+      (ag-rule ; Number of pattern nodes of the pattern/the subtree spaned by a node (including the node itself).
+       nodes-count
+       (Pattern
+        (lambda (n)
+          (fold-left
+           (lambda (result n)
+             (+ result (att-value 'nodes-count n)))
+           0
+           (ast-children (ast-child 'Node* n)))))
+       (Node
+        (lambda (n)
+          (fold-left
+           (lambda (result n)
+             (+ result (att-value 'nodes-count n)))
+           1
+           (ast-children (ast-child 'Node* n))))))
+      
+      ;;; Type Analysis:
+      
+      (ag-rule ; Must the node be a list?
+       must-be-list?
+       (Node ; A node must be a list if:
+        (lambda (n)
+          (or
+           (eq? (ast-child 'type n) '*) ; (1) the pattern developer defines so,
+           (ast-find-child ; (2) any of its children is referenced by index.
+            (lambda (i n)
+              (integer? (ast-child 'context n)))
+            (ast-child 'Node* n))))))
+      
+      (ag-rule ; Must the node not be a list?
+       must-not-be-list?
+       (Node ; A node must not be a list if:
+        (lambda (n)
+          (or
+           (and ; (1) the pattern developer defines so,
+            (ast-child 'type n)
+            (not (eq? (ast-child 'type n) '*)))
+           (and ; (2) it is child of a list,
+            (not (att-value 'fragment-root? n))
+            (att-value 'must-be-list? (ast-parent n)))
+           (ast-find-child ; (3) any of its children is referenced by name or must be a list.
+            (lambda (i n)
+              (or
+               (symbol? (ast-child 'context n))
+               (att-value 'must-be-list? n)))
+            (ast-child 'Node* n))))))
+      
+      (ag-rule ; List of all types being subject of a Kleene closure, i.e., all list types.
+       most-general-list-types
+       (Pattern
+        (lambda (n)
+          (let ((list-types
+                 (fold-left
+                  (lambda (result ast-rule)
+                    (fold-left
+                     (lambda (result symbol)
+                       (if (and (symbol->kleene? symbol) (not (memq (symbol->non-terminal? symbol) result)))
+                           (cons (symbol->non-terminal? symbol) result)
+                           result))
+                     result
+                     (cdr (ast-rule->production ast-rule))))
+                  (list)
+                  (att-value 'most-concrete-types n))))
+            (filter
+             (lambda (type1)
+               (not
+                (find
+                 (lambda (type2)
+                   (and
+                    (not (eq? type1 type2))
+                    (ast-rule-subtype? type1 type2)))
+                 list-types)))
+             list-types)))))
+      
+      (ag-rule ; List of all types (of a certain type) no other type inherits from.
+       most-concrete-types
+       (Pattern
+        (case-lambda
+          ((n)
+           (filter
+            (lambda (type)
+              (null? (ast-rule-subtypes type)))
+            (specification->ast-rules (ast-child 'spec n))))
+          ((n type)
+           (filter
+            (lambda (type)
+              (null? (ast-rule-subtypes type)))
+            (cons type (ast-rule-subtypes type)))))))
+      
+      (ag-rule ; Satisfies a certain type a node's user defined type constraints?
+       valid-user-induced-type?
+       (Node
+        (lambda (n type kleene?)
+          (or
+           (not (ast-child 'type n))
+           (if (eq? (ast-child 'type n) '*)
+               kleene?
+               (let ((user-induced-type (att-value 'lookup-type n (ast-child 'type n))))
                  (and
-                  (not (eq? type1 type2))
-                  (ast-rule-subtype? type1 type2)))
-               list-types)))
-           list-types)))))
-    
-    (ag-rule ; List of all types (of a certain type) no other type inherits from.
-     most-concrete-types
-     (Pattern
-      (case-lambda
-        ((n)
-         (filter
-          (lambda (type)
-            (null? (ast-rule-subtypes type)))
-          (specification->ast-rules (ast-child 'spec n))))
-        ((n type)
-         (filter
-          (lambda (type)
-            (null? (ast-rule-subtypes type)))
-          (cons type (ast-rule-subtypes type)))))))
-    
-    (ag-rule ; Satisfies a certain type a node's user defined type constraints?
-     valid-user-induced-type?
-     (Node
-      (lambda (n type kleene?)
-        (or
-         (not (ast-child 'type n))
-         (if (eq? (ast-child 'type n) '*)
-             kleene?
-             (let ((user-induced-type (att-value 'lookup-type n (ast-child 'type n))))
-               (and
-                user-induced-type
-                (ast-rule-subtype? type user-induced-type))))))))
-    
-    (ag-rule ; Satisfies a certain type all type constraint of a node and its subtree?
-     valid-type?
-     (Node
-      (lambda (n type kleene?)
-        (and
-         (not (and (att-value 'must-be-list? n) (not kleene?)))
-         (not (and (att-value 'must-not-be-list? n) kleene?))
-         (att-value 'valid-user-induced-type? n type kleene?)
-         (if kleene?
-             (not
-              (ast-find-child
-               (lambda (i child)
-                 (not
-                  (find
-                   (lambda (child-type)
-                     (att-value 'valid-type? child child-type #f))
-                   (att-value 'most-concrete-types n type))))
-               (ast-child 'Node* n)))
-             (not
-              (ast-find-child
-               (lambda (i child)
-                 (let* ((context? (ast-rule-find-child-context type (ast-child 'context child)))
-                        (context-types?
-                         (cond
-                           ((not (and context? (symbol->non-terminal? context?))) (list))
-                           ((symbol->kleene? context?) (list (symbol->non-terminal? context?)))
-                           (else (att-value 'most-concrete-types n (symbol->non-terminal? context?))))))
+                  user-induced-type
+                  (ast-rule-subtype? type user-induced-type))))))))
+      
+      (ag-rule ; Satisfies a certain type all type constraint of a node and its subtree?
+       valid-type?
+       (Node
+        (lambda (n type kleene?)
+          (and
+           (not (and (att-value 'must-be-list? n) (not kleene?)))
+           (not (and (att-value 'must-not-be-list? n) kleene?))
+           (att-value 'valid-user-induced-type? n type kleene?)
+           (if kleene?
+               (not
+                (ast-find-child
+                 (lambda (i child)
                    (not
                     (find
-                     (lambda (type)
-                       (att-value 'valid-type? child type (symbol->kleene? context?)))
-                     context-types?))))
-               (ast-child 'Node* n))))))))
-    
-    (ag-rule ; Is the pattern satisfiable (a matching AST exists regarding fragment syntax & type constraints)?
-     well-typed?
-     ((Pattern Node*)
-      (lambda (n)
-        (or
-         (find
-          (lambda (type)
-            (att-value 'valid-type? n type #f))
-          (att-value 'most-concrete-types n))
-         (find
-          (lambda (type)
-            (att-value 'valid-type? n type #t))
-          (att-value 'most-general-list-types n))))))
-    
-    ;;; Reachability:
-    
-    (ag-rule ; Is the reference connecting two different fragments?
-     inter-fragment-reference?
-     (Ref
-      (lambda (n)
-        (not
-         (eq?
-          (att-value 'fragment-root (ast-child 'source n))
-          (att-value 'fragment-root (ast-child 'target n)))))))
-    
-    (ag-rule ; List of the child contexts to follow to reach the root.
-     fragment-root-path
-     
-     ((Pattern Node*)
-      (lambda (n)
-        (list)))
-     
-     ((Node Node*)
-      (lambda (n)
-        (cons (ast-child 'context n) (att-value 'fragment-root-path (ast-parent n))))))
-    
-    (ag-rule ; List of the cheapest inter fragment references of a fragment and their respective costs.
-     inter-fragment-references
-     ((Pattern Node*)
-      (lambda (n)
-        (define walk-costs ; Sum of distances of a reference's source & target to their roots.
-          (lambda (ref)
-            (+
-             (length (att-value 'fragment-root-path (ast-child 'source ref)))
-             (length (att-value 'fragment-root-path (ast-child 'target ref))))))
-        (reverse
-         (fold-left ; Filter for each target the cheapest inter fragment reference:
-          (lambda (result ref)
-            (if
-             (memp
-              (lambda (weighted-ref)
-                (eq?
-                 (att-value 'fragment-root (ast-child 'target ref))
-                 (att-value 'fragment-root (ast-child 'target (car weighted-ref)))))
-              result)
-             result
-             (cons (cons ref (walk-costs ref)) result)))
-          (list)
-          (list-sort ; Sort the inter fragment references according to their costs:
-           (lambda (ref1 ref2)
-             (< (walk-costs ref1) (walk-costs ref2)))
-           (filter ; Find all inter fragment references of the fragment:
+                     (lambda (child-type)
+                       (att-value 'valid-type? child child-type #f))
+                     (att-value 'most-concrete-types n type))))
+                 (ast-child 'Node* n)))
+               (not
+                (ast-find-child
+                 (lambda (i child)
+                   (let* ((context? (ast-rule-find-child-context type (ast-child 'context child)))
+                          (context-types?
+                           (cond
+                             ((not (and context? (symbol->non-terminal? context?))) (list))
+                             ((symbol->kleene? context?) (list (symbol->non-terminal? context?)))
+                             (else (att-value 'most-concrete-types n (symbol->non-terminal? context?))))))
+                     (not
+                      (find
+                       (lambda (type)
+                         (att-value 'valid-type? child type (symbol->kleene? context?)))
+                       context-types?))))
+                 (ast-child 'Node* n))))))))
+      
+      (ag-rule ; Is the pattern satisfiable (a matching AST exists regarding fragment syntax & type constraints)?
+       well-typed?
+       ((Pattern Node*)
+        (lambda (n)
+          (or
+           (find
+            (lambda (type)
+              (att-value 'valid-type? n type #f))
+            (att-value 'most-concrete-types n))
+           (find
+            (lambda (type)
+              (att-value 'valid-type? n type #t))
+            (att-value 'most-general-list-types n))))))
+      
+      ;;; Reachability:
+      
+      (ag-rule ; Is the reference connecting two different fragments?
+       inter-fragment-reference?
+       (Ref
+        (lambda (n)
+          (not
+           (eq?
+            (att-value 'fragment-root (ast-child 'source n))
+            (att-value 'fragment-root (ast-child 'target n)))))))
+      
+      (ag-rule ; List of the child contexts to follow to reach the root.
+       fragment-root-path
+       
+       ((Pattern Node*)
+        (lambda (n)
+          (list)))
+       
+       ((Node Node*)
+        (lambda (n)
+          (cons (ast-child 'context n) (att-value 'fragment-root-path (ast-parent n))))))
+      
+      (ag-rule ; List of the cheapest inter fragment references of a fragment and their respective costs.
+       inter-fragment-references
+       ((Pattern Node*)
+        (lambda (n)
+          (define walk-costs ; Sum of distances of a reference's source & target to their roots.
             (lambda (ref)
-              (and
-               (eq? (att-value 'fragment-root (ast-child 'source ref)) n)
-               (att-value 'inter-fragment-reference? ref)))
-            (att-value 'references n))))))))
-    
-    (ag-rule ; List of references best suited to reach other fragments from the distinguished node.
-     fragment-walk
-     (Pattern
-      (lambda (n)
-        (let ((dummy-walk
-               (cons
-                (create-ast 'Ref (list #f (ast-child 'dnode n) (ast-child 'dnode n)))
-                0)))
-          (let loop ((walked ; List of pairs of already followed references and their total costs.
-                      (list dummy-walk))
-                     (to-visit ; Fragment roots still to visit.
-                      (remq
-                       (att-value 'fragment-root (ast-child 'dnode n))
-                       (ast-children (ast-child 'Node* n)))))
-            (let ((next-walk? ; Find the next inter fragment reference to follow if there is any,...
-                   (fold-left ; ...i.e., for every already walked inter fragment reference R,...
-                    (lambda (best-next-walk performed-walk)
-                      (let ((possible-next-walk ; ...find the best walk reaching a new fragment from its target....
-                             (find
-                              (lambda (weighted-ref)
-                                (memq
-                                 (att-value 'fragment-root (ast-child 'target (car weighted-ref)))
-                                 to-visit))
-                              (att-value 'inter-fragment-references (ast-child 'target (car performed-walk))))))
-                        (cond
-                          ((not possible-next-walk) ; ...If no new fragment is reachable from the target of R,...
-                           best-next-walk) ; ...keep the currently best walk. Otherwise,...
-                          ((not best-next-walk) ; ...if no next best walk has been selected yet,...
-                           possible-next-walk) ; ...make the found one the best....
-                          (else ; Otherwise,...
-                           (let ((costs-possible-next-walk (+ (cdr possible-next-walk) (cdr performed-walk))))
-                             (if (< costs-possible-next-walk (cdr best-next-walk)) ; ...select the better one.
-                                 (cons (car possible-next-walk) costs-possible-next-walk)
-                                 best-next-walk))))))
-                    #f
-                    walked)))
-              (if next-walk? ; If a new fragment can be reached,...
-                  (loop ; ...try to find another reachable one. Otherwise,...
-                   (append walked (list next-walk?))
-                   (remq
-                    (att-value 'fragment-root (ast-child 'target (car next-walk?)))
-                    to-visit))
-                  (map car (cdr walked))))))))) ; ...return the references defining all reachable fragments.
-    
-    ;;; Well-formedness:
-    
-    (ag-rule ; Is the pattern specification valid, such that PMM code can be generated?
-     well-formed?
-     
-     (Pattern
-      (lambda (n)
-        (and
-         (att-value 'local-correct? n)
-         (not
-          (ast-find-child
-           (lambda (i n)
-             (not (att-value 'well-formed? n)))
-           (ast-child 'Node* n))))))
-     
-     (Node
-      (lambda (n)
-        (and
-         (att-value 'local-correct? n)
-         (not
-          (ast-find-child
-           (lambda (i n)
-             (not (att-value 'well-formed? n)))
-           (ast-child 'Node* n)))))))
-    
-    (ag-rule ; Is a certain part of the pattern AST valid?
-     local-correct?
-     
-     (Pattern
-      (lambda (n)
-        (and
-         (ast-node? (ast-child 'dnode n)) ; A distinguished node must be defined, whose...
-         (ast-child 'type (ast-child 'dnode n)) ; ...type is user specified and...
-         (not (att-value 'must-be-list? (ast-child 'dnode n))) ; ...not a list.
-         (= ; All fragments must be reachable from the distinguished node:
-          (+ (length (att-value 'fragment-walk n)) 1)
-          (ast-num-children (ast-child 'Node* n)))
-         (not ; All fragments must be well typed, i.e., there exists an AST where they match:
-          (ast-find-child
-           (lambda (i n)
-             (not (att-value 'well-typed? n)))
-           (ast-child 'Node* n))))))
-     
-     (Node
-      (lambda (n)
-        (and
-         (or ; Binded names must be unique:
-          (not (ast-child 'binding n))
-          (eq? (att-value 'lookup-node n (ast-child 'binding n)) n))
-         (let loop ((children (ast-children (ast-child 'Node* n)))) ; Contexts must be unique:
-           (cond
-             ((null? children) #t)
-             ((find
-               (lambda (child)
-                 (eqv? (ast-child 'context (car children)) (ast-child 'context child)))
-               (cdr children))
-              #f)
-             (else (loop (cdr children)))))))))
-    
-    ;;; Code generation:
-    
-    (ag-rule ; Index within node memory. Used during pattern matching to store and later load matched nodes.
-     node-memory-index
-     
-     ((Pattern Node*)
-      (lambda (n)
-        (if (> (ast-child-index n) 1)
-            (+
-             (att-value 'node-memory-index (ast-sibling (- (ast-child-index n) 1) n))
-             (att-value 'nodes-count (ast-sibling (- (ast-child-index n) 1) n)))
-            0)))
-     
-     ((Node Node*)
-      (lambda (n)
-        (if (> (ast-child-index n) 1)
-            (+
-             (att-value 'node-memory-index (ast-sibling (- (ast-child-index n) 1) n))
-             (att-value 'nodes-count (ast-sibling (- (ast-child-index n) 1) n)))
-            (+ (att-value 'node-memory-index (ast-parent n)) 1)))))
-    
-    (ag-rule ; Function encoding pattern matching machine (PMM) specialised to match the pattern.
-     pmm-code
-     (Pattern
-      (lambda (n)
-        (pmmi-initialize
-         (att-value
-          'pmm-code:match-fragment
-          (ast-child 'dnode n)
+              (+
+               (length (att-value 'fragment-root-path (ast-child 'source ref)))
+               (length (att-value 'fragment-root-path (ast-child 'target ref))))))
+          (reverse
+           (fold-left ; Filter for each target the cheapest inter fragment reference:
+            (lambda (result ref)
+              (if
+               (memp
+                (lambda (weighted-ref)
+                  (eq?
+                   (att-value 'fragment-root (ast-child 'target ref))
+                   (att-value 'fragment-root (ast-child 'target (car weighted-ref)))))
+                result)
+               result
+               (cons (cons ref (walk-costs ref)) result)))
+            (list)
+            (list-sort ; Sort the inter fragment references according to their costs:
+             (lambda (ref1 ref2)
+               (< (walk-costs ref1) (walk-costs ref2)))
+             (filter ; Find all inter fragment references of the fragment:
+              (lambda (ref)
+                (and
+                 (eq? (att-value 'fragment-root (ast-child 'source ref)) n)
+                 (att-value 'inter-fragment-reference? ref)))
+              (att-value 'references n))))))))
+      
+      (ag-rule ; List of references best suited to reach other fragments from the distinguished node.
+       fragment-walk
+       (Pattern
+        (lambda (n)
+          (let ((dummy-walk
+                 (cons
+                  (create-ast 'Ref (list #f (ast-child 'dnode n) (ast-child 'dnode n)))
+                  0)))
+            (let loop ((walked ; List of pairs of already followed references and their total costs.
+                        (list dummy-walk))
+                       (to-visit ; Fragment roots still to visit.
+                        (remq
+                         (att-value 'fragment-root (ast-child 'dnode n))
+                         (ast-children (ast-child 'Node* n)))))
+              (let ((next-walk? ; Find the next inter fragment reference to follow if there is any,...
+                     (fold-left ; ...i.e., for every already walked inter fragment reference R,...
+                      (lambda (best-next-walk performed-walk)
+                        (let ((possible-next-walk ; ...find the best walk reaching a new fragment from its target....
+                               (find
+                                (lambda (weighted-ref)
+                                  (memq
+                                   (att-value 'fragment-root (ast-child 'target (car weighted-ref)))
+                                   to-visit))
+                                (att-value 'inter-fragment-references (ast-child 'target (car performed-walk))))))
+                          (cond
+                            ((not possible-next-walk) ; ...If no new fragment is reachable from the target of R,...
+                             best-next-walk) ; ...keep the currently best walk. Otherwise,...
+                            ((not best-next-walk) ; ...if no next best walk has been selected yet,...
+                             possible-next-walk) ; ...make the found one the best....
+                            (else ; Otherwise,...
+                             (let ((costs-possible-next-walk (+ (cdr possible-next-walk) (cdr performed-walk))))
+                               (if (< costs-possible-next-walk (cdr best-next-walk)) ; ...select the better one.
+                                   (cons (car possible-next-walk) costs-possible-next-walk)
+                                   best-next-walk))))))
+                      #f
+                      walked)))
+                (if next-walk? ; If a new fragment can be reached,...
+                    (loop ; ...try to find another reachable one. Otherwise,...
+                     (append walked (list next-walk?))
+                     (remq
+                      (att-value 'fragment-root (ast-child 'target (car next-walk?)))
+                      to-visit))
+                    (map car (cdr walked))))))))) ; ...return the references defining all reachable fragments.
+      
+      ;;; Well-formedness:
+      
+      (ag-rule ; Is the pattern specification valid, such that PMM code can be generated?
+       well-formed?
+       
+       (Pattern
+        (lambda (n)
+          (and
+           (att-value 'local-correct? n)
+           (not
+            (ast-find-child
+             (lambda (i n)
+               (not (att-value 'well-formed? n)))
+             (ast-child 'Node* n))))))
+       
+       (Node
+        (lambda (n)
+          (and
+           (att-value 'local-correct? n)
+           (not
+            (ast-find-child
+             (lambda (i n)
+               (not (att-value 'well-formed? n)))
+             (ast-child 'Node* n)))))))
+      
+      (ag-rule ; Is a certain part of the pattern AST valid?
+       local-correct?
+       
+       (Pattern
+        (lambda (n)
+          (and
+           (ast-node? (ast-child 'dnode n)) ; A distinguished node must be defined, whose...
+           (ast-child 'type (ast-child 'dnode n)) ; ...type is user specified and...
+           (not (att-value 'must-be-list? (ast-child 'dnode n))) ; ...not a list.
+           (= ; All fragments must be reachable from the distinguished node:
+            (+ (length (att-value 'fragment-walk n)) 1)
+            (ast-num-children (ast-child 'Node* n)))
+           (not ; All fragments must be well typed, i.e., there exists an AST where they match:
+            (ast-find-child
+             (lambda (i n)
+               (not (att-value 'well-typed? n)))
+             (ast-child 'Node* n))))))
+       
+       (Node
+        (lambda (n)
+          (and
+           (or ; Binded names must be unique:
+            (not (ast-child 'binding n))
+            (eq? (att-value 'lookup-node n (ast-child 'binding n)) n))
+           (let loop ((children (ast-children (ast-child 'Node* n)))) ; Contexts must be unique:
+             (cond
+               ((null? children) #t)
+               ((find
+                 (lambda (child)
+                   (eqv? (ast-child 'context (car children)) (ast-child 'context child)))
+                 (cdr children))
+                #f)
+               (else (loop (cdr children)))))))))
+      
+      ;;; Code generation:
+      
+      (ag-rule ; Index within node memory. Used during pattern matching to store and later load matched nodes.
+       node-memory-index
+       
+       ((Pattern Node*)
+        (lambda (n)
+          (if (> (ast-child-index n) 1)
+              (+
+               (att-value 'node-memory-index (ast-sibling (- (ast-child-index n) 1) n))
+               (att-value 'nodes-count (ast-sibling (- (ast-child-index n) 1) n)))
+              0)))
+       
+       ((Node Node*)
+        (lambda (n)
+          (if (> (ast-child-index n) 1)
+              (+
+               (att-value 'node-memory-index (ast-sibling (- (ast-child-index n) 1) n))
+               (att-value 'nodes-count (ast-sibling (- (ast-child-index n) 1) n)))
+              (+ (att-value 'node-memory-index (ast-parent n)) 1)))))
+      
+      (ag-rule ; Function encoding pattern matching machine (PMM) specialised to match the pattern.
+       pmm-code
+       (Pattern
+        (lambda (n)
+          (pmmi-initialize
+           (att-value
+            'pmm-code:match-fragment
+            (ast-child 'dnode n)
+            (fold-right
+             (lambda (reference result)
+               (pmmi-load-node
+                (pmmi-traverse-reference
+                 (att-value 'pmm-code:match-fragment (ast-child 'target reference) result)
+                 (ast-child 'name reference))
+                (att-value 'node-memory-index (ast-child 'source reference))))
+             (att-value
+              'pmm-code:check-references
+              n
+              (pmmi-terminate (att-value 'bindings n)))
+             (att-value 'fragment-walk n)))
+           (+ (att-value 'nodes-count n) 1)))))
+      
+      (ag-rule ; Function encoding PMM specialised to match the fragment the pattern node is part of.
+       pmm-code:match-fragment
+       (Node
+        (lambda (n continuation-code)
           (fold-right
-           (lambda (reference result)
+           (lambda (context result)
+             (if (integer? context)
+                 (pmmi-ensure-context-by-index result context)
+                 (pmmi-ensure-context-by-name result context)))
+           (att-value 'pmm-code:match-subtree (att-value 'fragment-root n) continuation-code)
+           (att-value 'fragment-root-path n)))))
+      
+      (ag-rule ; Function encoding PMM specialised to match the subtree the pattern node spans.
+       pmm-code:match-subtree
+       (Node
+        (lambda (n continuation-code)
+          (let ((store-instruction
+                 (pmmi-store-node
+                  (fold-right
+                   (lambda (child result)
+                     (pmmi-load-node
+                      (if (integer? (ast-child 'context child))
+                          (pmmi-ensure-child-by-index
+                           (att-value 'pmm-code:match-subtree child result)
+                           (ast-child 'context child))
+                          (pmmi-ensure-child-by-name
+                           (att-value 'pmm-code:match-subtree child result)
+                           (ast-child 'context child)))
+                      (att-value 'node-memory-index n)))
+                   continuation-code
+                   (ast-children (ast-child 'Node* n)))
+                  (att-value 'node-memory-index n))))
+            (cond
+              ((att-value 'must-be-list? n)
+               (pmmi-ensure-list store-instruction))
+              ((ast-child 'type n)
+               (pmmi-ensure-subtype store-instruction (ast-child 'type n)))
+              (else store-instruction))))))
+      
+      (ag-rule ; Function encoding PMM specialised to match the reference integrity of the pattern.
+       pmm-code:check-references
+       (Pattern
+        (lambda (n continuation-code)
+          (fold-left
+           (lambda (result reference)
              (pmmi-load-node
               (pmmi-traverse-reference
-               (att-value 'pmm-code:match-fragment (ast-child 'target reference) result)
+               (pmmi-ensure-node
+                result
+                (att-value 'node-memory-index (ast-child 'target reference)))
                (ast-child 'name reference))
               (att-value 'node-memory-index (ast-child 'source reference))))
-           (att-value
-            'pmm-code:check-references
-            n
-            (pmmi-terminate (att-value 'bindings n)))
-           (att-value 'fragment-walk n)))
-         (+ (att-value 'nodes-count n) 1)))))
-    
-    (ag-rule ; Function encoding PMM specialised to match the fragment the pattern node is part of.
-     pmm-code:match-fragment
-     (Node
-      (lambda (n continuation-code)
-        (fold-right
-         (lambda (context result)
-           (if (integer? context)
-               (pmmi-ensure-context-by-index result context)
-               (pmmi-ensure-context-by-name result context)))
-         (att-value 'pmm-code:match-subtree (att-value 'fragment-root n) continuation-code)
-         (att-value 'fragment-root-path n)))))
-    
-    (ag-rule ; Function encoding PMM specialised to match the subtree the pattern node spans.
-     pmm-code:match-subtree
-     (Node
-      (lambda (n continuation-code)
-        (let ((store-instruction
-               (pmmi-store-node
-                (fold-right
-                 (lambda (child result)
-                   (pmmi-load-node
-                    (if (integer? (ast-child 'context child))
-                        (pmmi-ensure-child-by-index
-                         (att-value 'pmm-code:match-subtree child result)
-                         (ast-child 'context child))
-                        (pmmi-ensure-child-by-name
-                         (att-value 'pmm-code:match-subtree child result)
-                         (ast-child 'context child)))
-                    (att-value 'node-memory-index n)))
-                 continuation-code
-                 (ast-children (ast-child 'Node* n)))
-                (att-value 'node-memory-index n))))
-          (cond
-            ((att-value 'must-be-list? n)
-             (pmmi-ensure-list store-instruction))
-            ((ast-child 'type n)
-             (pmmi-ensure-subtype store-instruction (ast-child 'type n)))
-            (else store-instruction))))))
-    
-    (ag-rule ; Function encoding PMM specialised to match the reference integrity of the pattern.
-     pmm-code:check-references
-     (Pattern
-      (lambda (n continuation-code)
-        (fold-left
-         (lambda (result reference)
-           (pmmi-load-node
-            (pmmi-traverse-reference
-             (pmmi-ensure-node
-              result
-              (att-value 'node-memory-index (ast-child 'target reference)))
-             (ast-child 'name reference))
-            (att-value 'node-memory-index (ast-child 'source reference))))
-         continuation-code
-         (filter
-          (lambda (reference)
-            (not (memq reference (att-value 'fragment-walk n))))
-          (ast-children (ast-child 'Ref* n)))))))
-    
-    (compile-ag-specifications))))
+           continuation-code
+           (filter
+            (lambda (reference)
+              (not (memq reference (att-value 'fragment-walk n))))
+            (ast-children (ast-child 'Ref* n)))))))
+      
+      (compile-ag-specifications))))
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Initialisation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (when (= (specification->phase ast-language) 1)
+   (load-ast-language))
+ (when (= (specification->phase pattern-language) 1)
+   (load-pattern-language)))
