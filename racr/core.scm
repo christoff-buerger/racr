@@ -91,7 +91,8 @@
   ; TODO Delete following exports when properly integrated:
   (rename (make-racr-specification-2 create-specification-2))
   racr-specification-2-ast-scheme
-  (rename (specify-ast-rule-2 ast-rule-2)))
+  (rename (specify-ast-rule-2 ast-rule-2))
+  specify-attribute-2)
  (import (rnrs) (rnrs mutable-pairs))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -758,9 +759,9 @@
      (when (> (racr-specification-2-specification-phase spec) 1)
        (throw-exception
         "Unexpected AST rule " rule ";"
-        "AST rules can only be defined in the AST specification phase."))
+        "AST rules can only be defined in the specification phase."))
      ; Parse the rule and add it to the RACR specification:
-     (rewrite-add (ast-child 'rules (racr-specification-2-ast-scheme spec)) (parse-rule))))
+     (rewrite-add (ast-child 'astrules (racr-specification-2-ast-scheme spec)) (parse-rule))))
  
  (define-record-type racr-specification-2
    (fields (mutable specification-phase) ast-scheme)
@@ -768,11 +769,25 @@
    (protocol
     (lambda (new)
       (lambda ()
-        (let ((ast-scheme (create-ast ast-language 'AstScheme (list (create-ast-list (list)) #f))))
-          (rewrite-add
-           (ast-child 'rules ast-scheme)
-           (create-ast ast-language 'AstRule (list racr-nil #f (create-ast-list (list)))))
-          (new 1 ast-scheme))))))
+        (new
+         1
+         (with-specification
+          ast-language
+          (create-ast
+           'AstScheme ; The initial AST scheme just consists of...
+           (list
+            (create-ast-list
+             (list
+              (create-ast
+               'AstRule ; ...the error rule with...
+               (list
+                racr-nil
+                #f
+                (create-ast-list
+                 (list
+                  (create-ast 'Symbol (list 'error-symbol #f 'error-symbol)))))))) ; ...the error symbol.
+            #f
+            (create-ast-list (list))))))))))
  
  (define ast-language (make-racr-specification))
  
@@ -780,14 +795,16 @@
    (lambda ()
      ;;; AST Scheme:
      
-     (let* ((AstScheme (make-ast-rule ast-language 'AstScheme->AstRule*<rules-startsymbol #f #f))
+     (let* ((AstScheme (make-ast-rule ast-language 'AstScheme->AstRule*<astrules-startsymbol-Attribute*<attribution #f #f))
             (AstRule (make-ast-rule ast-language 'AstRule->name-supertype-Symbol*<rhand #f #f))
             (Symbol (make-ast-rule ast-language 'Symbol->name-klenee-contextname #f #f))
+            (Attribute (make-ast-rule ast-language 'Attribute->name-context-equation-circularitydefinition-cached #f #f))
             (prod-AstScheme
              (list
               (make-production-symbol 'AstScheme AstScheme AstScheme #f 'AstScheme (list))
-              (make-production-symbol 'AstRule AstScheme AstRule #t 'rules (list))
-              (make-production-symbol 'startsymbol AstScheme #f #f 'startsymbol (list))))
+              (make-production-symbol 'AstRule AstScheme AstRule #t 'astrules (list))
+              (make-production-symbol 'startsymbol AstScheme #f #f 'startsymbol (list))
+              (make-production-symbol 'Attribute AstScheme Attribute #t 'attribution (list))))
             (prod-AstRule
              (list
               (make-production-symbol 'AstRule AstRule AstRule #f 'AstRule (list))
@@ -799,28 +816,45 @@
               (make-production-symbol 'Symbol Symbol Symbol #f 'Symbol (list))
               (make-production-symbol 'name Symbol #f #f 'name (list))
               (make-production-symbol 'klenee Symbol #f #f 'klenee (list))
-              (make-production-symbol 'contextname Symbol #f #f 'contextname (list)))))
+              (make-production-symbol 'contextname Symbol #f #f 'contextname (list))))
+            (prod-Attribute
+             (list
+              (make-production-symbol 'Attribute Attribute Attribute #f 'Attribute (list))
+              (make-production-symbol 'name Attribute #f #f 'name (list))
+              (make-production-symbol 'context Attribute #f #f 'context (list))
+              (make-production-symbol 'equation Attribute #f #f 'equation (list))
+              (make-production-symbol 'circularitydefinition Attribute #f #f 'circularitydefinition (list))
+              (make-production-symbol 'cached Attribute #f #f 'cached (list)))))
        (ast-rule-production-set! AstScheme prod-AstScheme)
        (ast-rule-production-set! AstRule prod-AstRule)
        (ast-rule-production-set! Symbol prod-Symbol)
+       (ast-rule-production-set! Attribute prod-Attribute)
        (hashtable-set! (racr-specification-rules-table ast-language) 'AstScheme AstScheme)
        (hashtable-set! (racr-specification-rules-table ast-language) 'AstRule AstRule)
        (hashtable-set! (racr-specification-rules-table ast-language) 'Symbol Symbol)
+       (hashtable-set! (racr-specification-rules-table ast-language) 'Attribute Attribute)
        (racr-specification-start-symbol-set! ast-language 'AstScheme)
        (racr-specification-specification-phase-set! ast-language 2))
+     
+     ;;; Attribution:
      
      (with-specification
       ast-language
       
       ;;; AST Query Support:
       
-      (define list-union ; Given a set and list, return the set union of both (elements are compared using eq?).
-        (lambda (s l) ; Faster if (> (legth s) (length l)).
-          (fold-left
-           (lambda (result e)
-             (if (memq e result) result (cons e result)))
-           s
-           l)))
+      (define set-union
+        (case-lambda
+          ((s1 s2 f) ; Given two sets s1 and s2 and an equality function f, return the set union of s1 and s2 w.r.t. f.
+           (fold-left
+            (lambda (result e2)
+              (if (find (lambda (e1) (f e1 e2)) s1)
+                  result
+                  (cons e2 result)))
+            s1
+            s2))
+          ((s1 s2) ; Given two sets s1 and s2, return the set union of s1 and s2 (use eq? to compare elements).
+           (set-union s1 s2 eq?))))
       
       (ag-rule
        error-rule ; Childless, non-inheriting rule with invalid name referd to by undeclared rule references.
@@ -829,10 +863,22 @@
           (att-value 'lookup-rule n racr-nil))))
       
       (ag-rule
-       error-rule? ; Is the rule the error rule?
-       (AstRule
+       error-symbol ; Terminal symbol with invalid context name refered to by undeclared symbol references.
+       (AstScheme
         (lambda (n)
-          (eq? n (att-value 'error-rule n)))))
+          (att-value 'lookup-contextname (att-value 'error-rule n) 'error-symbol))))
+      
+      (ag-rule
+       error-node? ; Is the rule/symbol the error rule/symbol?
+       
+       (AstRule (lambda (n) (eq? n (att-value 'error-rule n))))
+       (Symbol (lambda (n) (eq? n (att-value 'error-symbol n)))))
+      
+      (ag-rule
+       attribute-definitions ; List of all attribute definitions. 
+       (AstScheme
+        (lambda (n)
+          (ast-children (ast-child 'attribution n)))))
       
       (ag-rule
        terminal? ; Is the symbol a terminal?
@@ -853,24 +899,24 @@
       ;;; Name Analysis:
       
       (ag-rule
-       lookup-rule ; Given a symbolic name, find the respective AST rule (error-rule if not defined).
+       lookup-rule ; Given a symbolic name, find the respective AST rule (error rule if not defined).
        (AstScheme
         (lambda (n name)
           (or
            (ast-find-child
             (lambda (i n)
               (eq? (ast-child 'name n) name))
-            (ast-child 'rules n))
+            (ast-child 'astrules n))
            (att-value 'error-rule n)))))
       
       (ag-rule
-       startsymbol ; The grammar's start rule (error-rule if not defined).
+       startsymbol ; The grammar's start rule (error rule if not defined).
        (AstScheme
         (lambda (n)
           (att-value 'lookup-rule n (ast-child 'startsymbol n)))))
       
       (ag-rule
-       supertype? ; The rule's supertype (error-rule if not defined) or #f if the rule does not inherite.
+       supertype? ; The rule's supertype (error rule if not defined) or #f if the rule does not inherite.
        (AstRule
         (lambda (n)
           (and
@@ -878,7 +924,7 @@
            (att-value 'lookup-rule n (ast-child 'supertype n))))))
       
       (ag-rule
-       non-terminal? ; The symbol's defining rule (error-rule if not defined) or #f if the symbol is a terminal.
+       non-terminal? ; The symbol's defining rule (error rule if not defined) or #f if the symbol is a terminal.
        (Symbol
         (lambda (n)
           (and
@@ -886,25 +932,29 @@
            (att-value 'lookup-rule n (ast-child 'name n))))))
       
       (ag-rule
-       lookup-contextname ; Given a symbolic name, find the respective child (#f if not defined).
+       lookup-contextname ; Given a symbolic name, find the respective child (error symbol if not defined).
        (AstRule
         (lambda (n name)
-          (find
-           (lambda (n)
-             (eq? (att-value 'contextname n) name))
-           (att-value 'expanded-rhand n)))))
+          (if (eq? name '*)
+              n
+              (or
+               (find
+                (lambda (n)
+                  (eq? (att-value 'contextname n) name))
+                (att-value 'expanded-rhand n))
+               (att-value 'error-symbol n))))))
       
       ;;; Inheritance Analysis:
       
       (ag-rule
-       supertypes ; List of all supertypes ordered w.r.t. inheritance.
+       supertypes ; List of all supertypes ordered w.r.t. inheritance (supertypes before their subtypes).
        (AstRule
         (lambda (n)
           (reverse
            (let loop ((current-rule n))
              (let ((supertype? (att-value 'supertype? current-rule)))
                (cond
-                 ((or (not supertype?) (att-value 'error-rule? supertype?))
+                 ((or (not supertype?) (att-value 'error-node? supertype?))
                   (list))
                  ((eq? supertype? n)
                   (list supertype?))
@@ -912,21 +962,19 @@
       
       (ag-rule
        subtypes ; List of all subtypes (transitive but, if well-formed, not reflexive).
-       ((AstScheme rules)
+       ((AstScheme astrules)
         (lambda (n)
           (filter
            (lambda (rule)
              (memq n (att-value 'supertypes rule)))
            (ast-children (ast-parent n))))))
       
-      ;;; Derivability Analysis:
-      
       (ag-rule
        expanded-rhand ; List of right-hand symbols including inherited ones.
        (AstRule
         (lambda (n)
           (append
-           (fold-left
+           (fold-left ; TODO: fold-right instead
             (lambda (result n)
               (append
                result
@@ -944,34 +992,7 @@
              (att-value 'non-terminal? n))
            (att-value 'expanded-rhand n)))))
       
-      (ag-rule
-       direct-derivable ; List of rules that are non-transitive applicable.
-       (AstRule
-        (lambda (n)
-          (fold-left
-           (lambda (result symbol)
-             (let ((rule (att-value 'non-terminal? symbol)))
-               (list-union
-                (list-union
-                 (list-union result (att-value 'supertypes rule))
-                 (list rule))
-                (att-value 'subtypes rule))))
-           (list)
-           (att-value 'rhand-non-terminal-symbols n)))))
-      
-      (ag-rule
-       derivable ; List of rules that are transitive applicable.
-       (AstRule
-        (lambda (n)
-          (fold-left
-           (lambda (result rule)
-             (list-union result (att-value 'derivable rule)))
-           (att-value 'direct-derivable n)
-           (att-value 'direct-derivable n)))
-        (list)
-        (lambda (r1 r2) (= (length r1) (length r2)))))
-      
-      ;;; Termination Analysis:
+      ;;; Derivability Analysis:
       
       (ag-rule
        productive? ; Does there exist a finite AST whose root is typed with the rule?
@@ -986,51 +1007,188 @@
         #f
         (lambda (r1 r2) (if r1 r2 (not r2)))))
       
+      (ag-rule
+       direct-derivable ; List of AST rules that are non-transitive applicable.
+       (AstRule
+        (lambda (n)
+          (fold-left
+           (lambda (result symbol)
+             (let ((rule (att-value 'non-terminal? symbol)))
+               (set-union
+                (set-union
+                 (set-union result (att-value 'supertypes rule))
+                 (list rule))
+                (att-value 'subtypes rule))))
+           (list)
+           (att-value 'rhand-non-terminal-symbols n)))))
+      
+      (ag-rule
+       derivable ; List of AST rules that are transitive applicable.
+       (AstRule
+        (lambda (n)
+          (fold-left
+           (lambda (result rule)
+             (set-union result (att-value 'derivable rule)))
+           (att-value 'direct-derivable n)
+           (att-value 'direct-derivable n)))
+        (list)
+        (lambda (r1 r2) (= (length r1) (length r2)))))
+      
+      ;;; Attribution Analysis:
+      
+      (ag-rule
+       synthesised? ; Is the attribute synthesised?
+       (Attribute
+        (lambda (n)
+          ;(ast-subtype? (att-value 'context n) 'AstRule)
+          (eq? (cdr (ast-child 'context n)) '*))))
+      
+      (ag-rule
+       inherited? ; Is the attribute inherited?
+       (Attribute
+        (lambda (n)
+          (not (att-value 'synthesised? n)))))
+      
+      (ag-rule
+       circular? ; Is the attribute circular?
+       (Attribute
+        (lambda (n)
+          (ast-child 'circularitydefinition n))))
+      
+      (ag-rule
+       bottom-value ; The attribute's bottom value if it is circular, exception otherwise.
+       (Attribute
+        (lambda (n)
+          (car (ast-child 'circularitydefinition n)))))
+      
+      (ag-rule
+       equality-function ; The attribute's equality function if it is circular, exception otherwise.
+       (Attribute
+        (lambda (n)
+          (cdr (ast-child 'circularitydefinition n)))))
+      
+      (ag-rule
+       context-rule ; AST rule in whose context the attribute is defined.
+       (Attribute
+        (lambda (n)
+          (att-value 'lookup-rule n (car (ast-child 'context n))))))
+      
+      (ag-rule
+       context ; AST rule/symbol the attribute is defined for (AST rule if synthesised, symbol if inherited).
+       (Attribute
+        (lambda (n)
+          (att-value 'lookup-contextname (att-value 'context-rule n) (cdr (ast-child 'context n))))))
+      
+      (let ((attributes-for-node ; List of attribute definitions for given AST node.
+             (lambda (n)
+               (filter
+                (lambda (attribute)
+                  (eq? (att-value 'context attribute) n))
+                (att-value 'attribute-definitions n)))))
+        
+        (ag-rule
+         attributes-for-rule/symbol ; List of attribute definitions for the rule/symbol.
+         
+         (AstRule attributes-for-node)
+         (Symbol attributes-for-node)))
+      
+      (ag-rule
+       attributes ; List of attributes of AST rules and their right hand symbols considering inheritance and shadowing.
+       
+       (AstRule ; List of synthesised attributes.
+        (lambda (n)
+          (fold-right ; Process all ancestor AST rules in order of inheritance and...
+           (lambda (n result)
+             (set-union ; ...add the definitions of all synthesised attributes...
+              result
+              (att-value 'attributes-for-rule/symbol n)
+              (lambda (a1 a2) ; ...that are not already defined.
+                (eq? (ast-child 'name a1) (ast-child 'name a2)))))
+           (att-value 'attributes-for-rule/symbol n)
+           (att-value 'supertypes n))))
+       
+       ((AstRule rhand) ; List of inherited attributes if the symbol is child of a given AST rule.
+        (lambda (n context) ; BEWARE: context must have the symbol as child, otherwise an exception is thrown!
+          (fold-right ; Process each AST rule that has the symbol in order of inheritance and...
+           (lambda (context result)
+             (set-union ; ...add the definitions of all inherited attributes...
+              result
+              (filter
+               (lambda (attribute)
+                 (eq? (att-value 'context-rule attribute) context))
+               (att-value 'attributes-for-rule/symbol n))
+              (lambda (a1 a2) ; ...that are not already defined for the symbol.
+                (eq? (ast-child 'name a1) (ast-child 'name a2)))))
+           (list)
+           (memq ; Filter all rules that are supertypes of the given context and have the symbol.
+            (ast-parent (ast-parent n))
+            (append (att-value 'supertypes context) (list context)))))))
+      
       ;;; Well-formedness Analysis:
       
-      (let ((well-formed?-visitor ; Is a node and all nodes of the AST of a child of it are local correct?
-             (lambda (n to-visit)
+      (let ((well-formed?-visitor ; Is an AST node, and are all ASTs of certain children of it, local correct?
+             (lambda (n . to-visit)
                (and
                 (att-value 'local-correct? n)
-                (not
-                 (ast-find-child
-                  (lambda (i n)
-                    (not (att-value 'well-formed? n)))
-                  to-visit))))))
+                (for-all
+                    (lambda (to-visit)
+                      (not
+                       (ast-find-child
+                        (lambda (i n)
+                          (not (att-value 'well-formed? n)))
+                        to-visit)))
+                  to-visit)))))
         
         (ag-rule
          well-formed? ; Is the specification valid, such that attributed AST instances can be constructed?
          
-         (AstScheme (lambda (n) (well-formed?-visitor n (ast-child 'rules n))))
+         (AstScheme (lambda (n) (well-formed?-visitor n (ast-child 'astrules n) (ast-child 'attribution n))))
          (AstRule (lambda (n) (well-formed?-visitor n (ast-child 'rhand n))))
-         (Symbol (lambda (n) (att-value 'local-correct? n)))))
+         (Symbol well-formed?-visitor)
+         (Attribute well-formed?-visitor)))
       
       (ag-rule
        local-correct? ; Is a certain part of the specification valid?
        
        (AstScheme
         (lambda (n)
-          (not (att-value 'error-rule? (att-value 'startsymbol n))))) ; The start rule is defined.
+          (not (att-value 'error-node? (att-value 'startsymbol n))))) ; The start rule is defined.
        
        (AstRule
         (lambda (n)
           (or ; Either,...
-           (att-value 'error-rule? n) ; ...the rule is the error rule or...
+           (att-value 'error-node? n) ; ...the rule is the error rule or...
            (and
             (eq? (att-value 'lookup-rule n (ast-child 'name n)) n) ; ...its name is unique,...
             (let ((supertype? (att-value 'supertype? n))) ; ...if it has a supertype it exists,...
-              (or (not supertype?) (not (att-value 'error-rule? supertype?))))
+              (or (not supertype?) (not (att-value 'error-node? supertype?))))
             (not (memq n (att-value 'supertypes n))) ; ...if it inherits inheritance is cycle free,...
             (att-value 'productive? n) ; ...it is productive and...
             (memq n (att-value 'derivable (att-value 'startsymbol n))))))) ; ...reachable from the startsymbol.
        
        (Symbol
         (lambda (n)
-          (let ((rule? (att-value 'non-terminal? n)))
+          (or ; Either,...
+           (att-value 'error-node? n) ; ...the symbol is the error symbol or,...
+           (let ((rule? (att-value 'non-terminal? n)))
+             (and
+              (not (and (ast-child 'klenee n) (not rule?))) ; ...in case of Klenee closure, the symbol is a non-terminal,...
+              (or (not rule?) (not (att-value 'error-node? rule?))) ; ...it is a terminal or a defined non-terminal and...
+              (eq? (att-value 'lookup-contextname n (att-value 'contextname n)) n)))))) ; its context name is unique.
+       
+       (Attribute
+        (lambda (n)
+          (let ((context (att-value 'context n)))
             (and
-             (not (and (ast-child 'klenee n) (not rule?))) ; Klenee closure implies the symbol must be a non-terminal,...
-             (or (not rule?) (not (att-value 'error-rule? rule?))) ; ...it is a terminal or a defined non-terminal and...
-             (eq? (att-value 'lookup-contextname n (att-value 'contextname n)) n)))))) ; its context name is unique.
+             (not (att-value 'error-node? context)) ; The attribute's definition context exists and,...
+             (not ; ...in case the attribute is inherited, is not a terminal and...
+              (and (att-value 'inherited? n) (att-value 'terminal? context)))
+             (eq? ; ...the definition is unique for it.
+              (find (lambda (attribute) (eq? (ast-child 'name attribute) (ast-child 'name n)))
+                    (if (att-value 'synthesised? n)
+                        (att-value 'attributes context)
+                        (att-value 'attributes context (att-value 'context-rule n))))
+              n))))))
       
       (compile-ag-specifications))))
  
@@ -1209,6 +1367,38 @@
                     ((_ spec* att-name* (non-terminal cached? equation bottom equivalence-function))
                      (specify-attribute spec* att-name* 'non-terminal 0 cached? equation (cons bottom equivalence-function))))))
               (specify-attribute* spec* att-name* definition) ...))))))
+ 
+ (define specify-attribute-2
+   (lambda (spec name rule position cached? equation circularity-definition)
+     ;;; Before adding the attribute definition, ensure...
+     (let ((wrong-argument-type ; ...correct argument types,...
+            (or
+             (and (not (symbol? name))
+                  "Attribute name: symbol")
+             (and (not (symbol? rule))
+                  "AST rule: non-terminal symbol")
+             (and (not (symbol? position))
+                  "Production context: right hand symbol or '*")
+             (and (not (procedure? equation))
+                  "Attribute equation: function")
+             (and circularity-definition
+                  (or
+                   (not (pair? circularity-definition))
+                   (not (procedure? (cdr circularity-definition))))
+                  "Circularity definition: #f or (bottom-value equivalence-function) pair"))))
+       (when wrong-argument-type
+         (throw-exception
+          "Invalid attribute definition; "
+          "Wrong argument type (" wrong-argument-type ").")))
+     ; Ensure, that the language is in the correct specification phase:
+     (when (> (racr-specification-2-specification-phase spec) 1)
+       (throw-exception
+        "Unexpected " name " attribute definition; "
+        "Attributes can only be defined in the specification phase."))
+     ; Add the attribute to the RACR specification:
+     (rewrite-add
+      (ast-child 'attribution (racr-specification-2-ast-scheme spec))
+      (create-ast ast-language 'Attribute (list name (cons rule position) equation circularity-definition cached?)))))
  
  (define specify-attribute
    (lambda (spec attribute-name non-terminal context-name-or-position cached? equation circularity-definition)

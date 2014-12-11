@@ -87,8 +87,7 @@
       (ast-rule-2 spec 'B:C->a)
       (ast-rule-2 spec 'C:D->b)
       (ast-rule-2 spec 'D:B->c)
-      (assert (not (att-value 'well-formed? ast-scheme))))
-    ))
+      (assert (not (att-value 'well-formed? ast-scheme))))))
 
 (define run-correct-cases
   (lambda ()
