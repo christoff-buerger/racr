@@ -100,7 +100,14 @@
       (ast-rule-2 spec 'A->A<myA)
       (ast-rule-2 spec 'A->A*<myA2)
       (ast-rule-2 spec 'A->a-A)
-      (ast-rule-2 spec 'A->A*-A*<A2-b))
+      (ast-rule-2 spec 'A->A*-A*<A2-b)
+      (assert ; Identifiers and right hands are lexed and parsed in correct order.
+       (equal?
+        (list 't1 'Foo 't2 'Bar)
+        (map
+         (lambda (symbol)
+           (ast-child 'name symbol))
+         (ast-children (ast-child 'rhand (ast-rule-2 spec 'A->t1-Foo-t2-Bar)))))))
     
     (let ((ast-scheme (create-ast-scheme 'A))) ; Test well-formedness analysis.
       (ast-rule-2 spec 'A->B)

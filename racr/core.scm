@@ -92,7 +92,11 @@
   (rename (make-racr-specification-2 create-specification-2))
   racr-specification-2-ast-scheme
   (rename (specify-ast-rule-2 ast-rule-2))
-  specify-attribute-2)
+  specify-start-symbol-2
+  specify-attribute-2
+  compile-specification-2
+  create-ast-2
+  create-ast-list-2)
  (import (rnrs) (rnrs mutable-pairs))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -725,16 +729,15 @@
            (read-char (char= #\>))
            (set!
             rhand
-            (reverse
-             (if (peek-char char-alphabetic?)
-                 (let loop ()
-                   (let ((symbol (parse-symbol)))
-                     (if (peek-char (char= #\-))
-                         (begin
-                           (read-char)
-                           (cons symbol (loop)))
-                         (list symbol))))
-                 (list))))
+            (if (peek-char char-alphabetic?)
+                (let loop ()
+                  (let ((symbol (parse-symbol)))
+                    (if (peek-char (char= #\-))
+                        (begin
+                          (read-char)
+                          (cons symbol (loop)))
+                        (list symbol))))
+                (list)))
            (when (peek-char)
              (throw-exception "Invalid AST rule " rule ";"))
            (create-ast ast-language 'AstRule (list name supertype? (create-ast-list rhand))))))
@@ -755,13 +758,82 @@
                  (loop (cons (read-char) id))
                  (string->symbol (apply string (reverse id))))))))
      
-     ; Ensure, that the language is in the correct specification phase:
-     (when (> (racr-specification-2-specification-phase spec) 1)
+     ;;; Before adding the AST rule, ensure that...
+     (when (> (racr-specification-2-specification-phase spec) 1) ; ...the language is in the correct specification phase.
        (throw-exception
         "Unexpected AST rule " rule ";"
         "AST rules can only be defined in the specification phase."))
-     ; Parse the rule and add it to the RACR specification:
-     (rewrite-add (ast-child 'astrules (racr-specification-2-ast-scheme spec)) (parse-rule))))
+     ;;; Parse the rule, add it to the RACR specification and return it:
+     (let ((rule (parse-rule)))
+       (rewrite-add (ast-child 'astrules (racr-specification-2-ast-scheme spec)) rule)
+       rule)))
+ 
+ (define specify-start-symbol-2
+   (lambda (spec start-symbol)
+     ;;; Before changing the start symbol, ensure that...
+     (unless (symbol? start-symbol) ; ...the given argument is of the expected type and...
+       (throw-exception
+        "Invalid start symbol definition;"
+        "Wrong argument type (" start-symbol ")."))
+     (when (> (racr-specification-2-specification-phase spec) 1) ; ...the language is in the correct specification phase.
+       (throw-exception
+        "Unexpected " start-symbol " start symbol definition;"
+        "The start symbol can only be defined in the specification phase."))
+     ;;; Set the start symbol:
+     (rewrite-terminal 'startsymbol (racr-specification-2-ast-scheme spec) start-symbol)))
+ 
+ (define specify-attribute-2
+   (lambda (spec name rule position cached? equation circularity-definition)
+     ;;; Before adding the attribute definition, ensure that...
+     (let ((wrong-argument-type ; ...the given arguments are of the expected type and...
+            (or
+             (and (not (symbol? name))
+                  "Attribute name: symbol")
+             (and (not (symbol? rule))
+                  "AST rule: non-terminal symbol")
+             (and (not (symbol? position))
+                  "Production context: right hand symbol or '*")
+             (and (not (procedure? equation))
+                  "Attribute equation: function")
+             (and circularity-definition
+                  (or
+                   (not (pair? circularity-definition))
+                   (not (procedure? (cdr circularity-definition))))
+                  "Circularity definition: #f or (bottom-value equivalence-function) pair"))))
+       (when wrong-argument-type
+         (throw-exception
+          "Invalid attribute definition; "
+          "Wrong argument type (" wrong-argument-type ").")))
+     (when (> (racr-specification-2-specification-phase spec) 1) ; ...the language is in the correct specification phase.
+       (throw-exception
+        "Unexpected " name " attribute definition; "
+        "Attributes can only be defined in the specification phase."))
+     ;;; Add the attribute to the RACR specification and return it:
+     (let ((attribute
+            (create-ast
+             ast-language
+             'Attribute
+             (list name (cons rule position) equation circularity-definition cached?))))
+       (rewrite-add
+        (ast-child 'attribution (racr-specification-2-ast-scheme spec))
+        attribute)
+       attribute)))
+ 
+ (define compile-specification-2
+   (lambda (spec)
+     ;;; Before comiling the specification, ensure that...
+     (when (> (racr-specification-2-specification-phase spec) 1) ; ...it is in the correct specification phase and...
+       (throw-exception
+        "Unexpected RACR specification compilation;"
+        "The specification already has been compiled."))
+     (unless (att-value 'well-formed? (racr-specification-2-ast-scheme spec)) ; ...well-formed.
+       (throw-exception
+        "Cannot compile RACR specification;"
+        "The specification is not well-formed."))
+     ;;; Compile the specification, i.e.,...
+     (racr-specification-2-specification-phase-set! spec 2) ; ...proceed to the next specifcation phase,...
+     ; TODO: Precompute specification attributes to improve meta-reasoning performance.
+     ))
  
  (define-record-type racr-specification-2
    (fields (mutable specification-phase) ast-scheme)
@@ -973,15 +1045,13 @@
        expanded-rhand ; List of right-hand symbols including inherited ones.
        (AstRule
         (lambda (n)
-          (append
-           (fold-left ; TODO: fold-right instead
-            (lambda (result n)
-              (append
-               result
-               (ast-children (ast-child 'rhand n))))
-            (list)
-            (att-value 'supertypes n))
-           (ast-children (ast-child 'rhand n))))))
+          (fold-right
+           (lambda (n result)
+             (append
+              (ast-children (ast-child 'rhand n))
+              result))
+           (ast-children (ast-child 'rhand n))
+           (att-value 'supertypes n)))))
       
       (ag-rule
        rhand-non-terminal-symbols ; List of right-hand symbols that are non-terminals.
@@ -1367,38 +1437,6 @@
                     ((_ spec* att-name* (non-terminal cached? equation bottom equivalence-function))
                      (specify-attribute spec* att-name* 'non-terminal 0 cached? equation (cons bottom equivalence-function))))))
               (specify-attribute* spec* att-name* definition) ...))))))
- 
- (define specify-attribute-2
-   (lambda (spec name rule position cached? equation circularity-definition)
-     ;;; Before adding the attribute definition, ensure...
-     (let ((wrong-argument-type ; ...correct argument types,...
-            (or
-             (and (not (symbol? name))
-                  "Attribute name: symbol")
-             (and (not (symbol? rule))
-                  "AST rule: non-terminal symbol")
-             (and (not (symbol? position))
-                  "Production context: right hand symbol or '*")
-             (and (not (procedure? equation))
-                  "Attribute equation: function")
-             (and circularity-definition
-                  (or
-                   (not (pair? circularity-definition))
-                   (not (procedure? (cdr circularity-definition))))
-                  "Circularity definition: #f or (bottom-value equivalence-function) pair"))))
-       (when wrong-argument-type
-         (throw-exception
-          "Invalid attribute definition; "
-          "Wrong argument type (" wrong-argument-type ").")))
-     ; Ensure, that the language is in the correct specification phase:
-     (when (> (racr-specification-2-specification-phase spec) 1)
-       (throw-exception
-        "Unexpected " name " attribute definition; "
-        "Attributes can only be defined in the specification phase."))
-     ; Add the attribute to the RACR specification:
-     (rewrite-add
-      (ast-child 'attribution (racr-specification-2-ast-scheme spec))
-      (create-ast ast-language 'Attribute (list name (cons rule position) equation circularity-definition cached?)))))
  
  (define specify-attribute
    (lambda (spec attribute-name non-terminal context-name-or-position cached? equation circularity-definition)
@@ -2040,6 +2078,124 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Construction ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (define create-ast-2
+   (lambda (spec rule children)
+     ;;; Before constructing the fragment ensure, that...
+     (when (< (racr-specification-2-specification-phase spec) 2) ; ...the language is in the correct specification phase...
+       (throw-exception
+        "Cannot construct " rule " fragment;"
+        "The RACR specification is not compiled yet. It still is in the specification phase."))
+     (let* ((ast-scheme (racr-specification-2-ast-scheme spec))
+            (ast-rule (att-value 'lookup-rule ast-scheme rule))
+            (expected-children (att-value 'expanded-rhand ast-rule))
+            (new-fragment (make-node ast-rule #f (list))))
+       (when (att-value 'error-node? ast-rule) ; ...the type of the fragment to construct is defined,...
+         (throw-exception
+          "Cannot construct " rule " fragment;"
+          "Unknown node type."))
+       (unless (satisfy-contexts?-2 children expected-children) ; ...and the given children fit.
+         (throw-exception
+          "Cannot construct " rule " fragment;"
+          "The given children do not fit."))
+       ;;; When all constraints are satisfied, construct the fragment, i.e.,...
+       (node-children-set! ; ...add its children,...
+        new-fragment
+        (map ; ...set it as parent of each child,...
+         (lambda (symbol child)
+           (if (att-value 'terminal? symbol)
+               (make-node 'terminal new-fragment child)
+               (begin
+                 (for-each ; ...flush all attribute cache entries depending on any added child being a root,...
+                  (lambda (influence)
+                    (flush-attribute-cache-entry (car influence)))
+                  (filter
+                   (lambda (influence)
+                     (vector-ref (cdr influence) 1))
+                   (node-cache-influences child)))
+                 (node-parent-set! child new-fragment)
+                 child)))
+         expected-children
+         children))
+       (distribute-evaluator-state (make-evaluator-state) new-fragment) ; ...distribute the fragment's evaluator state and...
+       ; TODO:
+       ;(update-synthesized-attribution-2 new-fragment) ; ...initialize its synthesized and...
+       ;(for-each ; ...each child's inherited attributes.
+       ; update-inherited-attribution
+       ; (node-children new-fragment))
+       new-fragment))) ; Finally, return the constructed fragment.
+ 
+ (define create-ast-list-2
+   (lambda (children)
+     ;;; Before constructing the list node ensure, that...
+     (unless (for-all can-be-list-element? children) ; ...all children fit.
+       (throw-exception
+        "Cannot construct list node;"
+        "The given children do not fit."))
+     ;;; When all constraints are satisfied,...
+     (for-each ; ...flush all attribute cache entries depending on the children being roots,...
+      (lambda (child)
+        (for-each
+         (lambda (influence)
+           (flush-attribute-cache-entry (car influence)))
+         (filter
+          (lambda (influence)
+            (vector-ref (cdr influence) 1))
+          (node-cache-influences child))))
+      children)
+     (let ((new-list (make-node 'list-node #f (append children (list))))) ; ...construct the list node,...
+       (for-each ; ...set it as parent of each child,...
+        (lambda (child)
+          (node-parent-set! child new-list))
+        children)
+       (distribute-evaluator-state (make-evaluator-state) new-list) ; ...distribute its evaluator state and...
+       new-list))) ; ...return it.
+ 
+ ; INTERNAL FUNCTION: Is a Scheme entity permitted as element in list nodes? 
+ (define can-be-list-element?
+   (lambda (candidate)
+     (and
+      (ast-node? candidate) ; The candiate is a non-terminal node,...
+      (not (node-list-node? candidate)) ; ...not a list node,...
+      (not (node-parent candidate)) ; ...not already part of another AST and...
+      (not (evaluator-state-in-evaluation? (node-evaluator-state candidate)))))) ; ...non of its attributes are in evaluation.
+ 
+ ; INTERNAL FUNCTION: Given two lists of Scheme entities and symbols, are the entities valid instances of the symbols?
+ (define satisfy-contexts?-2
+   (lambda (children symbols)
+     (and
+      (= (length children) (length symbols))
+      (for-all satisfies-context?-2 children symbols))))
+ 
+ ; INTERNAL FUNCTION: Is a Scheme entity a valid instance of a certain symbol?
+ (define satisfies-context?-2
+   (lambda (child symbol)
+     (or ; The given child is valid if either,...
+      (att-value 'terminal? symbol) ; ...a terminal is expected or,...
+      (and ; ...in case a non-terminal is expected,...
+       (ast-node? child) ; ...the given child is an AST node,...
+       (not (node-parent child)) ; ...does not already belong to another AST,...
+       (not (evaluator-state-in-evaluation? (node-evaluator-state child))) ; ...non of its attributes are in evaluation and...
+       (or
+        (node-bud-node? child) ; ...the child either is a bud node or,...
+        (if (ast-child 'klenee symbol)
+            (and ; ...in case a list node is expected,...
+             (node-list-node? child) ; ...is a list...
+             (for-all ; ...whose children are...
+                 (lambda (child)
+                   (or ; ...either bud nodes or nodes of the expected type, or,...
+                    (node-bud-node? child)
+                    (or
+                     (eq? (node-ast-rule child) (att-value 'non-terminal? symbol))
+                     (memq (node-ast-rule child) (att-value 'subtypes (att-value 'non-terminal? symbol))))))
+               (node-children child)))
+            (and ; ...in case a non-list node is expected,...
+             (not (node-list-node? child)) ; ...is a non-list node of...
+             (or ; ...the expected type.
+              (eq? (node-ast-rule child) (att-value 'non-terminal? symbol))
+              (memq (node-ast-rule child) (att-value 'subtypes (att-value 'non-terminal? symbol)))))))))))
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define create-ast
    (lambda (spec rule children)
