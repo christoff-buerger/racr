@@ -814,26 +814,41 @@
              ast-language
              'Attribute
              (list name (cons rule position) equation circularity-definition cached?))))
-       (rewrite-add
-        (ast-child 'attribution (racr-specification-2-ast-scheme spec))
-        attribute)
+       (rewrite-add (ast-child 'attribution (racr-specification-2-ast-scheme spec)) attribute)
        attribute)))
  
  (define compile-specification-2
    (lambda (spec)
-     ;;; Before comiling the specification, ensure that...
-     (when (> (racr-specification-2-specification-phase spec) 1) ; ...it is in the correct specification phase and...
-       (throw-exception
-        "Unexpected RACR specification compilation;"
-        "The specification already has been compiled."))
-     (unless (att-value 'well-formed? (racr-specification-2-ast-scheme spec)) ; ...well-formed.
-       (throw-exception
-        "Cannot compile RACR specification;"
-        "The specification is not well-formed."))
-     ;;; Compile the specification, i.e.,...
-     (racr-specification-2-specification-phase-set! spec 2) ; ...proceed to the next specifcation phase,...
-     ; TODO: Precompute specification attributes to improve meta-reasoning performance.
-     ))
+     (let ((ast-scheme (racr-specification-2-ast-scheme spec)))
+       ;;; Before comiling the specification, ensure that...
+       (when (> (racr-specification-2-specification-phase spec) 1) ; ...it is in the correct specification phase and...
+         (throw-exception
+          "Unexpected RACR specification compilation;"
+          "The specification already has been compiled."))
+       (unless (att-value 'well-formed? ast-scheme) ; ...well-formed.
+         (throw-exception
+          "Cannot compile RACR specification;"
+          "The specification is not well-formed."))
+       ;;; Compile the specification, i.e.,...
+       (racr-specification-2-specification-phase-set! spec 2) ; ...proceed to the next specifcation phase and...
+       (for-each ; ...precompute...
+        (lambda (rule)
+          (att-value 'attributes rule) ; ...the synthesised...
+          (for-each
+           (lambda (symbol)
+             (att-value 'attributes rule (att-value 'contextname symbol)) ; ...and inherited attributes of all rules and...
+             (for-each ;  ...the attribution of all possible contexts.
+              (lambda (child-rule)
+                (att-value
+                 'attributes-for-context
+                 ast-scheme
+                 (ast-child 'name rule)
+                 (att-value 'contextname symbol)
+                 (ast-child 'name child-rule)))
+              (let ((child-rule (att-value 'non-terminal? symbol)))
+                (cons child-rule (att-value 'subtypes child-rule)))))
+           (att-value 'rhand-non-terminal-symbols rule)))
+        (att-value 'ast-rules ast-scheme)))))
  
  (define-record-type racr-specification-2
    (fields (mutable specification-phase) ast-scheme)
@@ -953,6 +968,16 @@
           (ast-children (ast-child 'attribution n)))))
       
       (ag-rule
+       ast-rules ; List of all AST rules.
+       (AstScheme
+        (lambda (n)
+          (ast-children (ast-child 'astrules n)))))
+      
+      (ag-rule
+       containing-rule ; Broadcast the AST rule containing a symbol.
+       (AstRule (lambda (n) n)))
+      
+      (ag-rule
        terminal? ; Is the symbol a terminal?
        (Symbol
         (lambda (n)
@@ -1034,12 +1059,12 @@
       
       (ag-rule
        subtypes ; List of all subtypes (transitive but, if well-formed, not reflexive).
-       ((AstScheme astrules)
+       (AstRule
         (lambda (n)
           (filter
            (lambda (rule)
              (memq n (att-value 'supertypes rule)))
-           (ast-children (ast-parent n))))))
+           (att-value 'ast-rules n)))))
       
       (ag-rule
        expanded-rhand ; List of right-hand symbols including inherited ones.
@@ -1059,7 +1084,7 @@
         (lambda (n)
           (filter
            (lambda (n)
-             (att-value 'non-terminal? n))
+             (not (att-value 'terminal? n)))
            (att-value 'expanded-rhand n)))))
       
       ;;; Derivability Analysis:
@@ -1149,7 +1174,7 @@
         (lambda (n)
           (att-value 'lookup-contextname (att-value 'context-rule n) (cdr (ast-child 'context n))))))
       
-      (let ((attributes-for-node ; List of attribute definitions for given AST node.
+      (let ((attributes-for-node ; List of attribute definitions for AST node.
              (lambda (n)
                (filter
                 (lambda (attribute)
@@ -1163,36 +1188,53 @@
          (Symbol attributes-for-node)))
       
       (ag-rule
-       attributes ; List of attributes of AST rules and their right hand symbols considering inheritance and shadowing.
-       
-       (AstRule ; List of synthesised attributes.
-        (lambda (n)
-          (fold-right ; Process all ancestor AST rules in order of inheritance and...
-           (lambda (n result)
-             (set-union ; ...add the definitions of all synthesised attributes...
-              result
-              (att-value 'attributes-for-rule/symbol n)
-              (lambda (a1 a2) ; ...that are not already defined.
-                (eq? (ast-child 'name a1) (ast-child 'name a2)))))
-           (att-value 'attributes-for-rule/symbol n)
-           (att-value 'supertypes n))))
-       
-       ((AstRule rhand) ; List of inherited attributes if the symbol is child of a given AST rule.
-        (lambda (n context) ; BEWARE: context must have the symbol as child, otherwise an exception is thrown!
-          (fold-right ; Process each AST rule that has the symbol in order of inheritance and...
-           (lambda (context result)
-             (set-union ; ...add the definitions of all inherited attributes...
-              result
-              (filter
-               (lambda (attribute)
-                 (eq? (att-value 'context-rule attribute) context))
-               (att-value 'attributes-for-rule/symbol n))
-              (lambda (a1 a2) ; ...that are not already defined for the symbol.
-                (eq? (ast-child 'name a1) (ast-child 'name a2)))))
-           (list)
-           (memq ; Filter all rules that are supertypes of the given context and have the symbol.
-            (ast-parent (ast-parent n))
-            (append (att-value 'supertypes context) (list context)))))))
+       attributes ; List of attributes of AST rules and their right hand symbols considering inheritance.
+       (AstRule
+        (case-lambda
+          ((n) ; List of synthesised attributes of the rule.
+           (fold-right ; Process all ancestor AST rules in order of inheritance and...
+            (lambda (n result)
+              (set-union ; ...add the definitions of all synthesised attributes...
+               result
+               (att-value 'attributes-for-rule/symbol n)
+               (lambda (a1 a2) ; ...that are not already defined.
+                 (eq? (ast-child 'name a1) (ast-child 'name a2)))))
+            (att-value 'attributes-for-rule/symbol n)
+            (att-value 'supertypes n)))
+          ((n context-name) ; List of inherited attributes of a symbol of the rule.
+           (let ((symbol (att-value 'lookup-contextname n context-name)))
+             (fold-right ; Process each AST rule that has the symbol in order of inheritance and...
+              (lambda (n result)
+                (set-union ; ...add the definitions of all inherited attributes...
+                 result
+                 (filter
+                  (lambda (attribute)
+                    (eq? (att-value 'context-rule attribute) n))
+                  (att-value 'attributes-for-rule/symbol symbol))
+                 (lambda (a1 a2) ; ...that are not already defined for the symbol.
+                   (eq? (ast-child 'name a1) (ast-child 'name a2)))))
+              (list)
+              (memq (att-value 'containing-rule symbol) (append (att-value 'supertypes n) (list n)))))))))
+      
+      (ag-rule
+       attributes-for-context ; List of all attributes of a node of a certain type if it is in a certain context.
+       (AstScheme
+        (lambda (n parent-type context-name child-type) ; BEWARE: Context must exist & type must be permitted in it.
+          (let* ((child-rule (att-value 'lookup-rule n child-type))
+                 (parent-rule (att-value 'lookup-rule n parent-type))
+                 (child-context (att-value 'lookup-contextname parent-rule context-name))
+                 (valid-context? (att-value 'non-terminal? child-context)))
+            (if (or
+                 (att-value 'error-node? child-rule)
+                 (att-value 'error-node? child-context)
+                 (not valid-context?)
+                 (not (memq child-rule (cons valid-context? (att-value 'subtypes valid-context?)))))
+                (throw-exception "IMPLEMENTATION ERROR (non-existent context queried for attributes)!")
+                (set-union
+                 (att-value 'attributes child-rule)
+                 (att-value 'attributes parent-rule context-name)
+                 (lambda (a1 a2)
+                   (eq? (ast-child 'name a1) (ast-child 'name a2)))))))))
       
       ;;; Well-formedness Analysis:
       
@@ -1232,7 +1274,7 @@
             (eq? (att-value 'lookup-rule n (ast-child 'name n)) n) ; ...its name is unique,...
             (let ((supertype? (att-value 'supertype? n))) ; ...if it has a supertype it exists,...
               (or (not supertype?) (not (att-value 'error-node? supertype?))))
-            (not (memq n (att-value 'supertypes n))) ; ...if it inherits inheritance is cycle free,...
+            (not (memq n (att-value 'subtypes n))) ; ...if it inherits inheritance is cycle free,...
             (att-value 'productive? n) ; ...it is productive and...
             (memq n (att-value 'derivable (att-value 'startsymbol n))))))) ; ...reachable from the startsymbol.
        
@@ -1257,7 +1299,7 @@
               (find (lambda (attribute) (eq? (ast-child 'name attribute) (ast-child 'name n)))
                     (if (att-value 'synthesised? n)
                         (att-value 'attributes context)
-                        (att-value 'attributes context (att-value 'context-rule n))))
+                        (att-value 'attributes (att-value 'context-rule n) (cdr (ast-child 'context n)))))
               n))))))
       
       (compile-ag-specifications))))
@@ -2094,7 +2136,7 @@
          (throw-exception
           "Cannot construct " rule " fragment;"
           "Unknown node type."))
-       (unless (satisfy-contexts?-2 children expected-children) ; ...and the given children fit.
+       (unless (can-satisfy-contexts?-2 children expected-children) ; ...and the given children fit.
          (throw-exception
           "Cannot construct " rule " fragment;"
           "The given children do not fit."))
@@ -2151,49 +2193,56 @@
        (distribute-evaluator-state (make-evaluator-state) new-list) ; ...distribute its evaluator state and...
        new-list))) ; ...return it.
  
+ ; INTERNAL FUNCTION: Is a Scheme entity permitted as non-terminal child of other AST nodes?
+ (define can-be-non-terminal-child?
+   (lambda (node)
+     (and
+      (ast-node? node) ; The node is a non-terminal node (Remember: Terminal nodes as such are never exposed to users),...
+      (not (node-parent node)) ; ...not already part of another AST and...
+      (not (evaluator-state-in-evaluation? (node-evaluator-state node)))))) ; ...non of its attributes are in evaluation.
+ 
  ; INTERNAL FUNCTION: Is a Scheme entity permitted as element in list nodes? 
  (define can-be-list-element?
-   (lambda (candidate)
+   (lambda (node)
      (and
-      (ast-node? candidate) ; The candiate is a non-terminal node,...
-      (not (node-list-node? candidate)) ; ...not a list node,...
-      (not (node-parent candidate)) ; ...not already part of another AST and...
-      (not (evaluator-state-in-evaluation? (node-evaluator-state candidate)))))) ; ...non of its attributes are in evaluation.
+      (can-be-non-terminal-child? node) ; The node can be a non-terminal child and...
+      (not (node-list-node? node))))) ; ...is not a list node.
+ 
+ ; INTERNAL FUNCTION: Is the AST node of a certain type or subtype thereof (must be no terminal, bud or list node)?
+ (define instance-of?
+   (lambda (node rule)
+     (or
+      (eq? (node-ast-rule node) rule)
+      (memq (node-ast-rule node) (att-value 'subtypes rule)))))
  
  ; INTERNAL FUNCTION: Given two lists of Scheme entities and symbols, are the entities valid instances of the symbols?
- (define satisfy-contexts?-2
-   (lambda (children symbols)
+ (define can-satisfy-contexts?-2
+   (lambda (nodes symbols)
      (and
-      (= (length children) (length symbols))
-      (for-all satisfies-context?-2 children symbols))))
+      (= (length nodes) (length symbols))
+      (for-all can-satisfy-context?-2 nodes symbols))))
  
  ; INTERNAL FUNCTION: Is a Scheme entity a valid instance of a certain symbol?
- (define satisfies-context?-2
-   (lambda (child symbol)
-     (or ; The given child is valid if either,...
+ (define can-satisfy-context?-2
+   (lambda (node symbol)
+     (or ; The given node is valid if either,...
       (att-value 'terminal? symbol) ; ...a terminal is expected or,...
       (and ; ...in case a non-terminal is expected,...
-       (ast-node? child) ; ...the given child is an AST node,...
-       (not (node-parent child)) ; ...does not already belong to another AST,...
-       (not (evaluator-state-in-evaluation? (node-evaluator-state child))) ; ...non of its attributes are in evaluation and...
-       (or
-        (node-bud-node? child) ; ...the child either is a bud node or,...
+       (can-be-non-terminal-child? node) ; ...the node can be a non-terminal child and...
+       (or ; ...either...
+        (node-bud-node? node) ; ...is a bud node or,...
         (if (ast-child 'klenee symbol)
             (and ; ...in case a list node is expected,...
-             (node-list-node? child) ; ...is a list...
+             (node-list-node? node) ; ...is a list...
              (for-all ; ...whose children are...
                  (lambda (child)
                    (or ; ...either bud nodes or nodes of the expected type, or,...
                     (node-bud-node? child)
-                    (or
-                     (eq? (node-ast-rule child) (att-value 'non-terminal? symbol))
-                     (memq (node-ast-rule child) (att-value 'subtypes (att-value 'non-terminal? symbol))))))
-               (node-children child)))
+                    (instance-of? child (att-value 'non-terminal? symbol))))
+               (node-children node)))
             (and ; ...in case a non-list node is expected,...
-             (not (node-list-node? child)) ; ...is a non-list node of...
-             (or ; ...the expected type.
-              (eq? (node-ast-rule child) (att-value 'non-terminal? symbol))
-              (memq (node-ast-rule child) (att-value 'subtypes (att-value 'non-terminal? symbol)))))))))))
+             (not (node-list-node? node)) ; ...is a non-list node of...
+             (instance-of? node (att-value 'non-terminal? symbol))))))))) ; ...the expected type.
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
