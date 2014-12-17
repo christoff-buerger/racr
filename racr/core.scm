@@ -241,6 +241,13 @@
          (list)
          (list))))))
  
+ ; INTERNAL FUNCTION: Is the AST node of a certain type or subtype thereof (must be no terminal, bud or list node)?
+ (define node-instance-of?-2
+   (lambda (node rule)
+     (or
+      (eq? (node-ast-rule node) rule)
+      (memq (node-ast-rule node) (att-value 'subtypes rule)))))
+ 
  ; INTERNAL FUNCTION: Given a node, return whether it is a terminal or not.
  (define node-terminal?
    (lambda (n)
@@ -288,12 +295,20 @@
                     (loop (cdr contexts) (cdr children))))))))
  
  ; INTERNAL FUNCTION: Given a node find a certain attribute associated with it. If the node
- ; has no such attribute, return #f, otherwise the attribute.
+ ; has no such attribute, return #f, otherwise the attribute. TODO: delte
  (define node-find-attribute
    (lambda (n name)
      (find
       (lambda (att)
         (eq? (attribute-definition-name (attribute-instance-definition att)) name))
+      (node-attributes n))))
+ 
+ ; INTERNAL FUNCTION: Given a node return a certain of its attributes if it exists otherwise #f.
+ (define node-find-attribute-2
+   (lambda (n name)
+     (find
+      (lambda (attribute-instance)
+        (eq? (ast-child 'name (attribute-instance-definition attribute-instance)) name))
       (node-attributes n))))
  
  ; INTERNAL FUNCTION: Given two nodes n1 and n2, return whether n1 is within the subtree spaned by n2 or not.
@@ -880,68 +895,32 @@
  
  (define load-ast-language
    (lambda ()
-     ;;; AST Scheme:
-     
-     (let* ((AstScheme (make-ast-rule ast-language 'AstScheme->AstRule*<astrules-startsymbol-Attribute*<attribution #f #f))
-            (AstRule (make-ast-rule ast-language 'AstRule->name-supertype-Symbol*<rhand #f #f))
-            (Symbol (make-ast-rule ast-language 'Symbol->name-klenee-contextname #f #f))
-            (Attribute (make-ast-rule ast-language 'Attribute->name-context-equation-circularitydefinition-cached #f #f))
-            (prod-AstScheme
-             (list
-              (make-production-symbol 'AstScheme AstScheme AstScheme #f 'AstScheme (list))
-              (make-production-symbol 'AstRule AstScheme AstRule #t 'astrules (list))
-              (make-production-symbol 'startsymbol AstScheme #f #f 'startsymbol (list))
-              (make-production-symbol 'Attribute AstScheme Attribute #t 'attribution (list))))
-            (prod-AstRule
-             (list
-              (make-production-symbol 'AstRule AstRule AstRule #f 'AstRule (list))
-              (make-production-symbol 'name AstRule #f #f 'name (list))
-              (make-production-symbol 'supertype AstRule #f #f 'supertype (list))
-              (make-production-symbol 'Symbol AstRule Symbol #t 'rhand (list))))
-            (prod-Symbol
-             (list
-              (make-production-symbol 'Symbol Symbol Symbol #f 'Symbol (list))
-              (make-production-symbol 'name Symbol #f #f 'name (list))
-              (make-production-symbol 'klenee Symbol #f #f 'klenee (list))
-              (make-production-symbol 'contextname Symbol #f #f 'contextname (list))))
-            (prod-Attribute
-             (list
-              (make-production-symbol 'Attribute Attribute Attribute #f 'Attribute (list))
-              (make-production-symbol 'name Attribute #f #f 'name (list))
-              (make-production-symbol 'context Attribute #f #f 'context (list))
-              (make-production-symbol 'equation Attribute #f #f 'equation (list))
-              (make-production-symbol 'circularitydefinition Attribute #f #f 'circularitydefinition (list))
-              (make-production-symbol 'cached Attribute #f #f 'cached (list)))))
-       (ast-rule-production-set! AstScheme prod-AstScheme)
-       (ast-rule-production-set! AstRule prod-AstRule)
-       (ast-rule-production-set! Symbol prod-Symbol)
-       (ast-rule-production-set! Attribute prod-Attribute)
-       (hashtable-set! (racr-specification-rules-table ast-language) 'AstScheme AstScheme)
-       (hashtable-set! (racr-specification-rules-table ast-language) 'AstRule AstRule)
-       (hashtable-set! (racr-specification-rules-table ast-language) 'Symbol Symbol)
-       (hashtable-set! (racr-specification-rules-table ast-language) 'Attribute Attribute)
-       (racr-specification-start-symbol-set! ast-language 'AstScheme)
-       (racr-specification-specification-phase-set! ast-language 2))
-     
-     ;;; Attribution:
+     (define set-union
+       (case-lambda
+         ((s1 s2 f) ; Given two sets s1 and s2 and an equality function f, return the set union of s1 and s2 w.r.t. f.
+          (fold-left
+           (lambda (result e2)
+             (if (find (lambda (e1) (f e1 e2)) s1)
+                 result
+                 (cons e2 result)))
+           s1
+           s2))
+         ((s1 s2) ; Given two sets s1 and s2, return the set union of s1 and s2 (use eq? to compare elements).
+          (set-union s1 s2 eq?))))
      
      (with-specification
       ast-language
       
-      ;;; AST Query Support:
+      ;;; AST Scheme:
       
-      (define set-union
-        (case-lambda
-          ((s1 s2 f) ; Given two sets s1 and s2 and an equality function f, return the set union of s1 and s2 w.r.t. f.
-           (fold-left
-            (lambda (result e2)
-              (if (find (lambda (e1) (f e1 e2)) s1)
-                  result
-                  (cons e2 result)))
-            s1
-            s2))
-          ((s1 s2) ; Given two sets s1 and s2, return the set union of s1 and s2 (use eq? to compare elements).
-           (set-union s1 s2 eq?))))
+      (ast-rule 'AstScheme->AstRule*<astrules-startsymbol-Attribute*<attribution)
+      (ast-rule 'AstRule->name-supertype-Symbol*<rhand)
+      (ast-rule 'Symbol->name-klenee-contextname)
+      (ast-rule 'Attribute->name-context-equation-circularitydefinition-cached)
+      
+      (compile-ast-specifications 'AstScheme)
+      
+      ;;; AST Query Support:
       
       (ag-rule
        error-rule ; Childless, non-inheriting rule with invalid name referd to by undeclared rule references.
@@ -2143,7 +2122,7 @@
        ;;; When all constraints are satisfied, construct the fragment, i.e.,...
        (node-children-set! ; ...add its children,...
         new-fragment
-        (map ; ...set it as parent of each child,...
+        (map
          (lambda (symbol child)
            (if (att-value 'terminal? symbol)
                (make-node 'terminal new-fragment child)
@@ -2155,16 +2134,16 @@
                    (lambda (influence)
                      (vector-ref (cdr influence) 1))
                    (node-cache-influences child)))
-                 (node-parent-set! child new-fragment)
+                 (node-parent-set! child new-fragment) ; ...set the node as parent of each child,...
+                 (update-attributes-2 (ast-child 'name ast-rule) symbol child) ; ...update each child's inherited attributes,...
                  child)))
          expected-children
          children))
        (distribute-evaluator-state (make-evaluator-state) new-fragment) ; ...distribute the fragment's evaluator state and...
-       ; TODO:
-       ;(update-synthesized-attribution-2 new-fragment) ; ...initialize its synthesized and...
-       ;(for-each ; ...each child's inherited attributes.
-       ; update-inherited-attribution
-       ; (node-children new-fragment))
+       (node-attributes-set! ; ...initialize its synthesized attributes.
+        new-fragment
+        (map (lambda (attribute) (make-attribute-instance attribute new-fragment))
+             (att-value 'attributes ast-rule)))
        new-fragment))) ; Finally, return the constructed fragment.
  
  (define create-ast-list-2
@@ -2208,13 +2187,6 @@
       (can-be-non-terminal-child? node) ; The node can be a non-terminal child and...
       (not (node-list-node? node))))) ; ...is not a list node.
  
- ; INTERNAL FUNCTION: Is the AST node of a certain type or subtype thereof (must be no terminal, bud or list node)?
- (define instance-of?
-   (lambda (node rule)
-     (or
-      (eq? (node-ast-rule node) rule)
-      (memq (node-ast-rule node) (att-value 'subtypes rule)))))
- 
  ; INTERNAL FUNCTION: Given two lists of Scheme entities and symbols, are the entities valid instances of the symbols?
  (define can-satisfy-contexts?-2
    (lambda (nodes symbols)
@@ -2238,11 +2210,54 @@
                  (lambda (child)
                    (or ; ...either bud nodes or nodes of the expected type, or,...
                     (node-bud-node? child)
-                    (instance-of? child (att-value 'non-terminal? symbol))))
+                    (node-instance-of?-2 child (att-value 'non-terminal? symbol))))
                (node-children node)))
             (and ; ...in case a non-list node is expected,...
              (not (node-list-node? node)) ; ...is a non-list node of...
-             (instance-of? node (att-value 'non-terminal? symbol))))))))) ; ...the expected type.
+             (node-instance-of?-2 node (att-value 'non-terminal? symbol))))))))) ; ...the expected type.
+ 
+ ; INTERNAL FUNCTION: Given a node in some context update its attribution (the given context must be valid).
+ (define update-attributes-2
+   (lambda (parent-type symbol n)
+     (define equal-semantics ; Evaluate two attribute definitions always the same?
+       (lambda (a1 a2)
+         (or ; Attribute definitions are semantically equivalent, if either...
+          (eq? a1 a2) ; ...they are the same or...
+          (and
+           (eq? (ast-child 'equation a1) (ast-child 'equation a2)) ; ...have the same equation and...
+           (if (att-value 'circular? a1) ; ...circularity definition.
+               (and
+                (att-value 'circular? a2)
+                (equal? (att-value 'bottom-value a1) (att-value 'bottom-value a2))
+                (eq? (att-value 'equality-function a1) (att-value 'equality-function a2)))
+               (not (att-value 'circular? a2)))))))
+     ;;; Update the node's attributes w.r.t. its context. To do so,...
+     (if (node-list-node? n) ; ...check if the node is a list. If so,...
+         (for-each (lambda (n) (update-attributes-2 parent-type symbol n)) (node-children n)) ; ...update all its elements...
+         (unless (or (node-terminal? n) (node-bud-node? n)) ; ...otherwise ensure it is an ordinary non-terminal. If so,...
+           (let ((old-attribute-instances (node-attributes n)))
+             (node-attributes-set! ; ...construct the list of its attribute instances, i.e.,...
+              n
+              (map ; ...for each...
+               (lambda (attribute)
+                 (let ((instance? (node-find-attribute-2 n (ast-child 'name attribute)))) ; ...existing instance with...
+                   (if (and instance? (equal-semantics (attribute-instance-definition instance?) attribute)) ; ...unchaged semantics...
+                       (begin
+                         (attribute-instance-definition-set! instance? attribute) ; ...just update the instance's definition...
+                         instance?)
+                       (make-attribute-instance attribute n)))) ; ...If a proper instance does not yet exist, add it. Finally,...
+               (att-value
+                'attributes-for-context
+                (node-ast-rule n)
+                parent-type
+                (att-value 'contextname symbol)
+                (ast-child 'name (node-ast-rule n)))))
+             (for-each ; ...flush the cache of all instances no more defined or whose definition changed.
+              (lambda (attribute-instance)
+                (when (not (memq attribute-instance (node-attributes n)))
+                  (flush-attribute-instance attribute-instance)
+                  (attribute-instance-context-set! attribute-instance racr-nil)))
+              old-attribute-instances))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
