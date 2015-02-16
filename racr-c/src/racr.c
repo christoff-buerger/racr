@@ -129,7 +129,8 @@ Scheme_Env* racr_init(void* stack_addr, const char* bytecode, char const** modul
 
 	scheme_namespace_require(scheme_intern_symbol("racket/base"));
 	scheme_namespace_require(scheme_intern_symbol("rnrs"));
-	scheme_namespace_require(scheme_intern_symbol("racr"));
+	scheme_namespace_require(scheme_intern_symbol("racr/core"));
+	scheme_namespace_require(scheme_intern_symbol("racr/testing"));
 	if (module_names) {
 		for (; *module_names; module_names++) {
 			scheme_namespace_require(scheme_intern_symbol(*module_names));
