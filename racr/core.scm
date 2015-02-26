@@ -147,7 +147,7 @@
    (opaque #t)(sealed #t))
  
  ; INTERNAL FUNCTION: Given an AST rule find a certain child context by name. If the rule defines no such
- ; context, return #f, otherwise the the production symbol defining the respective context.
+ ; context, return #f, otherwise the production symbol defining the respective context.
  (define ast-rule-find-child-context
    (lambda (r context-name)
      (find
@@ -908,6 +908,172 @@
          ((s1 s2) ; Given two sets s1 and s2, return the set union of s1 and s2 (use eq? to compare elements).
           (set-union s1 s2 eq?))))
      
+     (define-record-type attribute-instance-2
+       (fields name cached? (mutable definition) (mutable context) cache)
+       (opaque #t)(sealed #t)
+       (protocol
+        (lambda (new)
+          (lambda (name cached? definition context)
+            (new name cached? definition context (make-hashtable equal-hash equal? 1))))))
+     
+     ; Meta-instantiation contract: AST rule specification, attribute specification,
+     ;    start symbol specification and specification compilation only query attributes
+     ;    and no further AST information. All such queries are cache hits.
+     (let* ((% racr-nil) ; Never queried information.
+            (dummy-attribute-instance
+             (lambda (name . entries)
+               (let* ((instance (make-attribute-instance-2 name #t % %))
+                      (cache (attribute-instance-2-cache instance)))
+                 (for-each (lambda (entry) (hashtable-set! cache (car entry) (cdr entry))) entries)
+                 instance)))
+            (dummy-node (lambda () (make-node % % %)))
+            
+            (AstScheme                          (dummy-node))
+            (AstScheme-astrules                 (dummy-node))
+            (AstScheme-startsymbol              (dummy-node))
+            (AstScheme-attribution              (dummy-node))
+            (AstRule                            (dummy-node))
+            (AstRule-name                       (dummy-node))
+            (AstRule-supertype                  (dummy-node))
+            (AstRule-rhand                      (dummy-node))
+            (Symbol                             (dummy-node))
+            (Symbol-name                        (dummy-node))
+            (Symbol-klenee                      (dummy-node))
+            (Symbol-contextname                 (dummy-node))
+            (Attribute                          (dummy-node))
+            (Attribute-name                     (dummy-node))
+            (Attribute-context                  (dummy-node))
+            (Attribute-equation                 (dummy-node))
+            (Attribute-circularitydefinition    (dummy-node))
+            (Attribute-cached                   (dummy-node))
+            
+            (error-node?->f                     (dummy-attribute-instance 'error-node? (cons (list) #f)))
+            
+            (klenee?->t                         (dummy-attribute-instance 'klenee? (cons (list) #t)))
+            (klenee?->f                         (dummy-attribute-instance 'klenee? (cons (list) #f)))
+            
+            (contextname->name                  (dummy-attribute-instance 'contextname (cons (list) 'name)))
+            (contextname->astrules              (dummy-attribute-instance 'contextname (cons (list) 'astrules)))
+            (contextname->startsymbol           (dummy-attribute-instance 'contextname (cons (list) 'startsymbol)))
+            (contextname->attribution           (dummy-attribute-instance 'contextname (cons (list) 'attribution)))
+            (contextname->astrules              (dummy-attribute-instance 'contextname (cons (list) 'astrules)))
+            (contextname->supertype             (dummy-attribute-instance 'contextname (cons (list) 'supertype)))
+            (contextname->rhand                 (dummy-attribute-instance 'contextname (cons (list) 'rhand)))
+            (contextname->klenee                (dummy-attribute-instance 'contextname (cons (list) 'klenee)))
+            (contextname->contextname           (dummy-attribute-instance 'contextname (cons (list) 'contextname)))
+            (contextname->context               (dummy-attribute-instance 'contextname (cons (list) 'context)))
+            (contextname->equation              (dummy-attribute-instance 'contextname (cons (list) 'equation)))
+            (contextname->circularitydefinition (dummy-attribute-instance 'contextname (cons (list) 'circularitydefinition)))
+            (contextname->cached                (dummy-attribute-instance 'contextname (cons (list) 'cached)))
+            
+            (terminal?->t                       (dummy-attribute-instance 'terminal? (cons (list) #t)))
+            (terminal?->f                       (dummy-attribute-instance 'terminal? (cons (list) #f)))
+            
+            (non-terminal?->AstRule             (dummy-attribute-instance 'non-terminal? (cons (list) AstRule)))
+            (non-terminal?->Attribute           (dummy-attribute-instance 'non-terminal? (cons (list) Attribute)))
+            (non-terminal?->Symbol              (dummy-attribute-instance 'non-terminal? (cons (list) Symbol)))
+            
+            (name->AstScheme                    (dummy-attribute-instance 'name (cons (list) 'AstScheme)))
+            (name->AstRule                      (dummy-attribute-instance 'name (cons (list) 'AstRule)))
+            (name->Symbol                       (dummy-attribute-instance 'name (cons (list) 'Symbol)))
+            (name->Attribute                    (dummy-attribute-instance 'name (cons (list) 'Attribute)))
+            
+            (lookup-rule
+             (dummy-attribute-instance
+              'lookup-rule
+              (cons (list 'AstScheme) AstScheme)
+              (cons (list 'AstRule) AstRule)
+              (cons (list 'Symbol) Symbol)
+              (cons (list 'Attribute) Attribute)))
+            
+            (AstScheme:attributes
+             (dummy-attribute-instance
+              'attributes
+              (cons (list) (list))))
+            
+            (AstRule:attributes
+             (dummy-attribute-instance
+              'attributes
+              (cons (list) (list))))
+            
+            (Symbol:attributes
+             (dummy-attribute-instance
+              'attributes
+              (cons (list) (list))))
+            
+            (Attribute:attributes
+             (dummy-attribute-instance
+              'attributes
+              (cons (list) (list))))
+            
+            (AstScheme:expanded-rhand
+             '(dummy-attribute-instance
+               'expanded-rhand
+               (cons (list)
+                     (list
+                      AstScheme-astrules
+                      AstScheme-startsymbol
+                      AstScheme-attribution))))
+            
+            (AstRule:expanded-rhand
+             '(dummy-attribute-instance
+               'expanded-rhand
+               (cons (list)
+                     (list
+                      AstRule-name
+                      AstRule-supertype
+                      AstRule-rhand))))
+            
+            (Symbol:expanded-rhand
+             '(dummy-attribute-instance
+               'expanded-rhand
+               (cons (list)
+                     (list
+                      Symbol-name
+                      Symbol-klenee
+                      Symbol-contextname))))
+            
+            (Attribute:expanded-rhand
+             '(dummy-attribute-instance
+               'expanded-rhand
+               (cons (list)
+                     (list
+                      Attribute-name
+                      Attribute-context
+                      Attribute-equation
+                      Attribute-circularitydefinition
+                      Attribute-cached))))
+            
+            (attributes-for-context
+             (dummy-attribute-instance
+              'attributes-for-context
+              (cons (list 'AstScheme 'astrules 'AstRule) (list))
+              (cons (list 'AstScheme 'attribution 'Attribute) (list))
+              (cons (list 'AstRule 'rhand 'Symbol) (list))))
+            )
+       
+       (node-attributes-set! AstScheme (list error-node?->f name->AstScheme AstScheme:expanded-rhand lookup-rule attributes-for-context))
+       (node-attributes-set! AstRule   (list error-node?->f name->AstRule AstRule:expanded-rhand))
+       (node-attributes-set! Symbol    (list error-node?->f name->Symbol Symbol:expanded-rhand))
+       (node-attributes-set! Attribute (list error-node?->f name->Attribute Attribute:expanded-rhand))
+       
+       (node-attributes-set! AstScheme-astrules              (list terminal?->f klenee?->t contextname->astrules non-terminal?->AstRule))
+       (node-attributes-set! AstScheme-startsymbol           (list terminal?->t klenee?->f contextname->startsymbol))
+       (node-attributes-set! AstScheme-attribution           (list terminal?->f klenee?->t contextname->attribution non-terminal?->Attribute))
+       (node-attributes-set! AstRule-name                    (list terminal?->t klenee?->f contextname->name))
+       (node-attributes-set! AstRule-supertype               (list terminal?->t klenee?->f contextname->supertype))
+       (node-attributes-set! AstRule-rhand                   (list terminal?->f klenee?->t contextname->rhand non-terminal?->Symbol))
+       (node-attributes-set! Symbol-name                     (list terminal?->t klenee?->f contextname->name))
+       (node-attributes-set! Symbol-klenee                   (list terminal?->t klenee?->f contextname->klenee))
+       (node-attributes-set! Symbol-contextname              (list terminal?->t klenee?->f contextname->contextname))
+       (node-attributes-set! Attribute-name                  (list terminal?->t klenee?->f contextname->name))
+       (node-attributes-set! Attribute-context               (list terminal?->t klenee?->f contextname->context))
+       (node-attributes-set! Attribute-equation              (list terminal?->t klenee?->f contextname->equation))
+       (node-attributes-set! Attribute-circularitydefinition (list terminal?->t klenee?->f contextname->circularitydefinition))
+       (node-attributes-set! Attribute-cached                (list terminal?->t klenee?->f contextname->cached))
+       
+       )
+     
      (with-specification
       ast-language
       
@@ -1280,6 +1446,112 @@
                         (att-value 'attributes context)
                         (att-value 'attributes (att-value 'context-rule n) (cdr (ast-child 'context n)))))
               n))))))
+      
+      ;;; AST Construction:
+      
+      (ag-rule
+       ast-node-factory ; Function that can be used to instantiate new AST nodes of certain type.
+       
+       (AstScheme
+        (lambda (n name)
+          (lambda children
+            (let ((rule (att-value 'lookup-rule n name)))
+              (when (att-value 'error-node? rule)
+                (throw-exception ; BEWARE: Prolonged check ensures the rule exists at construction time!
+                 "Cannot construct " name " fragment;"
+                 "Unknown node type."))
+              (apply (att-value 'ast-node-factory rule) children)))))
+       
+       (AstRule
+        (lambda (n)
+          (define new-parent-type (ast-child 'name n)) ; TODO: Delete
+          
+          ;(define children-fit? ; Do the given children fit in context?
+          ;  (let loop ((rhand (att-value 'expanded-rhand n)))
+          ;    (if (null? rhand)
+          ;        (lambda (children) (null? children))
+          ;        (let ((fits? (att-value 'context-checker (car rhand)))
+          ;              (loop (loop (cdr rhand))))
+          ;          (lambda (children)
+          ;            (and (not (null? children)) (fits? (car children)) (loop (cdr children))))))))
+          ;(define prepare-children ; Prepare the given children for new context.
+          ;  (let loop ((rhand (att-value 'expanded-rhand n)))
+          ;    (if (null? rhand)
+          ;        (lambda x (list))
+          ;        (let ((prepare (att-value 'context-factory (car rhand)))
+          ;              (loop (loop (cdr rhand))))
+          ;          (lambda (new-parent children)
+          ;            (cons (prepare new-parent-type new-parent (car children)) (loop new-parent (cdr children))))))))
+          
+          ;(define rhand (att-value 'expanded-rhand n))
+          (define checkers (map (lambda (n) (att-value 'context-checker n)) (att-value 'expanded-rhand n)))
+          (define factories (map (lambda (n) (att-value 'context-factory n)) (att-value 'expanded-rhand n)))
+          (when (< (racr-specification-specification-phase (ast-specification n)) 2)
+            (throw-exception ; BEWARE: Immediate check ensures the language specification is immutable!
+             "Cannot construct fragment;"
+             "The RACR specification is not compiled yet. It still is in the specification phase."))
+          (lambda children
+            (let ((new-fragment (make-node n #f (list))))
+              ;;; Before constructing the fragment ensure, that...
+              (unless (and (= (length children) (length checkers)) (for-all (lambda (f c) (f c)) checkers children)) ; ...the given children fit.
+                (throw-exception
+                 "Cannot construct " n " fragment;"
+                 "The given children do not fit."))
+              ;;; When all constraints are satisfied, construct the fragment, i.e.,...
+              (node-children-set! new-fragment (map (lambda (f c) (f new-parent-type new-fragment c)) factories children)) ; ...add its children,...
+              (distribute-evaluator-state (make-evaluator-state) new-fragment) ; ...distribute the fragment's evaluator state and...
+              (node-attributes-set! ; ...initialize its synthesized attributes.
+               new-fragment
+               (map (lambda (attribute) (make-attribute-instance attribute new-fragment))
+                    (att-value 'attributes n)))
+              new-fragment))))) ; Finally, return the constructed fragment.
+      
+      (ag-rule
+       context-checker ; Function deciding if a given Scheme entity can become child in certain context.
+       (Symbol
+        (lambda (n)
+          (define expected-type? (att-value 'non-terminal? n))
+          (define satisfies-type?
+            (lambda (node)
+              (or (node-bud-node? node) (node-instance-of?-2 node expected-type?))))
+          (cond
+            ((not expected-type?) ; Context is terminal?
+             (lambda (node) #t))
+            ((ast-child 'klenee n) ; Context is list?
+             (lambda (node)
+               (and
+                (can-be-non-terminal-child? node)
+                (or
+                 (node-bud-node? node)
+                 (and
+                  (node-list-node? node)
+                  (for-all satisfies-type? (ast-children node)))))))
+            (else ; Context is ordinary non-terminal!
+             (lambda (node)
+               (and
+                (can-be-non-terminal-child? node)
+                (not (node-list-node? node))
+                (satisfies-type? node))))))))
+      
+      (ag-rule
+       context-factory ; Internal function preparing a given Scheme entity to become child in certain context.
+       (Symbol
+        (lambda (n) ; TODO: Delete unnecessary new-parent-type
+          (define context-name (att-value 'contextname n))
+          (if (att-value 'terminal? n)
+              (lambda (new-parent-type new-parent child)
+                (make-node 'terminal new-parent child))
+              (lambda (new-parent-type new-parent child)
+                (for-each ; Flush all attribute cache entries depending on the child being a root,...
+                 (lambda (influence)
+                   (flush-attribute-cache-entry (car influence)))
+                 (filter
+                  (lambda (influence)
+                    (vector-ref (cdr influence) 1))
+                  (node-cache-influences child)))
+                (node-parent-set! child new-parent) ; ...set its parent and...
+                (update-attributes-2 new-parent-type context-name child) ; ...update its inherited attributes.
+                child)))))
       
       (compile-ag-specifications))))
  
@@ -2102,20 +2374,14 @@
  
  (define create-ast-2
    (lambda (spec rule children)
-     ;;; Before constructing the fragment ensure, that...
-     (when (< (racr-specification-2-specification-phase spec) 2) ; ...the language is in the correct specification phase...
-       (throw-exception
-        "Cannot construct " rule " fragment;"
-        "The RACR specification is not compiled yet. It still is in the specification phase."))
-     (let* ((ast-scheme (racr-specification-2-ast-scheme spec))
-            (ast-rule (att-value 'lookup-rule ast-scheme rule))
-            (expected-children (att-value 'expanded-rhand ast-rule))
-            (new-fragment (make-node ast-rule #f (list))))
-       (when (att-value 'error-node? ast-rule) ; ...the type of the fragment to construct is defined,...
-         (throw-exception
-          "Cannot construct " rule " fragment;"
-          "Unknown node type."))
-       (unless (can-satisfy-contexts?-2 children expected-children) ; ...and the given children fit.
+     (apply (att-value 'ast-node-factory (racr-specification-2-ast-scheme spec) rule) children)))
+ 
+ (define create-ast-intern-2
+   (lambda (rule children)
+     (let* ((expected-children (att-value 'expanded-rhand rule))
+            (new-fragment (make-node rule #f (list))))
+       ;;; Before constructing the fragment ensure, that...
+       (unless (can-satisfy-contexts?-2 children expected-children) ; ...the given children fit.
          (throw-exception
           "Cannot construct " rule " fragment;"
           "The given children do not fit."))
@@ -2135,7 +2401,7 @@
                      (vector-ref (cdr influence) 1))
                    (node-cache-influences child)))
                  (node-parent-set! child new-fragment) ; ...set the node as parent of each child,...
-                 (update-attributes-2 (ast-child 'name ast-rule) symbol child) ; ...update each child's inherited attributes,...
+                 (update-attributes-2 (ast-child 'name rule) symbol child) ; ...update each child's inherited attributes,...
                  child)))
          expected-children
          children))
@@ -2143,7 +2409,7 @@
        (node-attributes-set! ; ...initialize its synthesized attributes.
         new-fragment
         (map (lambda (attribute) (make-attribute-instance attribute new-fragment))
-             (att-value 'attributes ast-rule)))
+             (att-value 'attributes rule)))
        new-fragment))) ; Finally, return the constructed fragment.
  
  (define create-ast-list-2
@@ -2218,7 +2484,7 @@
  
  ; INTERNAL FUNCTION: Given a node in some context update its attribution (the given context must be valid).
  (define update-attributes-2
-   (lambda (parent-type symbol n)
+   (lambda (parent-type context-name n)
      (define equal-semantics ; Evaluate two attribute definitions always the same?
        (lambda (a1 a2)
          (or ; Attribute definitions are semantically equivalent, if either...
@@ -2233,7 +2499,7 @@
                (not (att-value 'circular? a2)))))))
      ;;; Update the node's attributes w.r.t. its context. To do so,...
      (if (node-list-node? n) ; ...check if the node is a list. If so,...
-         (for-each (lambda (n) (update-attributes-2 parent-type symbol n)) (node-children n)) ; ...update all its elements...
+         (for-each (lambda (n) (update-attributes-2 parent-type context-name n)) (node-children n)) ; ...update all its elements...
          (unless (or (node-terminal? n) (node-bud-node? n)) ; ...otherwise ensure it is an ordinary non-terminal. If so,...
            (let ((old-attribute-instances (node-attributes n)))
              (node-attributes-set! ; ...construct the list of its attribute instances, i.e.,...
@@ -2250,7 +2516,7 @@
                 'attributes-for-context
                 (node-ast-rule n)
                 parent-type
-                (att-value 'contextname symbol)
+                context-name
                 (ast-child 'name (node-ast-rule n)))))
              (for-each ; ...flush the cache of all instances no more defined or whose definition changed.
               (lambda (attribute-instance)
