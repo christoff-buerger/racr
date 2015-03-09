@@ -76,70 +76,50 @@ static class Racr {
 
 
 	public class Specification {
-		private object spec;
+		internal object spec;
 
 		public Specification() {
 			spec = createSpecification.Call();
 		}
-
 		public void AstRule(string rule) {
 			astRule.Call(spec, SymbolTable.StringToObject(rule));
 		}
-
 		public void CompileAstSpecifications(string startSymbol) {
 			compileAstSpecifications.Call(spec, SymbolTable.StringToObject(startSymbol));
 		}
-
 		public void CompileAgSpecifications() {
 			compileAgSpecifications.Call(spec);
-		}
-
-		public Node CreateAst(string nonTerminal, params Node[] children) {
-			Cons list = null;
-			for (int i = children.Length - 1; i >= 0; i--) {
-				list = new Cons(children[0].ast, list);
-			}
-			return new Node(createAst.Call(spec, SymbolTable.StringToObject(nonTerminal), list));
-		}
-
-		public Node CreateAstList(params Node[] children) {
-			Cons list = null;
-			for (int i = children.Length - 1; i >= 0; i--) {
-				list = new Cons(children[0].ast, list);
-			}
-			return new Node(createAstList.Call(list));
-		}
-
-		public Node CreateAstBud() {
-			return new Node(createAstBud.Call());
 		}
 	}
 
 
-	public class Node {
+	public class AstNode {
 		internal object ast;
 
-		internal static Node GetNode(object ast) {
-			return (Node) astAnnotation.Call(ast, SymbolTable.StringToObject("this"));
+		private static AstNode GetNode(object ast) {
+			return (AstNode) astAnnotation.Call(ast, SymbolTable.StringToObject("this"));
 		}
-
-		internal Node(object ast) {
-			this.ast = ast;
+		protected AstNode() {
+		}
+		public AstNode(Specification spec, string nonTerminal, params AstNode[] children) {
+			Cons list = null;
+			for (int i = children.Length - 1; i >= 0; i--) list = new Cons(children[0].ast, list);
+			ast = createAst.Call(spec.spec, SymbolTable.StringToObject(nonTerminal), list);
 			SetAnnotation("this", this);
 		}
-		public Node Parent() {
+		public AstNode Parent() {
 			return GetNode(astParent.Call(ast));
 		}
-		public Node Child(int index) {
+		public AstNode Child(int index) {
 			return GetNode(astChild.Call(index, ast));
 		}
-		public Node Child(string name) {
+		public AstNode Child(string name) {
 			return GetNode(astChild.Call(SymbolTable.StringToObject(name), ast));
 		}
-		public Node Sibling(int index) {
+		public AstNode Sibling(int index) {
 			return GetNode(astSibling.Call(index, ast));
 		}
-		public Node Sibling(string name) {
+		public AstNode Sibling(string name) {
 			return GetNode(astSibling.Call(SymbolTable.StringToObject(name), ast));
 		}
 		public bool IsNode() {
@@ -180,6 +160,21 @@ static class Racr {
 	}
 
 
+	public class AstList : AstNode {
+		public AstList(params AstNode[] children) {
+			Cons list = null;
+			for (int i = children.Length - 1; i >= 0; i--) list = new Cons(children[0].ast, list);
+			ast = createAstList.Call(list);
+			SetAnnotation("this", this);
+		}
+	}
+
+	public class AstBud : AstNode {
+		public AstBud() {
+			ast = createAstBud.Call();
+			SetAnnotation("this", this);
+		}
+	}
 }
 
 
@@ -200,7 +195,7 @@ class App {
 
 		spec.CompileAstSpecifications("A");
 		spec.CompileAgSpecifications();
-		Racr.Node root = spec.CreateAst("A", spec.CreateAst("B"));
+		var root = new Racr.AstNode(spec, "A", new Racr.AstNode(spec, "B"));
 
 		Console.WriteLine(root);
 		Console.WriteLine("IsNode: {0}", root.IsNode());
@@ -208,7 +203,6 @@ class App {
 		Console.WriteLine("NumChildren: {0}", root.NumChildren());
 		Console.WriteLine("HasChild: {0}", root.HasChild("B"));
 		Console.WriteLine("HasChild: {0}", root.HasChild("Foo"));
-
 
 		Console.WriteLine("");
 
