@@ -16,6 +16,9 @@ static class Racr {
 	private static Callable astParent;
 	private static Callable astChild;
 	private static Callable astSibling;
+	private static Callable astForEachChild;
+	private static Callable astFindChild;
+	private static Callable astFindChildA;
 	private static Callable astNodeQ;
 	private static Callable astHasParentQ;
 	private static Callable astChildIndex;
@@ -23,7 +26,6 @@ static class Racr {
 	private static Callable astNumChildren;
 	private static Callable astHasSiblingQ;
 	private static Callable astNodeType;
-	private static Callable astNodeRule;
 	private static Callable astListNodeQ;
 	private static Callable astBudNodeQ;
 	private static Callable astSubtypeQ;
@@ -34,6 +36,10 @@ static class Racr {
 	private static Callable astAnnotationRemove;
 	private static Callable astAnnotationQ;
 	private static Callable astAnnotation;
+
+	private static Callable specificationFindAstRule;
+	private static Callable astRuleProduction;
+	private static Callable symbolIsNonTerminal;
 
 
 	static Racr() {
@@ -52,6 +58,9 @@ static class Racr {
 		astParent					= "ast-parent".Eval<Callable>();
 		astChild					= "ast-child".Eval<Callable>();
 		astSibling					= "ast-sibling".Eval<Callable>();
+		astForEachChild				= "ast-for-each-child".Eval<Callable>();
+		astFindChild				= "ast-find-child".Eval<Callable>();
+		astFindChildA				= "ast-find-child*".Eval<Callable>();
 		astNodeQ					= "ast-node?".Eval<Callable>();
 		astHasParentQ				= "ast-has-parent?".Eval<Callable>();
 		astChildIndex				= "ast-child-index".Eval<Callable>();
@@ -59,7 +68,6 @@ static class Racr {
 		astNumChildren				= "ast-num-children".Eval<Callable>();
 		astHasSiblingQ				= "ast-has-sibling?".Eval<Callable>();
 		astNodeType					= "ast-node-type".Eval<Callable>();
-		astNodeRule					= "ast-node-rule".Eval<Callable>();
 		astListNodeQ				= "ast-list-node?".Eval<Callable>();
 		astBudNodeQ					= "ast-bud-node?".Eval<Callable>();
 		astSubtypeQ					= "ast-subtype?".Eval<Callable>();
@@ -71,7 +79,10 @@ static class Racr {
 		astAnnotationQ				= "ast-annotation?".Eval<Callable>();
 		astAnnotation				= "ast-annotation".Eval<Callable>();
 
-
+		// query interface
+		specificationFindAstRule	= "specification->find-ast-rule".Eval<Callable>();
+		astRuleProduction			= "ast-rule->production".Eval<Callable>();
+		symbolIsNonTerminal			= "symbol->non-terminal?".Eval<Callable>();
 	}
 
 
@@ -92,6 +103,9 @@ static class Racr {
 		}
 	}
 
+	private static bool IsTrue(object o) {
+		return (o is bool) ? (bool) o : true;
+	}
 
 	public class AstNode {
 		internal object ast;
@@ -101,15 +115,37 @@ static class Racr {
 		}
 		protected AstNode() {
 		}
-		public AstNode(Specification spec, string nonTerminal, params AstNode[] children) {
+		public AstNode(Specification spec, string nonTerminal, params object[] children) {
+
+			var nt = SymbolTable.StringToObject(nonTerminal);
+			var rule = specificationFindAstRule.Call(spec.spec, nt);
+			var symbols = astRuleProduction.Call(rule) as Cons;
+
 			Cons list = null;
-			for (int i = children.Length - 1; i >= 0; i--) list = new Cons(children[0].ast, list);
-			ast = createAst.Call(spec.spec, SymbolTable.StringToObject(nonTerminal), list);
+			Cons marker = null;
+			for (int i = 0; i < children.Length; i++) {
+				symbols = symbols.cdr as Cons;
+				object child;
+				var isNonTerm = symbolIsNonTerminal.Call(symbols.car);
+				if (IsTrue(isNonTerm)) child = (children[i] as AstNode).ast;
+				else child = children[i];
+				var cons = new Cons(child);
+				if (list == null) list = marker = cons;
+				else {
+					marker.cdr = cons;
+					marker = cons;
+				}
+			}
+			ast = createAst.Call(spec.spec, nt, list);
+
 			SetAnnotation("this", this);
 		}
+
 		public AstNode Parent() {
 			return GetNode(astParent.Call(ast));
 		}
+
+		// non-terminal
 		public AstNode Child(int index) {
 			return GetNode(astChild.Call(index, ast));
 		}
@@ -122,13 +158,29 @@ static class Racr {
 		public AstNode Sibling(string name) {
 			return GetNode(astSibling.Call(SymbolTable.StringToObject(name), ast));
 		}
+
+
+		// terminal
+		public T Child<T>(int index) {
+			return (T) astChild.Call(index, ast);
+		}
+		public T Child<T>(string name) {
+			return (T) astChild.Call(SymbolTable.StringToObject(name), ast);
+		}
+		public T Sibling<T>(int index) {
+			return (T) astSibling.Call(index, ast);
+		}
+		public T Sibling<T>(string name) {
+			return (T) astSibling.Call(SymbolTable.StringToObject(name), ast);
+		}
+
+
 		public bool IsNode() {
 			return (bool) astNodeQ.Call(ast);
 		}
 		public bool HasParent() {
 			object ret = astHasParentQ.Call(ast);
-			if (ret is bool) return (bool) ret;
-			return true;
+			return IsTrue(ret);
 		}
 		public int ChildIndex() {
 			return (int) astChildIndex.Call(ast);
@@ -138,6 +190,12 @@ static class Racr {
 		}
 		public int NumChildren() {
 			return (int) astNumChildren.Call(ast);
+		}
+		public bool HasSibling(string name) {
+			return (bool) astHasSiblingQ.Call(SymbolTable.StringToObject(name), ast);
+		}
+		public string NodeType() {
+			return ((SymbolId) astNodeType.Call(ast)).ToString();
 		}
 
 
@@ -185,8 +243,9 @@ class App {
 	public static void Main() {
 
 		var spec = new Racr.Specification();
-		spec.AstRule("A->B");
-		spec.AstRule("B->");
+		spec.AstRule("A->B-C");
+		spec.AstRule("B->t");
+		spec.AstRule("C->");
 
 //		spec.AstRule("A->D");
 //		spec.AstRule("B:A->");
@@ -195,19 +254,26 @@ class App {
 
 		spec.CompileAstSpecifications("A");
 		spec.CompileAgSpecifications();
-		var root = new Racr.AstNode(spec, "A", new Racr.AstNode(spec, "B"));
+		var root = new Racr.AstNode(spec, "A",
+			new Racr.AstNode(spec, "B",
+				"terminal"),
+			new Racr.AstNode(spec, "C"));
+
 
 		Console.WriteLine(root);
+		Console.WriteLine("NodeType: {0}", root.NodeType());
 		Console.WriteLine("IsNode: {0}", root.IsNode());
 		Console.WriteLine("HasParent: {0}", root.HasParent());
 		Console.WriteLine("NumChildren: {0}", root.NumChildren());
-		Console.WriteLine("HasChild: {0}", root.HasChild("B"));
-		Console.WriteLine("HasChild: {0}", root.HasChild("Foo"));
+		Console.WriteLine("HasChild 'B: {0}", root.HasChild("B"));
+		Console.WriteLine("HasChild 'Foo: {0}", root.HasChild("Foo"));
 
 		Console.WriteLine("");
 
 		var child = root.Child(1);
+
 		Console.WriteLine(child);
+		Console.WriteLine("Child 't: {0}", child.Child<string>("t"));
 		Console.WriteLine("IsNode: {0}", child.IsNode());
 		Console.WriteLine("HasParent: {0}", child.HasParent());
 		Console.WriteLine("ChildIndex: {0}", child.ChildIndex());
