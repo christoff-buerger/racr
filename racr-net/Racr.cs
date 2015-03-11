@@ -221,7 +221,7 @@ static class Racr {
 	public class AstList : AstNode {
 		public AstList(params AstNode[] children) {
 			Cons list = null;
-			for (int i = children.Length - 1; i >= 0; i--) list = new Cons(children[0].ast, list);
+			for (int i = children.Length - 1; i >= 0; i--) list = new Cons(children[i].ast, list);
 			ast = createAstList.Call(list);
 			SetAnnotation("this", this);
 		}
