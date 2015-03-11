@@ -6,7 +6,7 @@
 #!r6rs
 
 (library
- (questionnaire user-interface)
+ (questionnaires user-interface)
  (export ql ->Body ->Expression ->name ->label ->type ->value ->operator ->Operands ->* <- index
          count Root Error-question Error-question? G-Lookup L-Lookup Type Valid? L-Valid? S-Expr
          Find-active Active? Shown? Value Widget Render Boolean Number String ErrorType && // !=
@@ -14,7 +14,7 @@
  (import (rnrs) (rnrs eval) (racr core) (racket class) (racket format) (racket gui base))
  
  (define ql                   (create-specification))
- (define ql-env               (environment '(rnrs) '(questionnaire user-interface)))
+ (define ql-env               (environment '(rnrs) '(questionnaires user-interface)))
  
  ; AST Accessors:
  (define (->Body n)           (ast-child 'Body n))

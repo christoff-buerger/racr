@@ -6,9 +6,9 @@
 #!r6rs
 
 (library
- (questionnaire language)
+ (questionnaires language)
  (export)
- (import (rnrs) (racr core) (questionnaire user-interface) (compatibility mlist)
+ (import (rnrs) (racr core) (questionnaires user-interface) (compatibility mlist)
          (prefix (racket base) r:) (racket format) (racket class) (racket gui base))
  
  (with-specification
