@@ -54,7 +54,8 @@ then
 	# Create compile script
 	cd $old_pwd
 	echo "#!r6rs" > compile-stale
-	echo "(import (larceny compiler))" >> compile-stale
+	echo "(import (rnrs) (larceny compiler))" >> compile-stale
+	echo "(compiler-switches (quote fast-safe))" >> compile-stale # Just for optimisation. Even more aggressive: fast-unsafe
 	echo "(compile-stale-libraries)" >> compile-stale
 	
 	# Compile libraries:

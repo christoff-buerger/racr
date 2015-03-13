@@ -16,7 +16,7 @@
       specification
       
       (ast-rule 'CompilationUnit->Declaration*<Body-sourcefile)
-      (ast-rule 'Declaration->name)
+      (ast-rule 'Declaration->name-globalindex)
       (ast-rule 'FieldDeclaration:Declaration->)
       (ast-rule 'ClassDeclaration:Declaration->)
       (ast-rule 'ClassDefinition:ClassDeclaration->Declaration*<Body)
@@ -24,4 +24,4 @@
       (ast-rule 'MethodDeclaration:Declaration->FieldDeclaration*<Parameters-VariableAssignment*<Body)
       (ast-rule 'Constructor:MethodDeclaration->)
       (ast-rule 'VariableAssignment->Reference<LHand-Reference<RHand)
-      (ast-rule 'Reference->name)))))
+      (ast-rule 'Reference->name-globalindex)))))

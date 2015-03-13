@@ -49,6 +49,8 @@
                     "]): "
                     message))))
                
+               (global-index 0)
+               
                (parse-compilation-unit
                 (lambda ()
                   (create-ast
@@ -58,7 +60,9 @@
                      (reverse
                       (let loop ((body (list)))
                         (if (match-token? 'Class)
-                            (loop (cons (parse-class-declaration #f) body))
+                            (begin
+                              (set! global-index (+ global-index 1))
+                              (loop (cons (parse-class-declaration #f) body)))
                             (begin
                               (match-token! 'Int "Malformed main method.")
                               (unless (string=? (match-token! 'IDENTIFIER "Malformed main method.") "main")
@@ -93,10 +97,10 @@
                                   (loop (cons (parse-class-member-declaration) body))
                                   body))))
                           (read-next-token) ; Consume the "}"
-                          (set! result (create-ast 'ClassDefinition (list name (create-ast-list body)))))
+                          (set! result (create-ast 'ClassDefinition (list name global-index (create-ast-list body)))))
                         (if (pair? name)
                             (parser-error "Malformed class definition. Missing class body.")
-                            (set! result (create-ast 'ClassDeclaration (list name)))))
+                            (set! result (create-ast 'ClassDeclaration (list name global-index)))))
                     (match-token! 'SEMICOLON "Malformed class declaration. Missing [;].")
                     result)))
                
@@ -145,14 +149,14 @@
                             body
                             (loop (cons (parse-assignment) body))))))
                     (read-next-token) ; Consume the "}"
-                    (create-ast 'MethodDeclaration (list name (create-ast-list paras) (create-ast-list body)))))) 
+                    (create-ast 'MethodDeclaration (list name global-index (create-ast-list paras) (create-ast-list body)))))) 
                
                (parse-field-declaration
                 (lambda ()
                   (match-token! 'Int "Malformed field declaration. Missing type identifier [int].")
                   (create-ast
                    'FieldDeclaration
-                   (list (string->symbol (match-token! 'IDENTIFIER "Malformed field declaration. Missing name."))))))
+                   (list (string->symbol (match-token! 'IDENTIFIER "Malformed field declaration. Missing name.")) global-index))))
                
                (parse-assignment
                 (lambda ()
@@ -164,8 +168,8 @@
                      (create-ast
                       'VariableAssignment
                       (list
-                       (create-ast 'Reference (list name1))
-                       (create-ast 'Reference (list (parse-qualified-name))))))
+                       (create-ast 'Reference (list name1 global-index))
+                       (create-ast 'Reference (list (parse-qualified-name) global-index)))))
                     (match-token! 'SEMICOLON "Malformed assignment. Missing [;].")
                     result)))
                

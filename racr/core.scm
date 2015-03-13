@@ -16,7 +16,7 @@
   specification->ast-rules
   specification->find-ast-rule
   ast-rule->symbolic-representation
-  ast-rule->supertype
+  ast-rule->supertype?
   ast-rule->production
   symbol->name
   symbol->non-terminal?
@@ -846,13 +846,12 @@
           "The specification is not well-formed."))
        ;;; Compile the specification, i.e.,...
        (racr-specification-2-specification-phase-set! spec 2) ; ...proceed to the next specifcation phase and...
-       (for-each ; ...precompute...
+       (for-each ; ...precompute the attribution of all possible contexts.
         (lambda (rule)
-          (att-value 'attributes rule) ; ...the synthesised...
+          (att-value 'attributes-for-context ast-scheme #f #f (ast-child 'name rule))
           (for-each
            (lambda (symbol)
-             (att-value 'attributes rule (att-value 'contextname symbol)) ; ...and inherited attributes of all rules and...
-             (for-each ;  ...the attribution of all possible contexts.
+             (for-each
               (lambda (child-rule)
                 (att-value
                  'attributes-for-context
@@ -1362,24 +1361,19 @@
               (memq (att-value 'containing-rule symbol) (append (att-value 'supertypes n) (list n)))))))))
       
       (ag-rule
-       attributes-for-context ; List of all attributes of a node of a certain type if it is in a certain context.
+       attributes-for-context ; Sorted list of all attributes of a node of a certain type if it is in a certain context.
        (AstScheme
-        (lambda (n parent-type context-name child-type) ; BEWARE: Context must exist & type must be permitted in it.
-          (let* ((child-rule (att-value 'lookup-rule n child-type))
-                 (parent-rule (att-value 'lookup-rule n parent-type))
-                 (child-context (att-value 'lookup-contextname parent-rule context-name))
-                 (valid-context? (att-value 'non-terminal? child-context)))
-            (if (or
-                 (att-value 'error-node? child-rule)
-                 (att-value 'error-node? child-context)
-                 (not valid-context?)
-                 (not (memq child-rule (cons valid-context? (att-value 'subtypes valid-context?)))))
-                (throw-exception "IMPLEMENTATION ERROR (non-existent context queried for attributes)!")
-                (set-union
-                 (att-value 'attributes child-rule)
-                 (att-value 'attributes parent-rule context-name)
-                 (lambda (a1 a2)
-                   (eq? (ast-child 'name a1) (ast-child 'name a2)))))))))
+        (lambda (n parent-type? context-name? child-type)
+          (list-sort
+           (lambda (a1 a2)
+             (string<? (symbol->string (ast-child 'name a1)) (symbol->string (ast-child 'name a2))))
+           (if parent-type?
+               (set-union
+                (att-value 'attributes (att-value 'lookup-rule n child-type))
+                (att-value 'attributes (att-value 'lookup-rule n parent-type?) context-name?)
+                (lambda (a1 a2)
+                  (eq? (ast-child 'name a1) (ast-child 'name a2))))
+               (att-value 'attributes (att-value 'lookup-rule n child-type)))))))
       
       ;;; Well-formedness Analysis:
       
@@ -1553,7 +1547,108 @@
                 (update-attributes-2 new-parent-type context-name child) ; ...update its inherited attributes.
                 child)))))
       
+      (ag-rule
+       attribution-factory ; Internal function updating the attribution of a node w.r.t. certain old and new context.
+       (AstScheme
+        (lambda (n old-context new-context)
+          (define equal-semantics ; Evaluate two attribute definitions always the same?
+            (lambda (a1 a2)
+              (or ; Attribute definitions are semantically equivalent, if either...
+               (eq? a1 a2) ; ...they are the same or...
+               (and
+                (eq? (ast-child 'equation a1) (ast-child 'equation a2)) ; ...have the same equation and...
+                (if (att-value 'circular? a1) ; ...circularity definition.
+                    (and
+                     (att-value 'circular? a2)
+                     (equal? (att-value 'bottom-value a1) (att-value 'bottom-value a2))
+                     (eq? (att-value 'equality-function a1) (att-value 'equality-function a2)))
+                    (not (att-value 'circular? a2)))))))
+          (let loop ((old-attribution (apply att-value 'attributes-for-context n old-context))
+                     (new-attribution (apply att-value 'attributes-for-context n new-context)))
+            (cond
+              ((and (null? old-attribution) (null? new-attribution)) ; No attributes to process left:
+               (lambda (n old-instances)
+                 (list)))
+              ((null? new-attribution) ; Only old attributes to delete left:
+               (let ((loop (loop (cdr old-attribution) new-attribution)))
+                 (lambda (n old-instances)
+                   (flush-attribute-instance (car old-instances))
+                   (attribute-instance-context-set! (car old-instances) racr-nil)
+                   (loop n (cdr old-instances)))))
+              ((null? old-attribution) ; Only new attributes to add left:
+               (let ((new-attribute (car new-attribution))
+                     (loop (loop old-attribution (cdr new-attribution))))
+                 (lambda (n old-instances)
+                   (cons (make-attribute-instance new-attribute n) (loop n #f)))))
+              (else ; New and old attributes left:
+               (let ((a1 (car old-attribution))
+                     (a2 (car new-attribution)))
+                 (cond
+                   ((eq? (ast-child 'name a1) (ast-child 'name a2)) ; Definitions for the same attribute, either...
+                    (let ((loop (loop (cdr old-attribution) (cdr new-attribution))))
+                      (if (equal-semantics a1 a2)
+                          (lambda (n old-instances) ; ...semantic equivalent or...
+                            (attribute-instance-definition-set! (car old-instances) a2)
+                            (cons (car old-instances) (loop n (cdr old-instances))))
+                          (lambda (n old-instances) ; ...not semantic equivalent.
+                            (flush-attribute-instance (car old-instances))
+                            (attribute-instance-definition-set! (car old-instances) a2)
+                            (cons (car old-instances) (loop n (cdr old-instances)))))))
+                   ((string<? (symbol->string (ast-child 'name a1)) ; Old attribute deleted from lexical sorted list.
+                              (symbol->string (ast-child 'name a2)))
+                    (let ((loop (loop (cdr old-attribution) new-attribution)))
+                      (lambda (n old-instances)
+                        (flush-attribute-instance (car old-instances))
+                        (attribute-instance-context-set! (car old-instances) racr-nil)
+                        (loop n (cdr old-instances)))))
+                   (else ; New attribute inserted into lexical sorted list.
+                    (let ((loop (loop old-attribution (cdr new-attribution))))
+                      (lambda (n old-instances)
+                        (cons (make-attribute-instance a2 n) (loop n old-instances)))))))))))))
+      
       (compile-ag-specifications))))
+ 
+ (define update-attributes-3
+   (lambda (parent-type context-name n)
+     (define equal-semantics ; Evaluate two attribute definitions always the same?
+       (lambda (a1 a2)
+         (or ; Attribute definitions are semantically equivalent, if either...
+          (eq? a1 a2) ; ...they are the same or...
+          (and
+           (eq? (ast-child 'equation a1) (ast-child 'equation a2)) ; ...have the same equation and...
+           (if (att-value 'circular? a1) ; ...circularity definition.
+               (and
+                (att-value 'circular? a2)
+                (equal? (att-value 'bottom-value a1) (att-value 'bottom-value a2))
+                (eq? (att-value 'equality-function a1) (att-value 'equality-function a2)))
+               (not (att-value 'circular? a2)))))))
+     ;;; Update the node's attributes w.r.t. its context. To do so,...
+     (if (node-list-node? n) ; ...check if the node is a list. If so,...
+         (for-each (lambda (n) (update-attributes-2 parent-type context-name n)) (node-children n)) ; ...update all its elements...
+         (unless (or (node-terminal? n) (node-bud-node? n)) ; ...otherwise ensure it is an ordinary non-terminal. If so,...
+           (let ((old-attribute-instances (node-attributes n)))
+             (node-attributes-set! ; ...construct the list of its attribute instances, i.e.,...
+              n
+              (map ; ...for each...
+               (lambda (attribute)
+                 (let ((instance? (node-find-attribute-2 n (ast-child 'name attribute)))) ; ...existing instance with...
+                   (if (and instance? (equal-semantics (attribute-instance-definition instance?) attribute)) ; ...unchaged semantics...
+                       (begin
+                         (attribute-instance-definition-set! instance? attribute) ; ...just update the instance's definition...
+                         instance?)
+                       (make-attribute-instance attribute n)))) ; ...If a proper instance does not yet exist, add it. Finally,...
+               (att-value
+                'attributes-for-context
+                (node-ast-rule n)
+                parent-type
+                context-name
+                (ast-child 'name (node-ast-rule n)))))
+             (for-each ; ...flush the cache of all instances no more defined or whose definition changed.
+              (lambda (attribute-instance)
+                (when (not (memq attribute-instance (node-attributes n)))
+                  (flush-attribute-instance attribute-instance)
+                  (attribute-instance-context-set! attribute-instance racr-nil)))
+              old-attribute-instances))))))
  
  (define compile-ast-specifications
    (lambda (spec start-symbol)
@@ -2116,7 +2211,7 @@
    (lambda (ast-rule)
      (ast-rule-as-symbol ast-rule)))
  
- (define ast-rule->supertype
+ (define ast-rule->supertype?
    (lambda (ast-rule)
      (ast-rule-supertype? ast-rule)))
  
@@ -2376,42 +2471,6 @@
    (lambda (spec rule children)
      (apply (att-value 'ast-node-factory (racr-specification-2-ast-scheme spec) rule) children)))
  
- (define create-ast-intern-2
-   (lambda (rule children)
-     (let* ((expected-children (att-value 'expanded-rhand rule))
-            (new-fragment (make-node rule #f (list))))
-       ;;; Before constructing the fragment ensure, that...
-       (unless (can-satisfy-contexts?-2 children expected-children) ; ...the given children fit.
-         (throw-exception
-          "Cannot construct " rule " fragment;"
-          "The given children do not fit."))
-       ;;; When all constraints are satisfied, construct the fragment, i.e.,...
-       (node-children-set! ; ...add its children,...
-        new-fragment
-        (map
-         (lambda (symbol child)
-           (if (att-value 'terminal? symbol)
-               (make-node 'terminal new-fragment child)
-               (begin
-                 (for-each ; ...flush all attribute cache entries depending on any added child being a root,...
-                  (lambda (influence)
-                    (flush-attribute-cache-entry (car influence)))
-                  (filter
-                   (lambda (influence)
-                     (vector-ref (cdr influence) 1))
-                   (node-cache-influences child)))
-                 (node-parent-set! child new-fragment) ; ...set the node as parent of each child,...
-                 (update-attributes-2 (ast-child 'name rule) symbol child) ; ...update each child's inherited attributes,...
-                 child)))
-         expected-children
-         children))
-       (distribute-evaluator-state (make-evaluator-state) new-fragment) ; ...distribute the fragment's evaluator state and...
-       (node-attributes-set! ; ...initialize its synthesized attributes.
-        new-fragment
-        (map (lambda (attribute) (make-attribute-instance attribute new-fragment))
-             (att-value 'attributes rule)))
-       new-fragment))) ; Finally, return the constructed fragment.
- 
  (define create-ast-list-2
    (lambda (children)
      ;;; Before constructing the list node ensure, that...
@@ -2452,35 +2511,6 @@
      (and
       (can-be-non-terminal-child? node) ; The node can be a non-terminal child and...
       (not (node-list-node? node))))) ; ...is not a list node.
- 
- ; INTERNAL FUNCTION: Given two lists of Scheme entities and symbols, are the entities valid instances of the symbols?
- (define can-satisfy-contexts?-2
-   (lambda (nodes symbols)
-     (and
-      (= (length nodes) (length symbols))
-      (for-all can-satisfy-context?-2 nodes symbols))))
- 
- ; INTERNAL FUNCTION: Is a Scheme entity a valid instance of a certain symbol?
- (define can-satisfy-context?-2
-   (lambda (node symbol)
-     (or ; The given node is valid if either,...
-      (att-value 'terminal? symbol) ; ...a terminal is expected or,...
-      (and ; ...in case a non-terminal is expected,...
-       (can-be-non-terminal-child? node) ; ...the node can be a non-terminal child and...
-       (or ; ...either...
-        (node-bud-node? node) ; ...is a bud node or,...
-        (if (ast-child 'klenee symbol)
-            (and ; ...in case a list node is expected,...
-             (node-list-node? node) ; ...is a list...
-             (for-all ; ...whose children are...
-                 (lambda (child)
-                   (or ; ...either bud nodes or nodes of the expected type, or,...
-                    (node-bud-node? child)
-                    (node-instance-of?-2 child (att-value 'non-terminal? symbol))))
-               (node-children node)))
-            (and ; ...in case a non-list node is expected,...
-             (not (node-list-node? node)) ; ...is a non-list node of...
-             (node-instance-of?-2 node (att-value 'non-terminal? symbol))))))))) ; ...the expected type.
  
  ; INTERNAL FUNCTION: Given a node in some context update its attribution (the given context must be valid).
  (define update-attributes-2

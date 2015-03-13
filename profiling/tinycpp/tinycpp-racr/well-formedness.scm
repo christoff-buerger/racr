@@ -34,7 +34,7 @@
        (ClassDefinition
         (lambda (n)
           (or
-           (att-value 'qualified-declaration? n)
+           (pair? (ast-child 'name n))
            (and
             (att-value 'local-correct? n)
             (not
@@ -72,7 +72,7 @@
        (Declaration
         (lambda (n)
           (and
-           (let ((decl (att-value 'lookup-local (ast-parent (ast-parent n)) (ast-child 'name n))))
+           (let ((decl (att-value 'lookup-local (ast-parent n) (ast-child 'name n))))
              (or
               (eq? decl n)
               (let ((def (att-value 'lookup-definition decl)))

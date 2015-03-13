@@ -42,26 +42,4 @@
        (Declaration (lambda (n) #f))
        (FieldDeclaration (lambda (n) #t))
        (MethodDeclaration (lambda (n) #t))
-       (ClassDefinition (lambda (n) #t)))
-      
-      (ag-rule
-       qualified-declaration?
-       (Declaration
-        (lambda (n)
-          (pair? (ast-child 'name n)))))
-      
-      (ag-rule
-       compilation-unit
-       (CompilationUnit (lambda (n) n)))
-      
-      (ag-rule
-       full-qualified-name
-       
-       (CompilationUnit (lambda (n) #f))
-       
-       (Declaration
-        (lambda (n)
-          (let ((prefixes (att-value 'full-qualified-name (ast-parent n))))
-            (if prefixes
-                (cons prefixes (ast-child 'name n))
-                (ast-child 'name n))))))))))
+       (ClassDefinition (lambda (n) #t)))))))

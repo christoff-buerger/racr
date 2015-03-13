@@ -10,13 +10,13 @@
  (export
   transform-to-normalform
   specify-normalization)
- (import (rnrs) (racr core) (tinycpp-racr exception-api))
+ (import (rnrs) (racr core) (tinycpp-racr exception-api) (tinycpp-racr name-analysis))
  
  (define transform-to-normalform
    (lambda (compilation-unit)
      (ast-for-each-child
       (lambda (i n)
-        (unless (att-value 'qualified-declaration? n)
+        (unless (pair? (ast-child 'name n))
           (add-default-constructors n)))
       (ast-child 'Body compilation-unit))
      (weave-inner-classes compilation-unit)))
@@ -31,6 +31,7 @@
          'Constructor
          (list
           (ast-child 'name n)
+          (ast-child 'globalindex n)
           (create-ast-list (list))
           (create-ast-list (list)))))
        (ast-for-each-child
@@ -50,7 +51,7 @@
           (ast-find-child
            (lambda (i n)
              (and
-              (att-value 'qualified-declaration? n)
+              (pair? (ast-child 'name n))
               (not (ast-subtype? n 'WovenClassDefinition))))
            (ast-child 'Body n))))))))
  
@@ -61,20 +62,11 @@
             (source-definition?
              (and well-formed? (att-value 'next-inner-class-to-weave? compilation-unit)))
             (target-declaration?
-             (and
-              source-definition?
-              (att-value
-               'lookup-global
-               compilation-unit
-               (fold-left
-                (lambda (result prefix)
-                  (cons result prefix))
-                (car (ast-child 'name source-definition?))
-                (cdr (ast-child 'name source-definition?)))))))
+             (and source-definition? (lookup-subtree compilation-unit (ast-child 'name source-definition?)))))
        (when source-definition?
          (unless (and
                   target-declaration?
-                  (<= (att-value 'global-index target-declaration?) (ast-child-index source-definition?))
+                  (<= (ast-child 'globalindex target-declaration?) (ast-child 'globalindex source-definition?))
                   (eq? (ast-node-type target-declaration?) 'ClassDeclaration))
            (throw-tinycpp-racr-exception "ERROR: Program not well-formed."))
          (rewrite-refine
