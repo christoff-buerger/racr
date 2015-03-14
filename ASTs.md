@@ -1,4 +1,4 @@
-# Abstract Syntax Trees #
+# Abstract Syntax Trees
 
 This chapter presents _RACR's_ abstract syntax tree (AST) API, which provides functions for the specification of AST schemes, the construction of respective ASTs and the querying of ASTs for structural and node information. _RACR_ ASTs are based on the following context-free grammar (CFG), Extended Backus-Naur Form (EBNF) and object-oriented concepts:
 
@@ -16,13 +16,13 @@ In terms of object-oriented programming, every node type corresponds to a class;
 
 _RACR_ supports two special node types besides user specified ones: list nodes and bud nodes. Bud nodes are used to represent still missing AST parts. Whenever a node of some type is expected, a bud node can be used instead. They are typically used to decompose and reuse decomposed AST fragments using rewrites. List nodes are used to represent unbounded repetitions. If a child of type `T` with name `c` of a node type `N` is defined to be an unbounded repetition, all `c` children of instances of `N` will be either, a list node with arbitrary many children of type `T` or a bud node. Even if list and bud nodes are non-terminals, their type is undefined. It is not permitted to query such nodes for their type, including sub- and supertype comparisons. And although bud nodes never have children, it is not permitted to query them for children related information (e.g., their number of children).  After all, bud nodes represent still missing, i.e., unspecified, AST parts.
 
-## Specification ##
+## Specification
 
-### `ast-rule` ###
+### `ast-rule`
 
-```lisp
-
-(ast-rule spec symbol-encoding-rule)```
+```
+(ast-rule spec symbol-encoding-rule)
+```
 
 Calling this function adds to the given _RACR_ specification the AST rule encoded in the given symbol. To this end, the symbol is parsed. The function aborts with an exception, if the symbol encodes no valid AST rule, there already exists a definition for the l-hand of the rule or the specification is not in the [AST specification phase](Architecture#RACR_API.md). The grammar used to encode AST rules in symbols is (note, that the grammar has no whitespace):
 
@@ -42,35 +42,34 @@ Every AST rule starts with a non-terminal (the l-hand), followed by an optional 
 
 **Note:** _AST rules, and in particular AST rule inheritance, are object-oriented concepts. The l-hand is the class defined by a rule (i.e., a node type) and the r-hand symbols are its fields, each named like the context name of the respective symbol. Compared to common object-oriented languages however, r-hand symbols, including inherited ones, are ordered and represent compositions rather than arbitrary relations, such that it is valid to index them and call them child. The order of children is the order of the respective r-hand symbols and, in case of inheritance, "inherited r-hand first"._
 
-```lisp
-
+```
 (ast-rule spec 'N->A-terminal-A*)
 (ast-rule spec 'Na:N->A<A2-A<A3) ; Context-names 4'th & 5'th child: A2 and A3
 (ast-rule spec 'Nb:N->)
-(ast-rule spec 'Procedure->name-Declaration*<Parameters-Block<Body)```
+(ast-rule spec 'Procedure->name-Declaration*<Parameters-Block<Body)
+```
 
-### `compile-ast-specifications` ###
+### `compile-ast-specifications`
 
-```lisp
-
-(compile-ast-specifications spec start-symbol)```
+```
+(compile-ast-specifications spec start-symbol)
+```
 
 Calling this function finishes the [AST specification phase](Architecture#RACR_API.md) of the given _RACR_ specification, whereby the given symbol becomes the start symbol. The AST specification is checked for completeness and correctness, i.e., (1) all non-terminals are defined, (2) rule inheritance is cycle-free, (3) the start symbol is defined and (4) all non-terminals are reachable and (5) productive. Further, it is ensured, that (5) for every rule the context names of its children are unique. In case of any violation, an exception is thrown. An exception is also thrown, if the given specification is not in the AST specification phase. After executing `compile-ast-specifications` the given specification is in the AG specification phase, such that attributes now can be defined using `specify-attribute` and `ag-rule`.
 
-## Construction ##
+## Construction
 
-### `create-ast` ###
+### `create-ast`
 
-```lisp
-
-(create-ast spec non-terminal list-of-children)```
+```
+(create-ast spec non-terminal list-of-children)
+```
 
 Function for the construction of non-terminal nodes. Given a _RACR_ specification, the name of a non-terminal to construct (i.e., an AST rule to apply) and a list of children, the function constructs and returns a parentless AST node (i.e., a root) whose type and children are the given ones. Thereby, it is checked, that (1) the given children are of the correct type for the fragment to construct, (2) enough and not to many children are given, (3) every child is a root (i.e., the children do not already belong to/are not already part of another AST) and (4) no attributes of any of the children are in evaluation. In case of any violation an exception is thrown.
 
 **Note:** _Returned fragments do not use the `list-of-children` argument to administer their actual children. Thus, any change to the given list of children (e.g., using `set-car!` or `set-cdr!`) after applying `create-ast` does not change the children of the constructed fragment._
 
-```lisp
-
+```
 (create-ast spec 'N
 ; List of children:
 (list
@@ -84,13 +83,14 @@ Function for the construction of non-terminal nodes. Given a _RACR_ specificatio
 ; For non-terminal children with unbounded cardinality (Kleene closure)
 ; a list-node containing their elements is expected:
 (create-ast-list ...)
-...))```
+...))
+```
 
-### `create-ast-list` ###
+### `create-ast-list`
 
-```lisp
-
-(create-ast-list list-of-children)```
+```
+(create-ast-list list-of-children)
+```
 
 Given a list `l` of non-terminal nodes that are not AST list-nodes construct an AST list-node whose elements are the elements of `l`. An exception is thrown, if an element of `l` is not an AST node, is a list node, already belongs to another AST or has attributes in evaluation.
 
@@ -98,31 +98,31 @@ Given a list `l` of non-terminal nodes that are not AST list-nodes construct an 
 
 **Note:** _It is not possible to construct AST list nodes containing terminal nodes. Instead however, terminals can be ordinary Scheme lists, such that there is no need for special AST terminal lists._
 
-### `create-ast-bud` ###
+### `create-ast-bud`
 
-```lisp
-
-(create-ast-bud)```
+```
+(create-ast-bud)
+```
 
 Construct a new AST bud-node, that can be used as placeholder within an AST fragment to designate a subtree still to provide. Bud-nodes are valid substitutions for any kind of expected non-terminal child, i.e., whenever a non-terminal node of some type is expected, a bud node can be used instead (e.g., when constructing AST fragments via `create-ast` or `create-ast-list` or when adding another element to a list-node via `rewrite-add`). Since bud-nodes are placeholders, any query for non-terminal node specific information of a bud-node throws an exception (e.g., bud-nodes have no type or attributes and their number of children is not specified etc.).
 
 **Note:** _There exist two main use cases for incomplete ASTs which have "holes" within their subtrees that denote places where appropriate replacements still have to be provided: (1) when constructing ASTs but required parts are not yet known and (2) for the deconstruction and reuse of existing subtrees, i.e., to remove AST parts such that they can be reused for insertion into other places and ASTs. The later use case can be generalised as the reuse of AST fragments within rewrites. The idea thereby is, to use `rewrite-subtree` to insert bud-nodes and extract the subtree replaced._
 
-## Traversal ##
+## Traversal
 
-### `ast-parent` ###
+### `ast-parent`
 
-```lisp
-
-(ast-parent n)```
+```
+(ast-parent n)
+```
 
 Given a node, return its parent if it has any, otherwise thrown an exception.
 
-### `ast-child` ###
+### `ast-child`
 
-```lisp
-
-(ast-child index-or-context-name n)```
+```
+(ast-child index-or-context-name n)
+```
 
 Given a node, return one of its children selected by context name or child index. If the queried child is a terminal node, not the node itself but its value is returned. An exception is thrown, if the child does not exist.
 
@@ -130,8 +130,7 @@ Given a node, return one of its children selected by context name or child index
 
 **Note:** _Because element nodes within AST list-nodes have no context name, they must be queried by index._
 
-```lisp
-
+```
 (let ((ast
 (with-specification
 (create-specification)
@@ -152,21 +151,22 @@ Given a node, return one of its children selected by context name or child index
 (list)))))))
 (assert (eq? (ast-child 'A ast) (ast-child 1 ast)))
 (assert (eq? (ast-child 'A* ast) (ast-child 2 ast)))
-(assert (eq? (ast-child 'MyContextName ast) (ast-child 3 ast))))```
+(assert (eq? (ast-child 'MyContextName ast) (ast-child 3 ast))))
+```
 
-### `ast-sibling` ###
+### `ast-sibling`
 
-```lisp
-
-(ast-sibling index-or-context-name n)```
+```
+(ast-sibling index-or-context-name n)
+```
 
 Given a node `n` which is child of another node `p`, return a certain child `s` of `p` selected by context name or index (thus, `s` is a sibling of `n` or `n`). Similar to `ast-child`, the value of `s`, and not `s` itself, is returned if it is a terminal node. An exception is thrown, if `n` is a root or the sibling does not exist.
 
-### `ast-children` ###
+### `ast-children`
 
-```lisp
-
-(ast-children n . b1 b2 ... bm)```
+```
+(ast-children n . b1 b2 ... bm)
+```
 
 Given a node `n` and arbitrary many child intervals `b1,b2,...,bm` (each a pair consisting of a lower bound `lb` and an upper bound `ub`), return a _Scheme_ list that contains for each child interval `bi = (lb ub)` the children of `n` whose index is within the given interval (i.e., `lb <= child index <= ub`). The elements of the result list are ordered w.r.t. the order of the child intervals `b1,b2,...,bm` and the children of `n`. I.e.:
   * The result lists returned by the child intervals are appended in the order of the intervals.
@@ -174,8 +174,7 @@ Given a node `n` and arbitrary many child intervals `b1,b2,...,bm` (each a pair 
 
 If no child interval is given, a list containing all children of `n` in increasing index order is returned. A child interval with unbounded upper bound (specified using `'*` as upper bound) means "select all children with index `>=` the interval's lower bound". The returned list is a copy -- any change of it (e.g., using `set-car!` or `set-cdr!`) does not change the AST! An exception is thrown, if a child interval queries for a non existent child.
 
-```lisp
-
+```
 (let ((ast
 (with-specification
 (create-specification)
@@ -190,36 +189,36 @@ If no child interval is given, a list containing all children of `n` in increasi
 (assert
 (equal?
 (ast-children ast)
-(list 1 2 3 4 5))))```
+(list 1 2 3 4 5))))
+```
 
-### `ast-for-each-child` ###
+### `ast-for-each-child`
 
-```lisp
-
+```
 (ast-for-each-child f n . b1 b2 ... bm)
 ; f: Processing function of arity two: (1) Index of current child, (2) Current child
 ; n: Node whose children within the given child intervals will be processed in sequence
-; b1 b2 ... bm: Lower-bound/upper-bound pairs (child intervals)```
+; b1 b2 ... bm: Lower-bound/upper-bound pairs (child intervals)
+```
 
 Given a function `f`, a node `n` and arbitrary many child intervals `b1,b2,...,bm` (each a pair consisting of a lower bound `lb` and an upper bound `ub`), apply for each child interval `bi = (lb ub)` the function `f` to each child `c` with index `i` with `lb <= i <= ub`, taking into account the order of child intervals and children. Thereby, `f` must be of arity two; Each time `f` is called, its arguments are an index `i` and the respective `i`'th child of `n`. If no child interval is given, `f` is applied to each child once. A child interval with unbounded upper bound (specified using `'*` as upper bound) means "apply `f` to every child with index `>=` the interval's lower bound". An exception is thrown, if a child interval queries for a non existent child.
 
 **Note:** _Like all RACR API functions also `ast-for-each-child` is continuation safe, i.e., it is alright to apply continuations within `f`, such that the execution of `f` is terminated abnormal._
 
-### `ast-find-child` ###
+### `ast-find-child`
 
-```lisp
-
+```
 (ast-find-child f n . b1 b2 ... bm)
 ; f: Search function of arity two: (1) Index of current child, (2) Current child
 ; n: Node whose children within the given child intervals will be tested in sequence
-; b1 b2 ... bm: Lower-bound/upper-bound pairs (child intervals)```
+; b1 b2 ... bm: Lower-bound/upper-bound pairs (child intervals)
+```
 
 Given a search function `f`, a node `n` and arbitrary many child intervals `b1, b2,...,bm`, find the first child of `n` within the given intervals which satisfies `f`. Thereby, the children of `n` are tested in the order specified by the child intervals. The search function must accept two parameters -- (1) a child index and (2) the actual child -- and return a truth value telling whether the actual child is the one searched for or not. If no child within the given intervals, which satisfies the search function, exists, `#f` is returned, otherwise the child found. An exception is thrown, if a child interval queries for a non existent child.
 
 **Note:** _The syntax and semantics of child intervals is the one of `ast-for-each-child`, except the search is aborted as soon as a child satisfying the search condition encoded in `f` is found._
 
-```lisp
-
+```
 (let ((ast
 (with-specification
 (create-specification)
@@ -291,21 +290,21 @@ n))))
 (assert (att-value 'correct ast))
 ; Introduce redeclaration error:
 (rewrite-terminal 'name (ast-child 1 (ast-child 'Statement* ast)) "var2")
-(assert (not (att-value 'correct ast))))```
+(assert (not (att-value 'correct ast))))
+```
 
-### `ast-find-child*` ###
+### `ast-find-child*`
 
-```lisp
-
+```
 (ast-find-child* f n . b1 b2 ... bm)
 ; f: Search function of arity two: (1) Index of current child, (2) Current child
 ; n: Node whose children within the given child intervals will be tested in sequence
-; b1 b2 ... bm: Lower-bound/upper-bound pairs (child intervals)```
+; b1 b2 ... bm: Lower-bound/upper-bound pairs (child intervals)
+```
 
 Similar to `ast-find-child`, except instead of the first child satisfying `f` the result of `f` for the respective child is returned. If no child satisfies `f`, `#f` is returned.
 
-```lisp
-
+```
 (let ((ast
 (with-specification
 (create-specification)
@@ -326,101 +325,102 @@ ast)))
 (lambda (i c)
 (ast-child 't c))
 ast)
-1)))```
+1)))
+```
 
-## Node Information ##
+## Node Information
 
-### `ast-node?` ###
+### `ast-node?`
 
-```lisp
-
-(ast-node? scheme-entity)```
+```
+(ast-node? scheme-entity)
+```
 
 Given an arbitrary _Scheme_ entity return `#t` if it is an AST node, otherwise `#f`.
 
-### `ast-has-parent?` ###
+### `ast-has-parent?`
 
-```lisp
-
-(ast-has-parent? n)```
+```
+(ast-has-parent? n)
+```
 
 Given a node, return its parent if it has any and `#f` otherwise.
 
-### `ast-child-index` ###
+### `ast-child-index`
 
-```lisp
-
-(ast-child-index n)```
+```
+(ast-child-index n)
+```
 
 Given a node, return its position within the list of children of its parent. If the node is a root, an exception is thrown.
 
-### `ast-has-child?` ###
+### `ast-has-child?`
 
-```lisp
-
-(ast-has-child? context-name n)```
+```
+(ast-has-child? context-name n)
+```
 
 Given a node and context name, return whether the node has a child with the given name or not.
 
-### `ast-num-children` ###
+### `ast-num-children`
 
-```lisp
-
-(ast-num-children n)```
+```
+(ast-num-children n)
+```
 
 Given a node, return its number of children.
 
-### `ast-has-sibling?` ###
+### `ast-has-sibling?`
 
-```lisp
-
-(ast-has-sibling? context-name n)```
+```
+(ast-has-sibling? context-name n)
+```
 
 Given a node and context name, return whether the node has a parent node that has a child with the given name or not.
 
-### `ast-node-type` ###
+### `ast-node-type`
 
-```lisp
-
-(ast-node-type n)```
+```
+(ast-node-type n)
+```
 
 Given a node, return its type, i.e., the non-terminal it is an instance of. If the node is a list or bud node an exception is thrown.
 
-### `ast-node-rule` ###
+### `ast-node-rule`
 
-```lisp
-
-(ast-node-rule n)```
+```
+(ast-node-rule n)
+```
 
 Given a node, return the AST rule it represents a derivation of. If the node is a list or bud node an exception is thrown.
 
-### `ast-list-node?` ###
+### `ast-list-node?`
 
-```lisp
-
-(ast-list-node? n)```
+```
+(ast-list-node? n)
+```
 
 Given a node, return whether it represents a list of children, i.e., is a list node, or not.
 
-### `ast-bud-node?` ###
+### `ast-bud-node?`
 
-```lisp
-
-(ast-bud-node? n)```
+```
+(ast-bud-node? n)
+```
 
 Given a node, return whether it is a bud node or not.
 
-### `ast-subtype?` ###
+### `ast-subtype?`
 
-```lisp
-
-(ast-subtype? a1 a2)```
+```
+(ast-subtype? a1 a2)
+```
 
 Given at least one node and another node or non-terminal symbol, return if the first argument is a subtype of the second. The considered subtype relationship is reflexive, i.e., every type is a subtype of itself. An exception is thrown, if non of the arguments is an AST node, any of the arguments is a list- or bud-node or a given non-terminal argument is not defined (the grammar used to decide whether a symbol is a valid non-terminal or not is the one of the node argument).
 
-```lisp
-
+```
 ; Let n, n1 and n2 be AST nodes and t a Scheme symbol encoding a non-terminal:
 (ast-subtype? n1 n2) ; Is the type of node n1 a subtype of the type of node n2
 (ast-subtype? t n) ; Is the type t a subtype of the type of node n
-(ast-subtype? n t) ; Is the type of node n a subtype of the type t```
+(ast-subtype? n t) ; Is the type of node n a subtype of the type t
+```
