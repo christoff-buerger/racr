@@ -130,7 +130,7 @@ Given a node, return one of its children selected by context name or child index
 
 **Note:** _Because element nodes within AST list-nodes have no context name, they must be queried by index._
 
-```
+```lisp
 (let ((ast
 (with-specification
 (create-specification)
