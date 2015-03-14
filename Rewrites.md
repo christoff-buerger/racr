@@ -1,4 +1,4 @@
-# Rewriting #
+# Rewriting
 
 A very common compiler construction task is to incrementally change the structure of ASTs and evaluate some of their attributes in-between. Typical examples are interactive editors with static semantic analyses, code optimisations or incremental AST transformations. In such scenarios, some means to rewrite (partially) evaluated ASTs, without discarding already evaluated and still valid attribute values, is required. On the other hand, the caches of evaluated attributes, whose value can change because of an AST manipulation, must be flushed. Attribute grammar systems supporting such a behaviour are called incremental. _RACR_ supports incremental attribute evaluation in the form of rewrite functions. The rewrite functions of _RACR_ provide an advanced and convenient interface to perform complex AST manipulations and ensure optimal incremental attribute evaluation (i.e., rewrites only flush the caches of the attributes they influence).
 
@@ -13,30 +13,29 @@ Figure 5.1 summarises the conditions under which _RACR's_ rewrite functions thro
 
 **Figure 5.1:** Runtime Exceptions of RACR's Primitive Rewrite Functions
 
-## Primitive Rewrite Functions ##
+## Primitive Rewrite Functions
 
-### `rewrite-terminal` ###
+### `rewrite-terminal`
 
-```lisp
-
-(rewrite-terminal i n new-value)```
+```
+(rewrite-terminal i n new-value)
+```
 
 Given a node `n`, a child index `i` and an arbitrary value `new-value`, change the value of `n`'s `i`'th child, which must be a terminal, to `new-value`. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `n` has no `i`'th child, `n`'s `i`'th child is no terminal or any attributes of the AST `n` is part of are in evaluation. If rewriting succeeds, the old/rewritten value of the terminal is returned.
 
 **Note:** _`rewrite-terminal` does not compare the old and new value for equivalence. If they are equal, the rewrite is still performed such that the caches of depending attributes are flushed. Developers are responsible to avoid such unnecessary rewrites._
 
-### `rewrite-refine` ###
+### `rewrite-refine`
 
-```lisp
-
-(rewrite-refine n t . c)```
+```
+(rewrite-refine n t . c)
+```
 
 Given a node `n` of arbitrary type, a non-terminal type `t`, which is a subtype of `n`'s current type, and arbitrary many non-terminal nodes and terminal values `c`, rewrite the type of `n` to `t` and add `c` as children for the additional contexts `t` introduces compared to `n`'s current type. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `t` is no subtype of `n`, not enough or to much additional context children are given, any of the additional context children does not fit, any attributes of the AST `n` is part of or of any of the ASTs spaned by the additional children are in evaluation, any of the additional children already is part of another AST or `n` is within the AST of any of the additional children.
 
 **Note:** _Since list, bud and terminal nodes have no type, they cannot be refined._
 
-```lisp
-
+```
 (let* ((spec (create-specification))
 (A
 (with-specification
@@ -58,20 +57,20 @@ spec
 (rewrite-refine A 'Aa 2 3)
 (assert (= (ast-num-children A) 3))
 (assert (eq? (ast-node-type A) 'Aa))
-(assert (= (- (ast-child 'c A) (ast-child 'a A)) (ast-child 'b A))))```
+(assert (= (- (ast-child 'c A) (ast-child 'a A)) (ast-child 'b A))))
+```
 
-### `rewrite-abstract` ###
+### `rewrite-abstract`
 
-```lisp
-
-(rewrite-abstract n t)```
+```
+(rewrite-abstract n t)
+```
 
 Given a node `n` of arbitrary type and a non-terminal type `t`, which is a supertype of `n`'s current type, rewrite the type of `n` to `t`. Superfluous children of `n` representing child contexts not known anymore by `n`'s new type `t` are deleted. Further, the caches of all influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `t` is not a supertype of `n`'s current type, `t` does not fit w.r.t. the context in which `n` is or any attributes of the AST `n` is part of are in evaluation. If rewriting succeeds, a list containing the deleted superfluous children in their original order is returned.
 
 **Note:** _Since list-, bud- and terminal nodes have no type, they cannot be abstracted._
 
-```lisp
-
+```
 (let* ((spec (create-specification))
 (A
 (with-specification
@@ -92,49 +91,50 @@ spec
 ; less child contexts than Aa nodes:
 (rewrite-abstract A 'A)
 (assert (= (ast-num-children A) 1))
-(assert (eq? (ast-node-type A) 'A)))```
+(assert (eq? (ast-node-type A) 'A)))
+```
 
-### `rewrite-subtree` ###
+### `rewrite-subtree`
 
-```lisp
-
-(rewrite-subtree old-fragment new-fragment)```
+```
+(rewrite-subtree old-fragment new-fragment)
+```
 
 Given an AST node to replace (`old-fragment`) and its replacement (`new-fragment`) replace `old-fragment` by `new-fragment`. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if  `new-fragment` does not fit, `old-fragment` is not part of an AST (i.e., has no parent node), any attributes of either fragment are in evaluation, `new-fragment` already is part of another AST or `old-fragment` is within the AST spaned by `new-fragment`. If rewriting succeeds, the removed `old-fragment` is returned.
 
 **Note:** _Besides ordinary node replacement also list-node replacement is supported. In case of a list-node replacement_ `rewrite-subtree` _checks, that the elements of the replacement list `new-fragment` fit w.r.t. their new context._
 
-### `rewrite-add` ###
+### `rewrite-add`
 
-```lisp
-
-(rewrite-add l e)```
+```
+(rewrite-add l e)
+```
 
 Given a list-node `l` and another node `e` add `e` to `l`'s list of children (i.e., `e` becomes an element of `l`). Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `l` is not a list-node, `e` does not fit w.r.t. `l`'s context, any attributes of either `l` or `e` are in evaluation, `e` already is part of another AST or `l` is within the AST spaned by `e`.
 
-### `rewrite-insert` ###
+### `rewrite-insert`
 
-```lisp
-
-(rewrite-insert l i e)```
+```
+(rewrite-insert l i e)
+```
 
 Given a list-node `l`, a child index `i` and an AST node `e`, insert `e` as `i`'th element into `l`. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `l` is no list-node, `e` does not fit w.r.t. `l`'s context, `l` has not enough elements, such that no `i`'th position exists, any attributes of either `l` or `e` are in evaluation, `e` already is part of another AST or `l` is within the AST spaned by `e`.
 
-### `rewrite-delete` ###
+### `rewrite-delete`
 
-```lisp
-
-(rewrite-delete n)```
+```
+(rewrite-delete n)
+```
 
 Given a node `n`, which is element of a list-node (i.e., its parent node is a list-node), delete it within the list. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `n` is no list-node element or any attributes of the AST it is part of are in evaluation. If rewriting succeeds, the deleted list element `n` is returned.
 
-## Rewrite Strategies ##
+## Rewrite Strategies
 
-### `perform-rewrites` ###
+### `perform-rewrites`
 
-```lisp
-
-(perform-rewrites n strategy . transformers)```
+```
+(perform-rewrites n strategy . transformers)
+```
 
 Given an AST node `n`, part of some AST fragment G called work graph, a strategy for traversing G and a set of transformers, apply the transformers on the nodes of G visited by the given strategy until no further transformations are possible (i.e., a normal form is established). Each transformer is a function with a single parameter which is the node currently visited by the strategy. The visit strategy applies the transformers one by one on the currently visited node until either, one matches (i.e., performs a rewrite) or all fail. Thereby, each transformer decides, if it performs any rewrite for the currently visited node. If it does, it performs the rewrite and returns a truth value equal to `#t`, otherwise `#f`. If all transformers failed (i.e., non performed any rewrite), the visit strategy selects the next node of G to visit. If there are no further nodes to visit (i.e., all nodes to visit have been visited and no transformer performed any rewrite) `perform-rewrites` terminates. If any transformer performed a rewrite, the visit strategy starts from scratch, i.e., the AST fragment resulting after the just performed rewrite becomes the new work graph G' and the visit strategy is initialised to the state it would have if `perform-rewrites` has just been applied on G' with the given transformers.
 
@@ -150,16 +150,16 @@ When terminating, `perform-rewrites` returns a list containing the respective re
 
 **Note:** _To ease the development of transformers for patterns specified using `specify-pattern`, the `create-transformer-for-pattern` function can be used. It provides convenient means to associate a rewrite context defined by a pattern attribute (i.e., the l-hand of a rewrite rule) with a transformer (i.e., the r-hand of a rewrite rule). When doing so, `with-bindings` can be used to ease the specification of the actual transformer w.r.t. pattern bindings._
 
-### `create-transformer-for-pattern` ###
+### `create-transformer-for-pattern`
 
-```lisp
-
+```
 (create-transformer-for-pattern spec node-type att-name rewrite-fun . args)
 ; spec: RACR specification
 ; node-type: Type of the pattern's distinguished node (Scheme symbol)
 ; att-name: Name of the pattern attribute (Scheme symbol)
 ; rewrite-fun: Function performing the actual rewrite
-; args: Additional arguments for the pattern's condition and the rewrite function```
+; args: Additional arguments for the pattern's condition and the rewrite function
+```
 
 Given a _RACR_ specification, a context describing a certain pattern attribute, an arbitrary function called rewrite function and additional attribute arguments, construct a proper transformer that can be argument for `perform-rewrites`. The constructed transformer returns `#f` if, and only if, either, its node argument does not have a non-broadcasted instance of the given pattern attribute or its respective instance applied to the given pattern arguments returns `#f`. Otherwise, the transformer applies the given rewrite function to the binding list returned by the pattern attribute and the given pattern arguments. If the result of this application is not `#f`, it is the result of the transformer; otherwise the transformer returns `#t`.
 
