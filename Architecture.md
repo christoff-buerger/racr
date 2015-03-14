@@ -24,11 +24,11 @@ The three phases must be processed in sequence. E.g., if a _Scheme_ program trie
  * **AST Specification Phase** Specification of AST schemes
  * **AG Specification Phase** Definition of attributes
  * **Evaluation Phase** One of the following actions:
- * * Construction of ASTs
- * * Querying AST information
- * * Querying the values of attributes
- * * Rewriting ASTs
- * * Weaving and querying AST annotations
+   * Construction of ASTs
+   * Querying AST information
+   * Querying the values of attributes
+   * Rewriting ASTs
+   * Weaving and querying AST annotations
 
 The AST query and attribute evaluation functions are not only used to interact with ASTs but also in attribute equations to query AST nodes and attributes local within the context of the respective equation.
 
