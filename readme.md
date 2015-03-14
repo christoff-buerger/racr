@@ -1,5 +1,6 @@
-Software: RACR (Reference Attribute Grammar Controlled Rewriting)
-Author:   Christoff Bürger (`christoff.buerger@gmail.com`)
+**Software:** RACR (Reference Attribute Grammar Controlled Rewriting)
+
+**Author  :** Christoff Bürger (`christoff.buerger@gmail.com`)
 
 # Documentation
 
@@ -15,4 +16,4 @@ terms of the MIT license (X11 license) which accompanies this distribution
 # Comments
 
 For any remaining questions or comments don't hesitate to write me an e-mail
-(`Christoff.Buerger@gmail.com`). I appreciate any feedback.
+(`christoff.buerger@gmail.com`). I appreciate any feedback.
