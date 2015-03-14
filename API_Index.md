@@ -1,79 +1,79 @@
-# API Index #
+# API Index
 
-## ASTs: Specification ##
+## ASTs: Specification
 
-[ast-rule](ASTs#ast-rule.md)
-[compile-ast-specifications](ASTs#compile-ast-specifications.md)
+ * [ast-rule](ASTs#ast-rule.md)
+ * [compile-ast-specifications](ASTs#compile-ast-specifications.md)
 
-<h2>ASTs: Construction</h2>
+## ASTs: Construction
 
-<a href='ASTs#create-ast.md'>create-ast</a><br>
-<a href='ASTs#create-ast-list.md'>create-ast-list</a><br>
-<a href='ASTs#create-ast-bud.md'>create-ast-bud</a><br>
+* [create-ast](ASTs#create-ast.md)
+* [create-ast-list](ASTs#create-ast-list.md)
+* [create-ast-bud](ASTs#create-ast-bud.md)
 
-<h2>ASTs: Traversal</h2>
+## ASTs: Traversal
 
-<a href='ASTs#ast-parent.md'>ast-parent</a><br>
-<a href='ASTs#ast-child.md'>ast-child</a><br>
-<a href='ASTs#ast-sibling.md'>ast-sibling</a><br>
-<a href='ASTs#ast-children.md'>ast-children</a><br>
-<a href='ASTs#ast-for-each-child.md'>ast-for-each-child</a><br>
-<a href='ASTs#ast-find-child.md'>ast-find-child</a><br>
-<a href='ASTs#ast-find-child*.md'>ast-find-child*</a><br>
+* [ast-parent](ASTs#ast-parent.md)
+* [ast-child](ASTs#ast-child.md)
+* [ast-sibling](ASTs#ast-sibling.md)
+* [ast-children](ASTs#ast-children.md)
+* [ast-for-each-child](ASTs#ast-for-each-child.md)
+* [ast-find-child](ASTs#ast-find-child.md)
+* [ast-find-child*](ASTs#ast-find-child*.md)
 
-<h2>ASTs: Node Information</h2>
+## ASTs: Node Information
 
-<a href='ASTs#ast-node?.md'>ast-node?</a><br>
-<a href='ASTs#ast-has-parent?.md'>ast-has-parent?</a><br>
-<a href='ASTs#ast-child-index.md'>ast-child-index</a><br>
-<a href='ASTs#ast-has-child?.md'>ast-has-child?</a><br>
-<a href='ASTs#ast-num-children.md'>ast-num-children</a><br>
-<a href='ASTs#ast-has-sibling?.md'>ast-has-sibling?</a><br>
-<a href='ASTs#ast-node-type.md'>ast-node-type</a><br>
-<a href='ASTs#ast-node-rule.md'>ast-node-rule</a><br>
-<a href='ASTs#ast-list-node?.md'>ast-list-node?</a><br>
-<a href='ASTs#ast-bud-node?.md'>ast-bud-node?</a><br>
-<a href='ASTs#ast-subtype?.md'>ast-subtype?</a>
+* [ast-node?](ASTs#ast-node?.md)
+* [ast-has-parent?](ASTs#ast-has-parent?.md)
+* [ast-child-index](ASTs#ast-child-index.md)
+* [ast-has-child?](ASTs#ast-has-child?.md)
+* [ast-num-children](ASTs#ast-num-children.md)
+* [ast-has-sibling?](ASTs#ast-has-sibling?.md)
+* [ast-node-type](ASTs#ast-node-type.md)
+* [ast-node-rule](ASTs#ast-node-rule.md)
+* [ast-list-node?](ASTs#ast-list-node?.md)
+* [ast-bud-node?](ASTs#ast-bud-node?.md)
+* [ast-subtype?](ASTs#ast-subtype?.md)
 
-<h2>Attribution: Specification</h2>
+## Attribution: Specification
 
-<a href='Attributes#specify-attribute.md'>specify-attribute</a><br>
-<a href='Attributes#specify-pattern.md'>specify-pattern</a><br>
-<a href='Attributes#ag-rule.md'>ag-rule</a><br>
-<a href='Attributes#compile-ag-specifications.md'>compile-ag-specifications</a>
+* [specify-attribute](Attributes#specify-attribute.md)
+* [specify-pattern](Attributes#specify-pattern.md)
+* [ag-rule](Attributes#ag-rule.md)
+* [compile-ag-specifications](Attributes#compile-ag-specifications.md)
 
-<h2>Attribution: Querying</h2>
+## Attribution: Querying
 
-<a href='Attributes#att-value.md'>att-value</a>
+* [att-value](Attributes#att-value.md)
 
-<h2>Rewriting: Primitive Rewrite Functions</h2>
+## Rewriting: Primitive Rewrite Functions
 
-<a href='Rewrites#rewrite-terminal.md'>rewrite-terminal</a><br>
-<a href='Rewrites#rewrite-refine.md'>rewrite-refine</a><br>
-<a href='Rewrites#rewrite-abstract.md'>rewrite-abstract</a><br>
-<a href='Rewrites#rewrite-subtree.md'>rewrite-subtree</a><br>
-<a href='Rewrites#rewrite-add.md'>rewrite-add</a><br>
-<a href='Rewrites#rewrite-insert.md'>rewrite-insert</a><br>
-<a href='Rewrites#rewrite-delete.md'>rewrite-delete</a>
+* [rewrite-terminal](Rewrites#rewrite-terminal.md)
+* [rewrite-refine](Rewrites#rewrite-refine.md)
+* [rewrite-abstract](Rewrites#rewrite-abstract.md)
+* [rewrite-subtree](Rewrites#rewrite-subtree.md)
+* [rewrite-add](Rewrites#rewrite-add.md)
+* [rewrite-insert](Rewrites#rewrite-insert.md)
+* [rewrite-delete](Rewrites#rewrite-delete.md)
 
-<h2>Rewriting: Rewrite Strategies</h2>
+## Rewriting: Rewrite Strategies
 
-<a href='Rewrites#perform-rewrites.md'>perform-rewrites</a><br>
-<a href='Rewrites#create-transformer-for-pattern.md'>create-transfomer-for-patter</a>
+* [perform-rewrites](Rewrites#perform-rewrites.md)
+* [create-transfomer-for-patter](Rewrites#create-transformer-for-pattern.md)
 
-<h2>Annotations: Attachment</h2>
+## Annotations: Attachment
 
-<a href='Annotations#ast-annotation-set!.md'>ast-annotation-set!</a><br>
-<a href='Annotations#ast-weave-annotations.md'>ast-weave-annotations</a><br>
-<a href='Annotations#ast-annotation-remove!.md'>ast-annotation-remove!</a>
+* [ast-annotation-set!](Annotations#ast-annotation-set!.md)
+* [ast-weave-annotations](Annotations#ast-weave-annotations.md)
+* [ast-annotation-remove!](Annotations#ast-annotation-remove!.md)
 
-<h2>Annotations: Querying</h2>
+## Annotations: Querying
 
-<a href='Annotations#ast-annotation?.md'>ast-annotation?</a><br>
-<a href='Annotations#ast-annotation.md'>ast-annotation</a>
+* [ast-annotation?](Annotations#ast-annotation?.md)
+* [ast-annotation](Annotations#ast-annotation.md)
 
-<h2>Support</h2>
+## Support
 
-<a href='SupportAPI#with-specification.md'>with-specification</a><br>
-<a href='SupportAPI#with-bindings.md'>with-bindings</a><br>
-<a href='SupportAPI#specification->phase.md'>specification-&gt;phase</a>
+* [with-specification](SupportAPI#with-specification.md)
+* [with-bindings](SupportAPI#with-bindings.md)
+* [specification-&gt;phase](SupportAPI#specification->phase.md)
