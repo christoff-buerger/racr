@@ -1,6 +1,6 @@
-# Library Overview #
+# Library Overview
 
-## Architecture ##
+## Architecture
 
 To use _RACR_ within _Scheme_ programs, it must be imported via `(import (racr core))`. The imported library provides a set of functions for the specification of AST schemes, their attribution and the construction of respective ASTs, to query their information (e.g., for AST traversal or node type comparison), to evaluate their attributes and to rewrite and annotate them.
 
@@ -13,32 +13,32 @@ Every AST scheme and its attribution define a language -- they are a **_RACR_ sp
 
 The relationships between AST rules and attribute definitions and ASTs consisting of nodes and attribute instances are as used to. _RACR_ specifications consist of a set of **AST rules**, whereby for every AST rule arbitrary many **attribute definitions** can be specified. ASTs consist of arbitrary many **nodes** with associated **attribute instances**. Each node represents a context w.r.t. an AST rule and its respective attributes.
 
-## Instantiation ##
+## Instantiation
 
 Three different language specification and application phases are distinguished in _RACR_:
-  * AST Specification Phase
-  * AG Specification Phase
-  * AST construction, query, evaluation, rewriting and annotation phase (Evaluation Phase)
+ * AST Specification Phase
+ * AG Specification Phase
+ * AST construction, query, evaluation, rewriting and annotation phase (Evaluation Phase)
 
 The three phases must be processed in sequence. E.g., if a _Scheme_ program tries to construct an AST w.r.t. a _RACR_ specification before finishing its AST and AG specification phase, _RACR_ will abort with an exception of type `racr-exception` incorporating an appropriate error message. The respective tasks that can be performed in each of the three specification phases are:
-  * **AST Specification Phase** Specification of AST schemes
-  * **AG Specification Phase** Definition of attributes
-  * **Evaluation Phase** One of the following actions:
-    * Construction of ASTs
-    * Querying AST information
-    * Querying the values of attributes
-    * Rewriting ASTs
-    * Weaving and querying AST annotations
+ * **AST Specification Phase** Specification of AST schemes
+ * **AG Specification Phase** Definition of attributes
+ * **Evaluation Phase** One of the following actions:
+ * * Construction of ASTs
+ * * Querying AST information
+ * * Querying the values of attributes
+ * * Rewriting ASTs
+ * * Weaving and querying AST annotations
 
 The AST query and attribute evaluation functions are not only used to interact with ASTs but also in attribute equations to query AST nodes and attributes local within the context of the respective equation.
 
 Users can start the next specification phase by special compilation functions, which check the consistency of the specification, throw proper exceptions in case of errors and derive an optimised internal representation of the specified language (thus, compile the specification). The respective compilation functions are:
-  * `compile-ast-specifications`: AST => AG specification phase
-  * `compile-ag-specifications`: AG specification => Evaluation phase
+ * `compile-ast-specifications`: AST => AG specification phase
+ * `compile-ag-specifications`: AG specification => Evaluation phase
 
 To construct a new specification the `create-specification` function is used. Its application yields a new internal record representing a _RACR_ specification, i.e., a language. Such records are needed by any of the AST and AG specification functions to associate the specified AST rule or attribute with a certain language.
 
-## API ##
+## API
 
 The state chart of Figure 2.2 summarises the specification and AST and attribute query, rewrite and annotation API of _RACR_. The API functions of a certain specification phase are denoted by labels of edges originating from the respective phase. Transitions between different specification phases represent the compilation of specifications of the source phase, which finishes the respective phase such that now tasks of the destination phase can be performed.
 
