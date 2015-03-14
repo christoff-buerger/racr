@@ -1,4 +1,4 @@
-**Software:** RACR (Reference Attribute Grammar Controlled Rewriting)
+**Software:** _RACR_ (Reference Attribute Grammar Controlled Rewriting)
 
 **Author:** Christoff Bürger (`christoff.buerger@gmail.com`)
 
