@@ -2,8 +2,8 @@
 
 ## ASTs: Specification ##
 
-[ast-rule](ASTs#ast-rule.md)<br>
-<a href='ASTs#compile-ast-specifications.md'>compile-ast-specifications</a>
+ * [ast-rule](ASTs#ast-rule.md)
+ * [compile-ast-specifications](ASTs#compile-ast-specifications.md)
 
 <h2>ASTs: Construction</h2>
 
