@@ -1,6 +1,6 @@
 **Software:** RACR (Reference Attribute Grammar Controlled Rewriting)
 
-**Author  :** Christoff Bürger (`christoff.buerger@gmail.com`)
+**Author:** Christoff Bürger (`christoff.buerger@gmail.com`)
 
 # Documentation
 
