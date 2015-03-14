@@ -1,8 +1,8 @@
-# Examples Overview #
+# Examples Overview
 
 In the following we shortly summarize the _RACR_ examples included in the repository. They are contained within subdirectories of the _"examples"_ directory. **Beware:** _RACR_ must be [installed](https://code.google.com/p/racr/wiki/Installation) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
 
-## Binary Numbers ##
+## Binary Numbers
 
 **Difficult level:** AG and _RACR_ novice
 **Size:** Very small
@@ -16,7 +16,7 @@ Objectives:
     * Attribute specifications: Synthesized & inherited attributes
     * AST & attribute access functions
 
-## State Machines ##
+## State Machines
 
 **Difficult level:** AG experienced, Reference AG novice, _RACR_ disciple
 **Size:** Small
@@ -30,7 +30,7 @@ Objectives:
     * Reference attributes: Graph and name analysis problems
     * Circular attributes: Transitive closure, control- and data-flow problems
 
-## Petri Nets ##
+## Petri Nets
 
 **Difficult level:** Reference AG experienced, Rewrite disciple, _RACR_ disciple
 **Size:** Small/Medium
@@ -44,7 +44,7 @@ Objectives:
     * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that simulate the firing of transitions by adding and deleting tokens or rewrites that compose Petri nets)
     * Incremental Evaluation: Attributes are only reevaluated if influenced by some rewrite (e.g., the enabled status of transitions is only reevaluated if the last fired transition or the last performed composition influenced it)
 
-## SiPLE (Simple imperative Programming Language Example) ##
+## SiPLE (Simple imperative Programming Language Example)
 
 **Difficult level:** Reference AG experienced, Rewriting disciple, _RACR_ experienced
 **Size:** Medium
