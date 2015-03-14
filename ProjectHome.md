@@ -1,4 +1,4 @@
-# Overview #
+# Overview
 
 _RACR_ is a _Scheme_ attribute grammar library providing incremental attribute evaluation in the presence of arbitrary abstract syntax tree rewrites. It provides a set of functions that can be used to specify abstract syntax tree schemes and their attribution and construct respective trees, query their attributes and node information and annotate and rewrite them. Thereby, both, reference attribute grammars and rewriting, are seamlessly integrated, such that rewrites can reuse attributes and attribute values change depending on performed rewrites – a technique we call Reference Attribute Grammar Controlled Rewriting. To reevaluate attributes influenced by abstract syntax tree rewrites, a demand-driven, incremental evaluation strategy, which incorporates the actual execution paths selected at runtime for control-flows within attribute equations, is used. To realise this strategy, a dynamic attribute dependency graph is constructed throughout attribute evaluation – a technique we call Dynamic Attribute Dependency Analyses.
 
@@ -8,7 +8,7 @@ Since _RACR_ is an ordinary _Scheme_ library, its functions can arbitrarily inte
 
 To enable _RACR_ in embedded scenarios and different technology spaces than _Scheme_, a _C99_ foreign call interface is provided. Using the foreign call interface, _C_ developers can specify their own _RACR_-based languages without much worry about _Scheme_. In particular, users can implement attribute equations as _C_ functions. The caching and incremental evaluation still works. To build a binary _RACR_ implementation including a _Scheme_ R6RS virtual machine with proper garbage collection, that can be linked via the provided headers, _[Racket](http://racket-lang.org)_ is used.
 
-## Features ##
+## Features
 
 Abstract Syntax Trees (AST):
   * Typed non-terminals
@@ -45,6 +45,6 @@ _C_ Foreign Call Interface:
   * Use _C_ functions to implement attribute equations
   * Easy packing and unpacking of _Scheme_ values; Automatic marshaling of expected _RACR_ function arguments
 
-## Getting Started ##
+## Getting Started
 
 To get started just [download and install RACR](Installation.md) and consult the documentation ([html](Documentation.md), [pdf](http://racr.googlecode.com/git/documentation/racr-manual.pdf)). We also provide some [examples](Examples.md).
