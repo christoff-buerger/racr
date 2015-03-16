@@ -8,15 +8,24 @@
 (library
  (tinycpp-racr name-analysis)
  (export
+  lookup-subtree
   specify-name-analysis)
  (import (rnrs) (racr core))
  
+ (define lookup-subtree
+   (lambda (n name)
+     (if (null? (cdr name))
+         (att-value 'lookup-local n (car name))
+         (let* ((n (att-value 'lookup-local n (car name)))
+                (n (and n (att-value 'lookup-definition n))))
+           (and n (ast-subtype? n 'ClassDefinition) (lookup-subtree n (cdr name)))))))
+ 
  (define lookup-local
-   (lambda (n label to-search . bounds)
+   (lambda (n simple-name to-search . bounds)
      (apply
       ast-find-child
       (lambda (i n)
-        (eq? (ast-child 'name n) label))
+        (eq? (ast-child 'name n) simple-name))
       (ast-child to-search n)
       bounds)))
  
@@ -26,10 +35,18 @@
       specification
       
       (ag-rule
-       global-index
-       ((CompilationUnit Body)
+       lookup-definition
+       (Declaration
         (lambda (n)
-          (ast-child-index n))))
+          (if (att-value 'definition? n)
+              n
+              (let ((def
+                      (lookup-local
+                       (ast-parent (ast-parent n))
+                       (ast-child 'name n)
+                       'Body
+                       (cons (+ (ast-child-index n) 1) '*))))
+                (and def (att-value 'definition? def) def))))))
       
       (ag-rule
        declaration
@@ -39,26 +56,17 @@
                  (decl
                   (if (pair? name)
                       (let ((decl (att-value 'lookup-prefix n (car name))))
-                        (and
-                         decl
-                         (att-value
-                          'lookup-global
-                          (att-value 'compilation-unit decl)
-                          (fold-left
-                           (lambda (result prefix)
-                             (cons result prefix))
-                           (att-value 'full-qualified-name decl)
-                           (cdr name)))))
+                        (and decl (lookup-subtree decl (cdr name))))
                       (att-value 'lookup-simple-reference n name))))
-            (and decl (<= (att-value 'global-index decl) (att-value 'global-index n)) decl)))))
+            (and decl (<= (ast-child 'globalindex decl) (ast-child 'globalindex n)) decl)))))
       
       (ag-rule
        lookup-simple-reference
        (MethodDeclaration
-        (lambda (n name)
+        (lambda (n simple-name)
           (or
-           (att-value 'lookup-local n name)
-           (att-value 'lookup-prefix n name)))))
+           (att-value 'lookup-local n simple-name)
+           (att-value 'lookup-prefix n simple-name)))))
       
       (ag-rule
        lookup-prefix
@@ -76,36 +84,8 @@
                (att-value 'lookup-prefix (ast-parent n) prefix))))))
       
       (ag-rule
-       lookup-global
-       (CompilationUnit
-        (lambda (n label)
-          (if (pair? label)
-              (let* ((new-decl (att-value 'lookup-global n (car label)))
-                     (new-def (and new-decl (att-value 'lookup-definition new-decl))))
-                (and
-                 new-def
-                 (ast-subtype? new-def 'ClassDefinition)
-                 (att-value 'lookup-local new-def (cdr label))))
-              (att-value 'lookup-local n label)))))
-      
-      (ag-rule
        lookup-local
        (CompilationUnit (lambda (n label) (lookup-local n label 'Body)))
        (ClassDefinition (lambda (n label) (lookup-local n label 'Body)))
        (ClassDeclaration (lambda (n label) #f))
-       (MethodDeclaration (lambda (n label) (lookup-local n label 'Parameters))))
-      
-      (ag-rule
-       lookup-definition
-       (Declaration
-        (lambda (n)
-          (if (att-value 'definition? n)
-              n
-              (let ((def
-                      (lookup-local
-                       (ast-parent (ast-parent n))
-                       (ast-child 'name n)
-                       'Body
-                       (cons (+ (ast-child-index n) 1) '*))))
-                (and def (att-value 'definition? def) def))))))
-      ))))
+       (MethodDeclaration (lambda (n label) (lookup-local n label 'Parameters))))))))
