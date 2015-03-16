@@ -37,27 +37,27 @@ Given a node `n` of arbitrary type, a non-terminal type `t`, which is a subtype 
 
 ```
 (let* ((spec (create-specification))
-(A
-(with-specification
-spec
-(ast-rule 'S->A)
-(ast-rule 'A->a)
-(ast-rule 'Aa:A->b-c)
-(compile-ast-specifications 'S)
-(compile-ag-specifications)
-(ast-child 'A
-(create-ast
-'S
-(list
-(create-ast 'A (list 1))))))))
-(assert (= (ast-num-children A) 1))
-(assert (eq? (ast-node-type A) 'A))
-; Refine an A node to an Aa node. Note, that Aa nodes have two
-; additional child contexts beside the one they inherit:
-(rewrite-refine A 'Aa 2 3)
-(assert (= (ast-num-children A) 3))
-(assert (eq? (ast-node-type A) 'Aa))
-(assert (= (- (ast-child 'c A) (ast-child 'a A)) (ast-child 'b A))))
+       (A
+        (with-specification
+         spec
+         (ast-rule 'S->A)
+         (ast-rule 'A->a)
+         (ast-rule 'Aa:A->b-c)
+         (compile-ast-specifications 'S)
+         (compile-ag-specifications)
+         (ast-child 'A
+                    (create-ast
+                     'S
+                     (list
+                      (create-ast 'A (list 1))))))))
+  (assert (= (ast-num-children A) 1))
+  (assert (eq? (ast-node-type A) 'A))
+  ; Refine an A node to an Aa node. Note, that Aa nodes have two
+  ; additional child contexts beside the one they inherit:
+  (rewrite-refine A 'Aa 2 3)
+  (assert (= (ast-num-children A) 3))
+  (assert (eq? (ast-node-type A) 'Aa))
+  (assert (= (- (ast-child 'c A) (ast-child 'a A)) (ast-child 'b A))))
 ```
 
 ### `rewrite-abstract`
@@ -72,26 +72,26 @@ Given a node `n` of arbitrary type and a non-terminal type `t`, which is a super
 
 ```
 (let* ((spec (create-specification))
-(A
-(with-specification
-spec
-(ast-rule 'S->A)
-(ast-rule 'A->a)
-(ast-rule 'Aa:A->b-c)
-(compile-ast-specifications 'S)
-(compile-ag-specifications)
-(ast-child 'A
-(create-ast
-'S
-(list
-(create-ast 'Aa (list 1 2 3))))))))
-(assert (= (ast-num-children A) 3))
-(assert (eq? (ast-node-type A) 'Aa))
-; Abstract an Aa node to an A node. Note, that A nodes have two
-; less child contexts than Aa nodes:
-(rewrite-abstract A 'A)
-(assert (= (ast-num-children A) 1))
-(assert (eq? (ast-node-type A) 'A)))
+       (A
+        (with-specification
+         spec
+         (ast-rule 'S->A)
+         (ast-rule 'A->a)
+         (ast-rule 'Aa:A->b-c)
+         (compile-ast-specifications 'S)
+         (compile-ag-specifications)
+         (ast-child 'A
+                    (create-ast
+                     'S
+                     (list
+                      (create-ast 'Aa (list 1 2 3))))))))
+  (assert (= (ast-num-children A) 3))
+  (assert (eq? (ast-node-type A) 'Aa))
+  ; Abstract an Aa node to an A node. Note, that A nodes have two
+  ; less child contexts than Aa nodes:
+  (rewrite-abstract A 'A)
+  (assert (= (ast-num-children A) 1))
+  (assert (eq? (ast-node-type A) 'A)))
 ```
 
 ### `rewrite-subtree`
