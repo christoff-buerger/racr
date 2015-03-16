@@ -107,8 +107,25 @@ static class Racr {
 		return (o is bool) ? (bool) o : true;
 	}
 
+	public struct Range {
+		public int min;
+		public int max;
+		public Range(int min, int max) {
+			this.min = min;
+			this.max = max;
+		}
+		public Range(int min) {
+			this.min = min;
+			this.max = 0;
+		}
+		internal Cons ToCons() {
+			return new Cons(min, max > 0 ? max : SymbolTable.StringToObject("*"));
+		}
+	}
+
 	public class AstNode {
 		internal object ast;
+		private bool[] nonTermChilren;		// are children non-terminal?
 
 		private static AstNode GetNode(object ast) {
 			return (AstNode) astAnnotation.Call(ast, SymbolTable.StringToObject("this"));
@@ -121,14 +138,14 @@ static class Racr {
 			var rule = specificationFindAstRule.Call(spec.spec, nt);
 			var symbols = astRuleProduction.Call(rule) as Cons;
 
+			nonTermChilren = new bool[children.Length];
+
 			Cons list = null;
 			Cons marker = null;
 			for (int i = 0; i < children.Length; i++) {
 				symbols = symbols.cdr as Cons;
-				object child;
-				var isNonTerm = symbolIsNonTerminal.Call(symbols.car);
-				if (IsTrue(isNonTerm)) child = (children[i] as AstNode).ast;
-				else child = children[i];
+				nonTermChilren[i] = IsTrue(symbolIsNonTerminal.Call(symbols.car));
+				var child = nonTermChilren[i] ? (children[i] as AstNode).ast : children[i];
 				var cons = new Cons(child);
 				if (list == null) list = marker = cons;
 				else {
@@ -197,6 +214,50 @@ static class Racr {
 		public string NodeType() {
 			return ((SymbolId) astNodeType.Call(ast)).ToString();
 		}
+		public bool IsListNode() {
+			return (bool) astListNodeQ.Call(ast);
+		}
+		public bool IsBudNode() {
+			return (bool) astBudNodeQ.Call(ast);
+		}
+
+
+		public void ForEachChild(Action<int, object> f, params Range[] bounds) {
+			Func<int, object, object> wrap = (i, n) => {
+				f(i, nonTermChilren[i - 1] ? GetNode(n) : n);
+				return Builtins.Unspecified;
+			};
+			object[] l = new object[2 + bounds.Length];
+			l[0] = wrap.ToSchemeProcedure();
+			l[1] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
+			astForEachChild.Call(l);
+		}
+		public object FindChild(Func<int, object, bool> f, params Range[] bounds) {
+			int index = 0;
+			Func<int, object, bool> wrap = (i, n) => {
+				bool found = f(i, nonTermChilren[i - 1] ? GetNode(n) : n);
+				if (found) index = i;
+				return found;
+			};
+			object[] l = new object[2 + bounds.Length];
+			l[0] = wrap.ToSchemeProcedure();
+			l[1] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
+			var ret = astFindChild.Call(l);
+			return (index > 0 && nonTermChilren[index - 1]) ? GetNode(ret) : ret;
+		}
+		public object FindChildA(Func<int, object, object> f, params Range[] bounds) {
+			Func<int, object, object> wrap = (i, n) => {
+				return f(i, nonTermChilren[i - 1] ? GetNode(n) : n);
+			};
+			object[] l = new object[2 + bounds.Length];
+			l[0] = wrap.ToSchemeProcedure();
+			l[1] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
+			return astFindChildA.Call(l);
+		}
+
 
 
 		// ast annotations
@@ -215,6 +276,16 @@ static class Racr {
 		public void WeaveAnnotations(string type, string name, object v) {
 			astWeaveAnnotations.Call(ast, SymbolTable.StringToObject(type), SymbolTable.StringToObject(name), v);
 		}
+	}
+
+	public static bool IsSubtype(this string t, AstNode n) {
+		return (bool) astSubtypeQ.Call(SymbolTable.StringToObject(t), n.ast);
+	}
+	public static bool IsSubtype(this AstNode n, string t) {
+		return (bool) astSubtypeQ.Call(n.ast, SymbolTable.StringToObject(t));
+	}
+	public static bool IsSubtype(this AstNode n1, AstNode n2) {
+		return (bool) astSubtypeQ.Call(n1.ast, n2.ast);
 	}
 
 
@@ -236,14 +307,14 @@ static class Racr {
 }
 
 
-
 class App {
 
 
 	public static void Main() {
 
+
 		var spec = new Racr.Specification();
-		spec.AstRule("A->B-C");
+		spec.AstRule("A->B-C-w");
 		spec.AstRule("B->t");
 		spec.AstRule("C->");
 
@@ -257,8 +328,30 @@ class App {
 		var root = new Racr.AstNode(spec, "A",
 			new Racr.AstNode(spec, "B",
 				"terminal"),
-			new Racr.AstNode(spec, "C"));
+			new Racr.AstNode(spec, "C"),
+			"hiya");
 
+
+		root.ForEachChild((i, o) => {
+			var node = o as Racr.AstNode;
+			if (node != null)
+				Console.WriteLine("{0}: {1}", i, node.NodeType());
+			else
+				Console.WriteLine("{0}: {1}", i, o);
+		}, new Racr.Range(2));
+
+
+		Console.WriteLine("---");
+
+
+		var c = root.FindChild((i, o) => {
+			return i == 2;
+		}) as Racr.AstNode;
+
+		Console.WriteLine("{0}", c.NodeType());
+
+
+		Console.WriteLine("---");
 
 		Console.WriteLine(root);
 		Console.WriteLine("NodeType: {0}", root.NodeType());
