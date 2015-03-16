@@ -17,19 +17,19 @@ Its respective _Scheme_ program in the syntax provided by the macro is:
 
 ```
 (state-machine
-s1 ; Initial state
-(s4) ; List of final states
-; Transitions:
-(s1 -> s2)
-(s1 -> s3)
-(s1 -> s1)
-(s2 -> s4)
-(s2 -> s5)
-(s3 -> s6)
-(s6 -> s4)
-(s5 -> s7)
-(s7 -> s4)
-(s4 -> s1))
+ s1 ; Initial state
+ (s4) ; List of final states
+ ; Transitions:
+ (s1 -> s2)
+ (s1 -> s3)
+ (s1 -> s1)
+ (s2 -> s4)
+ (s2 -> s5)
+ (s3 -> s6)
+ (s6 -> s4)
+ (s5 -> s7)
+ (s7 -> s4)
+ (s4 -> s1))
 ```
 
 This syntax is transformed by the macro into the following AST:
