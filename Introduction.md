@@ -40,8 +40,8 @@ A very nice consequence of reference attribute grammar controlled rewriting is, 
 
 ```
 (if (att-value a2 n2)
-(att-value a3 n3)
-(att-value a4 n4))
+    (att-value a3 n3)
+    (att-value a4 n4))
 ```
 
 _Obviously,_`i1`_always depends on_`i2`_, but only on either,_`i3`_or_`i4`_. On which of both depends on the actual value of_`i2`_, i.e., the execution path selected at runtime for the_`if`_control-flow statement. If some rewrite changes an AST information that influences the value of_`i4`_, the cache of_`i1`_only has to be flushed if the value of_`i2`_was_`#f`_._
