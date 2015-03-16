@@ -70,20 +70,22 @@ Function for the construction of non-terminal nodes. Given a _RACR_ specificatio
 **Note:** _Returned fragments do not use the `list-of-children` argument to administer their actual children. Thus, any change to the given list of children (e.g., using `set-car!` or `set-cdr!`) after applying `create-ast` does not change the children of the constructed fragment._
 
 ```
-(create-ast spec 'N
-; List of children:
-(list
-...
-; For non-terminal children an AST node is expected:
-(create-ast ...)
-...
-; For terminals, not an AST node, but their value is expected:
-"value for a terminal"
-...
-; For non-terminal children with unbounded cardinality (Kleene closure)
-; a list-node containing their elements is expected:
-(create-ast-list ...)
-...))
+(create-ast
+ spec
+ 'N
+ ; List of children:
+ (list
+  ...
+  ; For non-terminal children an AST node is expected:
+  (create-ast ...)
+  ...
+  ; For terminals, not an AST node, but their value is expected:
+  "value for a terminal"
+  ...
+  ; For non-terminal children with unbounded cardinality (Kleene closure)
+  ; a list node containing their elements is expected:
+  (create-ast-list ...)
+  ...))
 ```
 
 ### `create-ast-list`
@@ -132,26 +134,26 @@ Given a node, return one of its children selected by context name or child index
 
 ```
 (let ((ast
-(with-specification
-(create-specification)
-(ast-rule 'S->A-A*-A<MyContextName)
-(ast-rule 'A->)
-(compile-ast-specifications 'S)
-(compile-ag-specifications)
-(create-ast
-'S
-(list
-(create-ast
-'A
-(list))
-(create-ast-list
-(list))
-(create-ast
-'A
-(list)))))))
-(assert (eq? (ast-child 'A ast) (ast-child 1 ast)))
-(assert (eq? (ast-child 'A* ast) (ast-child 2 ast)))
-(assert (eq? (ast-child 'MyContextName ast) (ast-child 3 ast))))
+       (with-specification
+        (create-specification)
+        (ast-rule 'S->A-A*-A<MyContextName)
+        (ast-rule 'A->)
+        (compile-ast-specifications 'S)
+        (compile-ag-specifications)
+        (create-ast
+         'S
+         (list
+          (create-ast
+           'A
+           (list))
+          (create-ast-list
+           (list))
+          (create-ast
+           'A
+           (list)))))))
+  (assert (eq? (ast-child 'A ast) (ast-child 1 ast)))
+  (assert (eq? (ast-child 'A* ast) (ast-child 2 ast)))
+  (assert (eq? (ast-child 'MyContextName ast) (ast-child 3 ast))))
 ```
 
 ### `ast-sibling`
@@ -176,20 +178,20 @@ If no child interval is given, a list containing all children of `n` in increasi
 
 ```
 (let ((ast
-(with-specification
-(create-specification)
-(ast-rule 'S->t1-t2-t3-t4-t5)
-(compile-ast-specifications 'S)
-(compile-ag-specifications)
-(create-ast 'S (list 1 2 3 4 5)))))
-(assert
-(equal?
-(ast-children ast (cons 2 2) (cons 2 4) (cons 3 '*))
-(list 2 2 3 4 3 4 5)))
-(assert
-(equal?
-(ast-children ast)
-(list 1 2 3 4 5))))
+       (with-specification
+        (create-specification)
+        (ast-rule 'S->t1-t2-t3-t4-t5)
+        (compile-ast-specifications 'S)
+        (compile-ag-specifications)
+        (create-ast 'S (list 1 2 3 4 5)))))
+  (assert
+   (equal?
+    (ast-children ast (cons 2 2) (cons 2 4) (cons 3 '*))
+    (list 2 2 3 4 3 4 5)))
+  (assert
+   (equal?
+    (ast-children ast)
+    (list 1 2 3 4 5))))
 ```
 
 ### `ast-for-each-child`
@@ -220,77 +222,77 @@ Given a search function `f`, a node `n` and arbitrary many child intervals `b1, 
 
 ```
 (let ((ast
-(with-specification
-(create-specification)
-
-; A program consists of declaration and reference statements:
-(ast-rule 'Program->Statement*)
-(ast-rule 'Statement->)
-; A declaration declares an entity of a certain name:
-(ast-rule 'Declaration:Statement->name)
-; A reference refers to an entity of a certain name:
-(ast-rule 'Reference:Statement->name)
-
-(compile-ast-specifications 'Program)
-
-(ag-rule
-lookup
-((Program Statement*)
-(lambda (n name)
-(ast-find-child
-(lambda (i child)
-(and
-(ast-subtype? child 'Declaration)
-(string=? (ast-child 'name child) name)))
-(ast-parent n)
-; Child interval enforcing declare before use rule:
-(cons 1 (ast-child-index n))))))
-
-(ag-rule
-correct
-; A program is correct, if its statements are correct:
-(Program
-(lambda (n)
-(not
-(ast-find-child
-(lambda (i child)
-(not (att-value 'correct child)))
-(ast-child 'Statement* n)))))
-; A reference is correct, if it is declared:
-(Reference
-(lambda (n)
-(att-value 'lookup n (ast-child 'name n))))
-; A declaration is correct, if it is no redeclaration:
-(Declaration
-(lambda (n)
-(eq?
-(att-value 'lookup n (ast-child 'name n))
-n))))
-
-(compile-ag-specifications)
-
-(create-ast
-'Program
-(list
-(create-ast-list
-(list
-(create-ast 'Declaration (list "var1"))
-; First undeclared error:
-(create-ast 'Reference (list "var3"))
-(create-ast 'Declaration (list "var2"))
-(create-ast 'Declaration (list "var3"))
-; Second undeclared error:
-(create-ast 'Reference (list "undeclared-var")))))))))
-(assert (not (att-value 'correct ast)))
-; Resolve first undeclared error:
-(rewrite-terminal 'name (ast-child 2 (ast-child 'Statement* ast)) "var1")
-(assert (not (att-value 'correct ast)))
-; Resolve second undeclared error:
-(rewrite-terminal 'name (ast-child 5 (ast-child 'Statement* ast)) "var2")
-(assert (att-value 'correct ast))
-; Introduce redeclaration error:
-(rewrite-terminal 'name (ast-child 1 (ast-child 'Statement* ast)) "var2")
-(assert (not (att-value 'correct ast))))
+       (with-specification
+        (create-specification)
+        
+        ; A program consists of declaration and reference statements:
+        (ast-rule 'Program->Statement*)
+        (ast-rule 'Statement->)
+        ; A declaration declares an entity of a certain name:
+        (ast-rule 'Declaration:Statement->name)
+        ; A reference refers to an entity of a certain name:
+        (ast-rule 'Reference:Statement->name)
+        
+        (compile-ast-specifications 'Program)
+        
+        (ag-rule
+         lookup
+         ((Program Statement*)
+          (lambda (n name)
+            (ast-find-child
+             (lambda (i child)
+               (and
+                (ast-subtype? child 'Declaration)
+                (string=? (ast-child 'name child) name)))
+             (ast-parent n)
+             ; Child interval enforcing declare before use rule:
+             (cons 1 (ast-child-index n))))))
+        
+        (ag-rule
+         correct
+         ; A program is correct, if its statements are correct:
+         (Program
+          (lambda (n)
+            (not
+             (ast-find-child
+              (lambda (i child)
+                (not (att-value 'correct child)))
+              (ast-child 'Statement* n)))))
+         ; A reference is correct, if it is declared:
+         (Reference
+          (lambda (n)
+            (att-value 'lookup n (ast-child 'name n))))
+         ; A declaration is correct, if it is no redeclaration:
+         (Declaration
+          (lambda (n)
+            (eq?
+             (att-value 'lookup n (ast-child 'name n))
+             n))))
+        
+        (compile-ag-specifications)
+        
+        (create-ast
+         'Program
+         (list
+          (create-ast-list
+           (list
+            (create-ast 'Declaration (list "var1"))
+            ; First undeclared error:
+            (create-ast 'Reference (list "var3"))
+            (create-ast 'Declaration (list "var2"))
+            (create-ast 'Declaration (list "var3"))
+            ; Second undeclared error:
+            (create-ast 'Reference (list "undeclared-var")))))))))
+  (assert (not (att-value 'correct ast)))
+  ; Resolve first undeclared error:
+  (rewrite-terminal 'name (ast-child 2 (ast-child 'Statement* ast)) "var1")
+  (assert (not (att-value 'correct ast)))
+  ; Resolve second undeclared error:
+  (rewrite-terminal 'name (ast-child 5 (ast-child 'Statement* ast)) "var2")
+  (assert (att-value 'correct ast))
+  ; Introduce redeclaration error:
+  (rewrite-terminal 'name (ast-child 1 (ast-child 'Statement* ast)) "var2")
+  (assert (not (att-value 'correct ast))))
 ```
 
 ### `ast-find-child*`
@@ -306,26 +308,26 @@ Similar to `ast-find-child`, except instead of the first child satisfying `f` th
 
 ```
 (let ((ast
-(with-specification
-(create-specification)
-(ast-rule 'A->B)
-(ast-rule 'B->t)
-(compile-ast-specifications 'A)
-(compile-ag-specifications)
-(create-ast 'A (list (create-ast 'B (list 1)))))))
-(assert
-(ast-node?
-(ast-find-child ; Return the first child satisfying the search condition
-(lambda (i c)
-(ast-child 't c))
-ast)))
-(assert
-(=
-(ast-find-child* ; Return test result of the first child satisfying the search condition
-(lambda (i c)
-(ast-child 't c))
-ast)
-1)))
+       (with-specification
+        (create-specification)
+        (ast-rule 'A->B)
+        (ast-rule 'B->t)
+        (compile-ast-specifications 'A)
+        (compile-ag-specifications)
+        (create-ast 'A (list (create-ast 'B (list 1)))))))
+  (assert
+   (ast-node?
+    (ast-find-child ; Return the first child satisfying the search condition
+     (lambda (i c)
+       (ast-child 't c))
+     ast)))
+  (assert
+   (=
+    (ast-find-child* ; Return test result of the first child satisfying the search condition
+     (lambda (i c)
+       (ast-child 't c))
+     ast)
+    1)))
 ```
 
 ## Node Information
