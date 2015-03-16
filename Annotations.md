@@ -16,21 +16,21 @@ Given a node `n`, a _Scheme_ symbol `a` representing an annotation name and an a
 
 ```
 (let ((n (function-returning-an-ast)))
-; Attach annotations:
-(ast-annotation-set! n 'integer-value 3)
-(ast-annotation-set!
-n
-'function-value
-(lambda (associated-node integer-argument)
-integer-argument))
-; Query annotations:
-(assert
-(=
-(ast-annotation n 'integer-value)
-; Apply the value of the 'function-value annotation. Note, that
-; the returned function has one parameter (integer-argument). The
-; associated-node parameter is automatically bound to n:
-((ast-annotation n 'function-value) 3))))
+  ; Attach annotations:
+  (ast-annotation-set! n 'integer-value 3)
+  (ast-annotation-set!
+   n
+   'function-value
+   (lambda (associated-node integer-argument)
+     integer-argument))
+  ; Query annotations:
+  (assert
+   (=
+    (ast-annotation n 'integer-value)
+    ; Apply the value of the 'function-value annotation. Note, that
+    ; the returned function has one parameter (integer-argument). The
+    ; associated-node parameter is automatically bound to n:
+    ((ast-annotation n 'function-value) 3))))
 ```
 
 ### `ast-weave-annotations`
