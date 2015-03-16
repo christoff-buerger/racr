@@ -44,33 +44,34 @@ Calling this function adds to the given _RACR_ specification the given attribute
 **Note:** _There exist only few exceptions when attributes should not be cached. In general, parameterized attributes with parameters whose memoization (i.e., permanent storage in memory) might cause garbage collection problems should never be cached. E.g., when parameters are functions, callers of such attributes often construct the respective arguments -- i.e., functions -- on the fly as anonymous functions. In most Scheme systems every time an anonymous function is constructed it forms a new entity in memory, even if the same function constructing code is consecutively executed. Since attributes are cached w.r.t. their parameters, the cache of such attributes with anonymous function arguments might be cluttered up. If a piece of code constructing an anonymous function and using it as an argument for a cached attribute is executed several times, it might never have a cache hit and always store a cache entry for the function argument/attribute value pair. There is no guarantee that RACR handles this issue, because there is no guaranteed way in Scheme to decide if two anonymous function entities are actually the same function (RACR uses_`equal?`_for parameter comparison). A similar caching issue arises if attribute parameters can be AST nodes. Consider a node that has been argument of an attribute is deleted by a rewrite. Even the node is deleted, it and the AST it spans will still be stored as key in the cache of the attribute. It is only deleted from the cache of the attribute, if the cache of the attribute is flushed because of an AST rewrite influencing its value (including the special case, that the attribute is influenced by the deleted node)._
 
 ```
-(specify-attribute spec
-'att ; Define the attribute att...
-'N   ; in the context of N nodes their...
-'B   ; B child (thus, the attribute is inherited). Further, the attribute is...
-#f   ; not cached,...
-(lambda (n para) ; parameterised (one parameter named para) and...
-...)
-(cons ; circular.
-bottom-value
-equivalence-function)) ; E.g., equal?
+(specify-attribute
+ spec
+ 'att ; Define the attribute att...
+ 'N   ; in the context of N nodes their...
+ 'B   ; B child (thus, the attribute is inherited). Further, the attribute is...
+ #f   ; not cached,...
+ (lambda (n para) ; parameterised (one parameter named para) and...
+   ...)
+ (cons ; circular.
+  bottom-value
+  equivalence-function)) ; E.g., equal?
 ; Meta specification: Specify an attribute using another attribute grammar:
 (apply
-specify-attribute
-(att-value 'attribute-computing-attribute-definition meta-compiler-ast))
+ specify-attribute
+ (att-value 'attribute-computing-attribute-definition meta-compiler-ast))
 ```
 
 ### `specify-pattern`
 
 ```
 (specify-pattern
-spec ; RACR specification
-att-name ; Name of the specified pattern attribute (a Scheme symbol).
-; Pattern specification consisting of:
-distinguished-node ; Name of the distinguished node (a Scheme symbol).
-fragments ; List of connected AST fragments reachable from the distinguished node.
-references ; List of references connecting pattern nodes.
-condition?) ; #f or function restricting the applicability of the pattern.
+ spec ; RACR specification
+ att-name ; Name of the specified pattern attribute (a Scheme symbol).
+ ; Pattern specification consisting of:
+ distinguished-node ; Name of the distinguished node (a Scheme symbol).
+ fragments ; List of connected AST fragments reachable from the distinguished node.
+ references ; List of references connecting pattern nodes.
+ condition?) ; #f or function restricting the applicability of the pattern.
 ```
 
 Calling this function adds to the given _RACR_ specification an attribute of the given name that can be used to decide if the given pattern matches at the location a queried instance of the attribute is associated with. The attribute's definition context is the type of the distinguished node of the given pattern (cf. below for distinguished node). Attributes defined using `specify-pattern` are called pattern attribute. They are ordinary _RACR_ attributes.
@@ -127,31 +128,32 @@ In case of any violation, `specify-pattern` throws an exception.
 
 ```
 (specify-pattern
-some-racr-specification
-some-pattern-attribute-name
-some-distinguished-node-name
-some-ast-fragments
-some-references
-; Assume the pattern establishes bindings A and B, we can specify
-; a pattern condition depending on both:
-(with-bindings (A B)
-...)) ; Arbitrary code that somehow uses A and B
+ some-racr-specification
+ some-pattern-attribute-name
+ some-distinguished-node-name
+ some-ast-fragments
+ some-references
+ ; Assume the pattern establishes bindings A and B, we can specify
+ ; a pattern condition depending on both:
+ (with-bindings
+  (A B)
+  ...)) ; Arbitrary code that somehow uses A and B
 ```
 
 ### `ag-rule`
 
 ```
 (ag-rule
-attribute-name
-; Arbitrary many, but at least one, definitions of any of the following forms:
-((non-terminal context-name) equation) ; Default: cached and non-circular
-((non-terminal context-name) cached? equation)
-((non-terminal context-name) equation bottom equivalence-function)
-((non-terminal context-name) cached? equation bottom equivalence-function)
-(non-terminal equation) ; No context name = synthesized attribute
-(non-terminal cached? equation)
-(non-terminal equation bottom equivalence-function)
-(non-terminal cached? equation bottom equivalence-function))
+ attribute-name
+ ; Arbitrary many, but at least one, definitions of any of the following forms:
+ ((non-terminal context-name) equation) ; Default: cached and non-circular
+ ((non-terminal context-name) cached? equation)
+ ((non-terminal context-name) equation bottom equivalence-function)
+ ((non-terminal context-name) cached? equation bottom equivalence-function)
+ (non-terminal equation) ; No context name = synthesized attribute
+ (non-terminal cached? equation)
+ (non-terminal equation bottom equivalence-function)
+ (non-terminal cached? equation bottom equivalence-function))
 ; attribute-name, non-terminal, context-name: Scheme identifiers, not symbols!
 ```
 
@@ -190,6 +192,6 @@ Given a node, return the value of one of its attribute instances. In case no pro
 (att-value 'lookup n "myVar") ; Query parameterised attribute with one argument
 ; Dynamic attribute dispatch:
 (att-value
-(att-value 'attribute-computing-attribute-name n)
-(att-value 'reference-attribute-computing-AST-node n))
+ (att-value 'attribute-computing-attribute-name n)
+ (att-value 'reference-attribute-computing-AST-node n))
 ```
