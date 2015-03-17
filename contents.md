@@ -2,9 +2,9 @@
 
   * [Introduction](introduction.md)
   * [Library Overview](architecture.md)
-    * [Architecture](architecture.md#RACR_Architecture)
-    * [Instantiation](architecture.md#Instantiation)
-    * [API](architecture.md#API)
+    * [Architecture](architecture.md#architecture)
+    * [Instantiation](architecture.md#instantiation)
+    * [API](architecture.md#api)
   * [Abstract Syntax Trees](abstract-syntax-trees.md)
     * [Specification](abstract-syntax-trees.md#Specification)
     * [Construction](abstract-syntax-trees.md#Construction)
