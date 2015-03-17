@@ -2,38 +2,38 @@
 
 ## ASTs: Specification
 
- * [ast-rule](ASTs.md#ast-rule)
- * [compile-ast-specifications](ASTs#compile-ast-specifications.md)
+ * [ast-rule](abstract-syntax-trees.md#ast-rule)
+ * [compile-ast-specifications](abstract-syntax-trees#compile-ast-specifications.md)
 
 ## ASTs: Construction
 
-* [create-ast](ASTs#create-ast.md)
-* [create-ast-list](ASTs#create-ast-list.md)
-* [create-ast-bud](ASTs#create-ast-bud.md)
+* [create-ast](abstract-syntax-trees#create-ast.md)
+* [create-ast-list](abstract-syntax-trees#create-ast-list.md)
+* [create-ast-bud](abstract-syntax-trees#create-ast-bud.md)
 
 ## ASTs: Traversal
 
-* [ast-parent](ASTs#ast-parent.md)
-* [ast-child](ASTs#ast-child.md)
-* [ast-sibling](ASTs#ast-sibling.md)
-* [ast-children](ASTs#ast-children.md)
-* [ast-for-each-child](ASTs#ast-for-each-child.md)
-* [ast-find-child](ASTs#ast-find-child.md)
-* [ast-find-child*](ASTs#ast-find-child*.md)
+* [ast-parent](abstract-syntax-trees#ast-parent.md)
+* [ast-child](abstract-syntax-trees#ast-child.md)
+* [ast-sibling](abstract-syntax-trees#ast-sibling.md)
+* [ast-children](abstract-syntax-trees#ast-children.md)
+* [ast-for-each-child](abstract-syntax-trees#ast-for-each-child.md)
+* [ast-find-child](abstract-syntax-trees#ast-find-child.md)
+* [ast-find-child*](abstract-syntax-trees#ast-find-child*.md)
 
 ## ASTs: Node Information
 
-* [ast-node?](ASTs#ast-node?.md)
-* [ast-has-parent?](ASTs#ast-has-parent?.md)
-* [ast-child-index](ASTs#ast-child-index.md)
-* [ast-has-child?](ASTs#ast-has-child?.md)
-* [ast-num-children](ASTs#ast-num-children.md)
-* [ast-has-sibling?](ASTs#ast-has-sibling?.md)
-* [ast-node-type](ASTs#ast-node-type.md)
-* [ast-node-rule](ASTs#ast-node-rule.md)
-* [ast-list-node?](ASTs#ast-list-node?.md)
-* [ast-bud-node?](ASTs#ast-bud-node?.md)
-* [ast-subtype?](ASTs#ast-subtype?.md)
+* [ast-node?](abstract-syntax-trees#ast-node?.md)
+* [ast-has-parent?](abstract-syntax-trees#ast-has-parent?.md)
+* [ast-child-index](abstract-syntax-trees#ast-child-index.md)
+* [ast-has-child?](abstract-syntax-trees#ast-has-child?.md)
+* [ast-num-children](abstract-syntax-trees#ast-num-children.md)
+* [ast-has-sibling?](abstract-syntax-trees#ast-has-sibling?.md)
+* [ast-node-type](abstract-syntax-trees#ast-node-type.md)
+* [ast-node-rule](abstract-syntax-trees#ast-node-rule.md)
+* [ast-list-node?](abstract-syntax-trees#ast-list-node?.md)
+* [ast-bud-node?](abstract-syntax-trees#ast-bud-node?.md)
+* [ast-subtype?](abstract-syntax-trees#ast-subtype?.md)
 
 ## Attribution: Specification
 
