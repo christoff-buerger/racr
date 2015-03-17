@@ -37,14 +37,14 @@
 
 ## Attribution: Specification
 
-* [specify-attribute](Attributes#specify-attribute.md)
-* [specify-pattern](Attributes#specify-pattern.md)
-* [ag-rule](Attributes#ag-rule.md)
-* [compile-ag-specifications](Attributes#compile-ag-specifications.md)
+* [specify-attribute](attribution.md#specify-attribute)
+* [specify-pattern](attribution.md#specify-pattern)
+* [ag-rule](attribution.md#ag-rule)
+* [compile-ag-specifications](attribution.md#compile-ag-specifications)
 
 ## Attribution: Querying
 
-* [att-value](Attributes#att-value.md)
+* [att-value](attribution.md#att-value)
 
 ## Rewriting: Primitive Rewrite Functions
 
