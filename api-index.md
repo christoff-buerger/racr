@@ -48,18 +48,18 @@
 
 ## Rewriting: Primitive Rewrite Functions
 
-* [rewrite-terminal](Rewrites#rewrite-terminal.md)
-* [rewrite-refine](Rewrites#rewrite-refine.md)
-* [rewrite-abstract](Rewrites#rewrite-abstract.md)
-* [rewrite-subtree](Rewrites#rewrite-subtree.md)
-* [rewrite-add](Rewrites#rewrite-add.md)
-* [rewrite-insert](Rewrites#rewrite-insert.md)
-* [rewrite-delete](Rewrites#rewrite-delete.md)
+* [rewrite-terminal](rewriting.md#rewrite-terminal)
+* [rewrite-refine](rewriting.md#rewrite-refine)
+* [rewrite-abstract](rewriting.md#rewrite-abstract)
+* [rewrite-subtree](rewriting.md#rewrite-subtree)
+* [rewrite-add](rewriting.md#rewrite-add)
+* [rewrite-insert](rewriting.md#rewrite-insert)
+* [rewrite-delete](rewriting.md#rewrite-delete)
 
 ## Rewriting: Rewrite Strategies
 
-* [perform-rewrites](Rewrites#perform-rewrites.md)
-* [create-transfomer-for-patter](Rewrites#create-transformer-for-pattern.md)
+* [perform-rewrites](rewriting.md#perform-rewrites)
+* [create-transfomer-for-patter](rewriting.md#create-transformer-for-pattern)
 
 ## Annotations: Attachment
 
