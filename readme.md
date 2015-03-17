@@ -5,7 +5,7 @@
 # Documentation
 
 For documentation consult `https://github.com/christoff-buerger/racr` or the
-manual shipped with this distribution (`./documentation/racr-manual.pdf`).
+[manual](documentation/contents.md) shipped with this distribution (`./documentation/racr-manual.pdf`).
 
 # License
 
