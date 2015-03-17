@@ -76,4 +76,4 @@
 
 * [with-specification](support-api.md#with-specification)
 * [with-bindings](support-api.md#with-bindings)
-* [specification-&gt;phase](support-api.md#specification->phase)
+* [specification-&gt;phase](support-api.md#specification-phase)
