@@ -24,7 +24,7 @@ _RACR_ supports two special node types besides user specified ones: list nodes a
 (ast-rule spec symbol-encoding-rule)
 ```
 
-Calling this function adds to the given _RACR_ specification the AST rule encoded in the given symbol. To this end, the symbol is parsed. The function aborts with an exception, if the symbol encodes no valid AST rule, there already exists a definition for the l-hand of the rule or the specification is not in the [AST specification phase](architecture.md#racr-api). The grammar used to encode AST rules in symbols is (note, that the grammar has no whitespace):
+Calling this function adds to the given _RACR_ specification the AST rule encoded in the given symbol. To this end, the symbol is parsed. The function aborts with an exception, if the symbol encodes no valid AST rule, there already exists a definition for the l-hand of the rule or the specification is not in the [AST specification phase](architecture.md#api). The grammar used to encode AST rules in symbols is (note, that the grammar has no whitespace):
 
 ```
 Rule ::= NonTerminal [":" NonTerminal] "->"  [ProductionElement {"-" ProductionElement}];
@@ -55,7 +55,7 @@ Every AST rule starts with a non-terminal (the l-hand), followed by an optional 
 (compile-ast-specifications spec start-symbol)
 ```
 
-Calling this function finishes the [AST specification phase](architecture.md#racr-api) of the given _RACR_ specification, whereby the given symbol becomes the start symbol. The AST specification is checked for completeness and correctness, i.e., (1) all non-terminals are defined, (2) rule inheritance is cycle-free, (3) the start symbol is defined and (4) all non-terminals are reachable and (5) productive. Further, it is ensured, that (5) for every rule the context names of its children are unique. In case of any violation, an exception is thrown. An exception is also thrown, if the given specification is not in the AST specification phase. After executing `compile-ast-specifications` the given specification is in the AG specification phase, such that attributes now can be defined using `specify-attribute` and `ag-rule`.
+Calling this function finishes the [AST specification phase](architecture.md#api) of the given _RACR_ specification, whereby the given symbol becomes the start symbol. The AST specification is checked for completeness and correctness, i.e., (1) all non-terminals are defined, (2) rule inheritance is cycle-free, (3) the start symbol is defined and (4) all non-terminals are reachable and (5) productive. Further, it is ensured, that (5) for every rule the context names of its children are unique. In case of any violation, an exception is thrown. An exception is also thrown, if the given specification is not in the AST specification phase. After executing `compile-ast-specifications` the given specification is in the AG specification phase, such that attributes now can be defined using `specify-attribute` and `ag-rule`.
 
 ## Construction
 
