@@ -19,21 +19,21 @@
 * [ast-children](abstract-syntax-trees.md#ast-children)
 * [ast-for-each-child](abstract-syntax-trees.md#ast-for-each-child)
 * [ast-find-child](abstract-syntax-trees.md#ast-find-child)
-* [ast-find-child*](abstract-syntax-trees.md#ast-find-child*)
+* [ast-find-child*](abstract-syntax-trees.md#ast-find-child-1)
 
 ## ASTs: Node Information
 
-* [ast-node?](abstract-syntax-trees.md#ast-node?)
-* [ast-has-parent?](abstract-syntax-trees.md#ast-has-parent?)
+* [ast-node?](abstract-syntax-trees.md#ast-node)
+* [ast-has-parent?](abstract-syntax-trees.md#ast-has-parent)
 * [ast-child-index](abstract-syntax-trees.md#ast-child-index)
-* [ast-has-child?](abstract-syntax-trees.md#ast-has-child?)
+* [ast-has-child?](abstract-syntax-trees.md#ast-has-child)
 * [ast-num-children](abstract-syntax-trees.md#ast-num-children)
-* [ast-has-sibling?](abstract-syntax-trees.md#ast-has-sibling?)
+* [ast-has-sibling?](abstract-syntax-trees.md#ast-has-sibling)
 * [ast-node-type](abstract-syntax-trees.md#ast-node-type)
 * [ast-node-rule](abstract-syntax-trees.md#ast-node-rule)
-* [ast-list-node?](abstract-syntax-trees.md#ast-list-node?)
-* [ast-bud-node?](abstract-syntax-trees.md#ast-bud-node?)
-* [ast-subtype?](abstract-syntax-trees.md#ast-subtype?)
+* [ast-list-node?](abstract-syntax-trees.md#ast-list-node)
+* [ast-bud-node?](abstract-syntax-trees.md#ast-bud-node)
+* [ast-subtype?](abstract-syntax-trees.md#ast-subtype)
 
 ## Attribution: Specification
 
