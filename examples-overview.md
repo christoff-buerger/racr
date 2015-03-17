@@ -1,6 +1,6 @@
 # Examples Overview
 
-In the following we shortly summarize the _RACR_ examples included in the repository. They are contained within subdirectories of the _"examples"_ directory. **Beware:** _RACR_ must be [installed](installation.md) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
+In the following we shortly summarize the _RACR_ examples included in the repository. They are contained within subdirectories of the _"examples"_ directory. **Beware:** _RACR_ must be [installed](requirements-and-installation.md) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
 
 ## Binary Numbers
 
