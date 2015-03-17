@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Generic;
 using IronScheme;
 using IronScheme.Runtime;
 using IronScheme.Scripting;
-
 
 static class Racr {
 
@@ -16,6 +16,7 @@ static class Racr {
 	private static Callable astParent;
 	private static Callable astChild;
 	private static Callable astSibling;
+	private static Callable astChildren;
 	private static Callable astForEachChild;
 	private static Callable astFindChild;
 	private static Callable astFindChildA;
@@ -58,6 +59,7 @@ static class Racr {
 		astParent					= "ast-parent".Eval<Callable>();
 		astChild					= "ast-child".Eval<Callable>();
 		astSibling					= "ast-sibling".Eval<Callable>();
+		astChildren					= "ast-children".Eval<Callable>();
 		astForEachChild				= "ast-for-each-child".Eval<Callable>();
 		astFindChild				= "ast-find-child".Eval<Callable>();
 		astFindChildA				= "ast-find-child*".Eval<Callable>();
@@ -103,10 +105,6 @@ static class Racr {
 		}
 	}
 
-	private static bool IsTrue(object o) {
-		return (o is bool) ? (bool) o : true;
-	}
-
 	public struct Range {
 		public int min;
 		public int max;
@@ -123,15 +121,19 @@ static class Racr {
 		}
 	}
 
+	private static bool IsTrue(object o) {
+		return (o is bool) ? (bool) o : true;
+	}
+
+	private static AstNode GetNode(object ast) {
+		return (AstNode) astAnnotation.Call(ast, SymbolTable.StringToObject("this"));
+	}
+
 	public class AstNode {
 		internal object ast;
 		private bool[] nonTermChilren;		// are children non-terminal?
+		protected AstNode() {}
 
-		private static AstNode GetNode(object ast) {
-			return (AstNode) astAnnotation.Call(ast, SymbolTable.StringToObject("this"));
-		}
-		protected AstNode() {
-		}
 		public AstNode(Specification spec, string nonTerminal, params object[] children) {
 
 			var nt = SymbolTable.StringToObject(nonTerminal);
@@ -222,7 +224,20 @@ static class Racr {
 		}
 
 
-		public void ForEachChild(Action<int, object> f, params Range[] bounds) {
+		public virtual object[] Children(params Range[] bounds) {
+			object[] l = new object[bounds.Length];
+			int i;
+			for (i = 0; i < bounds.Length; i++) l[i] = bounds[i].ToCons();
+			var ret = astChildren.Call(l) as Cons;
+			var children = new List<object>();
+			i = 0;
+			foreach (Cons e in ret) {
+				children.Add(nonTermChilren[i - 1] ? GetNode(e.car) : e.car);
+				i++;
+			}
+			return children.ToArray();
+		}
+		public virtual void ForEachChild(Action<int, object> f, params Range[] bounds) {
 			Func<int, object, object> wrap = (i, n) => {
 				f(i, nonTermChilren[i - 1] ? GetNode(n) : n);
 				return Builtins.Unspecified;
@@ -233,7 +248,7 @@ static class Racr {
 			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
 			astForEachChild.Call(l);
 		}
-		public object FindChild(Func<int, object, bool> f, params Range[] bounds) {
+		public virtual object FindChild(Func<int, object, bool> f, params Range[] bounds) {
 			int index = 0;
 			Func<int, object, bool> wrap = (i, n) => {
 				bool found = f(i, nonTermChilren[i - 1] ? GetNode(n) : n);
@@ -247,7 +262,7 @@ static class Racr {
 			var ret = astFindChild.Call(l);
 			return (index > 0 && nonTermChilren[index - 1]) ? GetNode(ret) : ret;
 		}
-		public object FindChildA(Func<int, object, object> f, params Range[] bounds) {
+		public virtual object FindChildA(Func<int, object, object> f, params Range[] bounds) {
 			Func<int, object, object> wrap = (i, n) => {
 				return f(i, nonTermChilren[i - 1] ? GetNode(n) : n);
 			};
@@ -296,6 +311,46 @@ static class Racr {
 			ast = createAstList.Call(list);
 			SetAnnotation("this", this);
 		}
+
+		public override object[] Children(params Range[] bounds) {
+			object[] l = new object[bounds.Length];
+			for (int i = 0; i < bounds.Length; i++) l[i] = bounds[i].ToCons();
+			var ret = astChildren.Call(l) as Cons;
+			var children = new List<object>();
+			foreach (Cons e in ret) children.Add(GetNode(e.car));
+			return children.ToArray();
+		}
+		public override void ForEachChild(Action<int, object> f, params Range[] bounds) {
+			Func<int, object, object> wrap = (i, n) => {
+				f(i, GetNode(n));
+				return Builtins.Unspecified;
+			};
+			object[] l = new object[2 + bounds.Length];
+			l[0] = wrap.ToSchemeProcedure();
+			l[1] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
+			astForEachChild.Call(l);
+		}
+		public override object FindChild(Func<int, object, bool> f, params Range[] bounds) {
+			Func<int, object, bool> wrap = (i, n) => {
+				return f(i, GetNode(n));
+			};
+			object[] l = new object[2 + bounds.Length];
+			l[0] = wrap.ToSchemeProcedure();
+			l[1] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
+			return GetNode(astFindChild.Call(l));
+		}
+		public override object FindChildA(Func<int, object, object> f, params Range[] bounds) {
+			Func<int, object, object> wrap = (i, n) => {
+				return f(i, GetNode(n));
+			};
+			object[] l = new object[2 + bounds.Length];
+			l[0] = wrap.ToSchemeProcedure();
+			l[1] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
+			return astFindChildA.Call(l);
+		}
 	}
 
 	public class AstBud : AstNode {
@@ -306,6 +361,9 @@ static class Racr {
 	}
 }
 
+static class Extensions {
+	public static Racr.AstNode GetList(this Racr.AstNode node) { return node.Child("List"); }
+}
 
 class App {
 
@@ -314,7 +372,7 @@ class App {
 
 
 		var spec = new Racr.Specification();
-		spec.AstRule("A->B-C-w");
+		spec.AstRule("A->B*<List-C-w");
 		spec.AstRule("B->t");
 		spec.AstRule("C->");
 
@@ -326,8 +384,10 @@ class App {
 		spec.CompileAstSpecifications("A");
 		spec.CompileAgSpecifications();
 		var root = new Racr.AstNode(spec, "A",
-			new Racr.AstNode(spec, "B",
-				"terminal"),
+			new Racr.AstList(
+				new Racr.AstNode(spec, "B", "abc"),
+				new Racr.AstNode(spec, "B", "123"),
+				new Racr.AstNode(spec, "B", "xyz")),
 			new Racr.AstNode(spec, "C"),
 			"hiya");
 
@@ -363,10 +423,10 @@ class App {
 
 		Console.WriteLine("");
 
-		var child = root.Child(1);
+		var child = root.GetList();
 
 		Console.WriteLine(child);
-		Console.WriteLine("Child 't: {0}", child.Child<string>("t"));
+		Console.WriteLine("Child 1 -> t: {0}", child.Child(1).Child<string>("t"));
 		Console.WriteLine("IsNode: {0}", child.IsNode());
 		Console.WriteLine("HasParent: {0}", child.HasParent());
 		Console.WriteLine("ChildIndex: {0}", child.ChildIndex());
