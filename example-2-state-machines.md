@@ -1,4 +1,4 @@
-# Finite State Machines Example: Implementation Overview
+# Example 2: Finite State Machines
 
 The implementation of the finite state machines example can be found in the Git repository at http://code.google.com/p/racr/source/browse/examples/state-machines/state-machines.scm. It consists of three parts:
   1. The specification of the actual finite state machines compiler (`with-specification` at the start of the example)
