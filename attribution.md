@@ -174,7 +174,7 @@ The `ag-rule` form exists only for convenient reasons. All its functionalities c
 (compile-ag-specifications spec)
 ```
 
-Calling this function finishes the [AG specification phase](Architecture#RACR_API.md) of the given _RACR_ specification, such that it is now in the evaluation phase where ASTs can be instantiated, evaluated, annotated and rewritten. An exception is thrown, if the given specification is not in the AG specification phase.
+Calling this function finishes the [AG specification phase](architecture.md#api) of the given _RACR_ specification, such that it is now in the evaluation phase where ASTs can be instantiated, evaluated, annotated and rewritten. An exception is thrown, if the given specification is not in the AG specification phase.
 
 ## Evaluation and Querying
 
