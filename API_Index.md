@@ -2,7 +2,7 @@
 
 ## ASTs: Specification
 
- * [ast-rule](../wiki/ASTs.md#ast-rule)
+ * [ast-rule](ASTs.md#ast-rule)
  * [compile-ast-specifications](ASTs#compile-ast-specifications.md)
 
 ## ASTs: Construction
