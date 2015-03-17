@@ -70,10 +70,10 @@
 ## Annotations: Querying
 
 * [ast-annotation?](ast-annotations.md#ast-annotation)
-* [ast-annotation](ast-annotations.md#ast-annotation)
+* [ast-annotation](ast-annotations.md#ast-annotation-1)
 
 ## Support
 
-* [with-specification](SupportAPI#with-specification.md)
-* [with-bindings](SupportAPI#with-bindings.md)
-* [specification-&gt;phase](SupportAPI#specification->phase.md)
+* [with-specification](support-api.md#with-specification)
+* [with-bindings](support-api.md#with-bindings)
+* [specification-&gt;phase](support-api.md#specification->phase)
