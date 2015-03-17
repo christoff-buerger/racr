@@ -63,14 +63,14 @@
 
 ## Annotations: Attachment
 
-* [ast-annotation-set!](Annotations#ast-annotation-set!.md)
-* [ast-weave-annotations](Annotations#ast-weave-annotations.md)
-* [ast-annotation-remove!](Annotations#ast-annotation-remove!.md)
+* [ast-annotation-set!](ast-annotations.md#ast-annotation-set)
+* [ast-weave-annotations](ast-annotations.md#ast-weave-annotations)
+* [ast-annotation-remove!](ast-annotations.md#ast-annotation-remove)
 
 ## Annotations: Querying
 
-* [ast-annotation?](Annotations#ast-annotation?.md)
-* [ast-annotation](Annotations#ast-annotation.md)
+* [ast-annotation?](ast-annotations.md#ast-annotation)
+* [ast-annotation](ast-annotations.md#ast-annotation)
 
 ## Support
 
