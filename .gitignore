@@ -3,6 +3,7 @@
 
 # author: C. Bürger
 
+<<<<<<< HEAD
 # Ignore backup files of common text editors:
 **/*~
 # Ignore Mac Os X Desktop Services Store configuration files:
@@ -15,3 +16,6 @@
 **/tinycpp-*.jar
 # Ignore profiling measurements:
 **/measurements
+=======
+**/.DS_Store
+>>>>>>> wiki
