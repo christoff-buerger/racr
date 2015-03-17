@@ -1,6 +1,7 @@
 # Contents
 
   * [Introduction](introduction.md)
+  * [Requirements and Installation](requirements-and-installation.md)
   * [Library Overview](architecture.md)
     * [Architecture](architecture.md#architecture)
     * [Instantiation](architecture.md#instantiation)
