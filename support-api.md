@@ -100,7 +100,7 @@ An exception is thrown, if the first argument to the constructed function `f` is
 (specification->phase spec)
 ```
 
-Given a _RACR_ specification, return in which [specification phase](Architecture#RACR_API.md) it currently is. Possible return values are:
+Given a _RACR_ specification, return in which [specification phase](architecture.md#api) it currently is. Possible return values are:
   * AST specification phase: `1`
   * AG specification phase:  `2`
   * Evaluation phase: `3`
