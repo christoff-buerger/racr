@@ -1,5 +1,3 @@
-[PDF Version](http://racr.googlecode.com/git/documentation/racr-manual.pdf)
-
 # Contents
 
   * [Introduction](Introduction.md)
