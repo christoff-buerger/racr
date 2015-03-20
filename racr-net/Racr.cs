@@ -31,6 +31,8 @@ static class Racr {
 	private static Callable astBudNodeQ;
 	private static Callable astSubtypeQ;
 
+	private static Callable specifyAttribute;
+	private static Callable attValue;
 
 	private static Callable astAnnotationSet;
 	private static Callable astWeaveAnnotations;
@@ -74,6 +76,12 @@ static class Racr {
 		astBudNodeQ					= "ast-bud-node?".Eval<Callable>();
 		astSubtypeQ					= "ast-subtype?".Eval<Callable>();
 
+
+		// attribution
+		specifyAttribute			= "specify-attribute".Eval<Callable>();
+		attValue					= "att-value".Eval<Callable>();
+
+
 		// ast annotations
 		astAnnotationSet			= "ast-annotation-set!".Eval<Callable>();
 		astWeaveAnnotations			= "ast-weave-annotations".Eval<Callable>();
@@ -81,11 +89,14 @@ static class Racr {
 		astAnnotationQ				= "ast-annotation?".Eval<Callable>();
 		astAnnotation				= "ast-annotation".Eval<Callable>();
 
+
 		// query interface
 		specificationFindAstRule	= "specification->find-ast-rule".Eval<Callable>();
 		astRuleProduction			= "ast-rule->production".Eval<Callable>();
 		symbolIsNonTerminal			= "symbol->non-terminal?".Eval<Callable>();
 	}
+
+
 
 
 	public class Specification {
@@ -103,7 +114,27 @@ static class Racr {
 		public void CompileAgSpecifications() {
 			compileAgSpecifications.Call(spec);
 		}
+
+
+		// TODO circDef!!!
+
+
+		public void SpecifyAttribute<T1,Ret>(string attName, string nonTerminal, int index, bool cached, Func<Racr.AstNode,T1,Ret> equation, bool circDef) {
+			Func<object,T1,Ret> wrap = (ast, args) => { return equation(GetNode(ast), args); };
+			specifyAttribute.Call(
+				spec,
+				SymbolTable.StringToObject(attName),
+				SymbolTable.StringToObject(nonTerminal),
+				index,
+				cached,
+				wrap.ToSchemeProcedure(),
+				circDef);
+		}
+
 	}
+
+
+
 
 	public struct Range {
 		public int min;
@@ -274,6 +305,15 @@ static class Racr {
 		}
 
 
+		// attribution
+		public object AttValue(string attName, params object[] args) {
+			var l = new object[args.Length + 2];
+			l[0] = SymbolTable.StringToObject(attName);
+			l[1] = ast;
+			args.CopyTo(l, 2);
+			return attValue.Call(l);
+		}
+
 
 		// ast annotations
 		public void SetAnnotation(string name, object v) {
@@ -292,17 +332,6 @@ static class Racr {
 			astWeaveAnnotations.Call(ast, SymbolTable.StringToObject(type), SymbolTable.StringToObject(name), v);
 		}
 	}
-
-	public static bool IsSubtype(this string t, AstNode n) {
-		return (bool) astSubtypeQ.Call(SymbolTable.StringToObject(t), n.ast);
-	}
-	public static bool IsSubtype(this AstNode n, string t) {
-		return (bool) astSubtypeQ.Call(n.ast, SymbolTable.StringToObject(t));
-	}
-	public static bool IsSubtype(this AstNode n1, AstNode n2) {
-		return (bool) astSubtypeQ.Call(n1.ast, n2.ast);
-	}
-
 
 	public class AstList : AstNode {
 		public AstList(params AstNode[] children) {
@@ -332,9 +361,7 @@ static class Racr {
 			astForEachChild.Call(l);
 		}
 		public override object FindChild(Func<int, object, bool> f, params Range[] bounds) {
-			Func<int, object, bool> wrap = (i, n) => {
-				return f(i, GetNode(n));
-			};
+			Func<int, object, bool> wrap = (i, n) => { return f(i, GetNode(n)); };
 			object[] l = new object[2 + bounds.Length];
 			l[0] = wrap.ToSchemeProcedure();
 			l[1] = ast;
@@ -342,9 +369,7 @@ static class Racr {
 			return GetNode(astFindChild.Call(l));
 		}
 		public override object FindChildA(Func<int, object, object> f, params Range[] bounds) {
-			Func<int, object, object> wrap = (i, n) => {
-				return f(i, GetNode(n));
-			};
+			Func<int, object, object> wrap = (i, n) => { return f(i, GetNode(n)); };
 			object[] l = new object[2 + bounds.Length];
 			l[0] = wrap.ToSchemeProcedure();
 			l[1] = ast;
@@ -359,11 +384,34 @@ static class Racr {
 			SetAnnotation("this", this);
 		}
 	}
+
+	public static bool IsSubtype(this string t, AstNode n) {
+		return (bool) astSubtypeQ.Call(SymbolTable.StringToObject(t), n.ast);
+	}
+	public static bool IsSubtype(this AstNode n, string t) {
+		return (bool) astSubtypeQ.Call(n.ast, SymbolTable.StringToObject(t));
+	}
+	public static bool IsSubtype(this AstNode n1, AstNode n2) {
+		return (bool) astSubtypeQ.Call(n1.ast, n2.ast);
+	}
 }
 
 static class Extensions {
 	public static Racr.AstNode GetList(this Racr.AstNode node) { return node.Child("List"); }
 }
+
+
+
+class MyBNode : Racr.AstNode {
+
+	public MyBNode(Racr.Specification spec, string term) : base(spec, "B", term) {}
+
+	public static int FooAttribute(Racr.AstNode node, int x) {
+		return x * 2;
+	}
+
+}
+
 
 class App {
 
@@ -376,18 +424,29 @@ class App {
 		spec.AstRule("B->t");
 		spec.AstRule("C->");
 
-//		spec.AstRule("A->D");
-//		spec.AstRule("B:A->");
-//		spec.AstRule("C:A->A-A*-t-B-B*");
-//		spec.AstRule("D->");
 
 		spec.CompileAstSpecifications("A");
+
+
+		spec.SpecifyAttribute("foo", "B", 0, true, (Racr.AstNode n, int x) => {
+			return n.NumChildren() * x;
+		}, false);
+
+		spec.SpecifyAttribute("bar", "B", 0, true, (Racr.AstNode n, int x) => {
+			return x * x;
+		}, false);
+
+		spec.SpecifyAttribute<int,int>("FooAttribute", "B", 0, true, MyBNode.FooAttribute, false);
+
+
 		spec.CompileAgSpecifications();
+
+
 		var root = new Racr.AstNode(spec, "A",
 			new Racr.AstList(
-				new Racr.AstNode(spec, "B", "abc"),
-				new Racr.AstNode(spec, "B", "123"),
-				new Racr.AstNode(spec, "B", "xyz")),
+				new MyBNode(spec, "abc"),
+				new MyBNode(spec, "123"),
+				new MyBNode(spec, "xyz")),
 			new Racr.AstNode(spec, "C"),
 			"hiya");
 
@@ -400,6 +459,11 @@ class App {
 				Console.WriteLine("{0}: {1}", i, o);
 		}, new Racr.Range(2));
 
+
+		Console.WriteLine("---");
+
+		Console.WriteLine(root.GetList().Child(1).AttValue("bar", 3));
+		Console.WriteLine(root.GetList().Child(1).AttValue("FooAttribute", 3));
 
 		Console.WriteLine("---");
 
