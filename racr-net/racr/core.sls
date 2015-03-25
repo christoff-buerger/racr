@@ -86,7 +86,10 @@
   with-specification
   with-bindings
   ; Utility interface:
-  racr-exception?)
+  racr-exception?
+  ; .net bridge
+  node-dot-net-instance
+  node-dot-net-instance-set!)
  (import (rnrs) (rnrs mutable-pairs) (racr hash))
 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -216,7 +219,8 @@
     (mutable children)
     (mutable attributes)
     (mutable cache-influences)
-    (mutable annotations))
+    (mutable annotations)
+    (mutable dot-net-instance))
    (opaque #t)(sealed #t)
    (protocol
     (lambda (new)
@@ -228,7 +232,8 @@
          children
          (list)
          (list)
-         (list))))))
+         (list)
+         #f)))))
  
  ; INTERNAL FUNCTION: Given a node, return whether it is a terminal or not.
  (define node-terminal?

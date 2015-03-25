@@ -6,6 +6,9 @@ using IronScheme.Scripting;
 
 static class Racr {
 
+	private static Callable nodeDotNetInstance;
+	private static Callable nodeDotNetInstanceSet;
+
 	private static Callable createSpecification;
 	private static Callable astRule;
 	private static Callable compileAstSpecifications;
@@ -49,6 +52,11 @@ static class Racr {
 		//"(library-path (cons {0} (library-path)))".Eval("../racr-repo/examples");
 
 		"(import (racr core) (racr testing))".Eval();
+
+		// bridge
+		nodeDotNetInstance			= "node-dot-net-instance".Eval<Callable>();
+		nodeDotNetInstanceSet		= "node-dot-net-instance-set!".Eval<Callable>();
+
 
 		// ast
 		createSpecification			= "create-specification".Eval<Callable>();
@@ -157,7 +165,7 @@ static class Racr {
 	}
 
 	private static AstNode GetNode(object ast) {
-		return (AstNode) astAnnotation.Call(ast, SymbolTable.StringToObject("this"));
+		return (AstNode) nodeDotNetInstance.Call(ast);
 	}
 
 	public class AstNode {
@@ -187,8 +195,7 @@ static class Racr {
 				}
 			}
 			ast = createAst.Call(spec.spec, nt, list);
-
-			SetAnnotation("this", this);
+			nodeDotNetInstanceSet.Call(ast, this);
 		}
 
 		public AstNode Parent() {
@@ -338,7 +345,7 @@ static class Racr {
 			Cons list = null;
 			for (int i = children.Length - 1; i >= 0; i--) list = new Cons(children[i].ast, list);
 			ast = createAstList.Call(list);
-			SetAnnotation("this", this);
+			nodeDotNetInstanceSet.Call(ast, this);
 		}
 
 		public override object[] Children(params Range[] bounds) {
@@ -381,7 +388,7 @@ static class Racr {
 	public class AstBud : AstNode {
 		public AstBud() {
 			ast = createAstBud.Call();
-			SetAnnotation("this", this);
+			nodeDotNetInstanceSet.Call(ast, this);
 		}
 	}
 
