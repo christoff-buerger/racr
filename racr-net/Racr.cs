@@ -134,8 +134,6 @@ static class Racr {
 			var info = equation.Method;
 			var paramTypes = info.GetParameters().Select(p => p.ParameterType).ToArray();
 
-			Console.WriteLine("type: {0}", paramTypes[0]);
-
 			if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
 				throw new ArgumentException("type of delegate's first argument must be AstNode.");
 			}
