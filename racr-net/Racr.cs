@@ -125,15 +125,14 @@ static class Racr {
 
 
 		// TODO circDef!!!
-
-
-		public void SpecifyAttribute<T1,Ret>(string attName, string nonTerminal, int index, bool cached, Func<Racr.AstNode,T1,Ret> equation, bool circDef) {
-			Func<object,T1,Ret> wrap = (ast, args) => { return equation(GetNode(ast), args); };
+		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,A1,R> equation, bool circDef=false)
+		where N : AstNode {
+			Func<object,A1,R> wrap = (ast, a1) => { return equation((N) GetNode(ast), a1); };
 			specifyAttribute.Call(
 				spec,
 				SymbolTable.StringToObject(attName),
 				SymbolTable.StringToObject(nonTerminal),
-				index,
+				SymbolTable.StringToObject(contexName),
 				cached,
 				wrap.ToSchemeProcedure(),
 				circDef);
@@ -413,96 +412,10 @@ class MyBNode : Racr.AstNode {
 
 	public MyBNode(Racr.Specification spec, string term) : base(spec, "B", term) {}
 
-	public static int FooAttribute(Racr.AstNode node, int x) {
+	public static int FooAttribute(MyBNode node, int x) {
 		return x * 2;
 	}
 
 }
 
 
-class App {
-
-
-	public static void Main() {
-
-
-		var spec = new Racr.Specification();
-		spec.AstRule("A->B*<List-C-w");
-		spec.AstRule("B->t");
-		spec.AstRule("C->");
-
-
-		spec.CompileAstSpecifications("A");
-
-
-		spec.SpecifyAttribute("foo", "B", 0, true, (Racr.AstNode n, int x) => {
-			return n.NumChildren() * x;
-		}, false);
-
-		spec.SpecifyAttribute("bar", "B", 0, true, (Racr.AstNode n, int x) => {
-			return x * x;
-		}, false);
-
-		spec.SpecifyAttribute<int,int>("FooAttribute", "B", 0, true, MyBNode.FooAttribute, false);
-
-
-		spec.CompileAgSpecifications();
-
-
-		var root = new Racr.AstNode(spec, "A",
-			new Racr.AstList(
-				new MyBNode(spec, "abc"),
-				new MyBNode(spec, "123"),
-				new MyBNode(spec, "xyz")),
-			new Racr.AstNode(spec, "C"),
-			"hiya");
-
-
-		root.ForEachChild((i, o) => {
-			var node = o as Racr.AstNode;
-			if (node != null)
-				Console.WriteLine("{0}: {1}", i, node.NodeType());
-			else
-				Console.WriteLine("{0}: {1}", i, o);
-		}, new Racr.Range(2));
-
-
-		Console.WriteLine("---");
-
-		Console.WriteLine(root.GetList().Child(1).AttValue("bar", 3));
-		Console.WriteLine(root.GetList().Child(1).AttValue("FooAttribute", 3));
-
-		Console.WriteLine("---");
-
-
-		var c = root.FindChild((i, o) => {
-			return i == 2;
-		}) as Racr.AstNode;
-
-		Console.WriteLine("{0}", c.NodeType());
-
-
-		Console.WriteLine("---");
-
-		Console.WriteLine(root);
-		Console.WriteLine("NodeType: {0}", root.NodeType());
-		Console.WriteLine("IsNode: {0}", root.IsNode());
-		Console.WriteLine("HasParent: {0}", root.HasParent());
-		Console.WriteLine("NumChildren: {0}", root.NumChildren());
-		Console.WriteLine("HasChild 'B: {0}", root.HasChild("B"));
-		Console.WriteLine("HasChild 'Foo: {0}", root.HasChild("Foo"));
-
-		Console.WriteLine("");
-
-		var child = root.GetList();
-
-		Console.WriteLine(child);
-		Console.WriteLine("Child 1 -> t: {0}", child.Child(1).Child<string>("t"));
-		Console.WriteLine("IsNode: {0}", child.IsNode());
-		Console.WriteLine("HasParent: {0}", child.HasParent());
-		Console.WriteLine("ChildIndex: {0}", child.ChildIndex());
-		Console.WriteLine("NumChildren: {0}", child.NumChildren());
-
-	}
-
-}
