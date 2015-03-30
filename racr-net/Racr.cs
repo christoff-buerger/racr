@@ -1,5 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Reflection.Emit;
+
 using IronScheme;
 using IronScheme.Runtime;
 using IronScheme.Scripting;
@@ -123,20 +128,74 @@ static class Racr {
 			compileAgSpecifications.Call(spec);
 		}
 
-
 		// TODO circDef!!!
-		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,A1,R> equation, bool circDef=false)
-		where N : AstNode {
-			Func<object,A1,R> wrap = (ast, a1) => { return equation((N) GetNode(ast), a1); };
+		private static Delegate WrapEquation(Delegate equation) {
+
+			var info = equation.Method;
+			var paramTypes = info.GetParameters().Select(p => p.ParameterType).ToArray();
+
+			Console.WriteLine("type: {0}", paramTypes[0]);
+
+			if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
+				throw new ArgumentException("type of delegate's first argument must be AstNode.");
+			}
+
+			paramTypes[0] = typeof(object);
+			var dynmeth = new DynamicMethod("", info.ReturnType, paramTypes, true);
+			var gen = dynmeth.GetILGenerator();
+
+			gen.Emit(OpCodes.Ldarg_0);
+			var getNodeInfo = typeof(Racr).GetMethod("GetNode", BindingFlags.Static | BindingFlags.NonPublic);
+			gen.Emit(OpCodes.Call, getNodeInfo);
+			for (int i = 1; i < paramTypes.Length; i++) {
+				switch (i) {
+					case 1: gen.Emit(OpCodes.Ldarg_1); break;
+					case 2: gen.Emit(OpCodes.Ldarg_2); break;
+					case 3: gen.Emit(OpCodes.Ldarg_3); break;
+					default: gen.Emit(OpCodes.Ldarg_S, i); break;
+				}
+			}
+			gen.Emit(OpCodes.Call, info);
+			gen.Emit(OpCodes.Ret);
+
+			return dynmeth.CreateDelegate(equation.GetType());
+		}
+
+		public void SpecifyAttribute(string attName, string nonTerminal, string contexName, bool cached, Delegate equation) {
 			specifyAttribute.Call(
 				spec,
 				SymbolTable.StringToObject(attName),
 				SymbolTable.StringToObject(nonTerminal),
 				SymbolTable.StringToObject(contexName),
 				cached,
-				wrap.ToSchemeProcedure(),
-				circDef);
+				WrapEquation(equation).ToSchemeProcedure(),
+				false);
 		}
+
+
+		public void SpecifyAttribute<N,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,R> equation)
+		where N : AstNode {
+			specifyAttribute.Call(
+				spec,
+				SymbolTable.StringToObject(attName),
+				SymbolTable.StringToObject(nonTerminal),
+				SymbolTable.StringToObject(contexName),
+				cached,
+				WrapEquation(equation).ToSchemeProcedure(),
+				false);
+		}
+		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,A1,R> equation)
+		where N : AstNode {
+			specifyAttribute.Call(
+				spec,
+				SymbolTable.StringToObject(attName),
+				SymbolTable.StringToObject(nonTerminal),
+				SymbolTable.StringToObject(contexName),
+				cached,
+				WrapEquation(equation).ToSchemeProcedure(),
+				false);
+		}
+
 
 	}
 
@@ -404,18 +463,6 @@ static class Racr {
 
 static class Extensions {
 	public static Racr.AstNode GetList(this Racr.AstNode node) { return node.Child("List"); }
-}
-
-
-
-class MyBNode : Racr.AstNode {
-
-	public MyBNode(Racr.Specification spec, string term) : base(spec, "B", term) {}
-
-	public static int FooAttribute(MyBNode node, int x) {
-		return x * 2;
-	}
-
 }
 
 
