@@ -1,18 +1,30 @@
 using System;
 
+class MyBNode : Racr.AstNode {
+
+	public MyBNode(Racr.Specification spec, string term) : base(spec, "B", term) {}
+
+	public static int FooAttribute(MyBNode node, int x) {
+		return x * 2;
+	}
+
+}
+
+
+
 class App {
-
-
 	public static void Main() {
-
 
 		var spec = new Racr.Specification();
 		spec.AstRule("A->B*<List-C-w");
 		spec.AstRule("B->t");
 		spec.AstRule("C->");
-
-
 		spec.CompileAstSpecifications("A");
+
+
+		spec.SpecifyAttribute("kids", "A", "*", false, (Racr.AstNode n) => {
+			return n.GetList().NumChildren();
+		});
 
 
 		spec.SpecifyAttribute("foo", "B", "*", false, (Racr.AstNode n, int x) => {
@@ -23,7 +35,7 @@ class App {
 			return x * x;
 		});
 
-		spec.SpecifyAttribute<MyBNode,int,int>("FooAttribute", "B", "*", false, MyBNode.FooAttribute, false);
+		spec.SpecifyAttribute<MyBNode,int,int>("FooAttribute", "B", "*", false, MyBNode.FooAttribute);
 
 
 		spec.CompileAgSpecifications();
@@ -48,6 +60,8 @@ class App {
 
 
 		Console.WriteLine("---");
+
+		Console.WriteLine("kids: {0}", root.AttValue("kids"));
 
 		var index = (int) root.GetList().Child(1).AttValue("bar", 3);
 		Console.WriteLine(index);
