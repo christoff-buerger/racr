@@ -172,31 +172,14 @@ static class Racr {
 				false);
 		}
 
-
 		public void SpecifyAttribute<N,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,R> equation)
 		where N : AstNode {
-			specifyAttribute.Call(
-				spec,
-				SymbolTable.StringToObject(attName),
-				SymbolTable.StringToObject(nonTerminal),
-				SymbolTable.StringToObject(contexName),
-				cached,
-				WrapEquation(equation).ToSchemeProcedure(),
-				false);
+			SpecifyAttribute(attName, nonTerminal, contexName, cached, (Delegate) equation);
 		}
 		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,A1,R> equation)
 		where N : AstNode {
-			specifyAttribute.Call(
-				spec,
-				SymbolTable.StringToObject(attName),
-				SymbolTable.StringToObject(nonTerminal),
-				SymbolTable.StringToObject(contexName),
-				cached,
-				WrapEquation(equation).ToSchemeProcedure(),
-				false);
+			SpecifyAttribute(attName, nonTerminal, contexName, cached, (Delegate) equation);
 		}
-
-
 	}
 
 
