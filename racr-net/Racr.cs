@@ -128,7 +128,6 @@ static class Racr {
 			compileAgSpecifications.Call(spec);
 		}
 
-		// TODO circDef!!!
 		private static Delegate WrapEquation(Delegate equation) {
 
 			var info = equation.Method;
@@ -145,20 +144,12 @@ static class Racr {
 			gen.Emit(OpCodes.Ldarg_0);
 			var getNodeInfo = typeof(Racr).GetMethod("GetNode", BindingFlags.Static | BindingFlags.NonPublic);
 			gen.Emit(OpCodes.Call, getNodeInfo);
-			for (int i = 1; i < paramTypes.Length; i++) {
-				switch (i) {
-					case 1: gen.Emit(OpCodes.Ldarg_1); break;
-					case 2: gen.Emit(OpCodes.Ldarg_2); break;
-					case 3: gen.Emit(OpCodes.Ldarg_3); break;
-					default: gen.Emit(OpCodes.Ldarg_S, i); break;
-				}
-			}
-			gen.Emit(OpCodes.Call, info);
-			gen.Emit(OpCodes.Ret);
+			gen.Emit(OpCodes.Starg_S, 0);
+			gen.Emit(OpCodes.Jmp, info);
 
 			return dynmeth.CreateDelegate(equation.GetType());
 		}
-
+		// TODO circDef!!!
 		public void SpecifyAttribute(string attName, string nonTerminal, string contexName, bool cached, Delegate equation) {
 			specifyAttribute.Call(
 				spec,
@@ -441,9 +432,4 @@ static class Racr {
 		return (bool) astSubtypeQ.Call(n1.ast, n2.ast);
 	}
 }
-
-static class Extensions {
-	public static Racr.AstNode GetList(this Racr.AstNode node) { return node.Child("List"); }
-}
-
 
