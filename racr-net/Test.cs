@@ -11,6 +11,11 @@ class MyBNode : Racr.AstNode {
 }
 
 
+static class Extensions {
+	public static Racr.AstNode GetList(this Racr.AstNode node) { return node.Child("List"); }
+}
+
+
 
 class App {
 	public static void Main() {
