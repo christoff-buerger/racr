@@ -8,8 +8,24 @@
 (import (rnrs) (racr core) (racr testing))
 
 (define language              (create-specification))
-
 (define (=? e1 e2)            (equal? e1 e2))
+; AST Accessors:
+(define (->DErr n)            (ast-child 'DErr n))
+(define (->Stmt* n)           (ast-child 'Stmt* n))
+(define (->Op1 n)             (ast-child 'Op1 n))
+(define (->Op2 n)             (ast-child 'Op2 n))
+(define (->name n)            (ast-child 'name n))
+(define (->type n)            (ast-child 'type n))
+(define (<- n)                (ast-parent n))
+(define (->* n)               (ast-children n))
+(define (index n)             (ast-child-index n))
+; Attribute Accessors:
+(define (L-Decl n name)       (att-value 'L-Decl n name))
+(define (G-Decl n name)       (att-value 'G-Decl n name))
+(define (Type n)              (att-value 'Type n))
+(define (Well-formed? n)      (att-value 'Well-formed? n))
+(define (Needs-coercion? n)   (att-value 'Needs-coercion? n))
+(define (Superfluous-cast? n) (att-value 'Superfluous-cast? n))
 ; Type Support:
 (define Integer               (list 'Integer))
 (define Real                  (list 'Real))
@@ -33,23 +49,8 @@
   (create-ast language 'BiOp (list op1 op2)))
 (define (Use? n)
   (and (not (ast-list-node? n)) (=? (ast-node-type n) 'Use)))
-; AST Accessors:
-(define (->DErr n)            (ast-child 'DErr n))
-(define (->Stmt* n)           (ast-child 'Stmt* n))
-(define (->Op1 n)             (ast-child 'Op1 n))
-(define (->Op2 n)             (ast-child 'Op2 n))
-(define (->name n)            (ast-child 'name n))
-(define (->type n)            (ast-child 'type n))
-(define (<- n)                (ast-parent n))
-(define (->* n)               (ast-children n))
-(define (index n)             (ast-child-index n))
-; Attribute Accessors:
-(define (L-Decl n name)       (att-value 'L-Decl n name))
-(define (G-Decl n name)       (att-value 'G-Decl n name))
-(define (Type n)              (att-value 'Type n))
-(define (Well-formed? n)      (att-value 'Well-formed? n))
-(define (Needs-coercion? n)   (att-value 'Needs-coercion? n))
-(define (Superfluous-cast? n) (att-value 'Superfluous-cast? n))
+
+;;; Abstract Syntax Tree Scheme:
 
 (with-specification
  language
@@ -66,11 +67,13 @@
  
  (compile-ast-specifications 'Prog))
 
+;;; Name & Type Analyses:
+
 (with-specification
  language
  
- ; Semantics of (find-L-Decl name l i): First element e of list l
- ;  with index <= i and (L-Decl e name), otherwise #f.
+ ; Semantics of (find-L-Decl name l i): First element e of
+ ;  list l with index <= i and (L-Decl e name), otherwise #f.
  (define (find-L-Decl name l i)
    (ast-find-child
     (lambda (i e) (L-Decl e name))
@@ -78,29 +81,29 @@
     (cons 1 i)))
  
  (ag-rule
-  G-Decl
-  ((Block Stmt*) ; Inherited attribute for the statements of blocks
-   (lambda (n name) ; n = the statement for which the attribute is
+  G-Decl ; Inherited attribute
+  ((Block Stmt*) ; Equation for the statements of blocks
+   (lambda (n name)
      (or (find-L-Decl name (<- n) (index n))
          (G-Decl (<- (<- n)) name))))
-  ((Prog Stmt*) ; Inherited attribute for the statements of programs
-   (lambda (n name) ; n = the statement for which the attribute is
+  ((Prog Stmt*) ; Equation for the statements of programs
+   (lambda (n name)
      (or (find-L-Decl name (<- n) (index n))
          (->DErr (<- (<- n)))))))
  
  (ag-rule
-  L-Decl
+  L-Decl ; Synthesised attribute
   (Stmt (lambda (n name) #f))
   (Decl (lambda (n name) (if (=? (->name n) name) n #f))))
  
  (ag-rule
-  Type
+  Type ; Synthesised attribute
   (Use  (lambda (n) (Type (G-Decl n (->name n)))))
   (Decl (lambda (n) (->type n)))
   (DErr (lambda (n) Error-Type)))
  
  (ag-rule
-  Well-formed?
+  Well-formed? ; Synthesised attribute
   (Use  (lambda (n) (not (=? (Type n) Error-Type))))
   (Decl (lambda (n) (=? (G-Decl n (->name n)) n))))
  
@@ -128,7 +131,7 @@
      (and (=? (Type n) Integer)
           (=? (Type (->Op1 (<- n))) Real))))))
 
-(define (cast-to-real n) ; n must be Expr
+(define (cast-to-real n)
   (let ((dummy-node (create-ast-bud)))
     (rewrite-subtree n dummy-node)
     (rewrite-subtree dummy-node (Cast Real n))))
@@ -144,14 +147,14 @@
   (Stmt (lambda (n) #f))
   (Cast (lambda (n) (=? (Type n) (Type (->Op1 n)))))))
 
-(define (delete-cast n) ; n must be Cast
+(define (delete-cast n)
   (let ((op1 (->Op1 n)))
     (rewrite-subtree op1 (create-ast-bud))
     (rewrite-subtree n op1)))
 
-;;; Program normalisation
+;;; Program normalisation:
 
-(define (normalise-program n) ; n must be Prog
+(define (normalise-program n)
   (let ((trans1
          (lambda (n)
            (and (Needs-coercion? n)
@@ -164,7 +167,7 @@
 
 ;;; Type Refactoring:
 
-(define (change-type n type) ; n must be Use
+(define (change-type n type)
   (when (Well-formed? n)
     (rewrite-terminal
      'type (G-Decl n (->name n)) type)))
@@ -187,17 +190,3 @@
     (list (print 'Needs-coercion?) (print 'Well-formed?)
           (print 'Superfluous-cast?) (print 'Type)))
   (print-ast ast printer (current-output-port)))
-
-(define use-a-expr (Use 'a))
-(define ast
-  (Prog (Use 'a)
-        (Decl Integer 'a)
-        (Block (Decl Real 'b)
-               (Cast Real (Use 'b))
-               (BiOp
-                (Cast Real (BiOp (Use 'a) (BiOp use-a-expr (Use 'b))))
-                (Use 'b)))))
-;(normalise-program ast)
-(change-types ast Real)
-(normalise-program ast)
-(display-ast ast)

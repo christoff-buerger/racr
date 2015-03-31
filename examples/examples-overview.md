@@ -1,6 +1,6 @@
 # Examples Overview
 
-In the following we shortly summarize the _RACR_ examples included in the repository. They are contained within subdirectories of the _"examples"_ directory. **Beware:** _RACR_ must be [installed](requirements-and-installation.md) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
+**Beware:** _RACR_ must be [installed](../documentation/requirements-and-installation.md) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
 
 ## Binary Numbers
 
@@ -21,7 +21,7 @@ Objectives:
 **Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, _RACR_ novice
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
-**Web documentation:** [Overview and implementation summary](example-2-finite-state-machines.md)
+**Web documentation:** [Overview and implementation summary](state-machines/state-machines.md)
 
 _RACR_ specification implementing a simple finite state machine language providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the inital state and from every state (except final states) a final state is reachable.
 
@@ -29,6 +29,22 @@ Objectives:
   * Introduction to reference and circular attributes in _RACR_, their typical applications and advantages
     * Reference attributes: Graph and name analysis problems
     * Circular attributes: Transitive closure, control- and data-flow problems
+
+## ICGT 2015: _RACR_ overview example submitted to the 8th International Conference on Graph Transformation
+
+**Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, Rewrite novice, _RACR_ novice
+**Size:** Small
+**Scheme library:** No, ordinary _Scheme_ top-level program
+
+_RACR_ specification implementing a simple nested programming language, enriched with type coercion, superfluous cast optimisation and type refactoring. Its purpose is to summarise and motivate the essential features of _RACR_. The example shows:
+  * How reference attributes extend abstract syntax trees to abstract syntax graphs
+  * How dynamic attribute dependencies extend abstract syntax graphs to dynamic attribute dependency graphs
+  * The importance and benefits of dynamic dependencies for incremental attribute evaluation
+  * How reference attribute grammar analyses can be used to ease the development of transformations
+
+Objectives:
+  * Overview of essential _RACR_ features (AST scheme + attribution = ASG scheme, rewrites)
+  * Self-contained, easy and fast to understand motivation of RAG-controlled rewriting
 
 ## Petri Nets
 
