@@ -5,9 +5,7 @@
 # Documentation
 
 For documentation consult `https://github.com/christoff-buerger/racr` or the
-[manual](documentation/contents.md) shipped with this distribution (`./documentation/racr-manual.pdf`).
-
-For the examples cf. [link](examples/examples-overview.md).
+[_RACR_ reference manual](documentation/contents.md). Examples are in `./examples` including [documentation](examples/examples-overview.md).
 
 # License
 
