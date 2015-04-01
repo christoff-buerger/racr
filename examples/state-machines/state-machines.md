@@ -1,4 +1,4 @@
-# Example 2: Finite State Machines
+# Finite State Machines
 
 The implementation of the finite state machines example consists of three parts:
   1. The specification of the actual finite state machines compiler (`with-specification` at the start of the example)
