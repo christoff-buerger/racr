@@ -50,4 +50,4 @@ _C_ Foreign Call Interface:
 
 ## Getting Started
 
-To get started just [download and install _RACR_](requirements-and-installation.md) and consult the [documentation](contents.md). We also provide some [examples](examples.md).
+To get started just [download and install _RACR_](requirements-and-installation.md) and consult the [documentation](contents.md). We also provide some [examples](../examples/examples-overview.md).
