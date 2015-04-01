@@ -21,7 +21,7 @@ Objectives:
 **Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, _RACR_ novice
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
-**Web documentation:** [Overview and implementation summary](state-machines/state-machines.md)
+**Web documentation:** [Implementation summary](state-machines/state-machines.md)
 
 _RACR_ specification implementing a simple finite state machine language providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the inital state and from every state (except final states) a final state is reachable.
 
@@ -56,10 +56,12 @@ Implementation of the Questionnaire Language, the competition scenario of the [L
 
 Questionnaires consist of arbitrary many questions. Each question is typed and can be computed, in which case it does not ask users for a value but instead evaluates a given expression and shows the result. Questions can also be part of a group, which means they are only shown if their group condition is true. Groups can be nested. Nesting has no further meaning besides combining group conditions. The value of a question, whether computed or user-given, is only visible for succeeding expressions. The same question is at most shown once. If it can be several times shown, only its first occurrence is active, i.e., shown to users and used in expressions. Questionnaires are statically typed and only well-formed if type correct. The value of unanswered questions is undefined. Computations on undefined yield undefined themselves. If a group condition is undefined, the condition is treated to be _false_.
 
-The _RACR_ solution is unique in several respects:
-  * It uses [_Racket_](www.racket.org) to render the graphical user interface of questionnaires. The widgets of these interfaces are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental.
+The _RACR_ solution is unique in several ways:
+
+  * It uses [_Racket_](http://racket-lang.org) to render the graphical user interface of questionnaires. The widgets of these interfaces are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the AST representing the respective questionnaire and its current answer state.
-In summary, the AST is the model of the given and computed information and its graphical representation. Because the respective attributes are clearly separated, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. The controller is automagically realised by _RACR's_ incremental evaluation.
+
+Thus, each AST is model of both, the given and computed information _and_ their graphical representation. Because the respective attributes enable a clear encapsulation of language concerns, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby the controller is automagically realised by _RACR's_ incremental evaluation.
 
 Objectives:
   * Simple models@runtime example introducing _RACR_-based incremental evaluation:
