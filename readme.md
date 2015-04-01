@@ -1,11 +1,12 @@
 **Software:** _RACR_ (Reference Attribute Grammar Controlled Rewriting)
 
+**Public Git Repository:** https://github.com/christoff-buerger/racr
+
 **Author:** Christoff Bürger (`christoff.buerger@gmail.com`)
 
 # Documentation
 
-For documentation consult `https://github.com/christoff-buerger/racr` or the
-[_RACR_ reference manual](documentation/contents.md). Examples are in `./examples` including [documentation](examples/examples-overview.md).
+For documentation consult the [_RACR_ reference manual](documentation/contents.md). Examples are in `./examples`, including their [documentation](examples/examples-overview.md).
 
 # License
 
