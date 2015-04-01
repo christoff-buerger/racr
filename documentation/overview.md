@@ -47,7 +47,3 @@ _C_ Foreign Call Interface:
   * Dynamically load _RACR_ programs written in _Scheme_
   * Use _C_ functions to implement attribute equations
   * Easy packing and unpacking of _Scheme_ values; Automatic marshalling of expected _RACR_ function arguments
-
-## Getting Started
-
-To get started just [download and install _RACR_](requirements-and-installation.md) and consult the [documentation](contents.md). We also provide some [examples](../examples/examples-overview.md).
