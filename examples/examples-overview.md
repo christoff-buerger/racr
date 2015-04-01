@@ -30,13 +30,13 @@ Objectives:
     * Reference attributes: Graph and name analysis problems
     * Circular attributes: Transitive closure, control- and data-flow problems
 
-## ICGT 2015: _RACR_ overview example submitted to the 8th International Conference on Graph Transformation
+## ICGT 2015: _RACR_ motivation and overview example submitted to the 8th International Conference on Graph Transformation
 
 **Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, Rewrite novice, _RACR_ novice
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
-_RACR_ specification implementing a simple nested programming language, enriched with type coercion, superfluous cast optimisation and type refactoring. Its purpose is to summarise and motivate the essential features of _RACR_. The example shows:
+This example summarises and motivates the essential features of _RACR_ by implementing a simple nested programming language, enriched with type coercion, superfluous cast optimisation and type refactoring. The example shows:
   * How reference attributes extend abstract syntax trees to abstract syntax graphs
   * How dynamic attribute dependencies extend abstract syntax graphs to dynamic attribute dependency graphs
   * The importance and benefits of dynamic dependencies for incremental attribute evaluation
@@ -46,19 +46,40 @@ Objectives:
   * Overview of essential _RACR_ features (AST scheme + attribution = ASG scheme, rewrites)
   * Self-contained, easy and fast to understand motivation of RAG-controlled rewriting
 
+## Questionnaires: Language Workbench Challenges 2013 & 2014
+
+**Difficult level:** Reference attribute grammar disciple, Rewrite novice, _RACR_ disciple
+**Size:** Small/Medium
+**Scheme library:** Yes
+
+Implementation of the Questionnaire Language, the competition scenario of the [Language Workbench Challenges 2013 and 2014](http://www.languageworkbenches.net). For a description of the scenario consult `./questionnaires/language-workbench-challenge-2013.pdf`.
+
+Questionnaires consist of arbitrary many questions. Each question is typed and can be computed, in which case it does not ask users for a value but instead evaluates a given expression and shows the result. Questions can also be part of a group, which means they are only shown if their group condition is true. Groups can be nested. Nesting has no further meaning besides combining group conditions. The value of a question, whether computed or user-given, is only visible for succeeding expressions. The same question is at most shown once. If it can be several times shown, only its first occurrence is active, i.e., shown to users and used in expressions. Questionnaires are statically typed and only well-formed if type correct. The value of unanswered questions is undefined. Computations on undefined yield undefined themselves. If a group condition is undefined, the condition is treated to be _false_.
+
+The _RACR_ solution is unique in several respects:
+  * It uses [_Racket_](www.racket.org) to render the graphical user interface of questionnaires. The widgets of these interfaces are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental.
+  * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the AST representing the respective questionnaire and its current answer state.
+In summary, the AST is the model of the given and computed information and its graphical representation. Because the respective attributes are clearly separated, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. The controller is automagically realised by _RACR's_ incremental evaluation.
+
+Objectives:
+  * Simple models@runtime example introducing _RACR_-based incremental evaluation:
+    * Encoding of state in ASTs (model of real world: questions presented in a GUI to a user)
+    * State changes via rewriting (model updates: user answers)
+    * State reasoning via attributes; Attributes to perform side-effects in case of state changes (model reasoning to derive real world actions: computation of expression values & rerendering of GUI elements if necessary)
+
 ## Petri Nets
 
 **Difficult level:** Reference attribute grammar disciple, Rewrite disciple, _RACR_ disciple
-**Size:** Small/Medium
+**Size:** Medium
 **Scheme library:** Yes
 
 _RACR_ specification implementing coloured, weighted Petri nets that can be composed using place fusion and support arbitrary input arc conditions and output computations. A reference attribute grammar is used to perform name, enabled, composition and well-formedness analyses of Petri nets and their transitions. _RACR_ rewrites are used to implement their actual execution semantics, i.e., the firing of enabled transitions. A user friendly interface for the specification of Petri nets and their composition and execution is provided in the form of _Scheme_ macros. _RACR_'s incremental attribute evaluation ensures an optimised and efficient enabled analysis, even in case of arbitrarily intertwined compositions, executions (i.e., transition firing) and decompositions. The implemented composition semantics are based on the concept of in- and output ports as presented by Wolfgang Reisig in _Simple Composition of Nets_, Applications and Theory of Petri Nets: 30th International Conference, Lecture Notes in Computer Science, Volume 5606, Pages 23-42, Springer, June 2009.
 
 Objectives:
-  * Introduction to reference attribute grammar controlled rewriting & dynamic, incremental reference attribute evaluation:
+  * Introduction to RAG-controlled rewriting & dynamic, incremental reference attribute evaluation:
     * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
     * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that simulate the firing of transitions by adding and deleting tokens or rewrites that compose Petri nets)
-    * Incremental Evaluation: Attributes are only reevaluated if influenced by some rewrite (e.g., the enabled status of transitions is only reevaluated if the last fired transition or the last performed composition influenced it)
+    * Incremental Evaluation: Attributes are only reevaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only reevaluated if the last fired transition or the last performed composition influenced it)
 
 ## SiPLE (Simple imperative Programming Language Example)
 
