@@ -1,12 +1,15 @@
-# Overview
+# _RACR_ Reference Manual: A _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting
 
-_RACR_ is a _Scheme_ attribute grammar library providing incremental attribute evaluation in the presence of arbitrary abstract syntax tree rewrites. It provides a set of functions that can be used to specify abstract syntax tree schemes and their attribution and construct respective trees, query their attributes and node information and annotate and rewrite them. Thereby, both, reference attribute grammars and rewriting, are seamlessly integrated, such that rewrites can reuse attributes and attribute values change depending on performed rewrites – a technique we call Reference Attribute Grammar Controlled Rewriting. To reevaluate attributes influenced by abstract syntax tree rewrites, a demand-driven, incremental evaluation strategy, which incorporates the actual execution paths selected at runtime for control-flows within attribute equations, is used. To realise this strategy, a dynamic attribute dependency graph is constructed throughout attribute evaluation – a technique we call Dynamic Attribute Dependency Analyses.
+## Abstract
+
+_RACR_ supports incremental attribute evaluation in the presence of arbitrary abstract syntax tree rewrites. It provides a set of functions that can be used to specify abstract syntax tree schemes and their attribution and construct respective trees, query their attributes and node information and annotate and rewrite them. Thereby, both, reference attribute grammars and rewriting, are seamlessly integrated, such that rewrites can reuse attributes and attribute values change depending on performed rewrites -– a technique we call Reference Attribute Grammar Controlled Rewriting. To reevaluate attributes influenced by abstract syntax tree rewrites, a demand-driven, incremental evaluation strategy, which incorporates the actual execution paths selected at runtime for control-flows within attribute equations, is used. To realise this strategy, a dynamic attribute dependency graph is constructed throughout attribute evaluation –- a technique we call Dynamic Attribute Dependency Analyses.
 
 Besides synthesised and inherited attributes, _RACR_ supports reference, parameterised and circular attributes, attribute broadcasting and abstract syntax tree and attribute inheritance. _RACR_ also supports graph pattern matching to ease the specification of complex rewires, whereas patterns can reuse attributes for rewrite conditions such that complex analyses that control rewriting can be specified. Similarly to attribute values, tests for pattern matches are incrementally evaluated and automatically cached. Further, linear pattern matching complexity is guaranteed if involved attributes are already evaluated. Thus, the main drawback of graph rewriting, the matching problem of polynomial complexity for bounded pattern sizes, is attenuated.
 
-Since _RACR_ is an ordinary _Scheme_ library, its functions can arbitrarily interact with _Scheme_ programs and vice versa. To implement attribute equations and rewrites, users reuse or develop ordinary _Scheme_ functions with arbitrary control-flows, function calls, macro expansions and continuations. The required bookkeeping for incremental attribute evaluation is transparently and automatically performed and cannot be bypassed or disturbed.
+Since _RACR_ is an ordinary _Scheme_ library, its functions can arbitrarily interact with _Scheme_ programs and vice versa. To implement attribute equations and rewrites, users reuse or develop ordinary _Scheme_ functions with arbitrary control-flows, function calls, macro expansions and continuations. The required bookkeeping for incremental attribute evaluation is transparently and automatically performed by _RACR_ and cannot be bypassed or disturbed.
 
-To enable _RACR_ in embedded scenarios and different technology spaces than _Scheme_, a _C99_ foreign call interface is provided. Using the foreign call interface, _C_ developers can specify their own _RACR_-based languages without much worry about _Scheme_. In particular, users can implement attribute equations as _C_ functions. The caching and incremental evaluation still works. To build a binary _RACR_ implementation including a _Scheme_ R6RS virtual machine with proper garbage collection, that can be linked via the provided headers, _[Racket](http://racket-lang.org)_ is used.
+The reference manual documents _RACR's_ features, instantiation and usage. It summarises and exemplifies _RACR's_
+application programming interface. The Implementation of reference attribute grammar controlled rewriting or dynamic attribute dependency analyses is not discussed. Readers should be comfortable with _Scheme_; This manual is not a _Scheme_ introduction!
 
 ## Features
 
@@ -43,8 +46,8 @@ _C_ Foreign Call Interface:
   * Use complete _RACR_ API in _C_ programs
   * Dynamically load _RACR_ programs written in _Scheme_
   * Use _C_ functions to implement attribute equations
-  * Easy packing and unpacking of _Scheme_ values; Automatic marshaling of expected _RACR_ function arguments
+  * Easy packing and unpacking of _Scheme_ values; Automatic marshalling of expected _RACR_ function arguments
 
 ## Getting Started
 
-To get started just [download and install RACR](Installation.md) and consult the documentation ([html](Documentation.md), [pdf](http://racr.googlecode.com/git/documentation/racr-manual.pdf)). We also provide some [examples](Examples.md).
+To get started just [download and install _RACR_](requirements-and-installation.md) and consult the [documentation](contents.md). We also provide some [examples](examples.md).
