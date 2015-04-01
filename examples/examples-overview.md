@@ -56,9 +56,11 @@ Implementation of the Questionnaire Language, the competition scenario of the [L
 
 Questionnaires consist of arbitrary many questions. Each question is typed and can be computed, in which case it does not ask users for a value but instead evaluates a given expression and shows the result. Questions can also be part of a group, which means they are only shown if their group condition is true. Groups can be nested. Nesting has no further meaning besides combining group conditions. The value of a question, whether computed or user-given, is only visible for succeeding expressions. The same question is at most shown once. If it can be several times shown, only its first occurrence is active, i.e., shown to users and used in expressions. Questionnaires are statically typed and only well-formed if type correct. The value of unanswered questions is undefined. Computations on undefined yield undefined themselves. If a group condition is undefined, the condition is treated to be _false_.
 
-The _RACR_ solution is unique in several respects:
+The _RACR_ solution is unique in several ways:
+
   * It uses [_Racket_](www.racket.org) to render the graphical user interface of questionnaires. The widgets of these interfaces are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the AST representing the respective questionnaire and its current answer state.
+
 In summary, the AST is the model of the given and computed information and its graphical representation. Because the respective attributes are clearly separated, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. The controller is automagically realised by _RACR's_ incremental evaluation.
 
 Objectives:
