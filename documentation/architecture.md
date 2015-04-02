@@ -43,6 +43,6 @@ The state chart of Figure 2.2 summarises the specification and AST and attribute
 
 ![user-interface](figures/user-interface.png)
 
-**Figure 2.2:** RACR Application Programming Interface
+**Figure 2.2:** _RACR_ Application Programming Interface
 
 Remember, that _RACR_ maintains for every _RACR_ specification (i.e., specified language) its specification phase. Different _RACR_ specifications can coexist within the same _Scheme_ program and each can be in a different phase.
