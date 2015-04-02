@@ -24,4 +24,3 @@ ___
     * [Attachment](ast-annotations.md#attachment)
     * [Querying](ast-annotations.md#querying)
   * [Support API](support-api.md)
-  * [API Index](api-index.md)
