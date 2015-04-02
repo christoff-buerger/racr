@@ -1,4 +1,4 @@
-> Navigator: [Contents](contents.md); [API Index](api-index.md)
+Navigator: [Contents](contents.md); [API Index](api-index.md)
 ___
 
 # Introduction
