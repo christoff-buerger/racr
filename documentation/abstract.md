@@ -1,3 +1,6 @@
+_[>> Abstract <<](abstract.md) [>> Features <<](features.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
+___
+
 # Abstract
 
 _RACR_ is a _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting. It supports incremental attribute evaluation in the presence of arbitrary abstract syntax tree rewrites. It provides a set of functions that can be used to specify abstract syntax tree schemes and their attribution and construct respective trees, query their attributes and node information and annotate and rewrite them. Thereby, both, reference attribute grammars and rewriting, are seamlessly integrated, such that rewrites can reuse attributes and attribute values change depending on performed rewrites -– a technique we call Reference Attribute Grammar Controlled Rewriting. To reevaluate attributes influenced by abstract syntax tree rewrites, a demand-driven, incremental evaluation strategy, which incorporates the actual execution paths selected at runtime for control-flows within attribute equations, is used. To realise this strategy, a dynamic attribute dependency graph is constructed throughout attribute evaluation –- a technique we call Dynamic Attribute Dependency Analyses.
