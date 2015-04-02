@@ -8,7 +8,7 @@ _RACR_ is a reference attribute grammar library for the programming language _Sc
 
 Combined, these characteristics permit the expressive and elegant specification of highly flexible but still efficient language processors. The reference attribute grammar facilities can be used to realise complicated analyses, e.g., name, type, control- or data-flow analysis. The rewrite facilities can be used to realise transformations typically performed on the results of such analyses like code generation, optimisation or refinement. Thereby, both, reference attribute grammars and rewriting, are seamlessly integrated, such that rewrites can reuse attributes (in particular the rewrites to apply can be selected and derived using attributes and therefore depend on and are controlled by attributes) and attribute values change depending on performed rewrites. Figure 1.1 illustrates this analyse-synthesize cycle that is at the heart of reference attribute grammar controlled rewriting.
 
-![figures/analyse-synthesise-cycle.pdf](figures/analyse-synthesise-cycle.pdf?raw=true)
+![figures/analyse-synthesise-cycle.pdf](figures/analyse-synthesise-cycle.png?raw=true)
 
 **Figure 1.1:** Analyse-Synthesize Cycle of RAG Controlled Rewriting
 
