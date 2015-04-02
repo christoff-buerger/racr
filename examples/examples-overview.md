@@ -61,7 +61,7 @@ The _RACR_ solution is unique in several ways:
   * It uses [_Racket_](http://racket-lang.org) to render the graphical user interface of questionnaires. The widgets of these interfaces are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the AST representing the respective questionnaire and its current answer state.
 
-Thus, each AST is model of both, the given and computed information _and_ their graphical representation. Because the respective attributes enable a clear encapsulation of language concerns, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby the controller is automagically realised by _RACR's_ incremental evaluation.
+Thus, each AST is model of both, the given and computed information _and_ their graphical representation. Because the respective attributes enable a clear encapsulation of language concerns, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automagically realised by _RACR's_ incremental evaluation.
 
 Objectives:
   * Simple models@runtime example introducing _RACR_-based incremental evaluation:
