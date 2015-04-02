@@ -1,7 +1,7 @@
 _[>> Abstract <<](abstract.md) [>> Features <<](features.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
 ___
 
-# Contents
+# _RACR_ Reference Manual: Contents
 
   * [Introduction](introduction.md)
   * [Requirements and Installation](requirements-and-installation.md)
