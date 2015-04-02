@@ -3,6 +3,8 @@ ___
 
 # _RACR_ Reference Manual
 
-#### A _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting
-
 *Author:* Christoff Bürger (`christoff.buerger@gmail.com`)
+
+![title](figures/title.png)
+
+#### A _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting
