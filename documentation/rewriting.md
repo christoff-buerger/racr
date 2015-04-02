@@ -1,3 +1,6 @@
+_[>> Abstract <<](abstract.md) [>> Features <<](features.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
+___
+
 # Rewriting
 
 A very common compiler construction task is to incrementally change the structure of ASTs and evaluate some of their attributes in-between. Typical examples are interactive editors with static semantic analyses, code optimisations or incremental AST transformations. In such scenarios, some means to rewrite (partially) evaluated ASTs, without discarding already evaluated and still valid attribute values, is required. On the other hand, the caches of evaluated attributes, whose value can change because of an AST manipulation, must be flushed. Attribute grammar systems supporting such a behaviour are called incremental. _RACR_ supports incremental attribute evaluation in the form of rewrite functions. The rewrite functions of _RACR_ provide an advanced and convenient interface to perform complex AST manipulations and ensure optimal incremental attribute evaluation (i.e., rewrites only flush the caches of the attributes they influence).
