@@ -1,3 +1,6 @@
+_[>> Abstract <<](abstract.md) [>> Features <<](features.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
+___
+
 # Attribution
 
 _RACR_ supports synthesised and inherited attributes that can be parameterised, circular and references. Attribute definitions are inherited w.r.t. AST inheritance. Thereby, the subtypes of an AST node type can overwrite inherited definitions by providing their own definition. _RACR_ also supports attribute broadcasting, such that there is no need to specify equations that just copy propagate attribute values from parent to child nodes. Some of these features differ from common attribute grammar systems however:
