@@ -6,7 +6,7 @@
 
 # Documentation
 
-For documentation consult the [_RACR_ reference manual](documentation/contents.md). Examples are in `./examples`, including their [documentation](examples/examples-overview.md).
+For documentation consult the [_RACR_ reference manual](documentation/title.md). Examples are in `./examples`, including their [documentation](examples/examples-overview.md).
 
 # License
 
