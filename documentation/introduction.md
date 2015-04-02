@@ -1,4 +1,4 @@
-_[>> Abstract <<](abstract.md) [>> Features <<](features.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
+_[>> Title <<](title.md) [>> Synopsis <<](synopsis.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
 ___
 
 # Introduction
@@ -15,7 +15,7 @@ Combined, these characteristics permit the expressive and elegant specification 
 
 **Figure 1.1:** Analyse-Synthesize Cycle of RAG Controlled Rewriting
 
-In the rest of the introduction we discuss why reference attribute grammar controlled rewriting is indeed expressive, elegant and efficient and why _RACR_ additionally is flexible and reliable.
+In the rest of the introduction we discuss why reference attribute grammar controlled rewriting is indeed expressive, elegant and efficient and why _RACR_ additionally is flexible and reliable. A short overview of [_RACR's_ features](introduction.md#racr-features) concludes the introduction.
 
 ## _RACR_ is Expressive, Elegant, Efficient, Flexible and Reliable
 
@@ -52,6 +52,43 @@ Besides automatic caching, a major strong point of attribute grammars, compared 
 **Flexible** _RACR_ is a _Scheme_ library. Its AST, attribute and rewrite facilities are ordinary functions or macros. Their application can be controlled by complex _Scheme_ programs that compute, or are used within, attribute specifications and rewrites. In particular, _RACR_ specifications themselves can be derived using _RACR_. Different language processors developed using _RACR_ can interact with each other without limitations and any need for explicit modeling of such interactions. Moreover, all library functions are parameterised with an actual application context. The function for querying attribute values uses a name and node argument to dispatch for a certain attribute instance and the functions to query AST information or perform rewrites expect node arguments designating the nodes to query or rewrite respectively. Since such contexts can be computed using attributes and AST information, dynamic -- i.e., input dependent -- AST and attribute dispatches within attribute equations and rewrite applications are possible. For example, the name and node arguments of an attribute query within some attribute equation can be the values of other attributes or even terminal nodes. In the end, _RACR's_ library approach and support for dynamic AST and attribute dispatches eases the development and combination of language product lines, metacompilers and highly adaptive language processors.
 
 **Reliable** _RACR_ specified language processors that interact with each other to realise a stacked metaarchitecture consisting of several levels of language abstraction can become very complicated. Also dynamic attribute dispatches or user developed _Scheme_ programs applying _RACR_ can result in complex attribute and rewrite interactions. Nevertheless, _RACR_ ensures that only valid specifications and transformations are performed and never outdated attribute values are used, no matter of application context, macros and continuations. In case of incomplete or inconsistent specifications, unspecified AST or attribute queries or transformations yielding invalid ASTs, _RACR_ throws appropriate runtime exceptions to indicate program errors. In case of transformations influencing an AST information that has been used to evaluate some attribute instance, the caches of the instance and all instances depending on it are automatically flushed, such that they are reevaluated if queried later on. The required bookkeeping is transparently performed and cannot be bypassed or disturbed by user code (in particular ASTs can only be queried and manipulated using library functions provided by _RACR_). There is only one restriction developers have to pay attention for: To ensure declarative attribute specifications, attribute equations must be side effect free. If equations only depend on attributes, attribute parameters and AST information and changes of stateful terminal values are always performed by respective terminal value rewrites, this restriction is satisfied.
+
+## _RACR_ Features
+
+Abstract Syntax Trees (AST):
+  * Typed non-terminals
+  * _EBNF_ (Kleene closure & list-nodes)
+  * Non-terminal inheritance
+  * AST fragments (incomplete ASTs containing special non-terminal markers called bud-nodes which designate places where proper subtrees still have to be provided)
+  * AST annotations (weaving of arbitrary entities into ASTs)
+
+Attribute Grammars:
+  * Synthesised and inherited attributes
+  * Circular attributes
+  * Reference attributes
+  * Parameterised attributes
+  * Attribute broadcasting
+  * Attribute inheritance & shadowing
+  * Automatic attribute caching & demand-driven, incremental attribute evaluation
+
+Graph Patterns:
+  * Patterns consisting of arbitrary many AST fragments and connecting reference edges
+  * Reuse attributes to specify complex rewrite conditions
+  * Linear matching complexity
+  * Automatic caching & demand-driven, incremental evaluation of pattern matching
+
+AST Rewrites:
+  * Subtree and terminal replacement
+  * Non-terminal refinement and abstraction
+  * Insertion, deletion and addition of list elements
+  * Deconstruction, refinement and reuse of AST fragments via bud-node replacement
+  * Automatic attribute dependency and cache maintenance in the presence of rewrites
+
+_C_ Foreign Call Interface:
+  * Use complete _RACR_ API in _C_ programs
+  * Dynamically load _RACR_ programs written in _Scheme_
+  * Use _C_ functions to implement attribute equations
+  * Easy packing and unpacking of _Scheme_ values; Automatic marshalling of expected _RACR_ function arguments
 
 ## Structure of the Manual
 
