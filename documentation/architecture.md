@@ -8,7 +8,7 @@ Every AST scheme and its attribution define a language -- they are a **_RACR_ sp
 
 ![runtime-structures](figures/runtime-structures.png)
 
-**Figure 2.1:** Runtime structures/entities of RACR Applications
+**Figure 2.1:** Runtime structures/entities of _RACR_ Applications
 
 The relationships between AST rules and attribute definitions and ASTs consisting of nodes and attribute instances are as used to. _RACR_ specifications consist of a set of **AST rules**, whereby for every AST rule arbitrary many **attribute definitions** can be specified. ASTs consist of arbitrary many **nodes** with associated **attribute instances**. Each node represents a context w.r.t. an AST rule and its respective attributes.
 
