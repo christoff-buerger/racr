@@ -1,3 +1,6 @@
+_[>> Abstract <<](abstract.md) [>> Features <<](features.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
+___
+
 # AST Annotations
 
 Often, additional information or functionalities, which can arbitrarily change or whose value and behaviour depends on time, have to be supported by ASTs. Examples are special node markers denoting certain imperative actions or stateful functions for certain AST nodes. Attributes are not appropriate in such cases, since their intension is to be side-effect free, such that their value does not depend on their query order or if they are cached. Further, it is not possible to arbitrarily attach attributes to ASTs. Equal contexts will always use equal attribute definitions for their attribute instances. To realise stateful or side-effect causing node dependent functionalities, the annotation API of _RACR_ can be used. AST annotations are named entities associated with AST nodes that can be arbitrarily attached, detached, changed and queried. Thereby, annotation names are ordinary _Scheme_ symbols and their values are arbitrary _Scheme_ entities. However, to protect users against misuse, _RACR_ does not permit, throughout the evaluation of an attribute, the application of any annotation functionalities on (other) nodes within the same AST the attribute is associated with.
