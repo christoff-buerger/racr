@@ -10,7 +10,7 @@ Figure 5.1 summarises the conditions under which _RACR's_ rewrite functions thro
 
 ![rewrite-error-table](figures/rewrite-error-table.png)
 
-**Figure 5.1:** Runtime Exceptions of RACR's Primitive Rewrite Functions
+**Figure 5.1:** Runtime Exceptions of _RACR's_ Primitive Rewrite Functions
 
 ## Primitive Rewrite Functions
 
