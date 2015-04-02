@@ -8,7 +8,7 @@ Additionally, _RACR_ ensures, that rewrites always yield valid ASTs. It is not p
 
 Figure 5.1 summarises the conditions under which _RACR's_ rewrite functions throw runtime exceptions. Marks denote exception cases. E.g., applications of `rewrite-add` whereat the context `l` is not a list-node are not permitted. Rewrite exceptions are thrown at runtime, because in general it is impossible to check for proper rewriting using source code analyses. _Scheme_ is Turing complete and ASTs, rewrite applications and their arguments can be computed by arbitrary _Scheme_ programs.
 
-![rewrite-error-table](figures/rewrites-error-table.png)
+![rewrite-error-table](figures/rewrite-error-table.png)
 
 **Figure 5.1:** Runtime Exceptions of RACR's Primitive Rewrite Functions
 
