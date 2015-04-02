@@ -67,7 +67,7 @@ Objectives:
   * Simple models@runtime example introducing _RACR_-based incremental evaluation:
     * Encoding of state in ASTs (model of real world: questions presented in a GUI to a user)
     * State changes via rewriting (model updates: user answers)
-    * State reasoning via attributes; Attributes to perform side-effects in case of state changes (model reasoning to derive real world actions: computation of expression values & rerendering of GUI elements if necessary)
+    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of expression values & rerendering of GUI elements if necessary)
 
 ## Petri Nets
 
