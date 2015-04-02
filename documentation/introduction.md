@@ -1,4 +1,4 @@
-_Navigator: [> Contents](contents.md) [> API Index](api-index.md)_
+_Navigator: [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
 ___
 
 # Introduction
