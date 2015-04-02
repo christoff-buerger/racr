@@ -11,7 +11,7 @@ In the following we focus on the `state-machine` macro and the finite state mach
 
 The `state-machine` macro is used to provide a _Scheme_ syntax for the definition of finite state machines. The macro transforms symbolic-expressions encoding finite state machines into ASTs of the specified finite state machine compiler. For example consider the following finite state machine:
 
-![http://wiki.racr.googlecode.com/git/documentation/web/example-statemachine.png](http://wiki.racr.googlecode.com/git/documentation/web/example-statemachine.png)
+![example-statemachine](figures/example-statemachine.png)
 
 Its respective _Scheme_ program in the syntax provided by the macro is:
 
@@ -34,7 +34,7 @@ Its respective _Scheme_ program in the syntax provided by the macro is:
 
 This syntax is transformed by the macro into the following AST:
 
-![http://wiki.racr.googlecode.com/git/documentation/web/example-statemachine-ast.png](http://wiki.racr.googlecode.com/git/documentation/web/example-statemachine-ast.png)
+![example-statemachine-ast](figures/example-statemachine-ast.png)
 
 The AST consists of a root node with (1) a terminal naming the initial state of the machine, (2) a terminal which is a list containing the names of all final states, (3) a list of seven state nodes, each with a terminal representing its name and (4) a list of ten transition nodes, each having a source and target terminal naming its respective source and target state.
 
