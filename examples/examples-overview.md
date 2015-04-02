@@ -61,13 +61,13 @@ The _RACR_ solution is unique in several ways:
   * It uses [_Racket_](http://racket-lang.org) to render the graphical user interface of questionnaires. The widgets of these interfaces are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the AST representing the respective questionnaire and its current answer state.
 
-Thus, each AST is model of both, the given and computed information _and_ their graphical representation. Because the respective attributes enable a clear encapsulation of language concerns, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby the controller is automagically realised by _RACR's_ incremental evaluation.
+Thus, each AST is model of both, the given and computed information _and_ their graphical representation. Because the respective attributes enable a clear encapsulation of language concerns, a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automagically realised by _RACR's_ incremental evaluation.
 
 Objectives:
   * Simple models@runtime example introducing _RACR_-based incremental evaluation:
     * Encoding of state in ASTs (model of real world: questions presented in a GUI to a user)
     * State changes via rewriting (model updates: user answers)
-    * State reasoning via attributes; Attributes to perform side-effects in case of state changes (model reasoning to derive real world actions: computation of expression values & rerendering of GUI elements if necessary)
+    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of expression values & rerendering of GUI elements if necessary)
 
 ## Petri Nets
 

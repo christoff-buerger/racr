@@ -6,10 +6,9 @@ To use _RACR_ within _Scheme_ programs, it must be imported via `(import (racr c
 
 Every AST scheme and its attribution define a language -- they are a **_RACR_ specification**. Every _RACR_ specification can be compiled to construct the **_RACR_ language processor** it defines. Every _RACR_ AST is one word in evaluation by a certain _RACR_ language processor, i.e., a runtime snapshot of a word in compilation w.r.t. a certain _RACR_ specification. Thus, _Scheme_ programs using _RACR_ can specify arbitrary many _RACR_ specifications and for every _RACR_ specification arbitrary many ASTs (i.e., words in compilation) can be instantiated and evaluated. Thereby, every AST has its own **evaluation state**, such that incremental attribute evaluation can be automatically maintained in the presence of rewrites. Figure 2.1 summarises the architecture of _RACR_ applications. Note, that specification, compilation and evaluation are realised by ordinary _Scheme_ function applications embedded within a single _Scheme_ program, for which reason they are just-in-time and on demand.
 
-<a href='Hidden comment: picture(0.55,racr-architecture.png)'></a>
-![http://wiki.racr.googlecode.com/git/documentation/web/racr-architecture.png](http://wiki.racr.googlecode.com/git/documentation/web/racr-architecture.png)
+![runtime-structures](figures/runtime-structures.png)
 
-**Figure 2.1:** Architecture of RACR Applications
+**Figure 2.1:** Runtime structures/entities of _RACR_ Applications
 
 The relationships between AST rules and attribute definitions and ASTs consisting of nodes and attribute instances are as used to. _RACR_ specifications consist of a set of **AST rules**, whereby for every AST rule arbitrary many **attribute definitions** can be specified. ASTs consist of arbitrary many **nodes** with associated **attribute instances**. Each node represents a context w.r.t. an AST rule and its respective attributes.
 
@@ -42,9 +41,8 @@ To construct a new specification the `create-specification` function is used. It
 
 The state chart of Figure 2.2 summarises the specification and AST and attribute query, rewrite and annotation API of _RACR_. The API functions of a certain specification phase are denoted by labels of edges originating from the respective phase. Transitions between different specification phases represent the compilation of specifications of the source phase, which finishes the respective phase such that now tasks of the destination phase can be performed.
 
-<a href='Hidden comment: picture(0.55,racr-API.png)'></a>
-![http://wiki.racr.googlecode.com/git/documentation/web/racr-API.png](http://wiki.racr.googlecode.com/git/documentation/web/racr-API.png)
+![user-interface](figures/user-interface.png)
 
-**Figure 2.2:** RACR API
+**Figure 2.2:** _RACR_ Application Programming Interface
 
 Remember, that _RACR_ maintains for every _RACR_ specification (i.e., specified language) its specification phase. Different _RACR_ specifications can coexist within the same _Scheme_ program and each can be in a different phase.
