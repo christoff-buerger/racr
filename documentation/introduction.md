@@ -1,5 +1,5 @@
 > Navigator: [Contents](contents.md); [API Index](api-index.md)
-
+___
 # Introduction
 
 _RACR_ is a reference attribute grammar library for the programming language _Scheme_ supporting incremental attribute evaluation in the presence of abstract syntax tree (AST) rewrites. It provides a set of functions that can be used to specify AST schemes and their attribution and construct respective ASTs, query their attributes and node information and annotate and rewrite them. Three main characteristics distinguish _RACR_ from other attribute grammar and term rewriting tools:
