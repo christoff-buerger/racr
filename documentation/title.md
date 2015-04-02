@@ -1,7 +1,7 @@
 _[>> Title <<](title.md) [>> Synopsis <<](synopsis.md) [>> Contents <<](contents.md) [>> API Index <<](api-index.md)_
 ___
 
-# _RACR_ Reference Manual
+# **_RACR_ Reference Manual**
 
 ## A _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting
 
