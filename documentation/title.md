@@ -3,8 +3,8 @@ ___
 
 # _RACR_ Reference Manual
 
-*Author:* Christoff Bürger (`christoff.buerger@gmail.com`)
+#### A _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting
 
 ![title](figures/title.png)
 
-#### A _Scheme_ Library for Reference Attribute Grammar Controlled Rewriting
+*Author:* Christoff Bürger (`christoff.buerger@gmail.com`)
