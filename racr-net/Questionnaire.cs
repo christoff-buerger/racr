@@ -40,11 +40,16 @@ class QL : Racr.Specification {
 	static class Form {
 		static Racr.AstNode Root(Racr.AstNode n) { return n; }
 		static Racr.AstNode ErrorQuestion(Racr.AstNode n) { return n.GetBody().Child(1); }
+
+		[Racr.ContextName("Body")]
+		static Racr.AstNode GLookup(Racr.AstNode n) { return n.GetBody().Child(1); }
+
 	}
 
 	static class Element {
 		static bool IsErrorQuestion(Racr.AstNode n) { return n == n.ErrorQuestion(); }
 	}
+
 
 }
 
