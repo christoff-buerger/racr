@@ -1,56 +1,69 @@
 using System;
 
-class MyBNode : Racr.AstNode {
+class B : Racr.AstNode {
+	public B(Racr.Specification spec, string term) : base(spec, "B", term) {}
+}
 
-	public MyBNode(Racr.Specification spec, string term) : base(spec, "B", term) {}
+static class Extensions {
+	public static Racr.AstNode GetList(this Racr.AstNode n) { return n.Child("List"); }
+	public static string GetT(this Racr.AstNode n) { return n.Child<string>("t"); }
 
-	public static int FooAttribute(MyBNode node, int x) {
-		return x * 2;
+	public static int	M(this Racr.AstNode n) { return (int)	n.AttValue("M"); }
+	public static bool	N(this Racr.AstNode n) { return (bool)	n.AttValue("N"); }
+}
+
+
+class MySpec : Racr.Specification {
+
+
+	static class A {
+		static int M(Racr.AstNode n) { return n.NumChildren() * 2; }
+		static bool N(Racr.AstNode n) { return !n.HasParent(); }
+	}
+
+	static class B {
+		static bool N(Racr.AstNode n) { return !n.HasParent(); }
+	}
+
+
+	public MySpec() {
+
+		AstRule("A->B*<List-C-w");
+		AstRule("B->t");
+		AstRule("C->");
+		CompileAstSpecifications("A");
+
+		SpecifyAttribute("kids", "A", "*", false, (Racr.AstNode n) => {
+			return n.GetList().NumChildren();
+		});
+
+
+		SpecifyAttribute("foo", "B", "*", false, (Racr.AstNode n, int x) => {
+			return n.NumChildren() * x;
+		});
+
+		SpecifyAttribute("bar", "B", "*", false, (Racr.AstNode n, int x) => {
+			return x * x;
+		});
+
+
+		CompileAgSpecifications();
 	}
 
 }
 
 
-static class Extensions {
-	public static Racr.AstNode GetList(this Racr.AstNode node) { return node.Child("List"); }
-}
-
-
-
 class App {
 	public static void Main() {
 
-		var spec = new Racr.Specification();
-		spec.AstRule("A->B*<List-C-w");
-		spec.AstRule("B->t");
-		spec.AstRule("C->");
-		spec.CompileAstSpecifications("A");
 
-
-		spec.SpecifyAttribute("kids", "A", "*", false, (Racr.AstNode n) => {
-			return n.GetList().NumChildren();
-		});
-
-
-		spec.SpecifyAttribute("foo", "B", "*", false, (Racr.AstNode n, int x) => {
-			return n.NumChildren() * x;
-		});
-
-		spec.SpecifyAttribute("bar", "B", "*", false, (Racr.AstNode n, int x) => {
-			return x * x;
-		});
-
-		spec.SpecifyAttribute<MyBNode,int,int>("FooAttribute", "B", "*", false, MyBNode.FooAttribute);
-
-
-		spec.CompileAgSpecifications();
-
+		var spec = new MySpec();
 
 		var root = new Racr.AstNode(spec, "A",
 			new Racr.AstList(
-				new MyBNode(spec, "abc"),
-				new MyBNode(spec, "123"),
-				new MyBNode(spec, "xyz")),
+				new B(spec, "abc"),
+				new B(spec, "123"),
+				new B(spec, "xyz")),
 			new Racr.AstNode(spec, "C"),
 			"hiya");
 
@@ -66,12 +79,14 @@ class App {
 
 		Console.WriteLine("---");
 
+
+		Console.WriteLine("M: {0}", root.M());
+		Console.WriteLine("N: {0}", root.N());
+
 		Console.WriteLine("kids: {0}", root.AttValue("kids"));
 
 		var index = (int) root.GetList().Child(1).AttValue("bar", 3);
 		Console.WriteLine(index);
-
-		Console.WriteLine(root.GetList().Child(1).AttValue("FooAttribute", 3));
 
 		Console.WriteLine("---");
 
@@ -98,7 +113,7 @@ class App {
 		var child = root.GetList();
 
 		Console.WriteLine(child);
-		Console.WriteLine("Child 1 -> t: {0}", child.Child(1).Child<string>("t"));
+		Console.WriteLine("Child 1 -> t: {0}", child.Child(1).GetT());
 		Console.WriteLine("IsNode: {0}", child.IsNode());
 		Console.WriteLine("HasParent: {0}", child.HasParent());
 		Console.WriteLine("ChildIndex: {0}", child.ChildIndex());

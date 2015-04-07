@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -125,6 +126,99 @@ static class Racr {
 			compileAstSpecifications.Call(spec, SymbolTable.StringToObject(startSymbol));
 		}
 		public void CompileAgSpecifications() {
+
+/*
+			var methods = this.GetType().GetMethods(
+				BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			foreach (var method in methods) {
+
+				var attributes = method.GetCustomAttributes(typeof(AgRuleAttribute), false) as AgRuleAttribute[];
+				if (attributes.Length > 0) {
+
+					Console.WriteLine("nethod name: {0}", method.Name);
+
+
+					foreach (var attr in attributes) {
+						Console.WriteLine("non-terminal: {0}", attr.NonTerminal);
+
+						var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
+						var types = new Type[paramTypes.Length + 1];
+						paramTypes.CopyTo(types, 0);
+						types[paramTypes.Length] = method.ReturnType;
+
+						if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
+							throw new ArgumentException("type of delegate's first argument must be AstNode.");
+						}
+
+						paramTypes[0] = typeof(object);
+						var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
+						var gen = dynmeth.GetILGenerator();
+
+						gen.Emit(OpCodes.Ldarg_0);
+						var getNodeInfo = ((Delegate) (Func<object, AstNode>) GetNode).Method;
+						gen.Emit(OpCodes.Call, getNodeInfo);
+						gen.Emit(OpCodes.Starg_S, 0);
+						gen.Emit(OpCodes.Jmp, method);
+
+						Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
+
+						specifyAttribute.Call(
+							spec,
+							SymbolTable.StringToObject(method.Name),
+							SymbolTable.StringToObject(attr.NonTerminal),
+							0,
+							false,
+							equation.ToSchemeProcedure(),
+							false);
+					}
+				}
+			}
+*/
+
+			var classes = this.GetType().GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
+			foreach (var @class in classes) {
+				if (@class.BaseType != typeof(object)) continue;
+
+				var methods = @class.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+				foreach (var method in methods) {
+					if (method.DeclaringType != @class) continue;
+
+					//Console.WriteLine("method: {0}.{1}", @class.Name, method.Name);
+
+					var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
+					if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
+						throw new ArgumentException("type of delegate's first argument must be AstNode.");
+					}
+
+					var types = new Type[paramTypes.Length + 1];
+					paramTypes.CopyTo(types, 0);
+					types[paramTypes.Length] = method.ReturnType;
+
+					paramTypes[0] = typeof(object);
+					var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
+					var gen = dynmeth.GetILGenerator();
+
+					gen.Emit(OpCodes.Ldarg_0);
+					var getNodeInfo = ((Delegate) (Func<object, AstNode>) GetNode).Method;
+					gen.Emit(OpCodes.Call, getNodeInfo);
+					gen.Emit(OpCodes.Starg_S, 0);
+					gen.Emit(OpCodes.Jmp, method);
+
+					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
+
+					specifyAttribute.Call(
+						spec,
+						SymbolTable.StringToObject(method.Name),
+						SymbolTable.StringToObject(@class.Name),
+						0,
+						false,
+						equation.ToSchemeProcedure(),
+						false);
+
+				}
+
+			}
+
 			compileAgSpecifications.Call(spec);
 		}
 
@@ -142,7 +236,7 @@ static class Racr {
 			var gen = dynmeth.GetILGenerator();
 
 			gen.Emit(OpCodes.Ldarg_0);
-			var getNodeInfo = typeof(Racr).GetMethod("GetNode", BindingFlags.Static | BindingFlags.NonPublic);
+			var getNodeInfo = ((Delegate) (Func<object,AstNode>) GetNode).Method;
 			gen.Emit(OpCodes.Call, getNodeInfo);
 			gen.Emit(OpCodes.Starg_S, 0);
 			gen.Emit(OpCodes.Jmp, info);
@@ -169,6 +263,8 @@ static class Racr {
 		where N : AstNode {
 			SpecifyAttribute(attName, nonTerminal, contexName, cached, (Delegate) equation);
 		}
+
+
 	}
 
 
@@ -198,7 +294,7 @@ static class Racr {
 		return (AstNode) nodeDotNetInstance.Call(ast);
 	}
 
-	public class AstNode {
+	public class AstNode /*: DynamicObject*/ {
 		internal object ast;
 		private bool[] nonTermChilren;		// are children non-terminal?
 		protected AstNode() {}
@@ -368,6 +464,13 @@ static class Racr {
 		public void WeaveAnnotations(string type, string name, object v) {
 			astWeaveAnnotations.Call(ast, SymbolTable.StringToObject(type), SymbolTable.StringToObject(name), v);
 		}
+
+/*
+		public override bool TryGetMember(GetMemberBinder binder, out Object result) {
+			result = Child(binder.Name);
+			return true;
+		}
+*/
 	}
 
 	public class AstList : AstNode {
@@ -431,5 +534,16 @@ static class Racr {
 	public static bool IsSubtype(this AstNode n1, AstNode n2) {
 		return (bool) astSubtypeQ.Call(n1.ast, n2.ast);
 	}
+
+/*
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple=true)]
+	public class AgRuleAttribute : Attribute {
+		public readonly string NonTerminal;
+		public AgRuleAttribute(string nonTerminal) {
+			NonTerminal = nonTerminal;
+		}
+	}
+*/
+
 }
 
