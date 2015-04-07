@@ -243,7 +243,7 @@ static class Racr {
 		}
 	}
 
-	private static bool IsTrue(object o) {
+	public static bool IsTrue(object o) {
 		return (o is bool) ? (bool) o : true;
 	}
 
