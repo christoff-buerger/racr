@@ -206,12 +206,23 @@ static class Racr {
 
 					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
 
+
+					string contextName = "*";
+					bool cached = false;
+
+					foreach (var attr in method.GetCustomAttributes(false)) {
+						var contextNameAttr = (ContextNameAttribute) attr;
+						if (contextNameAttr != null) contextName = contextNameAttr.NonTerminal;
+						var cachedAttr = (CachedAttribute) attr;
+						if (cachedAttr != null) cached = cachedAttr.Cached;
+					}
+
 					specifyAttribute.Call(
 						spec,
 						SymbolTable.StringToObject(method.Name),
 						SymbolTable.StringToObject(@class.Name),
-						0,
-						false,
+						SymbolTable.StringToObject(contextName),
+						cached,
 						equation.ToSchemeProcedure(),
 						false);
 
@@ -547,6 +558,20 @@ static class Racr {
 		}
 	}
 */
+	[AttributeUsage(AttributeTargets.Method)]
+	public class ContextNameAttribute : Attribute {
+		public readonly string NonTerminal;
+		public ContextNameAttribute(string nonTerminal) {
+			NonTerminal = nonTerminal;
+		}
+	}
+	[AttributeUsage(AttributeTargets.Method)]
+	public class CachedAttribute : Attribute {
+		public readonly bool Cached;
+		public CachedAttribute(bool cached=true) {
+			Cached = cached;
+		}
+	}
 
 }
 
