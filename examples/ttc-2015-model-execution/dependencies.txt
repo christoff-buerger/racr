@@ -1,0 +1,6 @@
+user-interface
+ast
+name-analysis
+well-formedness-analysis
+enabled-analysis
+execution-semantics

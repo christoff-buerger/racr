@@ -78,22 +78,4 @@
        
        (Port
         (lambda (n)
-          (att-value 'find-place n (ast-child 'place n)))))
-      
-      (ag-rule
-       input-places
-       (Transition
-        (lambda (n)
-          (map
-           (lambda (in)
-             (att-value 'place in))
-           (ast-children (ast-child 'In n))))))
-      
-      (ag-rule
-       output-places
-       (Transition
-        (lambda (n)
-          (map
-           (lambda (out)
-             (att-value 'place out))
-           (ast-children (ast-child 'Out n))))))))))
+          (att-value 'find-place n (ast-child 'place n)))))))))
