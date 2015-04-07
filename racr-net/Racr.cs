@@ -127,54 +127,6 @@ static class Racr {
 		}
 		public void CompileAgSpecifications() {
 
-/*
-			var methods = this.GetType().GetMethods(
-				BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-			foreach (var method in methods) {
-
-				var attributes = method.GetCustomAttributes(typeof(AgRuleAttribute), false) as AgRuleAttribute[];
-				if (attributes.Length > 0) {
-
-					Console.WriteLine("nethod name: {0}", method.Name);
-
-
-					foreach (var attr in attributes) {
-						Console.WriteLine("non-terminal: {0}", attr.NonTerminal);
-
-						var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-						var types = new Type[paramTypes.Length + 1];
-						paramTypes.CopyTo(types, 0);
-						types[paramTypes.Length] = method.ReturnType;
-
-						if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
-							throw new ArgumentException("type of delegate's first argument must be AstNode.");
-						}
-
-						paramTypes[0] = typeof(object);
-						var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
-						var gen = dynmeth.GetILGenerator();
-
-						gen.Emit(OpCodes.Ldarg_0);
-						var getNodeInfo = ((Delegate) (Func<object, AstNode>) GetNode).Method;
-						gen.Emit(OpCodes.Call, getNodeInfo);
-						gen.Emit(OpCodes.Starg_S, 0);
-						gen.Emit(OpCodes.Jmp, method);
-
-						Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
-
-						specifyAttribute.Call(
-							spec,
-							SymbolTable.StringToObject(method.Name),
-							SymbolTable.StringToObject(attr.NonTerminal),
-							0,
-							false,
-							equation.ToSchemeProcedure(),
-							false);
-					}
-				}
-			}
-*/
-
 			var classes = this.GetType().GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
 			foreach (var @class in classes) {
 				if (@class.BaseType != typeof(object)) continue;
@@ -197,15 +149,12 @@ static class Racr {
 					paramTypes[0] = typeof(object);
 					var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
 					var gen = dynmeth.GetILGenerator();
-
 					gen.Emit(OpCodes.Ldarg_0);
 					var getNodeInfo = ((Delegate) (Func<object, AstNode>) GetNode).Method;
 					gen.Emit(OpCodes.Call, getNodeInfo);
 					gen.Emit(OpCodes.Starg_S, 0);
 					gen.Emit(OpCodes.Jmp, method);
-
 					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
-
 
 					string contextName = "*";
 					bool cached = false;
@@ -225,11 +174,8 @@ static class Racr {
 						cached,
 						equation.ToSchemeProcedure(),
 						false);
-
 				}
-
 			}
-
 			compileAgSpecifications.Call(spec);
 		}
 
