@@ -446,6 +446,9 @@ static class Racr {
 			args.CopyTo(l, 2);
 			return attValue.Call(l);
 		}
+		public T AttValue<T>(string attName, params object[] args) {
+			return (T) AttValue(attName, args);
+		}
 
 
 		// ast annotations
