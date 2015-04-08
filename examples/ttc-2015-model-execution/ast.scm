@@ -9,14 +9,14 @@
  (ttc-2015-model-execution ast)
  (export
   specify-ast)
- (import (rnrs) (racr core))
+ (import (rnrs) (racr core) (ttc-2015-model-execution user-interface))
  
- (define specify-ast
-   (lambda (specification)
-     (with-specification
-      specification
-      (ast-rule 'AtomicPetrinet->Place*-Transition*)
-      (ast-rule 'Place->name-Token*)
-      (ast-rule 'Token->value)
-      (ast-rule 'Transition->name-Arc*<In-Arc*<Out)
-      (ast-rule 'Arc->place-functionlabel)))))
+ (define (specify-ast)
+   (with-specification
+    pn
+    
+    (ast-rule 'AtomicPetrinet->Place*-Transition*)
+    (ast-rule 'Place->name-Token*)
+    (ast-rule 'Token->value)
+    (ast-rule 'Transition->name-Arc*<In-Arc*<Out)
+    (ast-rule 'Arc->place-consumers))))

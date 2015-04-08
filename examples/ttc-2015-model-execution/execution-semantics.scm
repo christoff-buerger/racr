@@ -8,57 +8,33 @@
 (library
  (ttc-2015-model-execution execution-semantics)
  (export
-  petrinets-exception?
   fire-transition!
   run-petrinet!)
  (import (rnrs) (racr core) (ttc-2015-model-execution user-interface))
- 
- ;;; Exceptions:
- 
- (define-condition-type petrinets-exception &violation make-petrinets-exception petrinets-exception?)
- 
- (define throw-petrinets-exception
-   (lambda (message)
-     (raise-continuable
-      (condition
-       (make-petrinets-exception)
-       (make-message-condition message)))))
  
  ;;; Execution:
  
  (define run-petrinet!
    (lambda (petrinet)
-     (unless (att-value 'well-formed? petrinet)
+     (unless (Valid? petrinet)
        (throw-petrinets-exception "Cannot run Petri Net; The given net is not well-formed."))
-     (let ((enabled (att-value 'enabled? petrinet)))
+     (let ((enabled (Enabled? petrinet)))
        (unless (null? enabled)
          (fire-transition! (car enabled))
          (run-petrinet! petrinet)))))
  
  (define fire-transition!
    (lambda (transition)
-     (unless (att-value 'enabled? transition)
+     (unless (Enabled? transition)
        (throw-petrinets-exception "Cannot fire transition; The transition is not enabled."))
-     (let* ((argument-list
-             (map
-              (lambda (token)
-                (ast-child 'value token))
-              (att-value 'enabled? transition))))
-       (for-each
-        rewrite-delete
-        (att-value 'enabled? transition))
+     (let* ((argument-list (map ->value (Enabled? transition))))
+       (for-each rewrite-delete (Enabled? transition))
        (ast-for-each-child
-        (lambda (i out)
+        (lambda (i n)
           (for-each
-           (lambda (new-token)
+           (lambda (value)
              (rewrite-add
-              (ast-child 'Token* (att-value 'place out))
-              (create-ast
-               specification
-               'Token
-               (list
-                new-token))))
-           (apply
-            (ast-child 'functionlabel out)
-            argument-list)))
-        (ast-child 'Out transition))))))
+              (->Token* (Place n))
+              (make-Token value)))
+           (apply (->consumers n) argument-list)))
+        (->Out transition))))))
