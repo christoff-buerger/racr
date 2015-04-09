@@ -63,18 +63,6 @@
  
  ;;; Syntax:
  
- (define (initialize-places petrinet)
-   (ast-for-each-child
-    (lambda (i trans)
-      (for-each
-       (lambda (arc)
-         (unless (=place arc)
-           (rewrite-add
-            (->Place* petrinet)
-            (:Place (->place arc)))))
-       (append (->* (->In trans)) (->* (->Out trans)))))
-    (->Transition* petrinet)))
- 
  (define-syntax petrinet:
    (syntax-rules ()
      ((_ ((place start-marking ...) ...)
@@ -85,7 +73,6 @@
                     ...)
               (list transition
                     ...))))
-        (initialize-places net)
         (unless (=valid? net)
           (throw-petrinets-exception "Cannot construct Petri net; The net is not well-formed."))
         net))))
