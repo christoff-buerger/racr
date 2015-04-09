@@ -1,6 +1,7 @@
 user-interface
-ast
+ast-scheme
 name-analysis
 well-formedness-analysis
 enabled-analysis
 execution-semantics
+main

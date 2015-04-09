@@ -6,22 +6,22 @@
 #!r6rs
 
 (library
- (ttc-2015-model-execution user-interface)
+ (atomic-petrinets user-interface)
  (export pn petrinets-exception? throw-petrinets-exception
-         make-Token
+         :AtomicPetrinet :Place :Token :Transition :Arc
          ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
-         P-Lookup T-Lookup Place Valid? Enabled?
+         =p-lookup =t-lookup =place =valid? =enabled?
          petrinet: transition:)
  (import (rnrs) (racr core))
  
  (define pn                   (create-specification))
  
  ; Attribute Accessors:
- (define (P-Lookup n name)    (att-value 'P-Lookup n name))
- (define (T-Lookup n name)    (att-value 'T-Lookup n name))
- (define (Place n)            (att-value 'Place n))
- (define (Valid? n)           (att-value 'Valid? n))
- (define (Enabled? n)         (att-value 'Enabled? n))
+ (define (=p-lookup n name)   (att-value 'p-lookup n name))
+ (define (=t-lookup n name)   (att-value 't-lookup n name))
+ (define (=place n)           (att-value 'place n))
+ (define (=valid? n)          (att-value 'valid? n))
+ (define (=enabled? n)        (att-value 'enabled? n))
  
  ; AST Accessors:
  (define (->Place* n)         (ast-child 'Place* n))
@@ -37,15 +37,15 @@
  (define (<- n)               (ast-parent n))
  
  ; AST Constructors:
- (define (make-Petrinet p t)
-   (create-ast pn 'Petrinet (list (create-ast-list p) (create-ast-list t))))
- (define (make-Place n . t)
+ (define (:AtomicPetrinet p t)
+   (create-ast pn 'AtomicPetrinet (list (create-ast-list p) (create-ast-list t))))
+ (define (:Place n . t)
    (create-ast pn 'Place (list n (create-ast-list t))))
- (define (make-Token v)
+ (define (:Token v)
    (create-ast pn 'Token (list v)))
- (define (make-Transition n i o)
+ (define (:Transition n i o)
    (create-ast pn 'Transition (list n (create-ast-list i) (create-ast-list o))))
- (define (make-Arc p f)
+ (define (:Arc p f)
    (create-ast pn 'Arc (list p f)))
  
  ;;; Exceptions:
@@ -68,10 +68,10 @@
     (lambda (i trans)
       (for-each
        (lambda (arc)
-         (unless (Place arc)
+         (unless (=place arc)
            (rewrite-add
             (->Place* petrinet)
-            (make-Place (->place arc) (list)))))
+            (:Place (->place arc)))))
        (append (->* (->In trans)) (->* (->Out trans)))))
     (->Transition* petrinet)))
  
@@ -80,13 +80,13 @@
      ((_ ((place start-marking ...) ...)
          transition ... )
       (let ((net
-             (make-Petrinet
-              (list (make-Place 'place (make-Token start-marking) ...)
+             (:AtomicPetrinet
+              (list (:Place 'place (:Token start-marking) ...)
                     ...)
               (list transition
                     ...))))
         (initialize-places net)
-        (unless (Valid? net)
+        (unless (=valid? net)
           (throw-petrinets-exception "Cannot construct Petri net; The net is not well-formed."))
         net))))
  
@@ -95,13 +95,13 @@
      ((_ name
          ((input-place (variable matching-condition) ...) ...)
          ((output-place to-produce ...) ...))
-      (make-Transition
+      (:Transition
        'name
-       (list (make-Arc
+       (list (:Arc
               'input-place
               (list (lambda (variable) matching-condition) ...))
              ...)
-       (list (make-Arc
+       (list (:Arc
               'output-place
               (lambda (variable ... ...) (list to-produce ...)))
              ...))))))

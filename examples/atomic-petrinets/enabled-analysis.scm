@@ -6,17 +6,16 @@
 #!r6rs
 
 (library
- (ttc-2015-model-execution enabled-analysis)
- (export
-  specify-enabled-analysis)
- (import (rnrs) (rnrs mutable-pairs) (racr core) (ttc-2015-model-execution user-interface))
+ (atomic-petrinets enabled-analysis)
+ (export specify-enabled-analysis)
+ (import (rnrs) (rnrs mutable-pairs) (racr core) (atomic-petrinets user-interface))
  
  (define (specify-enabled-analysis)
    (with-specification
     pn
     
     (ag-rule
-     Enabled?
+     enabled?
      
      (Arc
       (lambda (n)
@@ -27,7 +26,7 @@
              (let ((enabled? (and (not (memq n consumed)) (f (->value n)) n)))
                (when enabled? (set! consumed (cons n consumed)))
                enabled?))
-           (->Token* (Place n))))
+           (->Token* (=place n))))
         (set!
          consumed
          (map find-consumable (->consumers n)))
@@ -36,13 +35,13 @@
      (Transition
       (lambda (n)
         (and
-         (not (ast-find-child (lambda (i n) (not (Enabled? n))) (->In n)))
+         (not (ast-find-child (lambda (i n) (not (=enabled? n))) (->In n)))
          (fold-left
           (lambda (result n)
-            (append result (Enabled? n)))
+            (append result (=enabled? n)))
           (list)
           (->* (->In n))))))
      
      (AtomicPetrinet
       (lambda (n)
-        (filter Enabled? (->* (->Transition* n)))))))))
+        (filter =enabled? (->* (->Transition* n)))))))))

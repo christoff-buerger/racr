@@ -6,35 +6,35 @@
 #!r6rs
 
 (library
- (ttc-2015-model-execution well-formedness-analysis)
- (export
-  specify-well-formedness-analysis)
- (import (rnrs) (racr core) (ttc-2015-model-execution user-interface) (ttc-2015-model-execution name-analysis))
+ (atomic-petrinets well-formedness-analysis)
+ (export specify-well-formedness-analysis)
+ (import (rnrs) (racr core) (atomic-petrinets user-interface) (atomic-petrinets name-analysis))
  
  (define (find-not-valid l)
-   (ast-find-child (lambda (i n) (not (Valid? n))) l))
+   (ast-find-child (lambda (i n) (not (=valid? n))) l))
  
  (define (specify-well-formedness-analysis)
    (with-specification
     pn
     
     (ag-rule
-     Valid?
+     valid?
      
      (Place
       (lambda (n)
-        (eq? (P-Lookup n (->name n)) n)))
+        (eq? (=p-lookup n (->name n)) n)))
      
      (Transition
       (lambda (n)
-        (and (eq? (T-Lookup n (->name n)) n)
+        (and (eq? (=t-lookup n (->name n)) n)
              (not (find-not-valid (->In n)))
              (not (find-not-valid (->Out n))))))
      
      (Arc
       (lambda (n)
-        (and (Place n)
-             (eq? (find-in-context n ->place <-) n))))
+        (define place (->place n))
+        (and (=place n)
+             (eq? (find-valued (<- n) (->place n) ->place) n))))
      
      (AtomicPetrinet
       (lambda (n)

@@ -6,10 +6,9 @@
 #!r6rs
 
 (library
- (ttc-2015-model-execution ast)
- (export
-  specify-ast)
- (import (rnrs) (racr core) (ttc-2015-model-execution user-interface))
+ (atomic-petrinets ast-scheme)
+ (export specify-ast)
+ (import (rnrs) (racr core) (atomic-petrinets user-interface))
  
  (define (specify-ast)
    (with-specification
