@@ -8,7 +8,7 @@
 (library
  (atomic-petrinets ast-scheme)
  (export specify-ast)
- (import (rnrs) (racr core) (atomic-petrinets user-interface))
+ (import (rnrs) (racr core) (atomic-petrinets query-support))
  
  (define (specify-ast)
    (with-specification

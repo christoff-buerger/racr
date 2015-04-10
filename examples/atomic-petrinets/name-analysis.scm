@@ -8,7 +8,7 @@
 (library
  (atomic-petrinets name-analysis)
  (export find-valued specify-name-analysis)
- (import (rnrs) (racr core) (atomic-petrinets user-interface))
+ (import (rnrs) (racr core) (atomic-petrinets query-support))
  
  (define (find-valued n value ->value)
    (ast-find-child (lambda (i n) (eq? (->value n) value)) n))

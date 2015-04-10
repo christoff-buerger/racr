@@ -7,59 +7,14 @@
 
 (library
  (atomic-petrinets user-interface)
- (export pn petrinets-exception? throw-petrinets-exception
-         :AtomicPetrinet :Place :Token :Transition :Arc
-         ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
-         =p-lookup =t-lookup =place =valid? =enabled?
-         petrinet: transition:)
- (import (rnrs) (racr core))
- 
- (define pn                   (create-specification))
- 
- ; Attribute Accessors:
- (define (=p-lookup n name)   (att-value 'p-lookup n name))
- (define (=t-lookup n name)   (att-value 't-lookup n name))
- (define (=place n)           (att-value 'place n))
- (define (=valid? n)          (att-value 'valid? n))
- (define (=enabled? n)        (att-value 'enabled? n))
- 
- ; AST Accessors:
- (define (->Place* n)         (ast-child 'Place* n))
- (define (->Transition* n)    (ast-child 'Transition* n))
- (define (->Token* n)         (ast-child 'Token* n))
- (define (->In n)             (ast-child 'In n))
- (define (->Out n)            (ast-child 'Out n))
- (define (->name n)           (ast-child 'name n))
- (define (->value n)          (ast-child 'value n))
- (define (->place n)          (ast-child 'place n))
- (define (->consumers n)      (ast-child 'consumers n))
- (define (->* n)              (ast-children n))
- (define (<- n)               (ast-parent n))
- 
- ; AST Constructors:
- (define (:AtomicPetrinet p t)
-   (create-ast pn 'AtomicPetrinet (list (create-ast-list p) (create-ast-list t))))
- (define (:Place n . t)
-   (create-ast pn 'Place (list n (create-ast-list t))))
- (define (:Token v)
-   (create-ast pn 'Token (list v)))
- (define (:Transition n i o)
-   (create-ast pn 'Transition (list n (create-ast-list i) (create-ast-list o))))
- (define (:Arc p f)
-   (create-ast pn 'Arc (list p f)))
- 
- ;;; Exceptions:
- 
- (define-condition-type petrinets-exception
-   &violation
-   make-petrinets-exception
-   petrinets-exception?)
- 
- (define (throw-petrinets-exception message)
-   (raise-continuable
-    (condition
-     (make-petrinets-exception)
-     (make-message-condition message))))
+ (export petrinet: transition: fire-transition! run-petrinet! assert-marking assert-enabled)
+ (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
+         (atomic-petrinets query-support)
+         (atomic-petrinets ast-scheme)
+         (atomic-petrinets name-analysis)
+         (atomic-petrinets well-formedness-analysis)
+         (atomic-petrinets enabled-analysis)
+         (atomic-petrinets execution-semantics))
  
  ;;; Syntax:
  
@@ -91,4 +46,42 @@
        (list (:Arc
               'output-place
               (lambda (variable ... ...) (list to-produce ...)))
-             ...))))))
+             ...)))))
+ 
+ ;;; Testing:
+ 
+ (define (assert-marking net . marking) ; Each marking is a list of a place followed by its tokens.
+   (define marked (map (lambda (m) (=p-lookup net (car m))) marking))
+   (define marked-marking (map cdr marking))
+   (define !marked (filter (lambda (n) (not (memq n marked))) (->* (->Place* net))))
+   (define !marked-marking (map (lambda (n) (list)) !marked))
+   (define (check-place place expected-tokens)
+     (define given-values (map ->value (->* (->Token* place))))
+     (define-record-type nil-record (sealed #t)(opaque #t))
+     (define Ok (make-nil-record))
+     (for-each
+      (lambda (expected-token)
+        (let ((value-found? (member expected-token given-values)))
+          (assert value-found?)
+          (set-car! value-found? Ok)))
+      expected-tokens)
+     (assert (for-all nil-record? given-values)))
+   (for-each check-place marked marked-marking)
+   (for-each check-place !marked !marked-marking))
+ 
+ (define (assert-enabled net . enabled)
+   (define t-enabled (map (lambda (t) (=t-lookup net t)) enabled))
+   (define t-!enabled (filter (lambda (t) (not (memq t t-enabled))) (->* (->Transition* net))))
+   (assert (for-all =enabled? t-enabled))
+   (assert (for-all (lambda (t) (not (=enabled? t))) t-!enabled))
+   (assert-exception (for-all fire-transition! t-!enabled)))
+ 
+ ;;; Initialisation:
+ 
+ (when (= (specification->phase pn) 1)
+   (specify-ast)
+   (compile-ast-specifications pn 'AtomicPetrinet)
+   (specify-name-analysis)
+   (specify-well-formedness-analysis)
+   (specify-enabled-analysis)
+   (compile-ag-specifications pn)))

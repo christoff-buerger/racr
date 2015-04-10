@@ -12,10 +12,9 @@
 
 #!r6rs
 
-(import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
-        (atomic-petrinets main)
-        (atomic-petrinets user-interface)
-        (atomic-petrinets execution-semantics))
+(import (rnrs) (racr core) (racr testing)
+        (atomic-petrinets query-support)
+        (atomic-petrinets user-interface))
 
 (define (make-cookie-automaton)
   (petrinet:
@@ -56,37 +55,6 @@
     d
     ((C (y #t)))
     ())))
-
-;(define-syntax assert-marking-syntax
-;  (syntax-rules ()
-;    ((_ net (place token-value ...) ...)
-;     (assert-marking net (list 'place token-value ...) ...))))
-
-(define (assert-marking net . marking) ; marking: list of place name followed by its tokens.
-  (define marked (map (lambda (m) (=p-lookup net (car m))) marking))
-  (define marked-marking (map cdr marking))
-  (define !marked (filter (lambda (n) (not (memq n marked))) (->* (->Place* net))))
-  (define !marked-marking (map (lambda (n) (list)) !marked))
-  (define (check-place place expected-tokens)
-    (define given-values (map ->value (->* (->Token* place))))
-    (define-record-type nil-record (sealed #t)(opaque #t))
-    (define Ok (make-nil-record))
-    (for-each
-     (lambda (expected-token)
-       (let ((value-found? (member expected-token given-values)))
-         (assert value-found?)
-         (set-car! value-found? Ok)))
-     expected-tokens)
-    (assert (for-all nil-record? given-values)))
-  (for-each check-place marked marked-marking)
-  (for-each check-place !marked !marked-marking))
-
-(define (assert-enabled net . enabled)
-  (define t-enabled (map (lambda (t) (=t-lookup net t)) enabled))
-  (define t-!enabled (filter (lambda (t) (not (memq t t-enabled))) (->* (->Transition* net))))
-  (assert (for-all =enabled? t-enabled))
-  (assert (for-all (lambda (t) (not (=enabled? t))) t-!enabled))
-  (assert-exception (for-all fire-transition! t-!enabled)))
 
 (define (run-tests)
   (define net                 (make-cookie-automaton))
@@ -151,14 +119,17 @@
             (list 'G 'Token)
             (list 'H 'Box*))
   
-  ;(marking! 'A)
-  ;(marking! 'B)
-  ;(marking! 'C)
-  ;(marking! 'D 'Token)
-  ;(marking! 'E 1)
-  ;(marking! 'F 'Euro 'Euro 'Euro)
-  ;(marking! 'G 'Token)
-  ;(marking! 'H 'Box*)
-  )
+  (set! net (make-cookie-automaton))
+  (rewrite-delete (=t-lookup net 'e))
+  (run-petrinet! net)
+  (marking! (list 'A 'Euro)
+            (list 'E 1)
+            (list 'F 'Euro 'Euro 'Euro)
+            (list 'G 'Token)
+            (list 'H 'Box*))
+  
+  (set! net (make-cookie-automaton))
+  (rewrite-delete (=p-lookup net 'A))
+  (assert-exception (run-petrinet! net)))
 
 (run-tests)

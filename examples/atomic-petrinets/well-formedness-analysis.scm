@@ -8,7 +8,7 @@
 (library
  (atomic-petrinets well-formedness-analysis)
  (export specify-well-formedness-analysis)
- (import (rnrs) (racr core) (atomic-petrinets user-interface) (atomic-petrinets name-analysis))
+ (import (rnrs) (racr core) (atomic-petrinets query-support) (atomic-petrinets name-analysis))
  
  (define (find-not-valid l)
    (ast-find-child (lambda (i n) (not (=valid? n))) l))

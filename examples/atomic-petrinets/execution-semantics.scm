@@ -8,7 +8,7 @@
 (library
  (atomic-petrinets execution-semantics)
  (export fire-transition! run-petrinet!)
- (import (rnrs) (racr core) (atomic-petrinets user-interface))
+ (import (rnrs) (racr core) (atomic-petrinets query-support))
  
  (define (run-petrinet! petrinet)
    (unless (=valid? petrinet)

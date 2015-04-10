@@ -8,7 +8,7 @@
 (library
  (atomic-petrinets enabled-analysis)
  (export specify-enabled-analysis)
- (import (rnrs) (rnrs mutable-pairs) (racr core) (atomic-petrinets user-interface))
+ (import (rnrs) (rnrs mutable-pairs) (racr core) (atomic-petrinets query-support))
  
  (define (specify-enabled-analysis)
    (with-specification
