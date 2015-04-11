@@ -7,7 +7,8 @@
 
 (library
  (atomic-petrinets user-interface)
- (export petrinet: transition: fire-transition! run-petrinet! assert-marking assert-enabled)
+ (export petrinet: transition: =p-lookup =t-lookup fire-transition! run-petrinet!
+         petrinets-exception? assert-marking assert-enabled)
  (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
          (atomic-petrinets query-support)
          (atomic-petrinets ast-scheme)
@@ -29,7 +30,7 @@
               (list transition
                     ...))))
         (unless (=valid? net)
-          (throw-petrinets-exception "Cannot construct Petri net; The net is not well-formed."))
+          (exception: "Cannot construct Petri net; The net is not well-formed."))
         net))))
  
  (define-syntax transition:
@@ -74,7 +75,7 @@
    (define t-!enabled (filter (lambda (t) (not (memq t t-enabled))) (->* (->Transition* net))))
    (assert (for-all =enabled? t-enabled))
    (assert (for-all (lambda (t) (not (=enabled? t))) t-!enabled))
-   (assert-exception (for-all fire-transition! t-!enabled)))
+   (assert-exception petrinets-exception? (for-all fire-transition! t-!enabled)))
  
  ;;; Initialisation:
  

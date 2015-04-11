@@ -12,7 +12,7 @@
  
  (define (run-petrinet! petrinet)
    (unless (=valid? petrinet)
-     (throw-petrinets-exception "Cannot run Petri Net; The given net is not well-formed."))
+     (exception: "Cannot run Petri Net; The given net is not well-formed."))
    (let ((enabled (=enabled? petrinet)))
      (unless (null? enabled)
        (fire-transition! (car enabled))
@@ -20,7 +20,7 @@
  
  (define (fire-transition! transition)
    (unless (=enabled? transition)
-     (throw-petrinets-exception "Cannot fire transition; The transition is not enabled."))
+     (exception: "Cannot fire transition; The transition is not enabled."))
    (let* ((argument-list (map ->value (=enabled? transition))))
      (for-each rewrite-delete (=enabled? transition))
      (ast-for-each-child

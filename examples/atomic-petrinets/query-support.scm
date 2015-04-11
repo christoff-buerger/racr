@@ -7,7 +7,7 @@
 
 (library
  (atomic-petrinets query-support)
- (export pn petrinets-exception? throw-petrinets-exception
+ (export pn petrinets-exception? exception:
          :AtomicPetrinet :Place :Token :Transition :Arc
          ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
          =p-lookup =t-lookup =place =valid? =enabled?)
@@ -54,7 +54,7 @@
    make-petrinets-exception
    petrinets-exception?)
  
- (define (throw-petrinets-exception message)
+ (define (exception: message)
    (raise-continuable
     (condition
      (make-petrinets-exception)
