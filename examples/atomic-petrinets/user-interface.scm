@@ -8,7 +8,7 @@
 (library
  (atomic-petrinets user-interface)
  (export petrinet: transition: =p-lookup =t-lookup fire-transition! run-petrinet!
-         petrinets-exception? assert-marking assert-enabled)
+         interpret-petrinet! petrinets-exception? assert-marking assert-enabled)
  (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
          (atomic-petrinets query-support)
          (atomic-petrinets ast-scheme)
@@ -48,6 +48,27 @@
               'output-place
               (lambda (variable ... ...) (list to-produce ...)))
              ...)))))
+ 
+ ;;; REPL Interpreter:
+ 
+ (define (interpret-petrinet! net)
+   (unless (=valid? net)
+     (exception: "Cannot interpret Petri Net; The given net is not well-formed."))
+   (display "Marking:\n")
+   (map
+    (lambda (n)
+      (display "  ") (display (->name n)) (display ": ")
+      (display (map ->value (->* (->Token* n)))) (display "\n"))
+    (->* (->Place* net)))
+   (display "Enabled:\n  ") (display (map ->name (=enabled? net))) (display "\n")
+   (let ((input? (read)))
+     (when (and input? (not (eof-object? input?)))
+       (let ((to-fire? (=t-lookup net input?)))
+         (unless to-fire?
+           (exception: "Cannot interpret Petri Net; Undefined transition to execute."))
+         (display "Fire:\n  ") (display (->name to-fire?)) (display "\n")
+         (fire-transition! to-fire?)
+         (interpret-petrinet! net)))))
  
  ;;; Testing:
  
