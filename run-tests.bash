@@ -78,6 +78,17 @@ larceny_run "" state-machines.scm
 petite_run "" state-machines.scm
 end_run
 
+# Test atomic petrinets example:
+cd $old_pwd/examples/atomic-petrinets/examples
+for f in *.scm
+do
+	begin_run $f
+	racket_run "./../racket-bin" $f
+	larceny_run "./../larceny-bin" $f
+	petite_run "./../.." $f
+	end_run
+done
+
 # Test petrinets example:
 cd $old_pwd/examples/petrinets/examples
 for f in *.scm

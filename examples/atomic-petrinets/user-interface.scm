@@ -8,7 +8,8 @@
 (library
  (atomic-petrinets user-interface)
  (export petrinet: transition: =p-lookup =t-lookup fire-transition! run-petrinet!
-         interpret-petrinet! petrinets-exception? assert-marking assert-enabled)
+         interpret-petrinet! petrinets-exception? assert-marking assert-enabled
+         initialise-petrinet-language)
  (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
          (atomic-petrinets query-support)
          (atomic-petrinets ast-scheme)
@@ -100,10 +101,11 @@
  
  ;;; Initialisation:
  
- (when (= (specification->phase pn) 1)
-   (specify-ast)
-   (compile-ast-specifications pn 'AtomicPetrinet)
-   (specify-name-analysis)
-   (specify-well-formedness-analysis)
-   (specify-enabled-analysis)
-   (compile-ag-specifications pn)))
+ (define (initialise-petrinet-language)
+   (when (= (specification->phase pn) 1)
+     (specify-ast)
+     (compile-ast-specifications pn 'AtomicPetrinet)
+     (specify-name-analysis)
+     (specify-well-formedness-analysis)
+     (specify-enabled-analysis)
+     (compile-ag-specifications pn))))
