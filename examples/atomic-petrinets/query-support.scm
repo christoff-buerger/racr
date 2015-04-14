@@ -7,10 +7,10 @@
 
 (library
  (atomic-petrinets query-support)
- (export pn petrinets-exception? exception:
+ (export specify-query-support pn petrinets-exception? exception:
          :AtomicPetrinet :Place :Token :Transition :Arc
          ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
-         =p-lookup =t-lookup =place =valid? =enabled?)
+         =p-lookup =t-lookup =place =valid? =enabled? =executor =places =transitions =in-arcs)
  (import (rnrs) (racr core))
  
  (define pn                   (create-specification))
@@ -21,6 +21,10 @@
  (define (=place n)           (att-value 'place n))
  (define (=valid? n)          (att-value 'valid? n))
  (define (=enabled? n)        (att-value 'enabled? n))
+ (define (=executor n)        (att-value 'executor n))
+ (define (=places n)          (att-value 'places n))
+ (define (=transitions n)     (att-value 'transitions n))
+ (define (=in-arcs n)         (att-value 'in-arcs n))
  
  ; AST Accessors:
  (define (->Place* n)         (ast-child 'Place* n))
@@ -58,4 +62,20 @@
    (raise-continuable
     (condition
      (make-petrinets-exception)
-     (make-message-condition message)))))
+     (make-message-condition message))))
+ 
+ (define (specify-query-support)
+   (with-specification
+    pn
+    
+    (ag-rule
+     places
+     (AtomicPetrinet          (lambda (n) (->* (->Place* n)))))
+    
+    (ag-rule
+     transitions
+     (AtomicPetrinet          (lambda (n) (->* (->Transition* n)))))
+    
+    (ag-rule
+     in-arcs
+     (Transition              (lambda (n) (->* (->In n))))))))

@@ -26,7 +26,7 @@
 
 (define (run-correct-cases)
   (petrinet: (         )                                                          )  ; Empty net.
-  (petrinet: ((A) (B 1))                                                          )  ; Only places.
+  (petrinet: ((A) (B 1))                                                          )  ; No transitions.
   (petrinet: ((A) (B 1)) (transition: a (                         ) (           )))  ; No arcs.
   (petrinet: ((A) (B 1)) (transition: a ((A) (B (a 1))            ) (           )))  ; No outgoing arcs.
   (petrinet: ((A) (B 1)) (transition: a ((A) (B (a 1) (b 2) (c 3))) ((A) (B 1 b))))  ; Weights & colours.
