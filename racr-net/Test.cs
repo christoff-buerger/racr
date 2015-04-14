@@ -71,6 +71,7 @@ class MySpec : Racr.Specification {
 		});
 
 
+		RegisterAgRules();
 		CompileAgSpecifications();
 	}
 
