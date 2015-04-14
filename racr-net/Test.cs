@@ -31,7 +31,30 @@ class MySpec : Racr.Specification {
 		AstRule("A->B*<List-C-w");
 		AstRule("B->t");
 		AstRule("C->");
+
 		CompileAstSpecifications("A");
+
+		Scheme(@"
+		(lambda (spec)
+		  (with-specification
+		    spec
+		    (ag-rule
+			  a
+			  (A
+			    (lambda (n)
+				  (ast-num-children n))))))");
+
+
+		Scheme(@"
+		(lambda (spec)
+		  (with-specification
+		    spec
+		    (ag-rule
+			  b
+			  (A
+			    (lambda (n x)
+				  (* x (ast-num-children n)))))))");
+
 
 		SpecifyAttribute("kids", "A", "*", false, (Racr.AstNode n) => {
 			return n.GetList().NumChildren();
@@ -41,6 +64,7 @@ class MySpec : Racr.Specification {
 		SpecifyAttribute("foo", "B", "*", false, (Racr.AstNode n, int x) => {
 			return n.NumChildren() * x;
 		});
+
 
 		SpecifyAttribute("bar", "B", "*", false, (Racr.AstNode n, int x) => {
 			return x * x;
@@ -83,10 +107,13 @@ class App {
 		Console.WriteLine("M: {0}", root.M());
 		Console.WriteLine("N: {0}", root.N());
 
-		Console.WriteLine("kids: {0}", root.AttValue("kids"));
+		Console.WriteLine("a: {0}", root.AttValue("a"));
+		Console.WriteLine("b: {0}", root.AttValue("b", 3));
 
-		var index = (int) root.GetList().Child(1).AttValue("bar", 3);
-		Console.WriteLine(index);
+		Console.WriteLine("kids: {0}", root.AttValue("kids"));
+		var index = root.GetList().Child(1).AttValue<int>("bar", 3);
+		Console.WriteLine("index: {0}", index);
+
 
 		Console.WriteLine("---");
 
@@ -106,7 +133,7 @@ class App {
 		Console.WriteLine("HasParent: {0}", root.HasParent());
 		Console.WriteLine("NumChildren: {0}", root.NumChildren());
 		Console.WriteLine("HasChild 'B: {0}", root.HasChild("B"));
-		Console.WriteLine("HasChild 'Foo: {0}", root.HasChild("Foo"));
+		Console.WriteLine("HasChild 'List: {0}", root.HasChild("List"));
 
 		Console.WriteLine("");
 
