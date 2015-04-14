@@ -125,17 +125,30 @@ static class Racr {
 		public void CompileAstSpecifications(string startSymbol) {
 			compileAstSpecifications.Call(spec, SymbolTable.StringToObject(startSymbol));
 		}
-		public void CompileAgSpecifications() {
 
-			var classes = this.GetType().GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
+		public void RegisterAgRules() {
+			RegisterAgRules(this.GetType());
+		}
+		public void RegisterAgRules(Type type=null) {
+			var classes = type.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
 			foreach (var @class in classes) {
 				if (@class.BaseType != typeof(object)) continue;
 
 				var methods = @class.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 				foreach (var method in methods) {
-					if (method.DeclaringType != @class) continue;
+					if (method.DeclaringType != @class || method.Name[0] == '<') continue;
 
-					//Console.WriteLine("method: {0}.{1}", @class.Name, method.Name);
+					string contextName = "*";
+					bool cached = false;
+
+					foreach (var attr in method.GetCustomAttributes(false)) {
+						var contextNameAttr = attr as ContextNameAttribute;
+						if (contextNameAttr != null) contextName = contextNameAttr.NonTerminal;
+						var cachedAttr = attr as CachedAttribute;
+						if (cachedAttr != null) cached = cachedAttr.Cached;
+					}
+
+					//Console.WriteLine("{0} {1} {2}", method.Name, @class.Name, contextName);
 
 					var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
 					if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
@@ -156,15 +169,6 @@ static class Racr {
 					gen.Emit(OpCodes.Jmp, method);
 					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
 
-					string contextName = "*";
-					bool cached = false;
-
-					foreach (var attr in method.GetCustomAttributes(false)) {
-						var contextNameAttr = (ContextNameAttribute) attr;
-						if (contextNameAttr != null) contextName = contextNameAttr.NonTerminal;
-						var cachedAttr = (CachedAttribute) attr;
-						if (cachedAttr != null) cached = cachedAttr.Cached;
-					}
 
 					specifyAttribute.Call(
 						spec,
@@ -174,8 +178,13 @@ static class Racr {
 						cached,
 						equation.ToSchemeProcedure(),
 						false);
+
 				}
 			}
+		}
+
+		public void CompileAgSpecifications() {
+
 			compileAgSpecifications.Call(spec);
 		}
 
@@ -201,26 +210,30 @@ static class Racr {
 			return dynmeth.CreateDelegate(equation.GetType());
 		}
 		// TODO circDef!!!
-		public void SpecifyAttribute(string attName, string nonTerminal, string contexName, bool cached, Delegate equation) {
+		public void SpecifyAttribute(string attName, string nonTerminal, string contextName, bool cached, Delegate equation) {
 			specifyAttribute.Call(
 				spec,
 				SymbolTable.StringToObject(attName),
 				SymbolTable.StringToObject(nonTerminal),
-				SymbolTable.StringToObject(contexName),
+				SymbolTable.StringToObject(contextName),
 				cached,
 				WrapEquation(equation).ToSchemeProcedure(),
 				false);
 		}
 
-		public void SpecifyAttribute<N,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,R> equation)
+		public void SpecifyAttribute<N,R>(string attName, string nonTerminal, string contextName, bool cached, Func<N,R> equation)
 		where N : AstNode {
-			SpecifyAttribute(attName, nonTerminal, contexName, cached, (Delegate) equation);
+			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
 		}
-		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contexName, bool cached, Func<N,A1,R> equation)
+		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contextName, bool cached, Func<N,A1,R> equation)
 		where N : AstNode {
-			SpecifyAttribute(attName, nonTerminal, contexName, cached, (Delegate) equation);
+			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
 		}
 
+
+		public object Scheme(string lambda) {
+			return lambda.Eval<Callable>().Call(spec);
+		}
 
 	}
 
