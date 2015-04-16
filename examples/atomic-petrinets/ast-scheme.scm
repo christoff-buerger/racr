@@ -13,7 +13,6 @@
  (define (specify-ast)
    (with-specification
     pn
-    
     (ast-rule 'AtomicPetrinet->Place*-Transition*)
     (ast-rule 'Place->name-Token*)
     (ast-rule 'Token->value)

@@ -10,6 +10,7 @@
  (export make-profiling-net)
  (import (rnrs) (racr core) (atomic-petrinets query-support)
          (atomic-petrinets user-interface)
+         (prefix (racket) r:) ;(prefix (racket base) r:)
          )
  
  (define (make-profiling-net $transitions $influenced $local-places $tokens)
@@ -39,6 +40,14 @@
        (exception: "Cannot construct Petri net; The net is not well-formed."))
      net))
  
+ (define (d)
+   ;(r:collect-garbage)
+   (display (r:current-memory-use)) (display " byte, ")
+   (let ((net (r:time (make-profiling-net 560 20 13 3))))
+     (display (r:current-memory-use)) (display " byte, ")
+     ;(r:dump-memory-stats)
+     net))
+ 
  (initialise-petrinet-language)
- (make-profiling-net 561 20 13 3)
+ 
  )

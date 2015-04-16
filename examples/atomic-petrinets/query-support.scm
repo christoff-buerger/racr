@@ -10,14 +10,17 @@
  (export specify-query-support pn petrinets-exception? exception:
          :AtomicPetrinet :Place :Token :Transition :Arc
          ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
-         =p-lookup =t-lookup =place =valid? =enabled? =executor =places =transitions =in-arcs)
+         =p-lookup =t-lookup =in-lookup =out-lookup =place =valid? =enabled? =executor
+         =places =transitions =in-arcs =out-arcs)
  (import (rnrs) (racr core))
  
  (define pn                   (create-specification))
  
  ; Attribute Accessors:
- (define (=p-lookup n name)   (att-value 'p-lookup n name))
- (define (=t-lookup n name)   (att-value 't-lookup n name))
+ (define (=p-lookup n name)   (hashtable-ref (att-value 'p-lookup n) name #f))
+ (define (=t-lookup n name)   (hashtable-ref (att-value 't-lookup n) name #f))
+ (define (=in-lookup n name)  (hashtable-ref (att-value 'in-lookup n) name #f))
+ (define (=out-lookup n name) (hashtable-ref (att-value 'out-lookup n) name #f))
  (define (=place n)           (att-value 'place n))
  (define (=valid? n)          (att-value 'valid? n))
  (define (=enabled? n)        (att-value 'enabled? n))
@@ -25,6 +28,7 @@
  (define (=places n)          (att-value 'places n))
  (define (=transitions n)     (att-value 'transitions n))
  (define (=in-arcs n)         (att-value 'in-arcs n))
+ (define (=out-arcs n)        (att-value 'out-arcs n))
  
  ; AST Accessors:
  (define (->Place* n)         (ast-child 'Place* n))
@@ -67,15 +71,7 @@
  (define (specify-query-support)
    (with-specification
     pn
-    
-    (ag-rule
-     places
-     (AtomicPetrinet          (lambda (n) (->* (->Place* n)))))
-    
-    (ag-rule
-     transitions
-     (AtomicPetrinet          (lambda (n) (->* (->Transition* n)))))
-    
-    (ag-rule
-     in-arcs
-     (Transition              (lambda (n) (->* (->In n))))))))
+    (ag-rule places      (AtomicPetrinet (lambda (n) (->* (->Place* n)))))
+    (ag-rule transitions (AtomicPetrinet (lambda (n) (->* (->Transition* n)))))
+    (ag-rule in-arcs     (Transition     (lambda (n) (->* (->In n)))))
+    (ag-rule out-arcs    (Transition     (lambda (n) (->* (->Out n))))))))

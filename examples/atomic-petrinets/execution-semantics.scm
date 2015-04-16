@@ -22,9 +22,9 @@
    (define enabled? (=enabled? transition))
    (unless enabled?
      (exception: "Cannot fire transition; The transition is not enabled."))
-   (let ((arguments (map ->value enabled?)))
+   (let ((consumed-tokens (map ->value enabled?)))
      (for-each rewrite-delete enabled?)
-     ((=executor transition) arguments)))
+     ((=executor transition) consumed-tokens)))
  
  (define (specify-execution-semantics)
    (with-specification
@@ -34,14 +34,13 @@
      executor
      (Transition
       (lambda (n)
-        (define out-arcs (->* (->Out n)))
-        (define producers (map ->consumers out-arcs))
-        (define contribution-token-lists (map ->Token* (map =place out-arcs)))
-        (lambda (arguments)
+        (define producers (map ->consumers (=out-arcs n)))
+        (define destinations (map ->Token* (map =place (=out-arcs n))))
+        (lambda (consumed-tokens)
           (for-each
            (lambda (f l)
              (for-each
               (lambda (value) (rewrite-add l (:Token value)))
-              (apply f arguments)))
+              (apply f consumed-tokens)))
            producers
-           contribution-token-lists))))))))
+           destinations))))))))

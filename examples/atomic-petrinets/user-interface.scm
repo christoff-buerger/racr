@@ -7,9 +7,9 @@
 
 (library
  (atomic-petrinets user-interface)
- (export petrinet: transition: =p-lookup =t-lookup fire-transition! run-petrinet!
-         interpret-petrinet! petrinets-exception? assert-marking assert-enabled
-         initialise-petrinet-language)
+ (export initialise-petrinet-language petrinet: transition: =p-lookup =t-lookup
+         fire-transition! run-petrinet! interpret-petrinet!
+         petrinets-exception? assert-marking assert-enabled)
  (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
          (atomic-petrinets query-support)
          (atomic-petrinets ast-scheme)
