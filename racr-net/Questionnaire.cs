@@ -34,6 +34,7 @@ static class Accessors {
 	public static bool IsShown(this Racr.AstNode n) { return n.AttValue<bool>("IsShown"); }
 
 	public static ValueTypes Type(this Racr.AstNode n) { return n.AttValue<ValueTypes>("Type"); }
+	public static object Value(this Racr.AstNode n) { return n.AttValue<object>("Value"); }
 }
 
 
@@ -77,10 +78,17 @@ class QL : Racr.Specification {
 			if (ret != null) return ret;
 			return n.ErrorQuestion();
 		}
+		static bool IsActive(Racr.AstNode n) { return true; }
 	}
 
 	static class Element {
 		static bool IsErrorQuestion(Racr.AstNode n) { return n == n.ErrorQuestion(); }
+		static Racr.AstNode FindActive(Racr.AstNode n, string name) {
+			var current = n.GLookup(name);
+			while (!current.IsActive()) current = current.GLookup(name);
+			return current;
+		}
+		static bool IsShown(Racr.AstNode n) { return !n.IsErrorQuestion() && n.IsActive(); }
 	}
 
 	static class Group {
@@ -98,6 +106,7 @@ class QL : Racr.Specification {
 			return n.IsLValid() && n.GetBody().Children().All(x => ((Racr.AstNode)x).IsValid());
 		}
 		static bool IsLValid(Racr.AstNode n) { return n.GetExpression().Type() == ValueTypes.Boolean; }
+		static bool IsActive(Racr.AstNode n) { return (bool) n.GetExpression().Value(); }
 	}
 
 	static class Question {
@@ -111,24 +120,24 @@ class QL : Racr.Specification {
 			var prev = n.GLookup(n.GetName());
 			return prev.IsErrorQuestion() || n.Type() == prev.Type();
 		}
+		static bool IsActive(Racr.AstNode n) {
+			return n.IsErrorQuestion() || (n.Parent().IsActive() && n.FindActive(n.GetName()).IsErrorQuestion());
+		}
 	}
 
 	static class OrdinaryQuestion {
-		static ValueTypes Type(Racr.AstNode n) {
-			return n.GetValueType();
-		}
+		static ValueTypes Type(Racr.AstNode n) { return n.GetValueType(); }
+		static object Value(Racr.AstNode n) { return n.GetValue(); }
 	}
 
 	static class ComputedQuestion {
-		static ValueTypes Type(Racr.AstNode n) {
-			return n.GetExpression().Type();
-		}
+		static ValueTypes Type(Racr.AstNode n) { return n.GetExpression().Type(); }
+		static object Value(Racr.AstNode n) { return n.GetExpression().Value(); }
 	}
 
 	static class Use {
-		static ValueTypes Type(Racr.AstNode n) {
-			return n.GLookup(n.GetName()).Type();
-		}
+		static ValueTypes Type(Racr.AstNode n) { return n.GLookup(n.GetName()).Type(); }
+		static object Value(Racr.AstNode n) { return n.FindActive(n.GetName()).Value(); }
 	}
 
 	static class Constant {
@@ -139,6 +148,7 @@ class QL : Racr.Specification {
 			if (val is string) return ValueTypes.String;
 			return ValueTypes.ErrorType;
 		}
+		static object Value(Racr.AstNode n) { return n.GetValue(); }
 	}
 
 	static class Computation {
@@ -161,6 +171,21 @@ class QL : Racr.Specification {
 
 			if (operands.Any(x => x.Type() != inType)) return ValueTypes.ErrorType;
 			return outType;
+		}
+
+
+		static private readonly Dictionary<string, Func<object[], object>> opTable = new Dictionary<string, Func<object[], object>>() {
+			{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
+			{ "-", (object[] l) => { return l.Aggregate(0.0, (s, x) => s - (double) x); } },
+			{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
+			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) x); } },
+			// TODO
+		};
+		static object Value(Racr.AstNode n) {
+			var op = n.GetOperator();
+			var operands = n.GetOperands().Children() as Racr.AstNode[];
+			var args = operands.Select(p => p.Value()).ToArray();
+			return opTable[op](args);
 		}
 	}
 
@@ -318,15 +343,16 @@ class Parser : Lexer {
 
 	private Racr.AstNode ParseExpression() {
 		Racr.AstNode c;
-		var e = new List<Racr.AstNode>();
-		string n;
-		string l;
+		List<Racr.AstNode> e, a;
+		string n, l, o;
 		ValueTypes t;
 		object v;
 
 		Consume(Lexemes.LeftParenthesis);
 		switch (ParseIdentifier()) {
 		case "Form":
+			e = new List<Racr.AstNode>();
+			e.Add(new Racr.AstNode(spec, "ComputedQuestion", ValueTypes.ErrorType, "", new Racr.AstNode(spec, "Constant", false)));
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return new Racr.AstNode(spec, "Form", new Racr.AstList(
@@ -334,6 +360,7 @@ class Parser : Lexer {
 				e.ToArray()));
 		case "If":
 			c = ParseExpression();
+			e = new List<Racr.AstNode>();
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return new Racr.AstNode(spec, "Group", c, new Racr.AstList(e.ToArray()));
@@ -345,7 +372,24 @@ class Parser : Lexer {
 			else v = ParseValue();
 			Consume(Lexemes.RightParenthesis);
 			return new Racr.AstNode(spec, "OrdinaryQuestion", n, l, t, v);
-
+		case "~?":
+			c = new Racr.AstNode(spec, "ComputedQuestion", ParseSymbol(), ParseString(), ParseExpression());
+			Consume(Lexemes.RightParenthesis);
+			return c;
+		case "~>":
+			n = ParseSymbol();
+			Consume(Lexemes.RightParenthesis);
+			return new Racr.AstNode(spec, "Use", n);
+		case "~!":
+			v = ParseValue();
+			Consume(Lexemes.RightParenthesis);
+			return new Racr.AstNode(spec, "Constant", v);
+		case "~~":
+			o = ParseIdentifier();
+			a = new List<Racr.AstNode>();
+			while (Lexeme == Lexemes.LeftParenthesis) a.Add(ParseExpression());
+			Consume(Lexemes.RightParenthesis);
+			return new Racr.AstNode(spec, "Computation", o, new Racr.AstList(a.ToArray()));
 		default: throw new Exception("Parse Exception");
 		}
 	}
@@ -363,7 +407,19 @@ class Questionnaire {
 
 	static QL ql;
 
-
+	static void UpdateQuestions(Racr.AstNode n) {
+		switch (n.NodeType()) {
+		case "Form":
+		case "Group":
+			foreach (var c in n.GetBody().Children()) UpdateQuestions(c as Racr.AstNode);
+			break;
+		case "ComputedQuestion":
+			break;
+		default:
+			var v = n.Value();
+			break;
+		}
+	}
 
 	public static void Main(string[] args) {
 
@@ -375,14 +431,11 @@ class Questionnaire {
 			path = Console.ReadLine();
 		}
 
-
 		ql = new QL();
 
 		var parser = new Parser(ql, File.OpenText(path).ReadToEnd());
-		var ast = parser.ParseAst();
 
-
-
+		var form = parser.ParseAst();
 
 	}
 }
