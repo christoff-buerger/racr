@@ -43,9 +43,6 @@
         (and (not (find-not-valid (->Place* n)))
              (not (find-not-valid (->Transition* n)))))))))|#
  
- (define (find-not-valid l)
-   (ast-find-child (lambda (i n) (not (=valid? n))) l))
- 
  (define (specify-well-formedness-analysis)
    (with-specification
     pn
@@ -60,8 +57,8 @@
      (Transition
       (lambda (n)
         (and (eq? (=t-lookup n (->name n)) n)
-             (not (find-not-valid (->In n)))
-             (not (find-not-valid (->Out n))))))
+             (for-all =valid? (=in-arcs n))
+             (for-all =valid? (=out-arcs n)))))
      
      ((Transition In)
       (lambda (n)
@@ -73,5 +70,5 @@
      
      (AtomicPetrinet
       (lambda (n)
-        (and (not (find-not-valid (->Place* n)))
-             (not (find-not-valid (->Transition* n))))))))))
+        (and (for-all =valid? (=places n))
+             (for-all =valid? (=transitions n)))))))))
