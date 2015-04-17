@@ -43,6 +43,50 @@ static class Accessors {
 }
 
 
+abstract class Widget : FlowLayoutPanel {
+	public Widget(string label) {
+		AutoSize = true;
+		WrapContents = false;
+		FlowDirection = FlowDirection.LeftToRight;
+		this.label = new System.Windows.Forms.Label();
+		this.label.Text = label;
+		this.label.AutoSize = true;
+		this.label.Anchor = AnchorStyles.Left;
+		Controls.Add(this.label);
+	}
+	public abstract void Set(object v);
+	private System.Windows.Forms.Label label;
+}
+class TextWidget : Widget {
+	public TextWidget(string label) : base(label) {
+		tb = new TextBox();
+		Controls.Add(tb);
+	}
+	public override void Set(object v) {
+		if (v == null) {
+			tb.Text = "#f";
+			return;
+		}
+		tb.Text = (string) v;
+	}
+	private TextBox tb;
+}
+class CheckWidget : Widget {
+	public CheckWidget(string label) : base(label) {
+		cb = new CheckBox();
+		Controls.Add(cb);
+	}
+	public override void Set(object v) {
+		if (v == null) {
+			cb.Checked = false;
+			return;
+		}
+		cb.Checked = (bool) v;
+	}
+	private CheckBox cb;
+}
+
+
 class QL : Racr.Specification {
 
 	public QL() {
@@ -65,9 +109,12 @@ class QL : Racr.Specification {
 
 
 	static Racr.AstNode findL(string name, Racr.AstNode l, int i) {
-		return l.FindChildA((int j, object e) => {
-			return ((Racr.AstNode) e).LLookup(name);
-		}, new Racr.Range(1, i)) as Racr.AstNode;
+		//return l.FindChildA((int j, object e) => ((Racr.AstNode) e).LLookup(name), new Racr.Range(1, i)) as Racr.AstNode;
+		for (int j = 1; j <= i; j++) {
+			var r = l.Child(i).LLookup(name);
+			if (r != null) return r;
+		}
+		return null;
 	}
 
 	static class Form {
@@ -80,8 +127,7 @@ class QL : Racr.Specification {
 		[Racr.ContextName("Body")]
 		static Racr.AstNode GLookup(Racr.AstNode n, string name) {
 			var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
-			if (ret != null) return ret;
-			return n.ErrorQuestion();
+			return (ret != null) ? ret : n.ErrorQuestion();
 		}
 		static bool IsActive(Racr.AstNode n) { return true; }
 		static Control Widget(Racr.AstNode n) {
@@ -92,6 +138,7 @@ class QL : Racr.Specification {
 			// TODO: menu
 
 			var panel = new FlowLayoutPanel();
+			panel.AutoSize = true;
 			panel.Dock = DockStyle.Fill;
 			panel.FlowDirection = FlowDirection.TopDown;
 			panel.WrapContents = false;
@@ -101,16 +148,14 @@ class QL : Racr.Specification {
 			return panel;
 		}
 		static bool Render(Racr.AstNode n) {
-			// TODO
 			foreach (var c in n.GetBody().Children()) {
 				var child = c as Racr.AstNode;
 				if (child.IsShown()) {
-
+					var w = child.Widget();
 					child.Render();
+					w.Show();
 				}
-				else {
-
-				}
+				else child.Widget().Hide();
 			}
 			return true;
 		}
@@ -120,7 +165,14 @@ class QL : Racr.Specification {
 		static bool IsErrorQuestion(Racr.AstNode n) { return n == n.ErrorQuestion(); }
 		static Racr.AstNode FindActive(Racr.AstNode n, string name) {
 			var current = n.GLookup(name);
-			while (!current.IsActive()) current = current.GLookup(name);
+			Console.WriteLine("== {0}", n == current);
+			Console.WriteLine("start: {0}", current.NodeType());
+			Console.WriteLine("name: {0}", current.GetName());
+			while (!current.IsActive()) {
+				Console.WriteLine("next: {0}", current.NodeType());
+				current = current.GLookup(name);
+			}
+			Console.WriteLine("end");
 			return current;
 		}
 		static bool IsShown(Racr.AstNode n) { return !n.IsErrorQuestion() && n.IsActive(); }
@@ -130,8 +182,7 @@ class QL : Racr.Specification {
 		[Racr.ContextName("Body")]
 		static Racr.AstNode GLookup(Racr.AstNode n, string name) {
 			var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
-			if (ret != null) return ret;
-			return n.ErrorQuestion();
+			return (ret != null) ? ret : n.Parent().GLookup(name);
 		}
 
 		static Racr.AstNode LLookup(Racr.AstNode n, string name) {
@@ -141,7 +192,10 @@ class QL : Racr.Specification {
 			return n.IsLValid() && n.GetBody().Children().All(x => ((Racr.AstNode)x).IsValid());
 		}
 		static bool IsLValid(Racr.AstNode n) { return n.GetExpression().Type() == ValueTypes.Boolean; }
-		static bool IsActive(Racr.AstNode n) { return (bool) n.GetExpression().Value(); }
+		static bool IsActive(Racr.AstNode n) {
+			Console.WriteLine("Group:IsActive [{0}]", n.GetExpression().Value());
+			return (bool) n.GetExpression().Value();
+		}
 		static Control Widget(Racr.AstNode n) {
 			var panel = new FlowLayoutPanel();
 			panel.BorderStyle = BorderStyle.Fixed3D;
@@ -152,6 +206,15 @@ class QL : Racr.Specification {
 			return panel;
 		}
 		static bool Render(Racr.AstNode n) {
+			foreach (var c in n.GetBody().Children()) {
+				var child = c as Racr.AstNode;
+				if (child.IsShown()) {
+					var w = child.Widget();
+					child.Render();
+					w.Show();
+				}
+				else child.Widget().Hide();
+			}
 			return true;
 		}
 	}
@@ -168,6 +231,13 @@ class QL : Racr.Specification {
 			return prev.IsErrorQuestion() || n.Type() == prev.Type();
 		}
 		static bool IsActive(Racr.AstNode n) {
+			Console.WriteLine("Question:IsActive");
+			Console.WriteLine("{0}", n.IsErrorQuestion());
+			Console.WriteLine("{0}", n.Parent().IsActive());
+			Console.WriteLine("{0}", n.GetName());
+
+			Console.WriteLine("parent type: {0}", n.Parent().Parent().NodeType());
+
 			return n.IsErrorQuestion() || (n.Parent().IsActive() && n.FindActive(n.GetName()).IsErrorQuestion());
 		}
 	}
@@ -177,19 +247,11 @@ class QL : Racr.Specification {
 		static object Value(Racr.AstNode n) { return n.GetValue(); }
 		static Control Widget(Racr.AstNode n) {
 			// TODO
-			Control ctrl = null;
-			if (n.Type() == ValueTypes.Boolean) {
-				var cb = new CheckBox();
-				cb.Appearance = Appearance.Button;
-				ctrl = cb;
-			}
-			else {
-				var tb = new TextBox();
-				ctrl = tb;
-			}
-			ctrl.Text = n.GetLabel();
-			n.Parent().Widget().Controls.Add(ctrl);
-			return ctrl;
+			Widget w;
+			if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel());
+			else w = new TextWidget(n.GetLabel());
+			n.Parent().Widget().Controls.Add(w);
+			return w;
 		}
 		static bool Render(Racr.AstNode n) { return false; }
 	}
@@ -198,19 +260,11 @@ class QL : Racr.Specification {
 		static ValueTypes Type(Racr.AstNode n) { return n.GetExpression().Type(); }
 		static object Value(Racr.AstNode n) { return n.GetExpression().Value(); }
 		static Control Widget(Racr.AstNode n) {
-			Control ctrl = null;
-			if (n.Type() == ValueTypes.Boolean) {
-				var cb = new CheckBox();
-				cb.Appearance = Appearance.Button;
-				ctrl = cb;
-			}
-			else {
-				var tb = new TextBox();
-				ctrl = tb;
-			}
-			ctrl.Text = n.GetLabel();
-			n.Parent().Widget().Controls.Add(ctrl);
-			return ctrl;
+			Widget w;
+			if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel());
+			else w = new TextWidget(n.GetLabel());
+			n.Parent().Widget().Controls.Add(w);
+			return w;
 		}
 		static bool Render(Racr.AstNode n) {
 			var v = n.Value();
@@ -276,7 +330,7 @@ class QL : Racr.Specification {
 			{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
 			{ "-", (object[] l) => { return l.Aggregate(0.0, (s, x) => s - (double) x); } },
 			{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
-			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) Convert.ToString(x)); } },
+			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) x); } },
 			// TODO
 		};
 		static object Value(Racr.AstNode n) {
@@ -512,7 +566,7 @@ class Questionnaire {
 		case "ComputedQuestion":
 			break;
 		default:
-			var v = n.Value();
+			(n.Widget() as Widget).Set(n.Value());
 			break;
 		}
 	}
@@ -527,17 +581,15 @@ class Questionnaire {
 			path = Console.ReadLine();
 		}
 		*/
-		path = "../../../../../correct-1.questionnaire";
+		path = "../../../../../foo.questionnaire";
+		//path = "../../../../../correct-1.questionnaire";
 
 		ql = new QL();
-
 		var parser = new Parser(ql, File.OpenText(path).ReadToEnd());
-
 		var form = parser.ParseAst();
-
+		UpdateQuestions(form);
 		form.Render();
 
 		Application.Run(form.Widget().Parent as Form);
-
 	}
 }
