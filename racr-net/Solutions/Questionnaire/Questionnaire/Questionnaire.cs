@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 
 enum ValueTypes { Boolean, String, Number, ErrorType }
@@ -14,10 +15,11 @@ static class Accessors {
 	public static Racr.AstNode GetBody(this Racr.AstNode n) { return n.Child("Body"); }
 	public static Racr.AstNode GetExpression(this Racr.AstNode n) { return n.Child("Expression"); }
 	public static string GetName(this Racr.AstNode n) { return n.Child<string>("name"); }
+	public static string GetLabel(this Racr.AstNode n) { return n.Child<string>("label"); }
 	public static ValueTypes GetValueType(this Racr.AstNode n) { return n.Child<ValueTypes>("type"); }
 	public static object GetValue(this Racr.AstNode n) { return n.Child<object>("value"); }
 	public static Racr.AstNode GetOperands(this Racr.AstNode n) { return n.Child("Operands"); }
-	public static string GetOperator(this Racr.AstNode n) { return n.Child<string>("operantor"); }
+	public static string GetOperator(this Racr.AstNode n) { return n.Child<string>("operator"); }
 
 
 	// Attribute Accessors
@@ -35,6 +37,9 @@ static class Accessors {
 
 	public static ValueTypes Type(this Racr.AstNode n) { return n.AttValue<ValueTypes>("Type"); }
 	public static object Value(this Racr.AstNode n) { return n.AttValue<object>("Value"); }
+
+	public static Control Widget(this Racr.AstNode n) { return n.AttValue<Control>("Widget"); }
+	public static bool Render(this Racr.AstNode n) { return n.AttValue<bool>("Render"); }
 }
 
 
@@ -79,6 +84,36 @@ class QL : Racr.Specification {
 			return n.ErrorQuestion();
 		}
 		static bool IsActive(Racr.AstNode n) { return true; }
+		static Control Widget(Racr.AstNode n) {
+
+			var form = new System.Windows.Forms.Form();
+			form.Text = "Questionnaire";
+
+			// TODO: menu
+
+			var panel = new FlowLayoutPanel();
+			panel.Dock = DockStyle.Fill;
+			panel.FlowDirection = FlowDirection.TopDown;
+			panel.WrapContents = false;
+
+			form.Controls.Add(panel);
+
+			return panel;
+		}
+		static bool Render(Racr.AstNode n) {
+			// TODO
+			foreach (var c in n.GetBody().Children()) {
+				var child = c as Racr.AstNode;
+				if (child.IsShown()) {
+
+					child.Render();
+				}
+				else {
+
+				}
+			}
+			return true;
+		}
 	}
 
 	static class Element {
@@ -107,6 +142,18 @@ class QL : Racr.Specification {
 		}
 		static bool IsLValid(Racr.AstNode n) { return n.GetExpression().Type() == ValueTypes.Boolean; }
 		static bool IsActive(Racr.AstNode n) { return (bool) n.GetExpression().Value(); }
+		static Control Widget(Racr.AstNode n) {
+			var panel = new FlowLayoutPanel();
+			panel.BorderStyle = BorderStyle.Fixed3D;
+			panel.Dock = DockStyle.Fill;
+			panel.FlowDirection = FlowDirection.TopDown;
+			panel.WrapContents = false;
+			n.Parent().Widget().Controls.Add(panel);
+			return panel;
+		}
+		static bool Render(Racr.AstNode n) {
+			return true;
+		}
 	}
 
 	static class Question {
@@ -128,11 +175,61 @@ class QL : Racr.Specification {
 	static class OrdinaryQuestion {
 		static ValueTypes Type(Racr.AstNode n) { return n.GetValueType(); }
 		static object Value(Racr.AstNode n) { return n.GetValue(); }
+		static Control Widget(Racr.AstNode n) {
+			// TODO
+			Control ctrl = null;
+			if (n.Type() == ValueTypes.Boolean) {
+				var cb = new CheckBox();
+				cb.Appearance = Appearance.Button;
+				ctrl = cb;
+			}
+			else {
+				var tb = new TextBox();
+				ctrl = tb;
+			}
+			ctrl.Text = n.GetLabel();
+			n.Parent().Widget().Controls.Add(ctrl);
+			return ctrl;
+		}
+		static bool Render(Racr.AstNode n) { return false; }
 	}
 
 	static class ComputedQuestion {
 		static ValueTypes Type(Racr.AstNode n) { return n.GetExpression().Type(); }
 		static object Value(Racr.AstNode n) { return n.GetExpression().Value(); }
+		static Control Widget(Racr.AstNode n) {
+			Control ctrl = null;
+			if (n.Type() == ValueTypes.Boolean) {
+				var cb = new CheckBox();
+				cb.Appearance = Appearance.Button;
+				ctrl = cb;
+			}
+			else {
+				var tb = new TextBox();
+				ctrl = tb;
+			}
+			ctrl.Text = n.GetLabel();
+			n.Parent().Widget().Controls.Add(ctrl);
+			return ctrl;
+		}
+		static bool Render(Racr.AstNode n) {
+			var v = n.Value();
+			var ctrl = n.Widget();
+			switch (n.Type()) {
+			case ValueTypes.Boolean:
+				var cb = ctrl as CheckBox;
+				cb.Checked = (bool) v;
+				break;
+			case ValueTypes.String:
+				ctrl.Text = (string) v;
+				break;
+			case ValueTypes.Number:
+				ctrl.Text = Convert.ToString(Convert.ToDouble((string) v));
+				break;
+			default: break;
+			}
+			return true;
+		}
 	}
 
 	static class Use {
@@ -156,20 +253,21 @@ class QL : Racr.Specification {
 			var op = n.GetOperator();
 			var inType = ValueTypes.ErrorType;
 			var outType = ValueTypes.ErrorType;
-
-			var operands = n.GetOperands().Children() as Racr.AstNode[];
+			var operands = n.GetOperands().Children();
 
 			if (op == "&&" || op == "//" || op == "not") inType = outType = ValueTypes.Boolean;
 			else if (op == "=" || op == "<" || op ==  ">" || op == "<=" || op == ">=" || op == "!=") {
-				var t = operands[0].Type();
-				if (t != ValueTypes.Number && t != ValueTypes.String) return ValueTypes.ErrorType;
-				inType = t;
+				inType = ValueTypes.Number;
+				outType = ValueTypes.Boolean;
+			}
+			else if (op == "string=?" || op == "string<?" || op ==  "string>?" || op == "string<=?" || op == "string>=?") {
+				inType = ValueTypes.String;
 				outType = ValueTypes.Boolean;
 			}
 			else if (op == "+" || op == "-" || op == "*" || op == "/") inType = outType = ValueTypes.Number;
-			else if (op == ".") inType = outType = ValueTypes.String;
+			else if (op == "string-append") inType = outType = ValueTypes.String;
 
-			if (operands.Any(x => x.Type() != inType)) return ValueTypes.ErrorType;
+			if (operands.Any(x => ((Racr.AstNode) x).Type() != inType)) return ValueTypes.ErrorType;
 			return outType;
 		}
 
@@ -178,13 +276,13 @@ class QL : Racr.Specification {
 			{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
 			{ "-", (object[] l) => { return l.Aggregate(0.0, (s, x) => s - (double) x); } },
 			{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
-			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) x); } },
+			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) Convert.ToString(x)); } },
 			// TODO
 		};
 		static object Value(Racr.AstNode n) {
 			var op = n.GetOperator();
-			var operands = n.GetOperands().Children() as Racr.AstNode[];
-			var args = operands.Select(p => p.Value()).ToArray();
+			var operands = n.GetOperands().Children();
+			var args = operands.Select(p => ((Racr.AstNode) p).Value()).ToArray();
 			return opTable[op](args);
 		}
 	}
@@ -352,12 +450,10 @@ class Parser : Lexer {
 		switch (ParseIdentifier()) {
 		case "Form":
 			e = new List<Racr.AstNode>();
-			e.Add(new Racr.AstNode(spec, "ComputedQuestion", ValueTypes.ErrorType, "", new Racr.AstNode(spec, "Constant", false)));
+			e.Add(new Racr.AstNode(spec, "ComputedQuestion", "ErrorType", "", new Racr.AstNode(spec, "Constant", false)));
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "Form", new Racr.AstList(
-				// TODO!!!
-				e.ToArray()));
+			return new Racr.AstNode(spec, "Form", new Racr.AstList(e.ToArray()));
 		case "If":
 			c = ParseExpression();
 			e = new List<Racr.AstNode>();
@@ -424,18 +520,24 @@ class Questionnaire {
 	public static void Main(string[] args) {
 
 		string path;
-
+		/*
 		if (args.Length == 1) path = args[0];
 		else {
 			Console.Write("Enter name: ");
 			path = Console.ReadLine();
 		}
+		*/
+		path = "../../../../../correct-1.questionnaire";
 
 		ql = new QL();
 
 		var parser = new Parser(ql, File.OpenText(path).ReadToEnd());
 
 		var form = parser.ParseAst();
+
+		form.Render();
+
+		Application.Run(form.Widget().Parent as Form);
 
 	}
 }
