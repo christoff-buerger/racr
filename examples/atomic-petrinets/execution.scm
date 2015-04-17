@@ -6,9 +6,24 @@
 #!r6rs
 
 (library
- (atomic-petrinets execution-semantics)
- (export specify-execution-semantics fire-transition! run-petrinet!)
- (import (rnrs) (racr core) (atomic-petrinets query-support))
+ (atomic-petrinets execution)
+ (export specify-execution petrinets-exception? exception: fire-transition! run-petrinet!)
+ (import (rnrs) (racr core) (atomic-petrinets analyses))
+ 
+ ;;; Exceptions:
+ 
+ (define-condition-type petrinets-exception
+   &violation
+   make-petrinets-exception
+   petrinets-exception?)
+ 
+ (define (exception: message)
+   (raise-continuable
+    (condition
+     (make-petrinets-exception)
+     (make-message-condition message))))
+ 
+ ;;; Execution:
  
  (define (run-petrinet! petrinet)
    (unless (=valid? petrinet)
@@ -24,12 +39,11 @@
      (exception: "Cannot fire transition; The transition is not enabled."))
    (let ((consumed-tokens (map ->value enabled?)))
      (for-each rewrite-delete enabled?)
-     ((=executor transition) consumed-tokens)))
+     ((att-value 'executor transition) consumed-tokens)))
  
- (define (specify-execution-semantics)
+ (define (specify-execution)
    (with-specification
     pn
-    
     (ag-rule
      executor
      (Transition

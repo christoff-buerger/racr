@@ -12,8 +12,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr core) (racr testing)
-        (atomic-petrinets user-interface))
+(import (rnrs) (racr core) (racr testing) (atomic-petrinets user-interface))
 
 (define Box 'Box)
 (define Box* 'Box*)

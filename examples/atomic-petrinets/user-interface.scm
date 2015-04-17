@@ -11,12 +11,7 @@
          fire-transition! run-petrinet! interpret-petrinet!
          petrinets-exception? assert-marking assert-enabled)
  (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
-         (atomic-petrinets query-support)
-         (atomic-petrinets ast-scheme)
-         (atomic-petrinets name-analysis)
-         (atomic-petrinets well-formedness-analysis)
-         (atomic-petrinets enabled-analysis)
-         (atomic-petrinets execution-semantics))
+         (atomic-petrinets analyses) (atomic-petrinets execution))
  
  ;;; Syntax:
  
@@ -104,11 +99,6 @@
  
  (define (initialise-petrinet-language)
    (when (= (specification->phase pn) 1)
-     (specify-ast)
-     (compile-ast-specifications pn 'AtomicPetrinet)
-     (specify-query-support)
-     (specify-name-analysis)
-     (specify-well-formedness-analysis)
-     (specify-enabled-analysis)
-     (specify-execution-semantics)
+     (specify-analyses)
+     (specify-execution)
      (compile-ag-specifications pn))))

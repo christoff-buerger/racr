@@ -8,8 +8,7 @@
 (library
  (atomic-petrinets profiling)
  (export make-profiling-net)
- (import (rnrs) (racr core) (atomic-petrinets query-support)
-         (atomic-petrinets user-interface)
+ (import (rnrs) (racr core) (atomic-petrinets analyses) (atomic-petrinets user-interface)
          (prefix (racket) r:) ;(prefix (racket base) r:)
          )
  
@@ -37,7 +36,7 @@
    ;;; Construct Petri net:
    (let ((net (:AtomicPetrinet places transitions)))
      (unless (=valid? net)
-       (exception: "Cannot construct Petri net; The net is not well-formed."))
+       (raise "Cannot construct Petri net; The net is not well-formed."))
      net))
  
  (define (d)
