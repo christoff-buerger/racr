@@ -10,7 +10,7 @@ using IronScheme;
 using IronScheme.Runtime;
 using IronScheme.Scripting;
 
-static class Racr {
+static public class Racr {
 
 	private static Callable nodeDotNetInstance;
 	private static Callable nodeDotNetInstanceSet;
@@ -139,13 +139,13 @@ static class Racr {
 					if (method.DeclaringType != @class || method.Name[0] == '<') continue;
 
 					string contextName = "*";
-					bool cached = false;
+					bool cached = true;
 
 					foreach (var attr in method.GetCustomAttributes(false)) {
 						var contextNameAttr = attr as ContextNameAttribute;
 						if (contextNameAttr != null) contextName = contextNameAttr.NonTerminal;
-						var cachedAttr = attr as CachedAttribute;
-						if (cachedAttr != null) cached = cachedAttr.Cached;
+						var uncachedAttr = attr as UncachedAttribute;
+						if (uncachedAttr != null) cached = !uncachedAttr.Uncached;
 					}
 
 					//Console.WriteLine("{0} {1} {2}", method.Name, @class.Name, contextName);
@@ -261,7 +261,7 @@ static class Racr {
 	}
 
 	private static AstNode GetNode(object ast) {
-		return (AstNode) nodeDotNetInstance.Call(ast);
+		return nodeDotNetInstance.Call(ast) as AstNode;
 	}
 
 	public class AstNode /*: DynamicObject*/ {
@@ -318,7 +318,7 @@ static class Racr {
 			return (T) astChild.Call(index, ast);
 		}
 		public T Child<T>(string name) {
-			return (T) astChild.Call(SymbolTable.StringToObject(name), ast);
+			return (T) astChild.Call(SymbolTable.StringToObject (name), ast);
 		}
 		public T Sibling<T>(int index) {
 			return (T) astSibling.Call(index, ast);
@@ -359,15 +359,16 @@ static class Racr {
 
 
 		public virtual object[] Children(params Range[] bounds) {
-			object[] l = new object[bounds.Length];
-			int i;
-			for (i = 0; i < bounds.Length; i++) l[i] = bounds[i].ToCons();
-			var ret = astChildren.Call(l) as Cons;
+			object[] l = new object[bounds.Length + 1];
+			l[0] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 1] = bounds[i].ToCons();
+			var e = astChildren.Call(l) as Cons;
 			var children = new List<object>();
-			i = 0;
-			foreach (Cons e in ret) {
-				children.Add(nonTermChilren[i - 1] ? GetNode(e.car) : e.car);
-				i++;
+			int j = 0;
+			while (e != null) {
+				children.Add(nonTermChilren[j] ? GetNode(e.car) : e.car);
+				e = e.cdr as Cons;
+				j++;
 			}
 			return children.ToArray();
 		}
@@ -455,11 +456,15 @@ static class Racr {
 		}
 
 		public override object[] Children(params Range[] bounds) {
-			object[] l = new object[bounds.Length];
-			for (int i = 0; i < bounds.Length; i++) l[i] = bounds[i].ToCons();
-			var ret = astChildren.Call(l) as Cons;
+			object[] l = new object[bounds.Length + 1];
+			l[0] = ast;
+			for (int i = 0; i < bounds.Length; i++) l[i + 1] = bounds[i].ToCons();
+			var e = astChildren.Call(l) as Cons;
 			var children = new List<object>();
-			foreach (Cons e in ret) children.Add(GetNode(e.car));
+			while (e != null) {
+				children.Add(GetNode (e.car));
+				e = e.cdr as Cons;
+			}
 			return children.ToArray();
 		}
 		public override void ForEachChild(Action<int, object> f, params Range[] bounds) {
@@ -508,15 +513,6 @@ static class Racr {
 		return (bool) astSubtypeQ.Call(n1.ast, n2.ast);
 	}
 
-/*
-	[AttributeUsage(AttributeTargets.Method, AllowMultiple=true)]
-	public class AgRuleAttribute : Attribute {
-		public readonly string NonTerminal;
-		public AgRuleAttribute(string nonTerminal) {
-			NonTerminal = nonTerminal;
-		}
-	}
-*/
 	[AttributeUsage(AttributeTargets.Method)]
 	public class ContextNameAttribute : Attribute {
 		public readonly string NonTerminal;
@@ -525,12 +521,10 @@ static class Racr {
 		}
 	}
 	[AttributeUsage(AttributeTargets.Method)]
-	public class CachedAttribute : Attribute {
-		public readonly bool Cached;
-		public CachedAttribute(bool cached=true) {
-			Cached = cached;
+	public class UncachedAttribute : Attribute {
+		public readonly bool Uncached;
+		public UncachedAttribute(bool uncached=true) {
+			Uncached = uncached;
 		}
 	}
-
 }
-
