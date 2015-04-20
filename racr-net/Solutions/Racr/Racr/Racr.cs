@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
+//using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -42,6 +42,8 @@ static public class Racr {
 
 	private static Callable specifyAttribute;
 	private static Callable attValue;
+
+	private static Callable rewriteTerminal;
 
 	private static Callable astAnnotationSet;
 	private static Callable astWeaveAnnotations;
@@ -95,6 +97,8 @@ static public class Racr {
 		specifyAttribute			= "specify-attribute".Eval<Callable>();
 		attValue					= "att-value".Eval<Callable>();
 
+		// rewriting
+		rewriteTerminal				= "rewrite-terminal".Eval<Callable>();
 
 		// ast annotations
 		astAnnotationSet			= "ast-annotation-set!".Eval<Callable>();
@@ -234,10 +238,7 @@ static public class Racr {
 		public object Scheme(string lambda) {
 			return lambda.Eval<Callable>().Call(spec);
 		}
-
 	}
-
-
 
 
 	public struct Range {
@@ -265,7 +266,8 @@ static public class Racr {
 	}
 
 	public class AstNode /*: DynamicObject*/ {
-		internal object ast;
+		//internal object ast;
+		public object ast;
 		private bool[] nonTermChilren;		// are children non-terminal?
 		protected AstNode() {}
 
@@ -422,6 +424,15 @@ static public class Racr {
 		}
 
 
+		// rewriting
+		public void RewriteTerminal(string name, object newValue) {
+			rewriteTerminal.Call(SymbolTable.StringToObject(name), ast, newValue);
+		}
+		public void RewriteTerminal(int index, object newValue) {
+			rewriteTerminal.Call(index, ast, newValue);
+		}
+
+
 		// ast annotations
 		public void SetAnnotation(string name, object v) {
 			astAnnotationSet.Call(ast, SymbolTable.StringToObject(name), v);
@@ -438,6 +449,8 @@ static public class Racr {
 		public void WeaveAnnotations(string type, string name, object v) {
 			astWeaveAnnotations.Call(ast, SymbolTable.StringToObject(type), SymbolTable.StringToObject(name), v);
 		}
+
+
 
 /*
 		public override bool TryGetMember(GetMemberBinder binder, out Object result) {
