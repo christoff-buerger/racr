@@ -1,0 +1,4 @@
+#Transitions  / Number of transitions (>= 2)
+#Influenced   / Number of transitions influenced including the one fired (>= 2)
+#Local Places / Number of local places per transition (>= 0)
+#Local Tokens / Number of tokens in local places (>= 1)
