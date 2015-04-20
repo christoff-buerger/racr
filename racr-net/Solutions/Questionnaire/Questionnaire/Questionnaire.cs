@@ -7,6 +7,13 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 
 
+// for testing
+using IronScheme;
+using IronScheme.Runtime;
+using IronScheme.Scripting;
+
+
+
 enum ValueTypes { Boolean, String, Number, ErrorType }
 
 
@@ -45,7 +52,7 @@ static class Accessors {
 	}
 
 	// Rewriting
-	public static void SetValue(this Racr.AstNode n, object value) { return n.RewriteTerminal("value", value); }
+	public static void SetValue(this Racr.AstNode n, object value) { n.RewriteTerminal("value", value); }
 }
 
 
@@ -66,8 +73,9 @@ abstract class Widget : FlowLayoutPanel {
 	public virtual CheckBox GetCheckBox() { return null; }
 }
 class TextWidget : Widget {
-	public TextWidget(string label) : base(label) {
+	public TextWidget(string label, bool enabled=true) : base(label) {
 		tb = new TextBox();
+		tb.Enabled = enabled;
 		Controls.Add(tb);
 	}
 	public override void Set(object v) {
@@ -77,8 +85,9 @@ class TextWidget : Widget {
 	private TextBox tb;
 }
 class CheckWidget : Widget {
-	public CheckWidget(string label) : base(label) {
+	public CheckWidget(string label, bool enabled=true) : base(label) {
 		cb = new CheckBox();
+		cb.Enabled = enabled;
 		Controls.Add(cb);
 	}
 	public override void Set(object v) {
@@ -232,7 +241,6 @@ class QL : Racr.Specification {
 		static ValueTypes Type(Racr.AstNode n) { return n.GetValueType(); }
 		static object Value(Racr.AstNode n) { return n.GetValue(); }
 		static Control Widget(Racr.AstNode n) {
-			// TODO
 			Widget w;
 			if (n.Type() == ValueTypes.Boolean) {
 				w = new CheckWidget(n.GetLabel());
@@ -255,6 +263,8 @@ class QL : Racr.Specification {
 						catch { return; }
 					}
 					else n.SetValue(tb.Text);
+
+					"(print-ast {0} (list) (current-output-port))".Eval(n.Root().ast);
 					n.Root().Render();
 				};
 			}
@@ -269,27 +279,13 @@ class QL : Racr.Specification {
 		static object Value(Racr.AstNode n) { return n.GetExpression().Value(); }
 		static Control Widget(Racr.AstNode n) {
 			Widget w;
-			if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel());
-			else w = new TextWidget(n.GetLabel());
+			if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel(), false);
+			else w = new TextWidget(n.GetLabel(), false);
 			n.Parent().Widget().Controls.Add(w);
 			return w;
 		}
 		static bool Render(Racr.AstNode n) {
-			var v = n.Value();
-			var ctrl = n.Widget();
-			switch (n.Type()) {
-			case ValueTypes.Boolean:
-				var cb = ctrl as CheckBox;
-				cb.Checked = (bool) v;
-				break;
-			case ValueTypes.String:
-				ctrl.Text = (string) v;
-				break;
-			case ValueTypes.Number:
-				ctrl.Text = Convert.ToString(Convert.ToDouble((string) v));
-				break;
-			default: break;
-			}
+			(n.Widget() as Widget).Set(n.Value());
 			return true;
 		}
 	}
