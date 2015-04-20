@@ -63,11 +63,7 @@ class TextWidget : Widget {
 		Controls.Add(tb);
 	}
 	public override void Set(object v) {
-		if (v == null) {
-			tb.Text = "#f";
-			return;
-		}
-		tb.Text = (string) v;
+		tb.Text = (v == null) ? "#f" : (string) v;
 	}
 	private TextBox tb;
 }
@@ -77,11 +73,7 @@ class CheckWidget : Widget {
 		Controls.Add(cb);
 	}
 	public override void Set(object v) {
-		if (v == null) {
-			cb.Checked = false;
-			return;
-		}
-		cb.Checked = (bool) v;
+		cb.Checked = (v == null) ? false : (bool) v;
 	}
 	private CheckBox cb;
 }
@@ -111,7 +103,7 @@ class QL : Racr.Specification {
 	static Racr.AstNode findL(string name, Racr.AstNode l, int i) {
 		//return l.FindChildA((int j, object e) => ((Racr.AstNode) e).LLookup(name), new Racr.Range(1, i)) as Racr.AstNode;
 		for (int j = 1; j <= i; j++) {
-			var r = l.Child(i).LLookup(name);
+			var r = l.Child(j).LLookup(name);
 			if (r != null) return r;
 		}
 		return null;
@@ -165,14 +157,7 @@ class QL : Racr.Specification {
 		static bool IsErrorQuestion(Racr.AstNode n) { return n == n.ErrorQuestion(); }
 		static Racr.AstNode FindActive(Racr.AstNode n, string name) {
 			var current = n.GLookup(name);
-			Console.WriteLine("== {0}", n == current);
-			Console.WriteLine("start: {0}", current.NodeType());
-			Console.WriteLine("name: {0}", current.GetName());
-			while (!current.IsActive()) {
-				Console.WriteLine("next: {0}", current.NodeType());
-				current = current.GLookup(name);
-			}
-			Console.WriteLine("end");
+			while (!current.IsActive()) current = current.GLookup(name);
 			return current;
 		}
 		static bool IsShown(Racr.AstNode n) { return !n.IsErrorQuestion() && n.IsActive(); }
@@ -193,7 +178,6 @@ class QL : Racr.Specification {
 		}
 		static bool IsLValid(Racr.AstNode n) { return n.GetExpression().Type() == ValueTypes.Boolean; }
 		static bool IsActive(Racr.AstNode n) {
-			Console.WriteLine("Group:IsActive [{0}]", n.GetExpression().Value());
 			return (bool) n.GetExpression().Value();
 		}
 		static Control Widget(Racr.AstNode n) {
@@ -231,13 +215,6 @@ class QL : Racr.Specification {
 			return prev.IsErrorQuestion() || n.Type() == prev.Type();
 		}
 		static bool IsActive(Racr.AstNode n) {
-			Console.WriteLine("Question:IsActive");
-			Console.WriteLine("{0}", n.IsErrorQuestion());
-			Console.WriteLine("{0}", n.Parent().IsActive());
-			Console.WriteLine("{0}", n.GetName());
-
-			Console.WriteLine("parent type: {0}", n.Parent().Parent().NodeType());
-
 			return n.IsErrorQuestion() || (n.Parent().IsActive() && n.FindActive(n.GetName()).IsErrorQuestion());
 		}
 	}
@@ -337,7 +314,14 @@ class QL : Racr.Specification {
 			var op = n.GetOperator();
 			var operands = n.GetOperands().Children();
 			var args = operands.Select(p => ((Racr.AstNode) p).Value()).ToArray();
-			return opTable[op](args);
+			object result;
+			try {
+				result = opTable[op](args);
+			}
+			catch {
+				result = null;
+			}
+			return result;
 		}
 	}
 
@@ -357,8 +341,7 @@ class Lexer {
 		Identifier,
 		Error
 	};
-
-
+	
 	public Lexer(string src) {
 		source = src;
 		position = 0;
@@ -366,13 +349,11 @@ class Lexer {
 		NextLexeme();
 	}
 
-
 	public Lexemes NextLexeme() {
 		Lexemes l = lexeme;
 		lexeme = Scan();
 		return l;
 	}
-
 
 	private char NextChar() {
 		char c = character;
@@ -440,10 +421,8 @@ class Lexer {
 		return Lexemes.Error;
 	}
 
-
 	public Lexemes Lexeme { get { return lexeme; } }
 	public string Token { get { return token; } }
-
 
 	private char character;
 	private Lexemes lexeme;
@@ -549,7 +528,6 @@ class Parser : Lexer {
 		Consume(Lexemes.EOF);
 		return ast;
 	}
-
 }
 
 
