@@ -39,7 +39,13 @@ static class Accessors {
 	public static object Value(this Racr.AstNode n) { return n.AttValue<object>("Value"); }
 
 	public static Control Widget(this Racr.AstNode n) { return n.AttValue<Control>("Widget"); }
-	public static bool Render(this Racr.AstNode n) { return n.AttValue<bool>("Render"); }
+	public static bool Render(this Racr.AstNode n) {
+		Console.WriteLine("Render {0}", n.NodeType());
+		return n.AttValue<bool>("Render");
+	}
+
+	// Rewriting
+	public static void SetValue(this Racr.AstNode n, object value) { return n.RewriteTerminal("value", value); }
 }
 
 
@@ -56,6 +62,8 @@ abstract class Widget : FlowLayoutPanel {
 	}
 	public abstract void Set(object v);
 	private System.Windows.Forms.Label label;
+	public virtual TextBox GetTextBox() { return null; }
+	public virtual CheckBox GetCheckBox() { return null; }
 }
 class TextWidget : Widget {
 	public TextWidget(string label) : base(label) {
@@ -65,6 +73,7 @@ class TextWidget : Widget {
 	public override void Set(object v) {
 		tb.Text = (v == null) ? "#f" : (string) v;
 	}
+	public override TextBox GetTextBox() { return tb; }
 	private TextBox tb;
 }
 class CheckWidget : Widget {
@@ -75,6 +84,7 @@ class CheckWidget : Widget {
 	public override void Set(object v) {
 		cb.Checked = (v == null) ? false : (bool) v;
 	}
+	public override CheckBox GetCheckBox() { return cb; }
 	private CheckBox cb;
 }
 
@@ -101,7 +111,6 @@ class QL : Racr.Specification {
 
 
 	static Racr.AstNode findL(string name, Racr.AstNode l, int i) {
-		//return l.FindChildA((int j, object e) => ((Racr.AstNode) e).LLookup(name), new Racr.Range(1, i)) as Racr.AstNode;
 		for (int j = 1; j <= i; j++) {
 			var r = l.Child(j).LLookup(name);
 			if (r != null) return r;
@@ -225,8 +234,30 @@ class QL : Racr.Specification {
 		static Control Widget(Racr.AstNode n) {
 			// TODO
 			Widget w;
-			if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel());
-			else w = new TextWidget(n.GetLabel());
+			if (n.Type() == ValueTypes.Boolean) {
+				w = new CheckWidget(n.GetLabel());
+				var cb = w.GetCheckBox();
+				cb.CheckedChanged += (object sender, EventArgs e) => {
+					if (!cb.ContainsFocus) return;
+					n.SetValue(cb.Checked);
+					n.Root().Render();
+				};
+			}
+			else {
+				w = new TextWidget(n.GetLabel());
+				var tb = w.GetTextBox();
+				tb.TextChanged += (object sender, EventArgs e) => {
+					if (!tb.ContainsFocus) return;
+					if (n.Type() == ValueTypes.Number) {
+						try {
+							n.SetValue(Convert.ToDouble(tb.Text));
+						}
+						catch { return; }
+					}
+					else n.SetValue(tb.Text);
+					n.Root().Render();
+				};
+			}
 			n.Parent().Widget().Controls.Add(w);
 			return w;
 		}
