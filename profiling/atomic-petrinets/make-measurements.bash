@@ -5,9 +5,9 @@
 
 # author: C. Bürger
 
+################################################################################### Configure temporary resources & rerun script:
 old_pwd=`pwd`
 
-#################################################################################################### Cleanup temporary resources:
 my_exit(){
 	cd $old_pwd
 	rm rerun-measurements.bash
@@ -15,7 +15,6 @@ my_exit(){
 }
 trap 'my_exit' 1 2 3 9 15
 
-########################################################################################## Persist configuration in rerun script:
 echo "cd ../.." > rerun-measurements.bash
 echo "./make-measurements.bash << EOF" >> rerun-measurements.bash
 
@@ -56,11 +55,10 @@ do
 	esac
 done 3< measurements.configuration
 
-############################################################################################################# Create directories:
+################################################################################### Create directories & finish the rerun script:
 measurement_dir=$old_pwd/measurements/`date "+%Y-%m-%d_%H-%M-%S"`
 mkdir -p $measurement_dir
 
-################################################################################################# Finish & copy the rerun script:
 echo "EOF" >> rerun-measurements.bash
 chmod +x rerun-measurements.bash
 cp -p rerun-measurements.bash $measurement_dir
