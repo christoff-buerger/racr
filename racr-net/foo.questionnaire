@@ -1,0 +1,14 @@
+; OrdinaryQuestion in einer Group: unexpected [IsActive] cycle
+; error, wenn kein default angegeben wird (Value wird null)
+; nicht-deterministische fehler -> gc fucked??? mono fucked???
+
+(Form
+  (?? 'q0 "first" String "hallo")
+  (?? 'q1 "second" String "welt")
+  (~? 'q2 "both" (~~ string-append (~> 'q0) (~! " ") (~> 'q1)))
+
+;  (?? 'q3 "switch" Boolean #f)
+;  (If (~> 'q3)
+;    (?? 'q4 "welt" String))
+	
+	)
