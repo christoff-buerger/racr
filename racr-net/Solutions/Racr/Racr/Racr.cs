@@ -159,10 +159,6 @@ static public class Racr {
 						throw new ArgumentException("type of delegate's first argument must be AstNode.");
 					}
 
-					var types = new Type[paramTypes.Length + 1];
-					paramTypes.CopyTo(types, 0);
-					types[paramTypes.Length] = method.ReturnType;
-
 					paramTypes[0] = typeof(object);
 					var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
 					var gen = dynmeth.GetILGenerator();
@@ -171,8 +167,7 @@ static public class Racr {
 					gen.Emit(OpCodes.Call, getNodeInfo);
 					gen.Emit(OpCodes.Starg_S, 0);
 					gen.Emit(OpCodes.Jmp, method);
-					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(types));
-
+					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(paramTypes.Concat(new[] { method.ReturnType }).ToArray()));
 
 					specifyAttribute.Call(
 						spec,
@@ -194,24 +189,25 @@ static public class Racr {
 
 		private static Delegate WrapEquation(Delegate equation) {
 
-			var info = equation.Method;
-			var paramTypes = info.GetParameters().Select(p => p.ParameterType).ToArray();
+			var method = equation.Method;
+			var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
 
 			if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
 				throw new ArgumentException("type of delegate's first argument must be AstNode.");
 			}
 
 			paramTypes[0] = typeof(object);
-			var dynmeth = new DynamicMethod("", info.ReturnType, paramTypes, true);
+			var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
 			var gen = dynmeth.GetILGenerator();
 
 			gen.Emit(OpCodes.Ldarg_0);
 			var getNodeInfo = ((Delegate) (Func<object,AstNode>) GetNode).Method;
 			gen.Emit(OpCodes.Call, getNodeInfo);
 			gen.Emit(OpCodes.Starg_S, 0);
-			gen.Emit(OpCodes.Jmp, info);
+			gen.Emit(OpCodes.Jmp, method);
 
-			return dynmeth.CreateDelegate(equation.GetType());
+			return dynmeth.CreateDelegate(Expression.GetDelegateType(paramTypes.Concat(new[] { method.ReturnType }).ToArray()));
+			//return dynmeth.CreateDelegate(equation.GetType());
 		}
 		// TODO circDef!!!
 		public void SpecifyAttribute(string attName, string nonTerminal, string contextName, bool cached, Delegate equation) {
