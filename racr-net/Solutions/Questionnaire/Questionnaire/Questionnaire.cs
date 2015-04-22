@@ -46,10 +46,7 @@ static class Accessors {
 	public static object Value(this Racr.AstNode n) { return n.AttValue<object>("Value"); }
 
 	public static Control Widget(this Racr.AstNode n) { return n.AttValue<Control>("Widget"); }
-	public static bool Render(this Racr.AstNode n) {
-		Console.WriteLine("Render {0}", n.NodeType());
-		return n.AttValue<bool>("Render");
-	}
+	public static bool Render(this Racr.AstNode n) { return n.AttValue<bool>("Render"); }
 
 	// Rewriting
 	public static void SetValue(this Racr.AstNode n, object value) { n.RewriteTerminal("value", value); }
@@ -158,7 +155,9 @@ class QL : Racr.Specification {
 			return panel;
 		}
 		static bool Render(Racr.AstNode n) {
+			Console.WriteLine("Form:Render");
 			foreach (var c in n.GetBody().Children()) {
+				Console.WriteLine("child {0}", c);
 				var child = c as Racr.AstNode;
 				if (child.IsShown()) {
 					var w = child.Widget();
