@@ -11,10 +11,13 @@ old_pwd=`pwd`
 my_exit(){
 	cd $old_pwd
 	rm rerun-measurements.bash
+	rm table-pipe
 	exit 0
 }
 trap 'my_exit' 1 2 3 9 15
 
+mkfifo table-pipe
+./make-table.bash -c measurements.configuration -t table.txt -p table-pipe &
 echo "cd ../.." > rerun-measurements.bash
 echo "./make-measurements.bash << EOF" >> rerun-measurements.bash
 
@@ -25,7 +28,8 @@ declare -a parameter_iterations
 declare -a parameter_adjustments
 
 echo "************************************************** Configure Parameters **************************************************"
-while read -u3 line
+exec 3< measurements.configuration
+while read -r line <&3
 do
 	IFS='/' read -ra config_line <<< "$line"
 	
@@ -53,7 +57,8 @@ do
 				parameter_adjustments+=( 0 );;
 		* ) echo "	!!! ERROR: No valid choice entered !!! "; my_exit;;
 	esac
-done 3< measurements.configuration
+done
+exec 3<&-
 
 ################################################################################### Create directories & finish the rerun script:
 measurement_dir=$old_pwd/measurements/`date "+%Y-%m-%d_%H-%M-%S"`
@@ -71,23 +76,25 @@ run=true
 undo=false
 
 echo "*************************************************** Start Measurements ***************************************************"
+exec 3> table-pipe
 while [ "$run" = true ]
 do
 	if (( current_parameter >= num_parameters ))
 	then
-		#echo ${current_values[@]:0:$num_parameters}
 		printf "Measurement ["
 		undo=true
 		run=false
 		for (( i = 0; i < num_parameters; i++ ))
 		do
 			printf " ${parameter_names[$i]}=${current_values[$i]} "
+			echo "${current_values[$i]}" >&3
 			if (( current_iterations[i] < parameter_iterations[i] ))
 			then
 				run=true
 			fi
 		done
 		echo "]"
+		echo "12445" >&3
 	fi
 	if [ "$undo" = true ]
 	then
@@ -104,6 +111,7 @@ do
 		current_iterations[$current_parameter]=0
 	fi
 done
+exec 3>&-
 echo "**************************************************** End Measurements ****************************************************"
 
 ################################################################################# Finish execution & cleanup temporary resources:

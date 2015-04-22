@@ -6,14 +6,16 @@
 # author: C. Bürger
 
 ########################################################################################### Parse arguments & read configuration:
-while getopts t:c: opt
+while getopts t:c:p: opt
 do
 	case $opt in
 		t)	table_file="$OPTARG";;
 		c)	configuration="$OPTARG";;
+		p)	input_pipe="$OPTARG";;
 		?)
-			echo "Usage: -t Table file (created if non-existent, otherwise appended)"
+			echo "Usage: -t Table file (created if not existent, otherwise input is appended)"
 			echo "       -c Measurement configuration"
+			echo "       -p Named input pipe"
 			exit 2
 	esac
 done
@@ -21,20 +23,25 @@ shift $(( OPTIND - 1 ))
 
 if [ -z "$table_file" ]
 then
-	echo " !!! ERROR: No table file given !!!" >& 2
+	echo " !!! ERROR: No table file given !!!" >&2
 	exit 2
 fi
 if [ -z "$configuration" ]
 then
-	echo " !!! ERROR: No measurement configuration given !!!" >& 2
+	echo " !!! ERROR: No measurement configuration given !!!" >&2
+	exit 2
+fi
+if [ -z "$input_pipe" ]
+then
+	echo " !!! ERROR: No input pipe given !!!" >&2
 	exit 2
 fi
 
-while read -u3 line
+while read -r line
 do
 	IFS='/' read -ra config_line <<< "$line"
 	column_names+=( "${config_line[0]}" )
-done 3< $configuration
+done < $configuration
 
 ############################################################################################################# Print table header:
 num_columns=${#column_names[@]}
@@ -54,7 +61,19 @@ fi
 
 ############################################################################################################ Print table content:
 column_count=0
-#while read line
-#do
-	#
-#done
+while true #lsof "$input_pipe"
+do
+	if read -r line
+	then
+		if (( column_count < num_columns ))
+		then
+			printf " %-18s |" "$line" >> $table_file
+			column_count=$(( column_count + 1 ))
+		else
+			printf " %-18s \n" "$line" >> $table_file
+			column_count=0
+		fi
+	else
+		break
+	fi
+done < $input_pipe
