@@ -154,70 +154,77 @@ static public class Racr {
 
 					//Console.WriteLine("{0} {1} {2}", method.Name, @class.Name, contextName);
 
-					var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-					if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
-						throw new ArgumentException("type of delegate's first argument must be AstNode.");
-					}
-
-					paramTypes[0] = typeof(object);
-					var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
-					var gen = dynmeth.GetILGenerator();
-					gen.Emit(OpCodes.Ldarg_0);
-					var getNodeInfo = ((Delegate) (Func<object, AstNode>) GetNode).Method;
-					gen.Emit(OpCodes.Call, getNodeInfo);
-					gen.Emit(OpCodes.Starg_S, 0);
-					gen.Emit(OpCodes.Jmp, method);
-					Delegate equation = dynmeth.CreateDelegate(Expression.GetDelegateType(paramTypes.Concat(new[] { method.ReturnType }).ToArray()));
-
 					specifyAttribute.Call(
 						spec,
 						SymbolTable.StringToObject(method.Name),
 						SymbolTable.StringToObject(@class.Name),
 						SymbolTable.StringToObject(contextName),
 						cached,
-						equation.ToSchemeProcedure(),
+						WrapToCallable(method),
 						false);
 
 				}
 			}
 		}
 
-		public void CompileAgSpecifications() {
+		public void CompileAgSpecifications() { compileAgSpecifications.Call(spec); }
+		
 
-			compileAgSpecifications.Call(spec);
-		}
+		static readonly Type[][] paramTypesArray = new Type[][] {
+			new Type[] {},
+			new Type[] { typeof(object) },
+			new Type[] { typeof(object), typeof(object) },
+			new Type[] { typeof(object), typeof(object), typeof(object) },
+			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object) },
+			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object), typeof(object) },
+			// ...
+		};
 
-		private static Delegate WrapEquation(Delegate equation) {
+		static readonly Type[] callTargets = new Type[] {
+			typeof(CallTarget0),
+			typeof(CallTarget1),
+			typeof(CallTarget2),
+			typeof(CallTarget3),
+			typeof(CallTarget4),
+			typeof(CallTarget5),
+			// ...
+		};
 
-			var method = equation.Method;
+		static Callable WrapToCallable(MethodInfo method) {
 			var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-
 			if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
 				throw new ArgumentException("type of delegate's first argument must be AstNode.");
 			}
 
-			paramTypes[0] = typeof(object);
-			var dynmeth = new DynamicMethod("", method.ReturnType, paramTypes, true);
+			var outType = callTargets[paramTypes.Length];
+			var dynmeth = new DynamicMethod("", typeof(object), paramTypesArray[paramTypes.Length], true);
 			var gen = dynmeth.GetILGenerator();
 
 			gen.Emit(OpCodes.Ldarg_0);
-			var getNodeInfo = ((Delegate) (Func<object,AstNode>) GetNode).Method;
+			var getNodeInfo = ((Delegate)(Func<object, AstNode>)GetNode).Method;
 			gen.Emit(OpCodes.Call, getNodeInfo);
-			gen.Emit(OpCodes.Starg_S, 0);
-			gen.Emit(OpCodes.Jmp, method);
 
-			return dynmeth.CreateDelegate(Expression.GetDelegateType(paramTypes.Concat(new[] { method.ReturnType }).ToArray()));
-			//return dynmeth.CreateDelegate(equation.GetType());
+			for (int i = 1; i < paramTypes.Length; i++) {
+				gen.Emit(OpCodes.Ldarg_S, i);
+				if (paramTypes[i].IsValueType) gen.Emit(OpCodes.Unbox_Any, paramTypes[i]);
+			}
+			gen.Emit(OpCodes.Call, method);
+			if (method.ReturnType.IsValueType) gen.Emit(OpCodes.Box, method.ReturnType);
+			gen.Emit(OpCodes.Ret);
+
+			return Closure.Create(dynmeth.CreateDelegate(callTargets[paramTypes.Length]), paramTypes.Length);
 		}
+
 		// TODO circDef!!!
 		public void SpecifyAttribute(string attName, string nonTerminal, string contextName, bool cached, Delegate equation) {
+
 			specifyAttribute.Call(
 				spec,
 				SymbolTable.StringToObject(attName),
 				SymbolTable.StringToObject(nonTerminal),
 				SymbolTable.StringToObject(contextName),
 				cached,
-				WrapEquation(equation).ToSchemeProcedure(),
+				WrapToCallable(equation.Method),
 				false);
 		}
 
