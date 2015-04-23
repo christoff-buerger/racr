@@ -7,8 +7,15 @@
   (?? 'q1 "second" String "welt")
   (~? 'q2 "both" (~~ string-append (~> 'q0) (~! " ") (~> 'q1)))
 
-;  (?? 'q3 "switch" Boolean #f)
-;  (If (~> 'q3)
-;    (?? 'q4 "welt" String))
-	
-	)
+  (?? 'q3 "switch" Boolean #f)
+
+
+  (If (~> 'q3)
+    (?? 'q4 "welt" String)
+    (~? 'q5 "both 2" (~> 'q2))
+    (?? 'q6 "welt" String)
+    (?? 'q7 "welt" String))
+
+  (~? 'w0 "first 2" (~> 'q0))
+  (~? 'w1 "second 2" (~> 'q1))
+  (~? 'w3 "switch 2" (~> 'q3)))

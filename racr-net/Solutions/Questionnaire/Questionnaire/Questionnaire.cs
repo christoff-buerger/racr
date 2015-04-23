@@ -146,6 +146,7 @@ class QL : Racr.Specification {
 
 			var panel = new FlowLayoutPanel();
 			panel.AutoSize = true;
+			panel.AutoScroll = true;
 			panel.Dock = DockStyle.Fill;
 			panel.FlowDirection = FlowDirection.TopDown;
 			panel.WrapContents = false;
@@ -157,14 +158,12 @@ class QL : Racr.Specification {
 		static bool Render(Racr.AstNode n) {
 			Console.WriteLine("Form:Render");
 			foreach (var c in n.GetBody().Children()) {
-				Console.WriteLine("child {0}", c);
 				var child = c as Racr.AstNode;
-				if (child.IsShown()) {
-					var w = child.Widget();
-					child.Render();
-					w.Show();
-				}
-				else child.Widget().Hide();
+				Console.WriteLine("child {0}", child.NodeType());
+				var w = child.Widget();
+				child.Render();
+				if (child.IsShown()) w.Show();
+				else w.Hide();
 			}
 			return true;
 		}
@@ -199,6 +198,7 @@ class QL : Racr.Specification {
 		}
 		static Control Widget(Racr.AstNode n) {
 			var panel = new FlowLayoutPanel();
+			panel.AutoSize = true;
 			panel.BorderStyle = BorderStyle.Fixed3D;
 			panel.Dock = DockStyle.Fill;
 			panel.FlowDirection = FlowDirection.TopDown;
@@ -209,11 +209,9 @@ class QL : Racr.Specification {
 		static bool Render(Racr.AstNode n) {
 			foreach (var c in n.GetBody().Children()) {
 				var child = c as Racr.AstNode;
-				if (child.IsShown()) {
-					var w = child.Widget();
-					child.Render();
-					w.Show();
-				}
+				var w = child.Widget();
+				child.Render();
+				if (child.IsShown()) w.Show();
 				else child.Widget().Hide();
 			}
 			return true;
@@ -591,8 +589,8 @@ class Questionnaire {
 		ql = new QL();
 		var parser = new Parser(ql, File.OpenText(path).ReadToEnd());
 		var form = parser.ParseAst();
-		UpdateQuestions(form);
 		form.Render();
+		UpdateQuestions(form);
 
 		Application.Run(form.Widget().Parent as Form);
 	}
