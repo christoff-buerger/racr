@@ -1,6 +1,4 @@
-; OrdinaryQuestion in einer Group: unexpected [IsActive] cycle
 ; error, wenn kein default angegeben wird (Value wird null)
-; nicht-deterministische fehler -> gc fucked??? mono fucked???
 
 (Form
   (?? 'q0 "first" String "hallo")

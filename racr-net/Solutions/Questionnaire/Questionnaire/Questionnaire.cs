@@ -55,6 +55,7 @@ static class Accessors {
 
 abstract class Widget : FlowLayoutPanel {
 	public Widget(string label) {
+		Console.WriteLine("new Widget({0})", label);
 		AutoSize = true;
 		WrapContents = false;
 		FlowDirection = FlowDirection.LeftToRight;
@@ -76,7 +77,7 @@ class TextWidget : Widget {
 		Controls.Add(tb);
 	}
 	public override void Set(object v) {
-		tb.Text = (v == null) ? "#f" : (string) v;
+		tb.Text = (v == null) ? "" : (string) v;
 	}
 	public override TextBox GetTextBox() { return tb; }
 	private TextBox tb;
@@ -156,10 +157,10 @@ class QL : Racr.Specification {
 			return panel;
 		}
 		static bool Render(Racr.AstNode n) {
-			Console.WriteLine("Form:Render");
+//			Console.WriteLine("Form:Render");
 			foreach (var c in n.GetBody().Children()) {
 				var child = c as Racr.AstNode;
-				Console.WriteLine("child {0}", child.NodeType());
+//				Console.WriteLine("child {0}", child.NodeType());
 				var w = child.Widget();
 				child.Render();
 				if (child.IsShown()) w.Show();
@@ -254,14 +255,10 @@ class QL : Racr.Specification {
 				tb.TextChanged += (object sender, EventArgs e) => {
 					if (!tb.ContainsFocus) return;
 					if (n.Type() == ValueTypes.Number) {
-						try {
-							n.SetValue(Convert.ToDouble(tb.Text));
-						}
+						try { n.SetValue(Convert.ToDouble(tb.Text)); }
 						catch { return; }
 					}
 					else n.SetValue(tb.Text);
-
-					"(print-ast {0} (list) (current-output-port))".Eval(n.Root().ast);
 					n.Root().Render();
 				};
 			}
