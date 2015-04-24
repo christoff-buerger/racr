@@ -323,30 +323,69 @@ class QL : Racr.Specification {
 			return outType;
 		}
 
-
 		static private readonly Dictionary<string, Func<object[], object>> opTable = new Dictionary<string, Func<object[], object>>() {
+			{ "&&", (object[] l) => { return l.All(x => (bool) x); } },
+			{ "//", (object[] l) => { return l.Any(x => (bool) x); } },
+			{ "not", (object[] l) => { return !l.All(x => (bool) x); } },
 			{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
 			{ "-", (object[] l) => { return l.Aggregate(0.0, (s, x) => s - (double) x); } },
 			{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
+			{ "/", (object[] l) => {
+					var a = (double) l[0];
+					for (int i = 1; i < l.Length; i++) a /= (double) l[i];
+					return a;
+			} },
+			{ "!=", (object[] l) => {
+					var s = new HashSet<double>();
+					foreach (var x in l) if (!s.Add((double) x)) return false;
+					return true;
+			} },
+			{ "=", (object[] l) => { return l.All(x => (double) x == (double) l[0]); } },
+			{ "<", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] >= (double)l[i]) return false;
+					return true;
+			} },
+			{ "<=", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] > (double)l[i]) return false;
+					return true;
+			} },
+			{ ">", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] <= (double)l[i]) return false;
+					return true;
+			} },
+			{ ">=", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] < (double)l[i]) return false;
+					return true;
+			} },
+			{ "string=?", (object[] l) => { return l.All(x => (string) x == (string) l[0]); } },
+			{ "string<?", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) >= 0) return false;
+					return true;
+			} },
+			{ "string<=?", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) > 0) return false;
+					return true;
+			} },
+			{ "string>?", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) <= 0) return false;
+					return true;
+			} },
+			{ "string>=?", (object[] l) => {
+					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) < 0) return false;
+					return true;
+			} },
 			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) x); } },
-			// TODO
 		};
 		static object Value(Racr.AstNode n) {
 			var op = n.GetOperator();
 			var operands = n.GetOperands().Children();
 			var args = operands.Select(p => ((Racr.AstNode) p).Value()).ToArray();
 			object result;
-			try {
-				result = opTable[op](args);
-			}
-			catch {
-				result = null;
-			}
+			try { result = opTable[op](args); }
+			catch { result = null; }
 			return result;
 		}
 	}
-
-
 }
 
 
