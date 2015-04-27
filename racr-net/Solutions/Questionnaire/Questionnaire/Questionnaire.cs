@@ -77,7 +77,9 @@ class TextWidget : Widget {
 		Controls.Add(tb);
 	}
 	public override void Set(object v) {
-		tb.Text = (v == null) ? "" : (string) v;
+		if (v == null) tb.Text = "";
+		else if (v is string) tb.Text = (string) v;
+		else tb.Text = Convert.ToString(v);
 	}
 	public override TextBox GetTextBox() { return tb; }
 	private TextBox tb;
@@ -125,266 +127,283 @@ class QL : Racr.Specification {
 		return null;
 	}
 
-	static class Form {
-		static Racr.AstNode Root(Racr.AstNode n) { return n; }
-		static Racr.AstNode ErrorQuestion(Racr.AstNode n) { return n.GetBody().Child(1); }
-		static bool IsValid(Racr.AstNode n) {
-			return n.GetBody().Children(new Racr.Range(2)).All(x => ((Racr.AstNode)x).IsValid());
+	[Racr.AgRule("Root", "Form")]
+	static Racr.AstNode FormRoot(Racr.AstNode n) { return n; }
+	[Racr.AgRule("ErrorQuestion", "Form")]
+	static Racr.AstNode FormErrorQuestion(Racr.AstNode n) { return n.GetBody().Child(1); }
+	[Racr.AgRule("IsValid", "Form")]
+	static bool FormIsValid(Racr.AstNode n) {
+		return n.GetBody().Children(new Racr.Range(2)).All(x => ((Racr.AstNode)x).IsValid());
+	}
+	[Racr.AgRule("GLookup", "Form", Context = "Body")]
+	static Racr.AstNode FromGLookup(Racr.AstNode n, string name) {
+		var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
+		return (ret != null) ? ret : n.ErrorQuestion();
+	}
+	[Racr.AgRule("IsActive", "Form")]
+	static bool FormIsActive(Racr.AstNode n) { return true; }
+
+	[Racr.AgRule("Widget", "Form")]
+	static Control FormWidget(Racr.AstNode n) {
+		var form = new System.Windows.Forms.Form();
+		form.Text = "Questionnaire";
+
+		// TODO: menu
+
+		var panel = new FlowLayoutPanel();
+		panel.AutoSize = true;
+		panel.AutoScroll = true;
+		panel.Dock = DockStyle.Fill;
+		panel.FlowDirection = FlowDirection.TopDown;
+		panel.WrapContents = false;
+
+		form.Controls.Add(panel);
+
+		return panel;
+	}
+	[Racr.AgRule("Render", "Form")]
+	static bool FormRender(Racr.AstNode n) {
+		foreach (var c in n.GetBody().Children()) {
+			var child = c as Racr.AstNode;
+			var w = child.Widget();
+			child.Render();
+			if (child.IsShown()) w.Show();
+			else w.Hide();
 		}
+		return true;
+	}
 
-		[Racr.ContextName("Body")]
-		static Racr.AstNode GLookup(Racr.AstNode n, string name) {
-			var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
-			return (ret != null) ? ret : n.ErrorQuestion();
+	[Racr.AgRule("IsErrorQuestion", "Element")]
+	static bool ElementIsErrorQuestion(Racr.AstNode n) { return n == n.ErrorQuestion(); }
+	[Racr.AgRule("FindActive", "Element")]
+	static Racr.AstNode ElementFindActive(Racr.AstNode n, string name) {
+		var current = n.GLookup(name);
+		while (!current.IsActive()) current = current.GLookup(name);
+		return current;
+	}
+	[Racr.AgRule("IsShown", "Element")]
+	static bool ElementIsShown(Racr.AstNode n) { return !n.IsErrorQuestion() && n.IsActive(); }
+
+	[Racr.AgRule("GLookup", "Group", Context = "Body")]
+	static Racr.AstNode GroupGLookup(Racr.AstNode n, string name) {
+		var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
+		return (ret != null) ? ret : n.Parent().GLookup(name);
+	}
+
+	[Racr.AgRule("LLookup", "Group")]
+	static Racr.AstNode GroupLLookup(Racr.AstNode n, string name) {
+		return findL(name, n.GetBody(), n.GetBody().NumChildren());
+	}
+	[Racr.AgRule("IsValid", "Group")]
+	static bool GroupIsValid(Racr.AstNode n) {
+		return n.IsLValid() && n.GetBody().Children().All(x => ((Racr.AstNode)x).IsValid());
+	}
+	[Racr.AgRule("IsLValid", "Group")]
+	static bool GroupIsLValid(Racr.AstNode n) { return n.GetExpression().Type() == ValueTypes.Boolean; }
+	[Racr.AgRule("IsActive", "Group")]
+	static bool GroupIsActive(Racr.AstNode n) {
+		var v = n.GetExpression().Value();
+		if (v == null) return false;
+		return (bool) v;
+	}
+	[Racr.AgRule("Widget", "Group")]
+	static Control GroupWidget(Racr.AstNode n) {
+		var panel = new FlowLayoutPanel();
+		panel.AutoSize = true;
+		panel.BorderStyle = BorderStyle.Fixed3D;
+		panel.Dock = DockStyle.Fill;
+		panel.FlowDirection = FlowDirection.TopDown;
+		panel.WrapContents = false;
+		n.Parent().Widget().Controls.Add(panel);
+		return panel;
+	}
+	[Racr.AgRule("Render", "Group")]
+	static bool GroupRender(Racr.AstNode n) {
+		foreach (var c in n.GetBody().Children()) {
+			var child = c as Racr.AstNode;
+			var w = child.Widget();
+			child.Render();
+			if (child.IsShown()) w.Show();
+			else child.Widget().Hide();
 		}
-		static bool IsActive(Racr.AstNode n) { return true; }
-		static Control Widget(Racr.AstNode n) {
+		return true;
+	}
 
-			var form = new System.Windows.Forms.Form();
-			form.Text = "Questionnaire";
+	[Racr.AgRule("LLookup", "Question")]
+	static Racr.AstNode QuestionLLookup(Racr.AstNode n, string name) {
+		if (n.GetName() == name) return n;
+		return null;
+	}
+	[Racr.AgRule("IsValid", "Question")]
+	static bool QuestionIsValid(Racr.AstNode n) { return n.IsLValid(); }
+	[Racr.AgRule("IsLValid", "Question")]
+	static bool QuestionIsLValid(Racr.AstNode n) {
+		if (n.Type() == ValueTypes.ErrorType) return false;
+		var prev = n.GLookup(n.GetName());
+		return prev.IsErrorQuestion() || n.Type() == prev.Type();
+	}
+	[Racr.AgRule("IsActive", "Question")]
+	static bool QuestionIsActive(Racr.AstNode n) {
+		return n.IsErrorQuestion() || (n.Parent().IsActive() && n.FindActive(n.GetName()).IsErrorQuestion());
+	}
 
-			// TODO: menu
-
-			var panel = new FlowLayoutPanel();
-			panel.AutoSize = true;
-			panel.AutoScroll = true;
-			panel.Dock = DockStyle.Fill;
-			panel.FlowDirection = FlowDirection.TopDown;
-			panel.WrapContents = false;
-
-			form.Controls.Add(panel);
-
-			return panel;
+	[Racr.AgRule("Type", "OrdinaryQuestion")]
+	static ValueTypes OrdinaryQuestionType(Racr.AstNode n) { return n.GetValueType(); }
+	[Racr.AgRule("Value", "OrdinaryQuestion")]
+	static object OrdinaryQuestionValue(Racr.AstNode n) { return n.GetValue(); }
+	[Racr.AgRule("Widget", "OrdinaryQuestion")]
+	static Control OrdinaryQuestionWidget(Racr.AstNode n) {
+		Widget w;
+		if (n.Type() == ValueTypes.Boolean) {
+			w = new CheckWidget(n.GetLabel());
+			var cb = w.GetCheckBox();
+			cb.CheckedChanged += (object sender, EventArgs e) => {
+				if (!cb.ContainsFocus) return;
+				n.SetValue(cb.Checked);
+				n.Root().Render();
+			};
 		}
-		static bool Render(Racr.AstNode n) {
-//			Console.WriteLine("Form:Render");
-			foreach (var c in n.GetBody().Children()) {
-				var child = c as Racr.AstNode;
-//				Console.WriteLine("child {0}", child.NodeType());
-				var w = child.Widget();
-				child.Render();
-				if (child.IsShown()) w.Show();
-				else w.Hide();
-			}
+		else {
+			w = new TextWidget(n.GetLabel());
+			var tb = w.GetTextBox();
+			tb.TextChanged += (object sender, EventArgs e) => {
+				if (!tb.ContainsFocus) return;
+				if (n.Type() == ValueTypes.Number) {
+					try { n.SetValue(Convert.ToDouble(tb.Text)); }
+					catch { return; }
+				}
+				else n.SetValue(tb.Text);
+				n.Root().Render();
+			};
+		}
+		n.Parent().Widget().Controls.Add(w);
+		return w;
+	}
+	[Racr.AgRule("Render", "OrdinaryQuestion")]
+	static bool OrdinaryQuestionRender(Racr.AstNode n) { return false; }
+
+	[Racr.AgRule("Type", "ComputedQuestion")]
+	static ValueTypes ComputedQuestionType(Racr.AstNode n) { return n.GetExpression().Type(); }
+	[Racr.AgRule("Value", "ComputedQuestion")]
+	static object ComputedQuestionValue(Racr.AstNode n) { return n.GetExpression().Value(); }
+	[Racr.AgRule("Widget", "ComputedQuestion")]
+	static Control ComputedQuestionWidget(Racr.AstNode n) {
+		Widget w;
+		if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel(), false);
+		else w = new TextWidget(n.GetLabel(), false);
+		n.Parent().Widget().Controls.Add(w);
+		return w;
+	}
+	[Racr.AgRule("Render", "ComputedQuestion")]
+	static bool ComputedQuestionRender(Racr.AstNode n) {
+		(n.Widget() as Widget).Set(n.Value());
+		return true;
+	}
+
+	[Racr.AgRule("Type", "Use")]
+	static ValueTypes UseType(Racr.AstNode n) { return n.GLookup(n.GetName()).Type(); }
+	[Racr.AgRule("Value", "Use")]
+	static object UseValue(Racr.AstNode n) { return n.FindActive(n.GetName()).Value(); }
+
+	[Racr.AgRule("Type", "Constant")]
+	static ValueTypes ConstantType(Racr.AstNode n) {
+		var val = n.GetValue();
+		if (val is bool) return ValueTypes.Boolean;
+		if (val is double) return ValueTypes.Number;
+		if (val is string) return ValueTypes.String;
+		return ValueTypes.ErrorType;
+	}
+	[Racr.AgRule("Value", "Constant")]
+	static object ConstantValue(Racr.AstNode n) { return n.GetValue(); }
+
+	[Racr.AgRule("Type", "Computation")]
+	static ValueTypes ComputationType(Racr.AstNode n) {
+		var op = n.GetOperator();
+		var inType = ValueTypes.ErrorType;
+		var outType = ValueTypes.ErrorType;
+		var operands = n.GetOperands().Children();
+		if (op == "&&" || op == "//" || op == "not") inType = outType = ValueTypes.Boolean;
+		else if (op == "=" || op == "<" || op ==  ">" || op == "<=" || op == ">=" || op == "!=") {
+			inType = ValueTypes.Number;
+			outType = ValueTypes.Boolean;
+		}
+		else if (op == "string=?" || op == "string<?" || op ==  "string>?" || op == "string<=?" || op == "string>=?") {
+			inType = ValueTypes.String;
+			outType = ValueTypes.Boolean;
+		}
+		else if (op == "+" || op == "-" || op == "*" || op == "/") inType = outType = ValueTypes.Number;
+		else if (op == "string-append") inType = outType = ValueTypes.String;
+		if (operands.Any(x => ((Racr.AstNode) x).Type() != inType)) return ValueTypes.ErrorType;
+		return outType;
+	}
+
+	static private readonly Dictionary<string, Func<object[], object>> opTable = new Dictionary<string, Func<object[], object>>() {
+		{ "&&", (object[] l) => { return l.All(x => (bool) x); } },
+		{ "//", (object[] l) => { return l.Any(x => (bool) x); } },
+		{ "not", (object[] l) => { return !l.All(x => (bool) x); } },
+		{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
+		{ "-", (object[] l) => {
+			var a = (double) l[0];
+			for (int i = 1; i < l.Length; i++) a -= (double) l[i];
+			return a;
+		} },
+		{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
+		{ "/", (object[] l) => {
+			var a = (double) l[0];
+			for (int i = 1; i < l.Length; i++) a /= (double) l[i];
+			return a;
+		} },
+		{ "!=", (object[] l) => {
+			var s = new HashSet<double>();
+			foreach (var x in l) if (!s.Add((double) x)) return false;
 			return true;
-		}
-	}
-
-	static class Element {
-		static bool IsErrorQuestion(Racr.AstNode n) { return n == n.ErrorQuestion(); }
-		static Racr.AstNode FindActive(Racr.AstNode n, string name) {
-			var current = n.GLookup(name);
-			while (!current.IsActive()) current = current.GLookup(name);
-			return current;
-		}
-		static bool IsShown(Racr.AstNode n) { return !n.IsErrorQuestion() && n.IsActive(); }
-	}
-
-	static class Group {
-		[Racr.ContextName("Body")]
-		static Racr.AstNode GLookup(Racr.AstNode n, string name) {
-			var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
-			return (ret != null) ? ret : n.Parent().GLookup(name);
-		}
-
-		static Racr.AstNode LLookup(Racr.AstNode n, string name) {
-			return findL(name, n.GetBody(), n.GetBody().NumChildren());
-		}
-		static bool IsValid(Racr.AstNode n) {
-			return n.IsLValid() && n.GetBody().Children().All(x => ((Racr.AstNode)x).IsValid());
-		}
-		static bool IsLValid(Racr.AstNode n) { return n.GetExpression().Type() == ValueTypes.Boolean; }
-		static bool IsActive(Racr.AstNode n) {
-			return (bool) n.GetExpression().Value();
-		}
-		static Control Widget(Racr.AstNode n) {
-			var panel = new FlowLayoutPanel();
-			panel.AutoSize = true;
-			panel.BorderStyle = BorderStyle.Fixed3D;
-			panel.Dock = DockStyle.Fill;
-			panel.FlowDirection = FlowDirection.TopDown;
-			panel.WrapContents = false;
-			n.Parent().Widget().Controls.Add(panel);
-			return panel;
-		}
-		static bool Render(Racr.AstNode n) {
-			foreach (var c in n.GetBody().Children()) {
-				var child = c as Racr.AstNode;
-				var w = child.Widget();
-				child.Render();
-				if (child.IsShown()) w.Show();
-				else child.Widget().Hide();
-			}
+		} },
+		{ "=", (object[] l) => { return l.All(x => (double) x == (double) l[0]); } },
+		{ "<", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if ((double)l[i-1] >= (double)l[i]) return false;
 			return true;
-		}
-	}
-
-	static class Question {
-		static Racr.AstNode LLookup(Racr.AstNode n, string name) {
-			if (n.GetName() == name) return n;
-			return null;
-		}
-		static bool IsValid(Racr.AstNode n) { return n.IsLValid(); }
-		static bool IsLValid(Racr.AstNode n) {
-			if (n.Type() == ValueTypes.ErrorType) return false;
-			var prev = n.GLookup(n.GetName());
-			return prev.IsErrorQuestion() || n.Type() == prev.Type();
-		}
-		static bool IsActive(Racr.AstNode n) {
-			return n.IsErrorQuestion() || (n.Parent().IsActive() && n.FindActive(n.GetName()).IsErrorQuestion());
-		}
-	}
-
-	static class OrdinaryQuestion {
-		static ValueTypes Type(Racr.AstNode n) { return n.GetValueType(); }
-		static object Value(Racr.AstNode n) { return n.GetValue(); }
-		static Control Widget(Racr.AstNode n) {
-			Widget w;
-			if (n.Type() == ValueTypes.Boolean) {
-				w = new CheckWidget(n.GetLabel());
-				var cb = w.GetCheckBox();
-				cb.CheckedChanged += (object sender, EventArgs e) => {
-					if (!cb.ContainsFocus) return;
-					n.SetValue(cb.Checked);
-					n.Root().Render();
-				};
-			}
-			else {
-				w = new TextWidget(n.GetLabel());
-				var tb = w.GetTextBox();
-				tb.TextChanged += (object sender, EventArgs e) => {
-					if (!tb.ContainsFocus) return;
-					if (n.Type() == ValueTypes.Number) {
-						try { n.SetValue(Convert.ToDouble(tb.Text)); }
-						catch { return; }
-					}
-					else n.SetValue(tb.Text);
-					n.Root().Render();
-				};
-			}
-			n.Parent().Widget().Controls.Add(w);
-			return w;
-		}
-		static bool Render(Racr.AstNode n) { return false; }
-	}
-
-	static class ComputedQuestion {
-		static ValueTypes Type(Racr.AstNode n) { return n.GetExpression().Type(); }
-		static object Value(Racr.AstNode n) { return n.GetExpression().Value(); }
-		static Control Widget(Racr.AstNode n) {
-			Widget w;
-			if (n.Type() == ValueTypes.Boolean) w = new CheckWidget(n.GetLabel(), false);
-			else w = new TextWidget(n.GetLabel(), false);
-			n.Parent().Widget().Controls.Add(w);
-			return w;
-		}
-		static bool Render(Racr.AstNode n) {
-			(n.Widget() as Widget).Set(n.Value());
+		} },
+		{ "<=", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if ((double)l[i-1] > (double)l[i]) return false;
 			return true;
-		}
-	}
-
-	static class Use {
-		static ValueTypes Type(Racr.AstNode n) { return n.GLookup(n.GetName()).Type(); }
-		static object Value(Racr.AstNode n) { return n.FindActive(n.GetName()).Value(); }
-	}
-
-	static class Constant {
-		static ValueTypes Type(Racr.AstNode n) {
-			var val = n.GetValue();
-			if (val is bool) return ValueTypes.Boolean;
-			if (val is double) return ValueTypes.Number;
-			if (val is string) return ValueTypes.String;
-			return ValueTypes.ErrorType;
-		}
-		static object Value(Racr.AstNode n) { return n.GetValue(); }
-	}
-
-	static class Computation {
-		static ValueTypes Type(Racr.AstNode n) {
-			var op = n.GetOperator();
-			var inType = ValueTypes.ErrorType;
-			var outType = ValueTypes.ErrorType;
-			var operands = n.GetOperands().Children();
-
-			if (op == "&&" || op == "//" || op == "not") inType = outType = ValueTypes.Boolean;
-			else if (op == "=" || op == "<" || op ==  ">" || op == "<=" || op == ">=" || op == "!=") {
-				inType = ValueTypes.Number;
-				outType = ValueTypes.Boolean;
-			}
-			else if (op == "string=?" || op == "string<?" || op ==  "string>?" || op == "string<=?" || op == "string>=?") {
-				inType = ValueTypes.String;
-				outType = ValueTypes.Boolean;
-			}
-			else if (op == "+" || op == "-" || op == "*" || op == "/") inType = outType = ValueTypes.Number;
-			else if (op == "string-append") inType = outType = ValueTypes.String;
-
-			if (operands.Any(x => ((Racr.AstNode) x).Type() != inType)) return ValueTypes.ErrorType;
-			return outType;
-		}
-
-		static private readonly Dictionary<string, Func<object[], object>> opTable = new Dictionary<string, Func<object[], object>>() {
-			{ "&&", (object[] l) => { return l.All(x => (bool) x); } },
-			{ "//", (object[] l) => { return l.Any(x => (bool) x); } },
-			{ "not", (object[] l) => { return !l.All(x => (bool) x); } },
-			{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
-			{ "-", (object[] l) => { return l.Aggregate(0.0, (s, x) => s - (double) x); } },
-			{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
-			{ "/", (object[] l) => {
-					var a = (double) l[0];
-					for (int i = 1; i < l.Length; i++) a /= (double) l[i];
-					return a;
-			} },
-			{ "!=", (object[] l) => {
-					var s = new HashSet<double>();
-					foreach (var x in l) if (!s.Add((double) x)) return false;
-					return true;
-			} },
-			{ "=", (object[] l) => { return l.All(x => (double) x == (double) l[0]); } },
-			{ "<", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] >= (double)l[i]) return false;
-					return true;
-			} },
-			{ "<=", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] > (double)l[i]) return false;
-					return true;
-			} },
-			{ ">", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] <= (double)l[i]) return false;
-					return true;
-			} },
-			{ ">=", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if ((double)l[i-1] < (double)l[i]) return false;
-					return true;
-			} },
-			{ "string=?", (object[] l) => { return l.All(x => (string) x == (string) l[0]); } },
-			{ "string<?", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) >= 0) return false;
-					return true;
-			} },
-			{ "string<=?", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) > 0) return false;
-					return true;
-			} },
-			{ "string>?", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) <= 0) return false;
-					return true;
-			} },
-			{ "string>=?", (object[] l) => {
-					for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) < 0) return false;
-					return true;
-			} },
-			{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) x); } },
-		};
-		static object Value(Racr.AstNode n) {
-			var op = n.GetOperator();
-			var operands = n.GetOperands().Children();
-			var args = operands.Select(p => ((Racr.AstNode) p).Value()).ToArray();
-			object result;
-			try { result = opTable[op](args); }
-			catch { result = null; }
-			return result;
-		}
+		} },
+		{ ">", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if ((double)l[i-1] <= (double)l[i]) return false;
+			return true;
+		} },
+		{ ">=", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if ((double)l[i-1] < (double)l[i]) return false;
+			return true;
+		} },
+		{ "string=?", (object[] l) => { return l.All(x => (string) x == (string) l[0]); } },
+		{ "string<?", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) >= 0) return false;
+			return true;
+		} },
+		{ "string<=?", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) > 0) return false;
+			return true;
+		} },
+		{ "string>?", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) <= 0) return false;
+			return true;
+		} },
+		{ "string>=?", (object[] l) => {
+			for (int i = 1; i < l.Length; i++) if (StringComparer.Ordinal.Compare(l[i-1], l[i]) < 0) return false;
+			return true;
+		} },
+		{ "string-append", (object[] l) => { return l.Aggregate("", (s, x) => s + (string) x); } },
+	};
+	[Racr.AgRule("Value", "Computation")]
+	static object ComputationValue(Racr.AstNode n) {
+		var op = n.GetOperator();
+		var operands = n.GetOperands().Children();
+		var args = operands.Select(p => ((Racr.AstNode) p).Value()).ToArray();
+		object result;
+		var func = opTable[op];
+		try { result = func(args); }
+		catch { result = null; }
+		return result;
 	}
 }
 
@@ -620,7 +639,7 @@ class Questionnaire {
 		}
 		*/
 		path = "../../../../../foo.questionnaire";
-		//path = "../../../../../correct-1.questionnaire";
+		path = "../../../../../correct-1.questionnaire";
 
 		ql = new QL();
 		var parser = new Parser(ql, File.OpenText(path).ReadToEnd());

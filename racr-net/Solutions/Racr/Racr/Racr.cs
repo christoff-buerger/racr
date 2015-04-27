@@ -133,36 +133,21 @@ static public class Racr {
 		public void RegisterAgRules() {
 			RegisterAgRules(this.GetType());
 		}
+
 		public void RegisterAgRules(Type type=null) {
-			var classes = type.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
-			foreach (var @class in classes) {
-				if (@class.BaseType != typeof(object)) continue;
-
-				var methods = @class.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-				foreach (var method in methods) {
-					if (method.DeclaringType != @class || method.Name[0] == '<') continue;
-
-					string contextName = "*";
-					bool cached = true;
-
-					foreach (var attr in method.GetCustomAttributes(false)) {
-						var contextNameAttr = attr as ContextNameAttribute;
-						if (contextNameAttr != null) contextName = contextNameAttr.NonTerminal;
-						var uncachedAttr = attr as UncachedAttribute;
-						if (uncachedAttr != null) cached = !uncachedAttr.Uncached;
-					}
-
-					//Console.WriteLine("{0} {1} {2}", method.Name, @class.Name, contextName);
+			var methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			foreach (var method in methods) {
+				foreach (var attr in method.GetCustomAttributes(typeof(AgRuleAttribute), false)) {
+					var a = attr as AgRuleAttribute;
 
 					specifyAttribute.Call(
 						spec,
-						SymbolTable.StringToObject(method.Name),
-						SymbolTable.StringToObject(@class.Name),
-						SymbolTable.StringToObject(contextName),
-						cached,
+						SymbolTable.StringToObject(a.AttributeName),
+						SymbolTable.StringToObject(a.NonTerminal),
+						SymbolTable.StringToObject(a.Context),
+						a.Cached,
 						WrapToCallable(method),
 						false);
-
 				}
 			}
 		}
@@ -212,7 +197,7 @@ static public class Racr {
 			if (method.ReturnType.IsValueType) gen.Emit(OpCodes.Box, method.ReturnType);
 			gen.Emit(OpCodes.Ret);
 
-			return Closure.Create(dynmeth.CreateDelegate(callTargets[paramTypes.Length]), paramTypes.Length);
+			return Closure.Create(dynmeth.CreateDelegate(outType), paramTypes.Length);
 		}
 
 		// TODO circDef!!!
@@ -269,9 +254,8 @@ static public class Racr {
 	}
 
 	public class AstNode /*: DynamicObject*/ {
-		//internal object ast;
-		public object ast;
-		private bool[] nonTermChilren;		// are children non-terminal?
+		internal object ast;
+		private bool[] nonTermChilren;
 		protected AstNode() {}
 
 		public AstNode(Specification spec, string nonTerminal, params object[] children) {
@@ -530,17 +514,16 @@ static public class Racr {
 	}
 
 	[AttributeUsage(AttributeTargets.Method)]
-	public class ContextNameAttribute : Attribute {
+	public class AgRuleAttribute : Attribute {
 		public readonly string NonTerminal;
-		public ContextNameAttribute(string nonTerminal) {
+		public readonly string AttributeName;
+
+		public string Context = "*";
+		public bool Cached = true;
+
+		public AgRuleAttribute(string attributeName, string nonTerminal) {
+			AttributeName = attributeName;
 			NonTerminal = nonTerminal;
-		}
-	}
-	[AttributeUsage(AttributeTargets.Method)]
-	public class UncachedAttribute : Attribute {
-		public readonly bool Uncached;
-		public UncachedAttribute(bool uncached=true) {
-			Uncached = uncached;
 		}
 	}
 }
