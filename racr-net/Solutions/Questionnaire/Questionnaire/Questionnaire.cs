@@ -38,12 +38,13 @@ static class Accessors {
 
 	public static Control Widget(this Racr.AstNode n) { return n.AttValue<Control>("Widget"); }
 	public static bool Render(this Racr.AstNode n) { return n.AttValue<bool>("Render"); }
+	public static string SExpr(this Racr.AstNode n) { return n.AttValue<string>("SExpr"); }
 
 	// Rewriting
 	public static void SetValue(this Racr.AstNode n, object value) { n.RewriteTerminal("value", value); }
 }
 
-
+// gui helper
 abstract class Widget : FlowLayoutPanel {
 	public Widget(string label) {
 		Console.WriteLine("new Widget({0})", label);
@@ -143,8 +144,6 @@ class QL : Racr.Specification {
 	static Control FormWidget(Racr.AstNode n) {
 		var form = new System.Windows.Forms.Form();
 		form.Text = "Questionnaire";
-
-		// TODO: menu
 		var file = new MenuItem("&File");
 		var open = new MenuItem("&Open");
 		var save = new MenuItem("&Save");
@@ -152,23 +151,25 @@ class QL : Racr.Specification {
 		open.Click += (object sender, EventArgs e) => {
 			var ofd = new OpenFileDialog();
 			if (ofd.ShowDialog() == DialogResult.OK) {
-				var parser = new Parser(Ql, File.OpenText(ofd.FileName).ReadToEnd());
+				var parser = new Parser(Ql, File.ReadAllText(ofd.FileName));
 				var ast = parser.ParseAst();
 				ast.Render();
 				Questionnaire.UpdateQuestions(ast);
-
 				form.Close();
-
 			}
 		};
-		quit.Click += (object sender, EventArgs e) => { form.Close(); };
-
+		save.Click += (object sender, EventArgs e) => {
+			var sfd = new SaveFileDialog();
+			if (sfd.ShowDialog() == DialogResult.OK && sfd.FileName != "") {
+				File.WriteAllText(sfd.FileName, n.SExpr());
+			}
+		};
+		quit.Click += (object sender, EventArgs e) => form.Close();
 		file.MenuItems.Add(open);
 		file.MenuItems.Add(save);
 		file.MenuItems.Add(quit);
 		form.Menu = new MainMenu();
 		form.Menu.MenuItems.Add(file);
-
 
 		var panel = new FlowLayoutPanel();
 		panel.AutoSize = true;
@@ -176,11 +177,8 @@ class QL : Racr.Specification {
 		panel.Dock = DockStyle.Fill;
 		panel.FlowDirection = FlowDirection.TopDown;
 		panel.WrapContents = false;
-
 		form.Controls.Add(panel);
-
 		form.Show();
-
 		return panel;
 	}
 	[Racr.AgRule("Render", "Form")]
@@ -365,17 +363,9 @@ class QL : Racr.Specification {
 		{ "//", (object[] l) => { return l.Any(x => (bool) x); } },
 		{ "not", (object[] l) => { return !l.All(x => (bool) x); } },
 		{ "+", (object[] l) => { return l.Aggregate(0.0, (s, x) => s + (double) x); } },
-		{ "-", (object[] l) => {
-			var a = (double) l[0];
-			for (int i = 1; i < l.Length; i++) a -= (double) l[i];
-			return a;
-		} },
+		{ "-", (object[] l) => { return l.Skip(1).Aggregate((double)l[0], (s, x) => s - (double) x); } },
 		{ "*", (object[] l) => { return l.Aggregate(1.0, (s, x) => s * (double) x); } },
-		{ "/", (object[] l) => {
-			var a = (double) l[0];
-			for (int i = 1; i < l.Length; i++) a /= (double) l[i];
-			return a;
-		} },
+		{ "/", (object[] l) => { return l.Skip(1).Aggregate((double)l[0], (s, x) => s / (double) x); } },
 		{ "!=", (object[] l) => {
 			var s = new HashSet<double>();
 			foreach (var x in l) if (!s.Add((double) x)) return false;
@@ -428,8 +418,37 @@ class QL : Racr.Specification {
 		catch { result = null; }
 		return result;
 	}
-}
 
+
+	[Racr.AgRule("SExpr", "Form")]
+	static string FormSExpr(Racr.AstNode n) {
+		return "(Form " + String.Join(" ", n.GetBody().Children().Skip(1).Select(x => ((Racr.AstNode)x).SExpr())) + ")";
+	}
+	[Racr.AgRule("SExpr", "Group")]
+	static string GroupSExpr(Racr.AstNode n) {
+		return "(If " + n.GetExpression().SExpr() + " " + String.Join(" ", n.GetBody().Children().Select(x => ((Racr.AstNode)x).SExpr())) + ")";
+	}
+	[Racr.AgRule("SExpr", "OrdinaryQuestion")]
+	static string OrdinaryQuestionSExpr(Racr.AstNode n) {
+		return "(?? '" + n.GetName() + " " + Lexer.EscapeString(n.GetLabel()) + " " + n.Type() + " " + Lexer.EscapeValue(n.Value()) + ")";
+	}
+	[Racr.AgRule("SExpr", "ComputedQuestion")]
+	static string ComputedQuestionSExpr(Racr.AstNode n) {
+		return "(~? '" + n.GetName() + " " + Lexer.EscapeString(n.GetLabel()) + " " + n.GetExpression().SExpr() + ")";
+	}
+	[Racr.AgRule("SExpr", "Use")]
+	static string UseSExpr(Racr.AstNode n) {
+		return "(~> '" + n.GetName() + ")";
+	}
+	[Racr.AgRule("SExpr", "Constant")]
+	static string ConstantSExpr(Racr.AstNode n) {
+		return "(~! " + Lexer.EscapeValue(n.Value()) + ")";
+	}
+	[Racr.AgRule("SExpr", "Computation")]
+	static string ComputationSExpr(Racr.AstNode n) {
+		return "(~~ " + n.GetOperator() + " " + String.Join(" ", n.GetOperands().Children().Select(x => ((Racr.AstNode)x).SExpr())) + ")";
+	}
+}
 
 
 class Questionnaire {
@@ -447,8 +466,8 @@ class Questionnaire {
 			break;
 		}
 	}
-	public static void Main(string[] args) {
 
+	public static void Main(string[] args) {
 		Racr.AstNode ast;
 		if (args.Length == 1) {
 			var parser = new Parser(QL.Ql, File.OpenText(args[0]).ReadToEnd());
@@ -457,7 +476,6 @@ class Questionnaire {
 		else ast = new Racr.AstNode(QL.Ql, "Form", new Racr.AstList());
 		ast.Render();
 		UpdateQuestions(ast);
-
 		Application.Run();
 	}
 }
