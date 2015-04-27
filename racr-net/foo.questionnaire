@@ -10,7 +10,7 @@
   (~? 'q3 "Greeting equals Name" (~~ string=? (~> 'q0) (~> 'q1)))
   (~? 'b3 "Greeting < Name" (~~ string<? (~> 'q0) (~> 'q1)))
 
-;  (?? 'q3 "Switch" Boolean #f)
+  (?? 'q3 "Switch" Boolean #f)
 
   (If (~> 'q3)
     (?? 'q4 "Hidden" String "test")))

@@ -37,6 +37,7 @@
     <Compile Include="..\..\Racr\Racr\Racr.cs">
       <Link>Racr.cs</Link>
     </Compile>
+    <Compile Include="Parser.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />

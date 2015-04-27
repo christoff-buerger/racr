@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-//using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -253,7 +252,7 @@ static public class Racr {
 		return nodeDotNetInstance.Call(ast) as AstNode;
 	}
 
-	public class AstNode /*: DynamicObject*/ {
+	public class AstNode {
 		internal object ast;
 		private bool[] nonTermChilren;
 		protected AstNode() {}
@@ -436,15 +435,6 @@ static public class Racr {
 		public void WeaveAnnotations(string type, string name, object v) {
 			astWeaveAnnotations.Call(ast, SymbolTable.StringToObject(type), SymbolTable.StringToObject(name), v);
 		}
-
-
-
-/*
-		public override bool TryGetMember(GetMemberBinder binder, out Object result) {
-			result = Child(binder.Name);
-			return true;
-		}
-*/
 	}
 
 	public class AstList : AstNode {
