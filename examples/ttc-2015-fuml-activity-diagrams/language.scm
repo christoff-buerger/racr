@@ -7,17 +7,17 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams language)
- (export Boolean Integer)
+ (export Boolean Integer && //
+         :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
+         :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression)
  (import (rnrs) (racr core) (atomic-petrinets user-interface))
  
  (define spec                 (create-specification))
  
- (define (Boolean)            #f)
- (define (Integer)            #f)
- 
+ ; AST Accessors:
  (define (->name n)           (ast-child 'name n))
  (define (->type n)           (ast-child 'type n))
- (define (->initial n)           (ast-child 'initial n))
+ (define (->initial n)        (ast-child 'initial n))
  (define (->source n)         (ast-child 'source n))
  (define (->target n)         (ast-child 'target n))
  (define (->guard n)          (ast-child 'guard n))
@@ -26,10 +26,11 @@
  (define (->operand1 n)       (ast-child 'operand1 n))
  (define (->operand2 n)       (ast-child 'operand2 n))
  
- (define (=variables n)       (ast-children (ast-child 'Variable* n)))
- (define (=nodes n)           (ast-children (ast-child 'ActivityNode* n)))
- (define (=edges n)           (ast-children (ast-child 'ActivityEdge* n)))
- (define (=expressions n)     (ast-children (ast-child 'Expression* n)))
+ ; Attribute Accessors:
+ (define (=variables n)       (att-value 'variables n))
+ (define (=nodes n)           (att-value 'nodes n))
+ (define (=edges n)           (att-value 'edges n))
+ (define (=expressions n)     (att-value 'expressions n))
  (define (=var n name)        (att-value 'var n name))
  (define (=node n name)       (att-value 'node n name))
  (define (=outgoing n)        (att-value 'outgoing n))
@@ -37,8 +38,43 @@
  (define (=well-typed? n)     (att-value 'well-typed? n))
  (define (=valid? n)          (att-value 'valid? n))
  
+ ; Type Support:
+ (define (Boolean)            #f)
+ (define (Integer)            #f)
+ 
+ ; Operator support:
  (define (&& . a)             (for-all (lambda (x) x) a))
  (define (// . a)             (find (lambda (x) x) a))
+ 
+ ; AST Constructors:
+ (define (:Activity id v n e)
+   (create-ast spec 'Activity (list id (create-ast-list v) (create-ast-list n) (create-ast-list e))))
+ (define (:Variable id t i)
+   (create-ast spec 'Variable (list id t i)))
+ (define (:ActivityEdge s t)
+   (create-ast spec 'ActivityEdge (list s t)))
+ (define (:ControlFlow s t g)
+   (create-ast spec 'ControlFlow (list s t g)))
+ (define (:InitialNode id)
+   (create-ast spec 'InitialNode (list id)))
+ (define (:FinalNode id)
+   (create-ast spec 'FinalNode (list id)))
+ (define (:ForkNode id)
+   (create-ast spec 'ForkNode (list id)))
+ (define (:JoinNode id)
+   (create-ast spec 'JoinNode (list id)))
+ (define (:DecisionNode id)
+   (create-ast spec 'DecisionNode (list id)))
+ (define (:MergeNode id)
+   (create-ast spec 'MergeNode (list id)))
+ (define (:ExecutableNode id e)
+   (create-ast spec 'ExecutableNode (list id (create-ast-list e))))
+ (define (:UnaryExpression a op op1)
+   (create-ast spec 'UnaryExpression (list a op op1)))
+ (define (:BinaryExpression a op op1 op2)
+   (create-ast spec 'BinaryExpression (list a op op1 op2)))
+ 
+ ;;; AST Scheme:
  
  (with-specification
   spec
@@ -58,6 +94,15 @@
   (ast-rule 'UnaryExpression:Expression->operand1)
   (ast-rule 'BinaryExpression:Expression->operand1-operand2)
   (compile-ast-specifications 'Activity))
+ 
+ ;;; Query Support:
+ 
+ (with-specification
+  spec
+  (ag-rule variables   (Activity (lambda (n) (ast-children (ast-child 'Variable* n)))))
+  (ag-rule nodes       (Activity (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
+  (ag-rule edges       (Activity (lambda (n) (ast-children (ast-child 'ActivityEdge* n)))))
+  (ag-rule expressions (Activity (lambda (n) (ast-children (ast-child 'Expression* n))))))
  
  ;;; Name Analysis:
  
