@@ -7,7 +7,7 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams language)
- (export Boolean Integer && //
+ (export exception: Boolean Integer && //
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression)
  (import (rnrs) (racr core) (atomic-petrinets user-interface))
@@ -73,6 +73,12 @@
    (create-ast spec 'UnaryExpression (list a op op1)))
  (define (:BinaryExpression a op op1 op2)
    (create-ast spec 'BinaryExpression (list a op op1 op2)))
+ 
+ ;;; Exceptions:
+ 
+ (define-condition-type fuml-exception &violation make-fuml-exception fuml-exception?)
+ (define (exception: message)
+   (raise-continuable (condition (make-fuml-exception) (make-message-condition message))))
  
  ;;; AST Scheme:
  

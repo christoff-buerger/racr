@@ -1,0 +1,21 @@
+activity test3 {
+	bool var1 = true,
+	bool var2 = false
+	
+	nodes {
+		initial initialNode3 out (edge9),
+		decision decisionNode1 in(edge9) out(edge10, edge11),
+		action action4 in(edge10) out(edge12),
+		action action5 in(edge11) out(edge13),
+		merge mergeNode1 in(edge12, edge13) out(edge14),
+		final finalNode3 in(edge14)  
+	}
+	edges {
+		flow edge9 from initialNode3 to decisionNode1,
+		flow edge10 from decisionNode1 to action4 [var1],
+		flow edge11 from decisionNode1 to action5 [var2],
+		flow edge12 from action4 to mergeNode1,
+		flow edge13 from action5 to mergeNode1,
+		flow edge14 from mergeNode1 to finalNode3	
+	}
+}

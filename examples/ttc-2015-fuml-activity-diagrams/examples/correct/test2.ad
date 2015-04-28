@@ -1,0 +1,18 @@
+activity test2 {
+	nodes {
+		initial initialNode2 out (edge3),
+		fork forkNode1 in (edge3) out (edge4, edge5),
+		action action2 in (edge4) out (edge6),
+		action action3 in (edge5) out (edge7),
+		join joinNode1 in (edge6, edge7) out (edge8),
+		final finalNode2 in (edge8)
+	}
+	edges {
+		flow edge3 from initialNode2 to forkNode1,
+		flow edge4 from forkNode1 to action2,
+		flow edge5 from forkNode1 to action3,
+		flow edge6 from action2 to joinNode1,
+		flow edge7 from action3 to joinNode1,
+		flow edge8 from joinNode1 to finalNode2 
+	}
+}

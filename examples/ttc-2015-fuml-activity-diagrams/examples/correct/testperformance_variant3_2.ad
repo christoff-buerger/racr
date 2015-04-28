@@ -1,0 +1,54 @@
+activity testperformance_variant3_1 (int i) {
+	int value2 = 2,
+	bool iG2 = false,
+	bool iE2 = false,
+	bool iL2 = false,
+	int loop = 0,
+	int iterations = 141,
+	bool loopEiterations = false,
+	bool loopLiterations = false,
+	int value1 = 1
+	 
+	nodes {
+		initial initialNode7 out(edge22),
+		action a comp { iG2 = i > value2, iE2 = i == value2, iL2 = i < value2 } in(edge22) out(edge23),
+		action b in(edge23) out(edge24),
+		action c in(edge24) out(edge25),
+		action d in(edge25) out(edge26),
+		merge mergeE in(edge26, edge41) out(edge27),
+		action e in(edge27) out(edge28),
+		decision decisionI in(edge28) out(edge29, edge30, edge31),
+		action f in(edge29) out(edge32),
+		action g in(edge30) out(edge34),
+		action h in(edge34) out(edge35),
+		action i in(edge31) out(edge36),
+		action j comp { loopEiterations = loop == iterations, loopLiterations = loop < iterations} in(edge36) out(edge37),
+		decision decisionLoop in(edge37) out(edge38, edge39),
+		merge mergeFinal7 in(edge32, edge35, edge40) out(edge33),
+		action k in(edge38) out(edge40),
+		action l comp { loop = loop + value1 } in(edge39) out(edge41),
+		final finalNode7 in(edge33)
+	}
+	edges {
+		flow edge22 from initialNode7 to a,
+		flow edge23 from a to b,
+		flow edge24 from b to c,
+		flow edge25 from c to d,
+		flow edge26 from d to mergeE,
+		flow edge27 from mergeE to e,
+		flow edge28 from e to decisionI,
+		flow edge29 from decisionI to f [iG2],
+		flow edge30 from decisionI to g [iE2],
+		flow edge31 from decisionI to i [iL2],
+		flow edge32 from f to mergeFinal7,
+		flow edge33 from mergeFinal7 to finalNode7,
+		flow edge34 from g to h,
+		flow edge35 from h to mergeFinal7, 
+		flow edge36 from i to j,
+		flow edge37 from j to decisionLoop,
+		flow edge38 from decisionLoop to k [loopEiterations],
+		flow edge39 from decisionLoop to l [loopLiterations],
+		flow edge40 from k to mergeFinal7,
+		flow edge41 from l to mergeE
+	}
+}

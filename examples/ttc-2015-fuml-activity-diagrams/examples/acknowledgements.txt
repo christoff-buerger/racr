@@ -1,0 +1,3 @@
+The examples with file ending *.ad and the inputs with file endings *.adinput are from
+'The TTC 2015 Model Execution Case' by Tanja Mayerhofer and Manuel Wimmer. For details cf.
+https://code.google.com/a/eclipselabs.org/p/moliz/source/browse/?repo=ttc2015 

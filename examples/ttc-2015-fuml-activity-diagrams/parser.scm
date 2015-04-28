@@ -8,29 +8,35 @@
 (library
  (ttc-2015-fuml-activity-diagrams parser)
  (export parse)
- (import (rnrs) (ttc-2015-fuml-activity-diagrams language))
+ (import (rename (rnrs) (read-char r6:read-char) (peek-char r6:peek-char)) (ttc-2015-fuml-activity-diagrams language))
  
  (define (parse file)
-   (define current-char #f)
-   
    (define peek-char ; Return the next character if it satisfies optional constraints and exists.
      (lambda constraints
+       (define current-char (r6:peek-char))
        (and (not (eof-object? current-char))
             (for-all (lambda (f) (f current-char)) constraints)
             current-char)))
    
    (define read-char ; Similar to peek-char but additionally increments the parsing position.
      (lambda constraints
-       (unless (apply peek-char constraints) (raise "Parsing Error!"))
-       (set! current-char (read))
-       current-char))
+       (unless (apply peek-char constraints) (exception: "Parsing Error"))
+       (r6:read-char)))
    
    (define (char= to-read) ; Construct filter for certain character that can be used by peek- and read-char.
      (lambda (char-read)
        (char=? char-read to-read)))
    
    (define (consume-whitespace)
-     (when (peek-char char-whitespace?) (read-char) (consume-whitespace)))
+     (when (peek-char char-whitespace?) (read-char) (consume-whitespace))
+     (when (peek-char (char= #\/))
+       (read-char)
+       (read-char (char= #\/))
+       (let loop ()
+         (if (peek-char (char= #\newline))
+             (read-char)
+             (begin (read-char) (loop))))
+       (consume-whitespace)))
    
    (define (parse-boolean)
      (cond ((peek-char (char= #\f)) (parse-keyword "false") #f)
@@ -46,11 +52,14 @@
      (consume-whitespace)
      num)
    
-   (define (parse-identifier) ; Parse ordinary identifier, i.e., [a-zA-Z][a-zA-Z0-9]*.
+   (define (parse-identifier) ; Parse ordinary identifier, i.e., [a-zA-Z][_a-zA-Z0-9]*.
      (define id
        (let loop ((id (list (read-char char-alphabetic?))))
          (let ((next-char? (peek-char)))
-           (if (and next-char? (or (char-alphabetic? next-char?) (char-numeric? next-char?)))
+           (if (and next-char?
+                    (or (char=? next-char? #\_)
+                        (char-alphabetic? next-char?)
+                        (char-numeric? next-char?)))
                (loop (cons (read-char) id))
                (string->symbol (apply string (reverse id)))))))
      (consume-whitespace)
@@ -70,7 +79,7 @@
    
    (define (parse-activity)
      (define name #f)(define Variable* (list))(define ActivityNode* (list))(define ActivityEdge* (list))
-     (read-char)(consume-whitespace)
+     (consume-whitespace)
      (parse-keyword "activity")
      (set! name (parse-identifier))
      (when (peek-char (char= #\())
@@ -83,16 +92,16 @@
        (set! Variable* (append Variable* (parse-list parse-local))))
      (parse-keyword "nodes")
      (parse-keyword "{")
-     (unless (peek-char #\})
+     (unless (peek-char (char= #\}))
        (set! ActivityNode* (parse-list parse-node)))
      (parse-keyword "}")
      (parse-keyword "edges")
      (parse-keyword "{")
-     (unless (peek-char #\})
+     (unless (peek-char (char= #\}))
        (set! ActivityEdge* (parse-list parse-edge)))
      (parse-keyword "}")
      (parse-keyword "}")
-     (unless (peek-char) (raise "Parsing Error!"))
+     (when (peek-char) (exception: "Parsing Error"))
      (:Activity name Variable* ActivityNode* ActivityEdge*))
    
    (define (parse-input)
@@ -137,7 +146,8 @@
           :MergeNode)
          ((peek-char (char= #\a))
           (parse-keyword "action")
-          :ExecutableNode)))
+          :ExecutableNode)
+         (else (exception: "Parsing Error"))))
      (set! name (parse-identifier))
      (when (and (eq? type :ExecutableNode) (peek-char (char= #\c)))
        (parse-keyword "comp")
@@ -160,22 +170,26 @@
    
    (define (parse-binary-operator)
      (cond
-       ((peek-char (char= #\=))
-        (parse-keyword "==") =)
-       ((peek-char (char= #\&))
-        (parse-keyword "&&") &&)
-       ((peek-char (char= #\|))
-        (parse-keyword "||") //)
+       ((peek-char (char= #\+))
+        (parse-keyword "+") +)
+       ((peek-char (char= #\-))
+        (parse-keyword "-") -)
        ((peek-char (char= #\<))
         (read-char)
         (if (peek-char (char= #\=))
             (begin (parse-keyword "=") <=)
             (begin (consume-whitespace) <)))
+       ((peek-char (char= #\=))
+        (parse-keyword "==") =)
        ((peek-char (char= #\>))
         (read-char)
         (if (peek-char (char= #\=))
             (begin (parse-keyword "=") >=)
-            (begin (consume-whitespace) >)))))
+            (begin (consume-whitespace) >)))
+       ((peek-char (char= #\&))
+        (parse-keyword "&") &&)
+       ((peek-char (char= #\|))
+        (parse-keyword "|") //)))
    
    (define (consume-edges)
      (when (peek-char (char= #\i))
