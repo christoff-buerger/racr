@@ -722,7 +722,7 @@
            (set! pos (+ pos 1))
            char-read?)))
      
-     (define char= ; Construct filter for certain character that can be used by peek- and read-char. 
+     (define char= ; Construct filter for certain character that can be used by peek- and read-char.
        (lambda (to-read)
          (lambda (char-read)
            (char=? char-read to-read))))

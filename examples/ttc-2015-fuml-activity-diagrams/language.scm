@@ -6,8 +6,8 @@
 #!r6rs
 
 (library
- (ttc-2015-fuml-activity-diagrams)
- (export)
+ (ttc-2015-fuml-activity-diagrams language)
+ (export Boolean Integer)
  (import (rnrs) (racr core) (atomic-petrinets user-interface))
  
  (define spec                 (create-specification))
@@ -17,6 +17,7 @@
  
  (define (->name n)           (ast-child 'name n))
  (define (->type n)           (ast-child 'type n))
+ (define (->initial n)           (ast-child 'initial n))
  (define (->source n)         (ast-child 'source n))
  (define (->target n)         (ast-child 'target n))
  (define (->guard n)          (ast-child 'guard n))
@@ -85,6 +86,10 @@
   (ag-rule
    well-typed?
    
+   (Variable
+    (lambda (n)
+      (if (eq? (->type n) Boolean) (boolean? (->initial n)) (integer? (->initial n)))))
+   
    (UnaryExpression
     (lambda (n)
       (define ass (=var (->asignee n)))
@@ -122,7 +127,8 @@
   
   (ag-rule
    valid?
-   (Activity       (lambda (n) (and (for-all =valid? (=nodes n)) (for-all =valid? (=edges n)))))
+   (Activity       (lambda (n) (for-all =valid? (append (=variables n) (=nodes n) (=edges n)))))
+   (Variable       (lambda (n) (=well-typed? n)))
    (ControlFlow    (lambda (n) (let ((v (=var n (->guard n)))) (and v (eq? (->type v) Boolean)))))
    (ActivityEdge   (lambda (n) #t))
    (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f))))
