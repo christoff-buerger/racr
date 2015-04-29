@@ -80,17 +80,17 @@ Given a node `n` of arbitrary type and a non-terminal type `t`, which is a super
          spec
          (ast-rule 'S->A)
          (ast-rule 'A->a)
-         (ast-rule 'Aa:A->b-c)
+         (ast-rule 'Aa:A->b-A-c)
          (compile-ast-specifications 'S)
          (compile-ag-specifications)
          (ast-child 'A
                     (create-ast
                      'S
                      (list
-                      (create-ast 'Aa (list 1 2 3))))))))
-  (assert (= (ast-num-children A) 3))
+                      (create-ast 'Aa (list 1 2 (create-ast-bud) 3))))))))
+  (assert (= (ast-num-children A) 4))
   (assert (eq? (ast-node-type A) 'Aa))
-  ; Abstract an Aa node to an A node. Note, that A nodes have two
+  ; Abstract an Aa node to an A node. Note, that A nodes have three
   ; less child contexts than Aa nodes:
   (rewrite-abstract A 'A)
   (assert (= (ast-num-children A) 1))
