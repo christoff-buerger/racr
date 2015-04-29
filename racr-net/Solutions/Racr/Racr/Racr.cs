@@ -43,6 +43,13 @@ static public class Racr {
 	private static Callable attValue;
 
 	private static Callable rewriteTerminal;
+	private static Callable rewriteRefine;
+	private static Callable rewriteAbstract;
+	private static Callable rewriteSubtree;
+	private static Callable rewriteAdd;
+	private static Callable rewriteInsert;
+	private static Callable rewriteDelete;
+	
 
 	private static Callable astAnnotationSet;
 	private static Callable astWeaveAnnotations;
@@ -96,8 +103,16 @@ static public class Racr {
 		specifyAttribute			= "specify-attribute".Eval<Callable>();
 		attValue					= "att-value".Eval<Callable>();
 
+
 		// rewriting
 		rewriteTerminal				= "rewrite-terminal".Eval<Callable>();
+		rewriteRefine				= "rewrite-refine".Eval<Callable>();
+		rewriteAbstract				= "rewrite-abstract".Eval<Callable>();
+		rewriteSubtree				= "rewrite-subtree".Eval<Callable>();
+		rewriteAdd					= "rewrite-add".Eval<Callable>();
+		rewriteInsert				= "rewrite-insert".Eval<Callable>();
+		rewriteDelete				= "rewrite-delete".Eval<Callable>();
+
 
 		// ast annotations
 		astAnnotationSet			= "ast-annotation-set!".Eval<Callable>();
@@ -255,9 +270,12 @@ static public class Racr {
 	public class AstNode {
 		internal object ast;
 		private bool[] nonTermChilren;
+		private Specification spec;
+
 		protected AstNode() {}
 
 		public AstNode(Specification spec, string nonTerminal, params object[] children) {
+			this.spec = spec;
 
 			var nt = SymbolTable.StringToObject(nonTerminal);
 			var rule = specificationFindAstRule.Call(spec.spec, nt);
@@ -414,10 +432,50 @@ static public class Racr {
 		public void RewriteTerminal(string name, object newValue) {
 			rewriteTerminal.Call(SymbolTable.StringToObject(name), ast, newValue);
 		}
-		public void RewriteTerminal(int index, object newValue) {
-			rewriteTerminal.Call(index, ast, newValue);
+		public void RewriteRefine(string subtype, params object[] children) {
+			var st = SymbolTable.StringToObject(subtype);
+			var rule = specificationFindAstRule.Call(spec.spec, st);
+			var symbols = astRuleProduction.Call(rule) as Cons;
+			int pos = nonTermChilren.Length;
+			for (int i = 0; i < pos; i++) symbols = symbols.cdr as Cons;
+			Array.Resize(ref nonTermChilren, pos + children.Length);
+			var args = new object [2 + children.Length];
+			args[0] = ast;
+			args[1] = st;
+			for (int i = 0; i < children.Length; i++) {
+				symbols = symbols.cdr as Cons;
+				nonTermChilren[pos + i] = IsTrue(symbolIsNonTerminal.Call(symbols.car));
+				args[2 + i] = nonTermChilren[pos + i] ? (children[i] as AstNode).ast : children[i];
+			}
+			rewriteRefine.Call(args);
 		}
-
+		public object[] RewriteAbstract(string supertype) {
+			var e = rewriteAbstract.Call(ast, SymbolTable.StringToObject(supertype)) as Cons;
+			var children = new List<object>();
+			while (e != null) {
+				children.Add(e.car);
+				e = e.cdr as Cons;
+			}
+			var offset = nonTermChilren.Length - children.Count;
+			for (int i = 0; i < children.Count; i++) {
+				Console.WriteLine("{0}: {1}", nonTermChilren[offset + i], children[i]);
+				if (nonTermChilren[offset + i]) children[i] = GetNode(children[i]);
+			}
+			Array.Resize(ref nonTermChilren, offset);
+			return children.ToArray();
+		}
+		public void RewriteSubtree(Racr.AstNode newFragment) {
+			rewriteSubtree.Call(ast, newFragment.ast);
+		}
+		public void RewriteAdd(Racr.AstNode e) {
+			rewriteAdd.Call(ast, e.ast);
+		}
+		public void RewriteInsert(int i, Racr.AstNode e) {
+			rewriteInsert.Call(ast, i, e.ast);
+		}
+		public void RewriteDelete() {
+			rewriteDelete.Call(ast);
+		}
 
 		// ast annotations
 		public void SetAnnotation(string name, object v) {
