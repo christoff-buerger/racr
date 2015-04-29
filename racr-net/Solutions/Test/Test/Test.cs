@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+
 
 class B : Racr.AstNode {
 	public B(Racr.Specification spec, string term) : base(spec, "B", term) {}
@@ -16,14 +18,13 @@ static class Extensions {
 class MySpec : Racr.Specification {
 
 
-	static class A {
-		static int M(Racr.AstNode n) { return n.NumChildren() * 2; }
-		static bool N(Racr.AstNode n) { return !n.HasParent(); }
-	}
+	[Racr.AgRule("M", "A")]
+	static int AM(Racr.AstNode n) { return n.NumChildren() * 2; }
+	[Racr.AgRule("N", "A")]
+	static bool AN(Racr.AstNode n) { return !n.HasParent(); }
 
-	static class B {
-		static bool N(Racr.AstNode n) { return !n.HasParent(); }
-	}
+	[Racr.AgRule("N", "B")]
+	static bool BN(Racr.AstNode n) { return !n.HasParent(); }
 
 
 	public MySpec() {
@@ -79,18 +80,19 @@ class MySpec : Racr.Specification {
 
 
 class App {
-	public static void Main() {
+	
 
+	static void TestFoo() {
 
 		var spec = new MySpec();
 
 		var root = new Racr.AstNode(spec, "A",
-			new Racr.AstList(
-				new B(spec, "abc"),
-				new B(spec, "123"),
-				new B(spec, "xyz")),
-			new Racr.AstNode(spec, "C"),
-			"hiya");
+		                            new Racr.AstList(
+			new B(spec, "abc"),
+			new B(spec, "123"),
+			new B(spec, "xyz")),
+		                            new Racr.AstNode(spec, "C"),
+		                            "hiya");
 
 
 		root.ForEachChild((i, o) => {
@@ -146,6 +148,84 @@ class App {
 		Console.WriteLine("HasParent: {0}", child.HasParent());
 		Console.WriteLine("ChildIndex: {0}", child.ChildIndex());
 		Console.WriteLine("NumChildren: {0}", child.NumChildren());
+
+	}
+
+
+
+	static void TestRewriteRefine() {
+		var spec = new Racr.Specification();
+
+
+		spec.AstRule("S->A");
+		spec.AstRule("A->a");
+		spec.AstRule("Aa:A->b-c");
+		spec.CompileAstSpecifications("S");
+		spec.CompileAgSpecifications();
+
+		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "A", 1));
+		var A = ast.Child("A");
+
+		Console.WriteLine("{0}", A.NumChildren() == 1);
+		Console.WriteLine("{0}", A.NodeType() == "A");
+
+		A.RewriteRefine("Aa", 2, 3);
+
+		Console.WriteLine("{0}", A.NumChildren() == 3);
+		Console.WriteLine("{0}", A.NodeType() == "Aa");
+
+		foreach (var c in A.Children()) Console.WriteLine(c);
+
+	}
+
+	static void TestRewriteAbstract() {
+		var spec = new Racr.Specification();
+
+		spec.AstRule("S->A");
+		spec.AstRule("A->a");
+		spec.AstRule("Aa:A->b-c");
+		spec.CompileAstSpecifications("S");
+		spec.CompileAgSpecifications();
+
+		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "Aa", 1, 2, 3));
+		var A = ast.Child("A");
+
+//		Debug.Assert(A.NumChildren() == 3);
+//		Debug.Assert(A.NodeType() == "Aa");
+
+		var c = A.RewriteAbstract("A");
+		foreach (var x in c) Console.WriteLine(x);
+
+//		Debug.Assert(A.NumChildren() == 1);
+//		Debug.Assert(A.NodeType() == "A");
+
+	}
+
+	static void TestRewriteSubtree() {
+		var spec = new Racr.Specification();
+
+		spec.AstRule("S->A");
+		spec.AstRule("A->a");
+		spec.AstRule("Aa:A->b-c");
+		spec.CompileAstSpecifications("S");
+		spec.CompileAgSpecifications();
+
+		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "A", 42));
+		var A = ast.Child("A");
+
+		Console.WriteLine(A.HasParent());
+		Console.WriteLine(ast.Child("A").NodeType());
+
+		A.RewriteSubtree(new Racr.AstNode(spec, "Aa", 1, 2, 3));
+
+		Console.WriteLine(A.HasParent());
+		Console.WriteLine(ast.Child("A").NodeType());
+	}
+
+
+	public static void Main() {
+
+		TestRewriteSubtree();
 
 	}
 
