@@ -3227,7 +3227,9 @@
          (for-each ; ...update the inherited attribution of all remaining children. Finally,...
           update-inherited-attribution
           (node-children n))
-         children-to-remove)))) ; ...return the removed children.
+         (map ; ...return the removed children.
+          (lambda (child) (if (node-terminal? child) (node-children child) child))
+          children-to-remove)))))
  
  (define rewrite-add
    (lambda (l e)
