@@ -121,7 +121,7 @@
                  (rt-equation
                   't-value
                   (lambda (n)
-                    (and (ast-has-child? 't-value n) (att-value 't-value n))))))
+                    (and (ast-has-child? 't n) (ast-child 't n))))))
                
                (compile-ag-specifications)
                
@@ -220,7 +220,7 @@
           (D) 'Ab-sub-type
           (D) 'A-super-type)
          
-         (rewrite-refine (A) 'Ac (create-ast 'B (list)))
+         (rewrite-refine (A) 'Ac (create-ast 'B (list)) #t)
          (influenced:
           (S) 's
           (S) 't-value

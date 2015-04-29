@@ -3127,15 +3127,17 @@
                (vector-ref (cdr influence) 6))))
            (node-cache-influences n)))
          (for-each ; ...all entries depending on the new children being roots. Afterwards,...
-          (lambda (child)
-            (for-each
-             (lambda (influence)
-               (flush-attribute-cache-entry (car influence)))
-             (filter
-              (lambda (influence)
-                (vector-ref (cdr influence) 1))
-              (node-cache-influences child))))
-          c)
+          (lambda (child context)
+            (when (symbol-non-terminal? context)
+              (for-each
+               (lambda (influence)
+                 (flush-attribute-cache-entry (car influence)))
+               (filter
+                (lambda (influence)
+                  (vector-ref (cdr influence) 1))
+                (node-cache-influences child)))))
+          c
+          additional-children)
          (node-ast-rule-set! n new-rule) ; ...update the node's type,...
          (update-synthesized-attribution n) ; ...synthesized attribution,...
          (node-children-set! ; ...insert the new children and...
