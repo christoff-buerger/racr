@@ -10,6 +10,8 @@ class Test {
 	Callable interpretCorrect;
 	Callable interpretIncorrect;
 
+	string racrPath = "../../";
+
 	[SetUp]
 	public void Init() {
 		"(import (racr core) (racr testing))".Eval();
@@ -17,7 +19,7 @@ class Test {
 		load = "load".Eval<Callable>();
 
 		// extend library path
-		"(library-path (cons {0} (library-path)))".Eval("../racr-repo/examples");
+		"(library-path (cons {0} (library-path)))".Eval(racrPath + "examples");
 
 		// siple
 		"(import (siple main) (siple exception-api))".Eval();
@@ -30,40 +32,40 @@ class Test {
 		".Eval<Callable>();
 	}
 
-	[Test]
-	public void SchemeAdd() {
-		Assert.AreEqual(3, "(+ 1 2)".Eval<int>());
-	}
+	[Test] public void SchemeAdd() { Assert.AreEqual(3, "(+ 1 2)".Eval<int>()); }
+
+	[Test] public void RacrTestAstConstruction()			{ load.Call(racrPath + "tests/ast-construction.scm"); }
+	[Test] public void RacrTestRewriteRefineAbstract()		{ load.Call(racrPath + "tests/rewrite-refine-abstract.scm"); }
 
 	[Test]
 	public void RacrBasicTests() {
 		foreach (var test in new string[] {
-			"ast-construction.scm",
 			"attribute-evaluation-basics.scm",
 			"continuations-in-equations.scm",
 			"patterns.scm",
 			"rewrite-basics.scm",
 			"rewrite-buds.scm",
 			"rewrite-lists.scm",
-			"rewrite-refine-abstract.scm",
 			"rewrite-strategies.scm",
 		}) {
-			var path = "../racr-repo/tests/" + test;
+			var path = racrPath + "tests/" + test;
 			Console.WriteLine("loading {0} ...", path);
 			load.Call(path);
 		}
 	}
 
+
+
 	[Test]
 	public void RacrExamples() {
 		foreach (var test in new string[] {
 			"binary-numbers/binary-numbers.scm",
-			"petrinets/examples/cookie-automata.scm",
+			"petrinets/examples/cookie-automaton.scm",
 			"petrinets/examples/purchase-processing.scm",
 			"petrinets/examples/runtime-structure-example-slide.scm",
 			"state-machines/state-machines.scm",
 		}) {
-			var path = "../racr-repo/examples/" + test;
+			var path = racrPath + "examples/" + test;
 			Console.WriteLine("loading {0} ...", path);
 			load.Call(path);
 		}
@@ -85,7 +87,7 @@ class Test {
 			"scopes.siple",
 			"type_coercions.siple",
 		}) {
-			var path = "../racr-repo/examples/siple/examples/correct/" + test;
+			var path = racrPath + "examples/siple/examples/correct/" + test;
 			Console.WriteLine("interpreting {0} ...", path);
 			interpretCorrect.Call(path);
 		}
@@ -103,7 +105,7 @@ class Test {
 			"relational_arithmetics.siple",
 			"scopes.siple",
 		}) {
-			var path = "../racr-repo/examples/siple/examples/incorrect/" + test;
+			var path = racrPath + "examples/siple/examples/incorrect/" + test;
 			Console.WriteLine("interpreting {0} ...", path);
 			interpretIncorrect.Call(path);
 		}
