@@ -47,7 +47,6 @@ static class Accessors {
 // gui helper
 abstract class Widget : FlowLayoutPanel {
 	public Widget(string label) {
-		Console.WriteLine("new Widget({0})", label);
 		AutoSize = true;
 		WrapContents = false;
 		FlowDirection = FlowDirection.LeftToRight;
@@ -412,13 +411,10 @@ class QL : Racr.Specification {
 		var op = n.GetOperator();
 		var operands = n.GetOperands().Children();
 		var args = operands.Select(p => ((Racr.AstNode) p).Value()).ToArray();
-		object result;
 		var func = opTable[op];
-		try { result = func(args); }
-		catch { result = null; }
-		return result;
+		try { return func(args); }
+		catch { return null; }
 	}
-
 
 	[Racr.AgRule("SExpr", "Form")]
 	static string FormSExpr(Racr.AstNode n) {

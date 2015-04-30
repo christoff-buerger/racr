@@ -190,14 +190,14 @@ class App {
 		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "Aa", 1, 2, 3));
 		var A = ast.Child("A");
 
-//		Debug.Assert(A.NumChildren() == 3);
-//		Debug.Assert(A.NodeType() == "Aa");
+		Console.WriteLine(A.NumChildren() == 3);
+		Console.WriteLine(A.NodeType() == "Aa");
 
 		var c = A.RewriteAbstract("A");
 		foreach (var x in c) Console.WriteLine(x);
 
-//		Debug.Assert(A.NumChildren() == 1);
-//		Debug.Assert(A.NodeType() == "A");
+		Console.WriteLine(A.NumChildren() == 1);
+		Console.WriteLine(A.NodeType() == "A");
 
 	}
 
@@ -225,7 +225,10 @@ class App {
 
 	public static void Main() {
 
-		TestRewriteSubtree();
+		TestRewriteRefine();
+		TestRewriteAbstract();
+
+//		TestRewriteSubtree();
 
 	}
 

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using IronScheme;
 using IronScheme.Runtime;
 using NUnit.Framework;
@@ -6,17 +7,16 @@ using NUnit.Framework;
 [TestFixture]
 class Test {
 
-	Callable load;
+	const string racrPath = "../../";
+
+	static void EvalScript(string path) { File.ReadAllText(racrPath + path).Eval(); }
+
 	Callable interpretCorrect;
 	Callable interpretIncorrect;
-
-	string racrPath = "../../";
 
 	[SetUp]
 	public void Init() {
 		"(import (racr core) (racr testing))".Eval();
-
-		load = "load".Eval<Callable>();
 
 		// extend library path
 		"(library-path (cons {0} (library-path)))".Eval(racrPath + "examples");
@@ -32,28 +32,17 @@ class Test {
 		".Eval<Callable>();
 	}
 
-	[Test] public void SchemeAdd() { Assert.AreEqual(3, "(+ 1 2)".Eval<int>()); }
+	[Test] public void SchemeAdd() 							{ Assert.AreEqual(3, "(+ 1 2)".Eval<int>()); }
 
-	[Test] public void RacrTestAstConstruction()			{ load.Call(racrPath + "tests/ast-construction.scm"); }
-	[Test] public void RacrTestRewriteRefineAbstract()		{ load.Call(racrPath + "tests/rewrite-refine-abstract.scm"); }
-
-	[Test]
-	public void RacrBasicTests() {
-		foreach (var test in new string[] {
-			"attribute-evaluation-basics.scm",
-			"continuations-in-equations.scm",
-			"patterns.scm",
-			"rewrite-basics.scm",
-			"rewrite-buds.scm",
-			"rewrite-lists.scm",
-			"rewrite-strategies.scm",
-		}) {
-			var path = racrPath + "tests/" + test;
-			Console.WriteLine("loading {0} ...", path);
-			load.Call(path);
-		}
-	}
-
+	[Test] public void RacrTestAstConstruction()			{ EvalScript("tests/ast-construction.scm"); }
+	[Test] public void RacrTestAttributeEvaluationBasics()	{ EvalScript("tests/attribute-evaluation-basics.scm"); }
+	[Test] public void RacrTestContinuationsInEquations()	{ EvalScript("tests/continuations-in-equations.scm"); }
+	[Test] public void RacrTestPatterns()					{ EvalScript("tests/patterns.scm"); }
+	[Test] public void RacrTestRewriteBasics()				{ EvalScript("tests/rewrite-basics.scm"); }
+	[Test] public void RacrTestRewriteBuds()				{ EvalScript("tests/rewrite-buds.scm"); }
+	[Test] public void RacrTestRewriteLists()				{ EvalScript("tests/rewrite-lists.scm"); }
+	[Test] public void RacrTestRewriteRefineAbstract()		{ EvalScript("tests/rewrite-refine-abstract.scm"); }
+	[Test] public void RacrTestRewriteStrategies()			{ EvalScript("tests/rewrite-strategies.scm"); }
 
 
 	[Test]
@@ -65,9 +54,9 @@ class Test {
 			"petrinets/examples/runtime-structure-example-slide.scm",
 			"state-machines/state-machines.scm",
 		}) {
-			var path = racrPath + "examples/" + test;
+			var path = "examples/" + test;
 			Console.WriteLine("loading {0} ...", path);
-			load.Call(path);
+			EvalScript(path);
 		}
 	}
 
@@ -87,7 +76,7 @@ class Test {
 			"scopes.siple",
 			"type_coercions.siple",
 		}) {
-			var path = racrPath + "examples/siple/examples/correct/" + test;
+			var path = "examples/siple/examples/correct/" + test;
 			Console.WriteLine("interpreting {0} ...", path);
 			interpretCorrect.Call(path);
 		}
@@ -105,7 +94,7 @@ class Test {
 			"relational_arithmetics.siple",
 			"scopes.siple",
 		}) {
-			var path = racrPath + "examples/siple/examples/incorrect/" + test;
+			var path = "examples/siple/examples/incorrect/" + test;
 			Console.WriteLine("interpreting {0} ...", path);
 			interpretIncorrect.Call(path);
 		}
