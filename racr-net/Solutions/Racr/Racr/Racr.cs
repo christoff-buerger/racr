@@ -458,7 +458,6 @@ static public class Racr {
 			}
 			var offset = nonTermChilren.Length - children.Count;
 			for (int i = 0; i < children.Count; i++) {
-				Console.WriteLine("{0}: {1}", nonTermChilren[offset + i], children[i]);
 				if (nonTermChilren[offset + i]) children[i] = GetNode(children[i]);
 			}
 			Array.Resize(ref nonTermChilren, offset);
