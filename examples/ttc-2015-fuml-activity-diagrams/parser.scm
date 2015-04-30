@@ -117,7 +117,7 @@
  
  (define (parse-input)
    (define type (parse-type))
-   (:Variable (parse-identifier) type (list)))
+   (:Variable (parse-identifier) type Undefined))
  
  (define (parse-local)
    (define type (parse-type))

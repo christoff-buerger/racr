@@ -7,9 +7,10 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams language)
- (export exception: Boolean Integer && //
+ (export exception: Boolean Integer Undefined && //
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
-         :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression)
+         :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
+         ->name ->initial =var =valid?)
  (import (rnrs) (racr core) (atomic-petrinets user-interface))
  
  (define spec                 (create-specification))
@@ -21,7 +22,7 @@
  (define (->source n)         (ast-child 'source n))
  (define (->target n)         (ast-child 'target n))
  (define (->guard n)          (ast-child 'guard n))
- (define (->asignee n)        (ast-child 'asignee n))
+ (define (->assignee n)       (ast-child 'assignee n))
  (define (->operator n)       (ast-child 'operator n))
  (define (->operand1 n)       (ast-child 'operand1 n))
  (define (->operand2 n)       (ast-child 'operand2 n))
@@ -41,6 +42,7 @@
  ; Type Support:
  (define (Boolean)            #f)
  (define (Integer)            #f)
+ (define (Undefined)          #f)
  
  ; Operator support:
  (define (&& . a)             (for-all (lambda (x) x) a))
@@ -105,10 +107,10 @@
  
  (with-specification
   spec
-  (ag-rule variables   (Activity (lambda (n) (ast-children (ast-child 'Variable* n)))))
-  (ag-rule nodes       (Activity (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
-  (ag-rule edges       (Activity (lambda (n) (ast-children (ast-child 'ActivityEdge* n)))))
-  (ag-rule expressions (Activity (lambda (n) (ast-children (ast-child 'Expression* n))))))
+  (ag-rule variables   (Activity       (lambda (n) (ast-children (ast-child 'Variable* n)))))
+  (ag-rule nodes       (Activity       (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
+  (ag-rule edges       (Activity       (lambda (n) (ast-children (ast-child 'ActivityEdge* n)))))
+  (ag-rule expressions (ExecutableNode (lambda (n) (ast-children (ast-child 'Expression* n))))))
  
  ;;; Name Analysis:
  
@@ -143,15 +145,15 @@
    
    (UnaryExpression
     (lambda (n)
-      (define ass (=var (->asignee n)))
-      (define op (=var (->operand1 n)))
+      (define ass (=var n (->assignee n)))
+      (define op (=var n (->operand1 n)))
       (and ass op (eq? (->type op) Boolean) (eq? (->type ass) Boolean))))
    
    (BinaryExpression
     (lambda (n)
-      (define ass (=var (->asignee n)))
-      (define op1 (=var (->operand1 n)))
-      (define op2 (=var (->operand2 n)))
+      (define ass (=var n (->assignee n)))
+      (define op1 (=var n (->operand1 n)))
+      (define op2 (=var n (->operand2 n)))
       (define (in . l) (memq (->operator n) l))
       (define (op-type t) (and (eq? (->type op1) t) (eq? (->type op2) t)))
       (and ass op1 op2
@@ -167,14 +169,12 @@
   (define (in n f s) (f (length (=incoming n)) s))
   (define (out n f s) (f (length (=outgoing n)) s))
   (define (guarded n g)
-    (and
-     (for-all (lambda (n) (not (ast-subtype? n 'ControlFlow))) (=incoming n))
-     (for-all (lambda (n)
-                (if (ast-subtype? n 'ControlFlow)
-                    (let ((var (=var n (->guard n))))
-                      (and g var (eq? (->type var) Boolean)))
-                    (not g)))
-       (=outgoing n))))
+    (for-all (lambda (n)
+               (if (ast-subtype? n 'ControlFlow)
+                   (let ((var (=var n (->guard n))))
+                     (and g var (eq? (->type var) Boolean)))
+                   (not g)))
+      (=outgoing n)))
   
   (ag-rule
    valid?
