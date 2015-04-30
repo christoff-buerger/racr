@@ -40,9 +40,15 @@ then
 		cd $l
 		rm -rf racket-bin
 		mkdir -p racket-bin/$ll
+		lib_path="++path $old_pwd/racr/racket-bin"
 		cat dependencies.txt | while read line
 		do
-			plt-r6rs ++path $old_pwd/racr/racket-bin --install --collections $l/racket-bin $line.scm
+			if [ "${line:0:1}" = @ ]
+			then
+				lib_path+=" ++path ${line:1}/racket-bin"
+			else
+				plt-r6rs $lib_path --install --collections $l/racket-bin $line.scm
+			fi
 		done
 	done
 fi
@@ -65,13 +71,24 @@ then
 		cd $l
 		rm -rf larceny-bin
 		mkdir -p larceny-bin/$ll
+		lib_path="$old_pwd/racr/larceny-bin:./.."
+		tmp_pwd=`pwd`
+		while read line
+		do
+			if [ "${line:0:1}" = @ ]
+			then
+				cd ${line:1}
+				lib_path+=":`pwd`/larceny-bin/"
+				cd $tmp_pwd
+			fi
+		done < dependencies.txt
 		for f in *.scm
 		do
 			cp -p $f larceny-bin/$ll/${f%.*}.sls
 		done
 		cd larceny-bin/$ll
 		cp -p $old_pwd/compile-stale .
-		larceny --r6rs --path "$old_pwd/racr/larceny-bin:./.." --program compile-stale
+		larceny --r6rs --path $lib_path --program compile-stale
 		rm compile-stale
 	done
 	

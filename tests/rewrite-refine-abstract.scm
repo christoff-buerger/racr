@@ -19,7 +19,7 @@
                (ast-rule 'S->A-D)
                (ast-rule 'A->B<B1)
                (ast-rule 'Aa:A->)
-               (ast-rule 'Ab:A->B<B2)
+               (ast-rule 'Ab:A->B<B2-t)
                (ast-rule 'Ac:Ab->)
                (ast-rule 'B->)
                (ast-rule 'D->)
@@ -110,6 +110,19 @@
                   'i
                   (lambda (n) 1))))
                
+               (ag-rule
+                t-value
+                (S
+                 (rt-equation
+                  't-value
+                  (lambda (n)
+                    (att-value 't-value (ast-child 'A n)))))
+                (A
+                 (rt-equation
+                  't-value
+                  (lambda (n)
+                    (and (ast-has-child? 't n) (ast-child 't n))))))
+               
                (compile-ag-specifications)
                
                (create-ast
@@ -142,7 +155,9 @@
          
          (influenced:
           (S) 's
+          (S) 't-value
           (A) 's
+          (A) 't-value
           (D) 'A-child-count
           (D) 'A-has-B2-child?
           (D) 'A-type
@@ -170,8 +185,10 @@
           (D) 'Ab-super-type
           (B1) 'i)
          
-         (rewrite-refine (A) 'Ab (create-ast 'B (list)))
+         (rewrite-refine (A) 'Ab (create-ast 'B (list)) #t)
          (influenced:
+          (S) 't-value
+          (A) 't-value
           (D) 'A-child-count
           (D) 'A-has-B2-child?
           (D) 'A-type
@@ -195,16 +212,20 @@
          
          (rewrite-abstract (A) 'A)
          (influenced:
+          (S) 't-value
+          (A) 't-value
           (D) 'A-child-count
           (D) 'A-has-B2-child?
           (D) 'A-type
           (D) 'Ab-sub-type
           (D) 'A-super-type)
          
-         (rewrite-refine (A) 'Ac (create-ast 'B (list)))
+         (rewrite-refine (A) 'Ac (create-ast 'B (list)) #t)
          (influenced:
           (S) 's
+          (S) 't-value
           (A) 's
+          (A) 't-value
           (D) 'A-child-count
           (D) 'A-has-B2-child?
           (D) 'A-type
@@ -216,7 +237,9 @@
          (rewrite-abstract (A) 'A)
          (influenced:
           (S) 's
+          (S) 't-value
           (A) 's
+          (A) 't-value
           (D) 'A-child-count
           (D) 'A-has-B2-child?
           (D) 'A-type

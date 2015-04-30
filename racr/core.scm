@@ -722,7 +722,7 @@
            (set! pos (+ pos 1))
            char-read?)))
      
-     (define char= ; Construct filter for certain character that can be used by peek- and read-char. 
+     (define char= ; Construct filter for certain character that can be used by peek- and read-char.
        (lambda (to-read)
          (lambda (char-read)
            (char=? char-read to-read))))
@@ -3127,15 +3127,17 @@
                (vector-ref (cdr influence) 6))))
            (node-cache-influences n)))
          (for-each ; ...all entries depending on the new children being roots. Afterwards,...
-          (lambda (child)
-            (for-each
-             (lambda (influence)
-               (flush-attribute-cache-entry (car influence)))
-             (filter
-              (lambda (influence)
-                (vector-ref (cdr influence) 1))
-              (node-cache-influences child))))
-          c)
+          (lambda (child context)
+            (when (symbol-non-terminal? context)
+              (for-each
+               (lambda (influence)
+                 (flush-attribute-cache-entry (car influence)))
+               (filter
+                (lambda (influence)
+                  (vector-ref (cdr influence) 1))
+                (node-cache-influences child)))))
+          c
+          additional-children)
          (node-ast-rule-set! n new-rule) ; ...update the node's type,...
          (update-synthesized-attribution n) ; ...synthesized attribution,...
          (node-children-set! ; ...insert the new children and...
@@ -3225,7 +3227,9 @@
          (for-each ; ...update the inherited attribution of all remaining children. Finally,...
           update-inherited-attribution
           (node-children n))
-         children-to-remove)))) ; ...return the removed children.
+         (map ; ...return the removed children.
+          (lambda (child) (if (node-terminal? child) (node-children child) child))
+          children-to-remove)))))
  
  (define rewrite-add
    (lambda (l e)

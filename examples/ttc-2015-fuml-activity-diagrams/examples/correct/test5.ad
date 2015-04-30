@@ -1,0 +1,14 @@
+activity test5 (int var9) {
+	int var10 = 5,
+	int var11 = 0
+	
+	nodes {
+		initial initialNode5 out(edge20),
+		action action10 comp {var11 = var9 + var10} in(edge20) out(edge21),
+		final finalNode5 in(edge21)
+	} 
+	edges {
+		flow edge20 from initialNode5 to action10,
+		flow edge21 from action10 to finalNode5
+	}
+}

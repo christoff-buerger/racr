@@ -1,0 +1,11 @@
+activity test1 {
+	nodes {
+		initial initialNode1 out (edge1),
+		action action1 in (edge1) out (edge2),
+		final finalNode1 in (edge2)
+	}
+	edges {
+		flow edge1 from initialNode1 to action1,
+		flow edge2 from action1 to finalNode1
+	}
+}

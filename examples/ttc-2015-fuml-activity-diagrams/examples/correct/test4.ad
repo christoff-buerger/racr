@@ -1,0 +1,24 @@
+activity test4 {
+	int var3 = 0,
+	int var4 = 1,
+	int var5 = 2,
+	bool var6 = false,
+	bool var7 = true,
+	bool var8 = false
+	
+	nodes {
+		initial initialNode4 out(edge15),
+		action action6 comp { var3 = var3 + var4, var3 = var3 + var5 } in(edge15) out(edge16), // var3 = 3
+		action action7 comp { var6 = var4 < var5 } in(edge16) out(edge17), // var6 = true
+		action action8 comp { var7 = !var6 } in(edge17) out(edge18), // var7 = false
+		action action9 comp { var8 = var6 | var7 } in(edge18) out(edge19), // var8 = true
+		final finalNode4 in(edge19)
+	}
+	edges {
+		flow edge15 from initialNode4 to action6,
+		flow edge16 from action6 to action7,
+		flow edge17 from action7 to action8,
+		flow edge18 from action8 to action9,
+		flow edge19 from action9 to finalNode4
+	}
+}

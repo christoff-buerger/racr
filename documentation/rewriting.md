@@ -44,7 +44,7 @@ Given a node `n` of arbitrary type, a non-terminal type `t`, which is a subtype 
          spec
          (ast-rule 'S->A)
          (ast-rule 'A->a)
-         (ast-rule 'Aa:A->b-c)
+         (ast-rule 'Aa:A->b-A-c)
          (compile-ast-specifications 'S)
          (compile-ag-specifications)
          (ast-child 'A
@@ -54,12 +54,13 @@ Given a node `n` of arbitrary type, a non-terminal type `t`, which is a subtype 
                       (create-ast 'A (list 1))))))))
   (assert (= (ast-num-children A) 1))
   (assert (eq? (ast-node-type A) 'A))
-  ; Refine an A node to an Aa node. Note, that Aa nodes have two
+  ; Refine an A node to an Aa node. Note, that Aa nodes have three
   ; additional child contexts beside the one they inherit:
-  (rewrite-refine A 'Aa 2 3)
-  (assert (= (ast-num-children A) 3))
+  (rewrite-refine A 'Aa 2 (create-ast spec 'A (list 42)) 3)
+  (assert (= (ast-num-children A) 4))
   (assert (eq? (ast-node-type A) 'Aa))
-  (assert (= (- (ast-child 'c A) (ast-child 'a A)) (ast-child 'b A))))
+  (assert (= (- (ast-child 'c A) (ast-child 'a A)) (ast-child 'b A)))
+  (assert (= (* 14 (ast-child 'c A)) (ast-child 'a (ast-child 'A A)))))
 ```
 
 ### `rewrite-abstract`
@@ -79,17 +80,17 @@ Given a node `n` of arbitrary type and a non-terminal type `t`, which is a super
          spec
          (ast-rule 'S->A)
          (ast-rule 'A->a)
-         (ast-rule 'Aa:A->b-c)
+         (ast-rule 'Aa:A->b-A-c)
          (compile-ast-specifications 'S)
          (compile-ag-specifications)
          (ast-child 'A
                     (create-ast
                      'S
                      (list
-                      (create-ast 'Aa (list 1 2 3))))))))
-  (assert (= (ast-num-children A) 3))
+                      (create-ast 'Aa (list 1 2 (create-ast-bud) 3))))))))
+  (assert (= (ast-num-children A) 4))
   (assert (eq? (ast-node-type A) 'Aa))
-  ; Abstract an Aa node to an A node. Note, that A nodes have two
+  ; Abstract an Aa node to an A node. Note, that A nodes have three
   ; less child contexts than Aa nodes:
   (rewrite-abstract A 'A)
   (assert (= (ast-num-children A) 1))
