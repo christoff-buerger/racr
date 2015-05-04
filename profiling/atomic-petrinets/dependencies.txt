@@ -1,2 +1,4 @@
-@../../examples/atomic-petrinets
+@libraries:
+../../examples/atomic-petrinets
+@sources:
 profiling

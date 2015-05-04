@@ -32,9 +32,9 @@ fi
 
 read_dependencies(){
 	mode=initial
-	systems=()
-	libraries=()
-	sources=()
+	local_systems=()
+	local_libraries=()
+	local_sources=()
 	while read line
 	do
 		case $mode in
@@ -44,7 +44,7 @@ read_dependencies(){
 				mode=systems
 				continue
 			fi
-			systems=( racket larceny )
+			local_systems=( racket larceny )
 			if [ "$line" = "@libraries:" ]
 			then
 				mode=libraries
@@ -56,7 +56,7 @@ read_dependencies(){
 				continue
 			fi
 			mode=sources
-			sources+=( "$line" );;
+			local_sources+=( "$line" );;
 		systems)
 			if [ "$line" = "@libraries:" ]
 			then
@@ -68,7 +68,7 @@ read_dependencies(){
 				mode=sources
 				continue
 			fi
-			systems+=( "$line" )
+			local_systems+=( "$line" )
 			continue;;
 		libraries)
 			if [ "$line" = "@sources:" ]
@@ -76,9 +76,9 @@ read_dependencies(){
 				mode=sources
 				continue
 			fi
-			libraries+=( "$line" );;
+			local_libraries+=( "$line" );;
 		sources)
-			sources+=( "$line" );;
+			local_sources+=( "$line" );;
 		esac
 	done < $1
 }
@@ -94,15 +94,24 @@ then
 		rm -rf racket-bin
 		mkdir -p racket-bin/$ll
 		lib_path="++path $old_pwd/racr/racket-bin"
-		cat dependencies.txt | while read line
+		read_dependencies dependencies.txt
+		for x in ${local_libraries[@]}
 		do
-			if [ "${line:0:1}" = @ ]
-			then
-				lib_path+=" ++path ${line:1}/racket-bin"
-			else
-				plt-r6rs $lib_path --install --collections $l/racket-bin $line.scm
-			fi
+			lib_path+=" ++path $x/racket-bin"
 		done
+		for x in ${local_sources[@]}
+		do
+			plt-r6rs $lib_path --install --collections $l/racket-bin $x.scm
+		done
+	#	cat dependencies.txt | while read line
+	#	do
+	#		if [ "${line:0:1}" = @ ]
+	#		then
+	#			lib_path+=" ++path ${line:1}/racket-bin"
+	#		else
+	#			plt-r6rs $lib_path --install --collections $l/racket-bin $line.scm
+	#		fi
+	#	done
 	done
 fi
 
@@ -124,17 +133,25 @@ then
 		cd $l
 		rm -rf larceny-bin
 		mkdir -p larceny-bin/$ll
+		read_dependencies dependencies.txt
 		lib_path="$old_pwd/racr/larceny-bin:./.."
 		tmp_pwd=`pwd`
-		while read line
+		for x in ${local_libraries[@]}
 		do
-			if [ "${line:0:1}" = @ ]
-			then
-				cd ${line:1}
-				lib_path+=":`pwd`/larceny-bin/"
-				cd $tmp_pwd
-			fi
-		done < dependencies.txt
+			cd $x
+			lib_path+=":`pwd`/larceny-bin/"
+			cd $tmp_pwd
+		done
+	#	tmp_pwd=`pwd`
+	#	while read line
+	#	do
+	#		if [ "${line:0:1}" = @ ]
+	#		then
+	#			cd ${line:1}
+	#			lib_path+=":`pwd`/larceny-bin/"
+	#			cd $tmp_pwd
+	#		fi
+	#	done < dependencies.txt
 		for f in *.scm
 		do
 			cp -p $f larceny-bin/$ll/${f%.*}.sls
