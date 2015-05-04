@@ -12,7 +12,7 @@
          (ttc-2015-fuml-activity-diagrams language)
          (ttc-2015-fuml-activity-diagrams parser))
  
- (define (run-activity-diagram diagram-file input-file)
+ (define (run-activity-diagram diagram-file input-file trace)
    (define activity (parse-diagram diagram-file))
    (define input (if input-file (parse-diagram-input input-file) (list)))
    ;(print-ast activity (list (cons 'valid? (lambda (v) v))) (current-output-port))
