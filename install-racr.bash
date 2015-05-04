@@ -30,6 +30,59 @@ then
 	libraries=( ${new_libraries[@]} )
 fi
 
+read_dependencies(){
+	mode=initial
+	systems=()
+	libraries=()
+	sources=()
+	while read line
+	do
+		case $mode in
+		initial)
+			if [ "$line" = "@systems:" ]
+			then
+				mode=systems
+				continue
+			fi
+			systems=( racket larceny )
+			if [ "$line" = "@libraries:" ]
+			then
+				mode=libraries
+				continue
+			fi
+			if [ "$line" = "@sources:" ]
+			then
+				mode=sources
+				continue
+			fi
+			mode=sources
+			sources+=( "$line" );;
+		systems)
+			if [ "$line" = "@libraries:" ]
+			then
+				mode=libraries
+				continue
+			fi
+			if [ "$line" = "@sources:" ]
+			then
+				mode=sources
+				continue
+			fi
+			systems+=( "$line" )
+			continue;;
+		libraries)
+			if [ "$line" = "@sources:" ]
+			then
+				mode=sources
+				continue
+			fi
+			libraries+=( "$line" );;
+		sources)
+			sources+=( "$line" );;
+		esac
+	done < $1
+}
+
 if which plt-r6rs > /dev/null
 then
 	echo "=========================================>>> Compile for Racket:"
