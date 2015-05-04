@@ -26,6 +26,7 @@
  (define (->operator n)       (ast-child 'operator n))
  (define (->operand1 n)       (ast-child 'operand1 n))
  (define (->operand2 n)       (ast-child 'operand2 n))
+ (define (<- n)               (ast-parent n))
  
  ; Attribute Accessors:
  (define (=variables n)       (att-value 'variables n))
@@ -33,7 +34,6 @@
  (define (=edges n)           (att-value 'edges n))
  (define (=expressions n)     (att-value 'expressions n))
  (define (=var n name)        (att-value 'var n name))
- (define (=node n name)       (att-value 'node n name))
  (define (=outgoing n)        (att-value 'outgoing n))
  (define (=incoming n)        (att-value 'incoming n))
  (define (=well-typed? n)     (att-value 'well-typed? n))
@@ -117,19 +117,24 @@
  (with-specification
   spec
   
-  (define (find-name name l)
-    (find (lambda (n) (eq? (->name n) name)) l))
+  (define (make-connection-table -> l)
+   (define table (make-eq-hashtable))
+   (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
+   table)
   
-  (ag-rule var  (Activity (lambda (n name) (find-name name (=variables n)))))
-  (ag-rule node (Activity (lambda (n name) (find-name name (=nodes n)))))
+  (ag-rule
+   var
+   (Activity     (lambda (n name) (find (lambda (n) (eq? (->name n) name)) (=variables n)))))
   
   (ag-rule
    outgoing
-   (ActivityNode (lambda (n) (filter (lambda (e) (eq? (->source e) (->name n))) (=edges n)))))
+   (Activity     (lambda (n) (make-connection-table ->source (=edges n))))
+   (ActivityNode (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
   
   (ag-rule
    incoming
-   (ActivityNode (lambda (n) (filter (lambda (e) (eq? (->target e) (->name n))) (=edges n))))))
+   (Activity     (lambda (n) (make-connection-table ->target (=edges n))))
+   (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list))))))
  
  ;;; Type Analysis:
  
@@ -180,8 +185,8 @@
    valid?
    (Activity       (lambda (n) (for-all =valid? (append (=variables n) (=nodes n) (=edges n)))))
    (Variable       (lambda (n) (=well-typed? n)))
-   (ControlFlow    (lambda (n) (let ((v (=var n (->guard n)))) (and v (eq? (->type v) Boolean)))))
    (ActivityEdge   (lambda (n) #t))
+   (ControlFlow    (lambda (n) (let ((v (=var n (->guard n)))) (and v (eq? (->type v) Boolean)))))
    (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f))))
    (FinalNode      (lambda (n) (and (in n = 1) (out n = 0) (guarded n #f))))
    (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f))))
