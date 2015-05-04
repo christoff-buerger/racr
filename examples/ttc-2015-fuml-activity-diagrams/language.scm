@@ -10,7 +10,7 @@
  (export exception: Boolean Integer Undefined && //
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
-         ->name ->initial =var =valid?)
+         ->name ->initial ->source ->target =variables =edges =var =valid?)
  (import (rnrs) (racr core) (atomic-petrinets user-interface))
  
  (define spec                 (create-specification))
@@ -53,10 +53,10 @@
    (create-ast spec 'Activity (list id (create-ast-list v) (create-ast-list n) (create-ast-list e))))
  (define (:Variable id t i)
    (create-ast spec 'Variable (list id t i)))
- (define (:ActivityEdge s t)
-   (create-ast spec 'ActivityEdge (list s t)))
- (define (:ControlFlow s t g)
-   (create-ast spec 'ControlFlow (list s t g)))
+ (define (:ActivityEdge id s t)
+   (create-ast spec 'ActivityEdge (list id s t)))
+ (define (:ControlFlow id s t g)
+   (create-ast spec 'ControlFlow (list id s t g)))
  (define (:InitialNode id)
    (create-ast spec 'InitialNode (list id)))
  (define (:FinalNode id)
@@ -88,7 +88,7 @@
   spec
   (ast-rule 'Activity->name-Variable*-ActivityNode*-ActivityEdge*)
   (ast-rule 'Variable->name-type-initial)
-  (ast-rule 'ActivityEdge->source-target)
+  (ast-rule 'ActivityEdge->name-source-target)
   (ast-rule 'ControlFlow:ActivityEdge->guard)
   (ast-rule 'ActivityNode->name)
   (ast-rule 'InitialNode:ActivityNode->)

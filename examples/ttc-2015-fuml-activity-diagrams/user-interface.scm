@@ -23,5 +23,7 @@
       (unless (eq? (->initial variable) Undefined) (exception: "Unknown Input"))
       (rewrite-terminal 'initial variable (->initial n)))
     input)
+   (unless (for-all (lambda (n) (not (eq? (->initial n) Undefined))) (=variables activity))
+     (exception: "Missing Input"))
    ;(print-ast activity (list (cons 'valid? (lambda (v) v))) (current-output-port))
    (unless (=valid? activity) (exception: "Invalid Diagram"))))
