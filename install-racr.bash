@@ -22,7 +22,7 @@ then
 		do
 			if `echo "$l" | grep -q "/$name"$`
 			then
-				new_libraries+=( $l )
+				new_libraries+=( "$l" )
 				break
 			fi
 		done
@@ -32,6 +32,7 @@ fi
 
 read_dependencies(){
 	mode=initial
+	local_dir=`dirname "$1"`
 	local_systems=()
 	local_libraries=()
 	local_sources=()
@@ -56,7 +57,7 @@ read_dependencies(){
 				continue
 			fi
 			mode=sources
-			local_sources+=( "$line" );;
+			local_sources+=( "$local_dir/$line" );;
 		systems)
 			if [ "$line" = "@libraries:" ]
 			then
@@ -68,7 +69,7 @@ read_dependencies(){
 				mode=sources
 				continue
 			fi
-			local_systems+=( "$line" )
+			local_systems+=( "$local_dir/$line" )
 			continue;;
 		libraries)
 			if [ "$line" = "@sources:" ]
@@ -76,11 +77,11 @@ read_dependencies(){
 				mode=sources
 				continue
 			fi
-			local_libraries+=( "$line" );;
+			local_libraries+=( "$local_dir/$line" );;
 		sources)
-			local_sources+=( "$line" );;
+			local_sources+=( "$local_dir/$line" );;
 		esac
-	done < $1
+	done < "$1"
 }
 
 if which plt-r6rs > /dev/null
@@ -89,29 +90,18 @@ then
 	
 	for l in ${libraries[@]}
 	do
-		ll=`echo $l | rev | cut -d/ -f1 | rev` # extract last file part of string
-		cd $l
-		rm -rf racket-bin
-		mkdir -p racket-bin/$ll
-		lib_path="++path $old_pwd/racr/racket-bin"
-		read_dependencies dependencies.txt
+		rm -rf "$l/racket-bin"
+		mkdir -p "$l/racket-bin/`basename "$l"`"
+		read_dependencies "$l/dependencies.txt"
+		lib_path=""
 		for x in ${local_libraries[@]}
 		do
 			lib_path+=" ++path $x/racket-bin"
 		done
 		for x in ${local_sources[@]}
 		do
-			plt-r6rs $lib_path --install --collections $l/racket-bin $x.scm
+			plt-r6rs $lib_path --install --collections "$l/racket-bin" "$x.scm"
 		done
-	#	cat dependencies.txt | while read line
-	#	do
-	#		if [ "${line:0:1}" = @ ]
-	#		then
-	#			lib_path+=" ++path ${line:1}/racket-bin"
-	#		else
-	#			plt-r6rs $lib_path --install --collections $l/racket-bin $line.scm
-	#		fi
-	#	done
 	done
 fi
 
@@ -133,25 +123,12 @@ then
 		cd $l
 		rm -rf larceny-bin
 		mkdir -p larceny-bin/$ll
-		read_dependencies dependencies.txt
-		lib_path="$old_pwd/racr/larceny-bin:./.."
-		tmp_pwd=`pwd`
+		read_dependencies "$l/dependencies.txt"
+		lib_path=".."
 		for x in ${local_libraries[@]}
 		do
-			cd $x
-			lib_path+=":`pwd`/larceny-bin/"
-			cd $tmp_pwd
+			lib_path+=":$x/larceny-bin"
 		done
-	#	tmp_pwd=`pwd`
-	#	while read line
-	#	do
-	#		if [ "${line:0:1}" = @ ]
-	#		then
-	#			cd ${line:1}
-	#			lib_path+=":`pwd`/larceny-bin/"
-	#			cd $tmp_pwd
-	#		fi
-	#	done < dependencies.txt
 		for f in *.scm
 		do
 			cp -p $f larceny-bin/$ll/${f%.*}.sls
