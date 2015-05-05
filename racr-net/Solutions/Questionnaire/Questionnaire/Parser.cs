@@ -174,16 +174,16 @@ public class Parser : Lexer {
 		switch (ParseIdentifier()) {
 			case "Form":
 			e = new List<Racr.AstNode>();
-			e.Add(new Racr.AstNode(spec, "ComputedQuestion", "ErrorType", "", new Racr.AstNode(spec, "Constant", false)));
+			e.Add(spec.CreateAst("ComputedQuestion", "ErrorType", "", spec.CreateAst("Constant", false)));
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "Form", new Racr.AstList(e.ToArray()));
+			return spec.CreateAst("Form", spec.CreateAstList(e.ToArray()));
 			case "If":
 			c = ParseExpression();
 			e = new List<Racr.AstNode>();
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "Group", c, new Racr.AstList(e.ToArray()));
+			return spec.CreateAst("Group", c, spec.CreateAstList(e.ToArray()));
 			case "??":
 			n = ParseSymbol();
 			l = ParseString();
@@ -191,25 +191,25 @@ public class Parser : Lexer {
 			if (Lexeme == Lexemes.RightParenthesis) v = null;
 			else v = ParseValue();
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "OrdinaryQuestion", n, l, t, v);
+			return spec.CreateAst("OrdinaryQuestion", n, l, t, v);
 			case "~?":
-			c = new Racr.AstNode(spec, "ComputedQuestion", ParseSymbol(), ParseString(), ParseExpression());
+			c = spec.CreateAst("ComputedQuestion", ParseSymbol(), ParseString(), ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return c;
 			case "~>":
 			n = ParseSymbol();
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "Use", n);
+			return spec.CreateAst("Use", n);
 			case "~!":
 			v = ParseValue();
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "Constant", v);
+			return spec.CreateAst("Constant", v);
 			case "~~":
 			o = ParseIdentifier();
 			a = new List<Racr.AstNode>();
 			while (Lexeme == Lexemes.LeftParenthesis) a.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
-			return new Racr.AstNode(spec, "Computation", o, new Racr.AstList(a.ToArray()));
+			return spec.CreateAst("Computation", o, spec.CreateAstList(a.ToArray()));
 			default: throw new Exception("Parse Exception");
 		}
 	}
