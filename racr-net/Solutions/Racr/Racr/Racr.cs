@@ -216,7 +216,6 @@ static public class Racr {
 
 		// TODO circDef!!!
 		public void SpecifyAttribute(string attName, string nonTerminal, string contextName, bool cached, Delegate equation) {
-
 			specifyAttribute.Call(
 				spec,
 				SymbolTable.StringToObject(attName),
@@ -227,19 +226,17 @@ static public class Racr {
 				false);
 		}
 
-		public void SpecifyAttribute<N,R>(string attName, string nonTerminal, string contextName, bool cached, Func<N,R> equation)
-		where N : AstNode {
-			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
+		// factory methods
+		public AstNode CreateAst(string nonTerminal, params object[] children) {
+			return new AstNode(this, nonTerminal, children);
 		}
-		public void SpecifyAttribute<N,A1,R>(string attName, string nonTerminal, string contextName, bool cached, Func<N,A1,R> equation)
-		where N : AstNode {
-			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
+		public AstNode CreateAstList(params AstNode[] children) {
+			return new AstList(children);
+		}
+		public AstNode CreateAstBud() {
+			return new AstBud();
 		}
 
-
-		public object Scheme(string lambda) {
-			return lambda.Eval<Callable>().Call(spec);
-		}
 	}
 
 
