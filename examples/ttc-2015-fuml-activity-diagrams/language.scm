@@ -11,7 +11,7 @@
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
          ->name ->initial ->source ->target =variables =edges =var =valid?)
- (import (rnrs) (racr core) (atomic-petrinets user-interface))
+ (import (rnrs) (racr core) (prefix (atomic-petrinets analyses) pn:))
  
  (define spec                 (create-specification))
  
@@ -38,6 +38,8 @@
  (define (=incoming n)        (att-value 'incoming n))
  (define (=well-typed? n)     (att-value 'well-typed? n))
  (define (=valid? n)          (att-value 'valid? n))
+ (define (=places n)          (att-value 'places n))
+ (define (=transitions n)     (att-value 'transitions n))
  
  ; Type Support:
  (define (Boolean)            #f)
@@ -118,9 +120,9 @@
   spec
   
   (define (make-connection-table -> l)
-   (define table (make-eq-hashtable))
-   (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
-   table)
+    (define table (make-eq-hashtable))
+    (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
+    table)
   
   (ag-rule
    var
@@ -194,6 +196,69 @@
    (DecisionNode   (lambda (n) (and (in n = 1) (out n > 1) (guarded n #t))))
    (MergeNode      (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
    (ExecutableNode (lambda (n) (and (in n = 1) (out n = 1) (guarded n #f)
-                                    (for-all =well-typed? (=expressions n))))))
+                                    (for-all =well-typed? (=expressions n)))))))
+ 
+ ;;; Code Generation:
+ 
+ (with-specification
+  spec
   
-  (compile-ag-specifications)))
+  (define >>n (list (lambda (t) #t)))
+  (define (>>? controlflow)
+    (define var-token (car (pn:->Token* (=places (=var controlflow (->guard controlflow))))))
+    (list (lambda (t) (pn:->value var-token))))
+  (define n>> (lambda x #t))
+  (define (:name n i) (string->symbol (string-append (symbol->string n) ":" (number->string i))))
+  
+  (ag-rule
+   places
+   
+   (Variable
+    (lambda (n)
+      (pn::Place (:name (->name n) -1) (pn::Token (->initial n))))))
+  
+  (ag-rule
+   transitions
+   
+   (InitialNode
+    (lambda (n)
+      (define name (->name n))
+      (list
+       (pn::Transition
+        name
+        (list (pn::Arc (:name name 1) >>n))
+        (list (pn::Arc name n>>))))))
+   
+   (ActivityNode ; Equation for FinalNode, JoinNode & ForkNode
+    (lambda (n)
+      (list
+       (pn::Transition
+        (->name n)
+        (map (lambda (n) (pn::Arc (->source n) >>n)) (=incoming n))
+        (map (lambda (n) (pn::Arc (->target n) n>>)) (=outgoing n))))))
+   
+   (MergeNode
+    (lambda (n)
+      (define name (->name n))
+      (define target (->target (car (=outgoing n))))
+      (map
+       (lambda (n)
+         (pn::Transition
+          (:name name (ast-child-index n))
+          (list (pn::Arc (->source n) >>n))
+          (list (pn::Arc target n>>))))
+       (=incoming n))))
+   
+   (DecisionNode
+    (lambda (n)
+      (define name (->name n))
+      (define source (->source (car (=incoming n))))
+      (map
+       (lambda (n)
+         (pn::Transition
+          (:name name (ast-child-index n))
+          (list (pn::Arc source (>>? n)))
+          (list (pn::Arc (->target n) n>>))))
+       (=outgoing n))))))
+ 
+ (compile-ag-specifications spec))
