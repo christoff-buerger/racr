@@ -33,13 +33,13 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Compile Include="Test.cs" />
-    <Compile Include="..\..\Racr\Racr\Racr.cs">
-      <Link>Racr.cs</Link>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="IronScheme">
       <HintPath>..\..\..\IronScheme.dll</HintPath>
+    </Reference>
+    <Reference Include="Racr">
+      <HintPath>..\..\Racr\Racr\bin\Debug\Racr.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
