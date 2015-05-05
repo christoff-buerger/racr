@@ -34,29 +34,7 @@ class MySpec : Racr.Specification {
 		AstRule("C->");
 
 		CompileAstSpecifications("A");
-
-		Scheme(@"
-		(lambda (spec)
-		  (with-specification
-		    spec
-		    (ag-rule
-			  a
-			  (A
-			    (lambda (n)
-				  (ast-num-children n))))))");
-
-
-		Scheme(@"
-		(lambda (spec)
-		  (with-specification
-		    spec
-		    (ag-rule
-			  b
-			  (A
-			    (lambda (n x)
-				  (* x (ast-num-children n)))))))");
-
-
+/*
 		SpecifyAttribute("kids", "A", "*", false, (Racr.AstNode n) => {
 			return n.GetList().NumChildren();
 		});
@@ -70,7 +48,7 @@ class MySpec : Racr.Specification {
 		SpecifyAttribute("bar", "B", "*", false, (Racr.AstNode n, int x) => {
 			return x * x;
 		});
-
+*/
 
 		RegisterAgRules();
 		CompileAgSpecifications();

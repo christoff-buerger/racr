@@ -466,7 +466,7 @@ class Questionnaire {
 	public static void Main(string[] args) {
 		Racr.AstNode ast;
 		if (args.Length == 1) {
-			var parser = new Parser(QL.Ql, File.OpenText(args[0]).ReadToEnd());
+			var parser = new Parser(QL.Ql, File.ReadAllText(args[0]));
 			ast = parser.ParseAst();
 		}
 		else ast = QL.Ql.CreateAst("Form", QL.Ql.CreateAstList());

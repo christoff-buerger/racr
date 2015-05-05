@@ -47,4 +47,18 @@
     </Reference>
     <Reference Include="System" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\racr\core.sls">
+      <Link>Resources\core.sls</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\..\racr\hash.sls">
+      <Link>Resources\hash.sls</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\..\racr\testing.sls">
+      <Link>Resources\testing.sls</Link>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
