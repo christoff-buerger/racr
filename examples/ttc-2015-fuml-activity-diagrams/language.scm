@@ -211,29 +211,24 @@
   (define (:name n i) (string->symbol (string-append (symbol->string n) ":" (number->string i))))
   
   (ag-rule
+   petrinet
+   (Activity       (lambda (n) (pn::AtomicPetrinet (=places n) (=transitions n)))))
+  
+  (ag-rule
    places
-   
-   (Activity
-    (lambda (n)
-      (append (map =places (=variables n)) (filter (lambda (t) t) (map =places (=nodes n))))))
-   
-   (Variable
-    (lambda (n)
-      (pn::Place (:name (->name n) -1) (pn::Token (->initial n)))))
-   
-   (ActivityNode
-    (lambda (n) #f))
-   
-   (ExecutableNode
-    (lambda (n)
-      (pn::Place (->name n))))
-   
-   (InitialNode
-    (lambda (n)
-      (pn::Place (:name (->name n) 1) (pn::Token #t)))))
+   (Variable       (lambda (n) (pn::Place (:name (->name n) -1) (pn::Token (->initial n)))))
+   (ActivityNode   (lambda (n) #f))
+   (ExecutableNode (lambda (n) (pn::Place (->name n))))
+   (InitialNode    (lambda (n) (pn::Place (:name (->name n) 1) (pn::Token #t))))
+   (Activity       (lambda (n) (append (map =places (=variables n))
+                                       (filter (lambda (t) t) (map =places (=nodes n)))))))
   
   (ag-rule
    transitions
+   
+   (Activity
+    (lambda (n)
+      (fold-left (lambda (result n) (append (=transitions n) result)) (list) (=nodes n))))
    
    (InitialNode
     (lambda (n)
