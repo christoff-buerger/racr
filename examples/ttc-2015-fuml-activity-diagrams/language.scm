@@ -213,21 +213,36 @@
   (ag-rule
    places
    
+   (Activity
+    (lambda (n)
+      (append (map =places (=variables n)) (filter (lambda (t) t) (map =places (=nodes n))))))
+   
    (Variable
     (lambda (n)
-      (pn::Place (:name (->name n) -1) (pn::Token (->initial n))))))
+      (pn::Place (:name (->name n) -1) (pn::Token (->initial n)))))
+   
+   (ActivityNode
+    (lambda (n) #f))
+   
+   (ExecutableNode
+    (lambda (n)
+      (pn::Place (->name n))))
+   
+   (InitialNode
+    (lambda (n)
+      (pn::Place (:name (->name n) 1) (pn::Token #t)))))
   
   (ag-rule
    transitions
    
    (InitialNode
     (lambda (n)
-      (define name (->name n))
+      (define transition-name (->name n))
       (list
        (pn::Transition
-        name
-        (list (pn::Arc (:name name 1) >>n))
-        (list (pn::Arc name n>>))))))
+        transition-name
+        (list (pn::Arc (:name transition-name 1) >>n))
+        (list (pn::Arc (->target (car (=outgoing n))) n>>))))))
    
    (ActivityNode ; Equation for FinalNode, JoinNode & ForkNode
     (lambda (n)
@@ -239,24 +254,24 @@
    
    (MergeNode
     (lambda (n)
-      (define name (->name n))
+      (define transition-name (->name n))
       (define target (->target (car (=outgoing n))))
       (map
        (lambda (n)
          (pn::Transition
-          (:name name (ast-child-index n))
+          (:name transition-name (ast-child-index n))
           (list (pn::Arc (->source n) >>n))
           (list (pn::Arc target n>>))))
        (=incoming n))))
    
    (DecisionNode
     (lambda (n)
-      (define name (->name n))
+      (define transition-name (->name n))
       (define source (->source (car (=incoming n))))
       (map
        (lambda (n)
          (pn::Transition
-          (:name name (ast-child-index n))
+          (:name transition-name (ast-child-index n))
           (list (pn::Arc source (>>? n)))
           (list (pn::Arc (->target n) n>>))))
        (=outgoing n))))))
