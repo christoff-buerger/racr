@@ -18,7 +18,7 @@
    ;(print-ast activity (list (cons 'valid? (lambda (v) v))) (current-output-port))
    (for-each
     (lambda (n)
-      (define variable (=var activity (->name n)))
+      (define variable (=v-lookup activity (->name n)))
       (unless variable (exception: "Unknown Input"))
       (unless (eq? (->initial variable) Undefined) (exception: "Unknown Input"))
       (rewrite-terminal 'initial variable (->initial n)))

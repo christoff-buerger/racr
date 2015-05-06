@@ -10,7 +10,7 @@
  (export exception: Boolean Integer Undefined && //
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
-         ->name ->initial ->source ->target =variables =edges =var =valid?)
+         ->name ->initial ->source ->target =variables =edges =v-lookup =e-lookup =valid?)
  (import (rnrs) (racr core) (prefix (atomic-petrinets analyses) pn:))
  
  (define spec                 (create-specification))
@@ -33,9 +33,13 @@
  (define (=nodes n)           (att-value 'nodes n))
  (define (=edges n)           (att-value 'edges n))
  (define (=expressions n)     (att-value 'expressions n))
- (define (=var n name)        (att-value 'var n name))
+ (define (=v-lookup n name)   (hashtable-ref (att-value 'v-lookup n) name #f))
+ (define (=n-lookup n name)   (hashtable-ref (att-value 'n-lookup n) name #f))
+ (define (=e-lookup n name)   (hashtable-ref (att-value 'e-lookup n) name #f))
  (define (=outgoing n)        (att-value 'outgoing n))
  (define (=incoming n)        (att-value 'incoming n))
+ (define (=initial n)         (att-value 'initial n))
+ (define (=final n)           (att-value 'final n))
  (define (=well-typed? n)     (att-value 'well-typed? n))
  (define (=valid? n)          (att-value 'valid? n))
  (define (=places n)          (att-value 'places n))
@@ -119,14 +123,19 @@
  (with-specification
   spec
   
+  (define (make-symbol-table -> l)
+    (define table (make-eq-hashtable))
+    (for-each (lambda (n) (hashtable-set! table (-> n) n)) l)
+    table)
+  
   (define (make-connection-table -> l)
     (define table (make-eq-hashtable))
     (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
     table)
   
-  (ag-rule
-   var
-   (Activity     (lambda (n name) (find (lambda (n) (eq? (->name n) name)) (=variables n)))))
+  (ag-rule v-lookup (Activity (lambda (n) (make-symbol-table ->name (=variables n)))))
+  (ag-rule n-lookup (Activity (lambda (n) (make-symbol-table ->name (=nodes n)))))
+  (ag-rule e-lookup (Activity (lambda (n) (make-symbol-table ->name (=edges n)))))
   
   (ag-rule
    outgoing
@@ -136,7 +145,15 @@
   (ag-rule
    incoming
    (Activity     (lambda (n) (make-connection-table ->target (=edges n))))
-   (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list))))))
+   (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
+  
+  (ag-rule
+   initial
+   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'InitialNode)) (=nodes n)))))
+  
+  (ag-rule
+   final
+   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'FinalNode)) (=nodes n))))))
  
  ;;; Type Analysis:
  
@@ -152,15 +169,15 @@
    
    (UnaryExpression
     (lambda (n)
-      (define ass (=var n (->assignee n)))
-      (define op (=var n (->operand1 n)))
+      (define ass (=v-lookup n (->assignee n)))
+      (define op (=v-lookup n (->operand1 n)))
       (and ass op (eq? (->type op) Boolean) (eq? (->type ass) Boolean))))
    
    (BinaryExpression
     (lambda (n)
-      (define ass (=var n (->assignee n)))
-      (define op1 (=var n (->operand1 n)))
-      (define op2 (=var n (->operand2 n)))
+      (define ass (=v-lookup n (->assignee n)))
+      (define op1 (=v-lookup n (->operand1 n)))
+      (define op2 (=v-lookup n (->operand2 n)))
       (define (in . l) (memq (->operator n) l))
       (define (op-type t) (and (eq? (->type op1) t) (eq? (->type op2) t)))
       (and ass op1 op2
@@ -173,30 +190,43 @@
  (with-specification
   spec
   
-  (define (in n f s) (f (length (=incoming n)) s))
-  (define (out n f s) (f (length (=outgoing n)) s))
+  (define (in n f s)          (f (length (=incoming n)) s))
+  (define (out n f s)         (f (length (=outgoing n)) s))
+  (define (simple-neighbors n)
+    (define (simple? n ->)
+      (let ((n (=n-lookup n (-> n))))
+        (and n (ast-subtype? n 'ExecutableNode))))
+    (and (for-all (lambda (n) (simple? n ->source)) (=incoming n))
+         (for-all (lambda (n) (simple? n ->target)) (=outgoing n))))
   (define (guarded n g)
-    (for-all (lambda (n)
-               (if (ast-subtype? n 'ControlFlow)
-                   (let ((var (=var n (->guard n))))
-                     (and g var (eq? (->type var) Boolean)))
-                   (not g)))
-      (=outgoing n)))
+    (define (guarded n)
+      (if (ast-subtype? n 'ControlFlow)
+          (let ((var (=v-lookup n (->guard n))))
+            (and g var (eq? (->type var) Boolean)))
+          (not g)))
+    (for-all guarded (=outgoing n)))
   
   (ag-rule
    valid?
-   (Activity       (lambda (n) (for-all =valid? (append (=variables n) (=nodes n) (=edges n)))))
    (Variable       (lambda (n) (=well-typed? n)))
-   (ActivityEdge   (lambda (n) #t))
-   (ControlFlow    (lambda (n) (let ((v (=var n (->guard n)))) (and v (eq? (->type v) Boolean)))))
-   (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f))))
-   (FinalNode      (lambda (n) (and (in n = 1) (out n = 0) (guarded n #f))))
-   (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f))))
-   (JoinNode       (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
-   (DecisionNode   (lambda (n) (and (in n = 1) (out n > 1) (guarded n #t))))
-   (MergeNode      (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
+   (ActivityEdge   (lambda (n) (eq? (=e-lookup n (->name n)) n)))
+   (ControlFlow    (lambda (n)
+                     (let ((v (=v-lookup n (->guard n))))
+                       (and (eq? (=e-lookup n (->name n)) n) v (eq? (->type v) Boolean)))))
+   (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f) (eq? (=initial n) n))))
+   (FinalNode      (lambda (n) (and (in n = 1) (out n = 0) (guarded n #f) (eq? (=final n) n))))
+   (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f) (simple-neighbors n))))
+   (JoinNode       (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f) (simple-neighbors n))))
+   (DecisionNode   (lambda (n) (and (in n = 1) (out n > 1) (guarded n #t) (simple-neighbors n))))
+   (MergeNode      (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f) (simple-neighbors n))))
    (ExecutableNode (lambda (n) (and (in n = 1) (out n = 1) (guarded n #f)
-                                    (for-all =well-typed? (=expressions n)))))))
+                                    (for-all =well-typed? (=expressions n)))))
+   (Activity
+    (lambda (n)
+      (and (=initial n) (=final n)
+           (for-all =valid? (=variables n))
+           (for-all =valid? (=nodes n))
+           (for-all =valid? (=edges n)))))))
  
  ;;; Code Generation:
  
@@ -205,7 +235,7 @@
   
   (define >>n (list (lambda (t) #t)))
   (define (>>? controlflow)
-    (define var-token (car (pn:->Token* (=places (=var controlflow (->guard controlflow))))))
+    (define var-token (car (pn:->Token* (=places (=v-lookup controlflow (->guard controlflow))))))
     (list (lambda (t) (pn:->value var-token))))
   (define n>> (lambda x #t))
   (define (:name n i) (string->symbol (string-append (symbol->string n) ":" (number->string i))))
@@ -217,7 +247,7 @@
   (ag-rule
    places
    (Variable       (lambda (n) (pn::Place (:name (->name n) -1) (pn::Token (->initial n)))))
-   (ActivityNode   (lambda (n) #f))
+   (ActivityNode   (lambda (n) #f)) ; Equation for final, fork, join, decision & merge nodes
    (ExecutableNode (lambda (n) (pn::Place (->name n))))
    (InitialNode    (lambda (n) (pn::Place (:name (->name n) 1) (pn::Token #t))))
    (Activity       (lambda (n) (append (map =places (=variables n))
@@ -239,7 +269,7 @@
         (list (pn::Arc (:name transition-name 1) >>n))
         (list (pn::Arc (->target (car (=outgoing n))) n>>))))))
    
-   (ActivityNode ; Equation for FinalNode, JoinNode & ForkNode
+   (ActivityNode ; Equation for final, join & fork nodes
     (lambda (n)
       (list
        (pn::Transition

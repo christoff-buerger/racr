@@ -127,9 +127,8 @@
                 (define out (hashtable-ref out-table (->name n) #f))
                 (and in out (eq? (->target n) in) (eq? (->source n) out)))
             (=edges activity))
-          (for-all (lambda (k) (find (lambda (n) (eq? (->name n) k)) (=edges activity)))
-            (append (vector->list (hashtable-keys in-table))
-                    (vector->list (hashtable-keys out-table)))))
+          (for-all (lambda (k) (=e-lookup activity k)) (vector->list (hashtable-keys in-table)))
+          (for-all (lambda (k) (=e-lookup activity k)) (vector->list (hashtable-keys out-table))))
        (exception: "Parsing Error (inconsistent edges)"))
      activity))
  
