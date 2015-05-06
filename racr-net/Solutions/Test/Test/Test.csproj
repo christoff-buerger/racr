@@ -41,5 +41,11 @@
     <Reference Include="Racr">
       <HintPath>..\..\Racr\Racr\bin\Debug\Racr.dll</HintPath>
     </Reference>
+    <Reference Include="racr.core">
+      <HintPath>..\..\..\racr\racr.core.dll</HintPath>
+    </Reference>
+    <Reference Include="racr.hash">
+      <HintPath>..\..\..\racr\racr.hash.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

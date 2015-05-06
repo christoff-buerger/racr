@@ -38,6 +38,9 @@
       <Link>Racr.cs</Link>
     </Compile>
     <Compile Include="Parser.cs" />
+    <Compile Include="Accessors.cs" />
+    <Compile Include="Attributes.cs" />
+    <Compile Include="Widget.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
@@ -46,19 +49,11 @@
       <HintPath>..\..\..\IronScheme.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Resources\" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\racr\core.sls">
-      <Link>Resources\core.sls</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\..\racr\hash.sls">
-      <Link>Resources\hash.sls</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\..\racr\testing.sls">
-      <Link>Resources\testing.sls</Link>
-    </EmbeddedResource>
+    <Reference Include="racr.core">
+      <HintPath>..\..\..\racr\racr.core.dll</HintPath>
+    </Reference>
+    <Reference Include="racr.hash">
+      <HintPath>..\..\..\racr\racr.hash.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
