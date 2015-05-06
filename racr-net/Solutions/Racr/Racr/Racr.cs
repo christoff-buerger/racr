@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-
 using System.IO;
 
 using IronScheme;
@@ -64,19 +63,8 @@ static public class Racr {
 	private static Callable symbolIsNonTerminal;
 
 
-	static private string LoadResource(string name) {
-		var assembly = Assembly.GetExecutingAssembly();
-		using (Stream stream = assembly.GetManifestResourceStream(name))
-			using (StreamReader reader = new StreamReader(stream))
-				return reader.ReadToEnd();
-	}
-
 	static Racr() {
-		LoadResource("Questionnaire.Resources.hash.sls").Eval();
-		LoadResource("Questionnaire.Resources.core.sls").Eval();
-		LoadResource("Questionnaire.Resources.testing.sls").Eval();
-		"(import (racr core) (racr testing))".Eval();
-
+		"(import (racr core))".Eval();
 
 		// bridge
 		nodeDotNetInstance			= "node-dot-net-instance".Eval<Callable>();
