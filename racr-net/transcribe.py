@@ -4,10 +4,10 @@ import re
 
 b = False
 
-for f in ["core", "testing"]:
+for f in ["core"]:#, "testing"]:
 
-	in_path = "../../racr/" + f + ".scm"
-	out_path = f + ".sls"
+	in_path = "../racr/" + f + ".scm"
+	out_path = "racr/" + f + ".sls"
 
 	in_file = file(in_path)
 	out_file = file(out_path, "w")
