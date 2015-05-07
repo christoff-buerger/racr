@@ -35,6 +35,7 @@
  (define (=edges n)           (att-value 'edges n))
  (define (=expressions n)     (att-value 'expressions n))
  (define (=v-lookup n name)   (hashtable-ref (att-value 'v-lookup n) name #f))
+ (define (=n-lookup n name)   (hashtable-ref (att-value 'n-lookup n) name #f))
  (define (=e-lookup n name)   (hashtable-ref (att-value 'e-lookup n) name #f))
  (define (=outgoing n)        (att-value 'outgoing n))
  (define (=incoming n)        (att-value 'incoming n))
@@ -135,6 +136,7 @@
     table)
   
   (ag-rule v-lookup (Activity (lambda (n) (make-symbol-table ->name (=variables n)))))
+  (ag-rule n-lookup (Activity (lambda (n) (make-symbol-table ->name (=nodes n)))))
   (ag-rule e-lookup (Activity (lambda (n) (make-symbol-table ->name (=edges n)))))
   
   (ag-rule
@@ -235,13 +237,15 @@
   
   (define >>n (list (lambda (t) #t)))
   (define (>>? n)
-    (define var-token (ast-child 1 (pn:->Token* (=places (=v-lookup n (->guard n))))))
-    (list (lambda (t) (pn:->value var-token))))
+    (if (ast-subtype? n 'ControlFlow)
+        (let ((var-token (ast-child 1 (pn:->Token* (=places (=v-lookup n (->guard n)))))))
+          (list (lambda (t) (pn:->value var-token))))
+        >>n))
   (define n>> (lambda x #t))
-  (define (:vname n)
-    (string->symbol (string-append (symbol->string n) ":@")))
-  (define (:tname n1 n2)
-    (string->symbol (string-append (symbol->string n1) ":" (symbol->string n2))))
+  (define (v-name n)
+    (string->symbol (string-append "variable@" (symbol->string n))))
+  (define (n-name n1 n2)
+    (string->symbol (string-append (symbol->string n1) "->" (symbol->string n2))))
   
   (ag-rule
    petrinet
@@ -250,8 +254,9 @@
   (ag-rule
    places
    (Activity       (lambda (n) (append (map =places (=variables n)) (map =places (=nodes n)))))
-   (Variable       (lambda (n) (pn::Place (:vname (->name n)) (pn::Token (->initial n)))))
-   (ActivityNode   (lambda (n) (pn::Place (->name n)))))
+   (Variable       (lambda (n) (pn::Place (v-name (->name n)) (pn::Token (->initial n)))))
+   (ActivityNode   (lambda (n) (pn::Place (->name n))))
+   (InitialNode    (lambda (n) (pn::Place (->name n) (pn::Token #t)))))
   
   (ag-rule
    transitions
@@ -260,58 +265,50 @@
     (lambda (n)
       (fold-left (lambda (result n) (append (=transitions n) result)) (list) (=nodes n))))
    
-   (InitialNode
+   ; Construction constraints:
+   ;  (2) Nodes construct their predecessor transitions, except for fork predecessors
+   ;  (2) Nodes, except forks, do not construct their successor transitions
+   
+   (ActivityNode
     (lambda (n)
       (define name (->name n))
-      (list
-       (pn::Transition
-        name
-        (list (pn::Arc name >>n))
-        (list (pn::Arc (->target (car (=outgoing n))) n>>))))))
-   
-   (ActivityNode ; Equation for final, join & fork nodes
-    (lambda (n)
-      (list
-       (pn::Transition
-        (->name n)
-        (map (lambda (n) (pn::Arc (->source n) >>n)) (=incoming n))
-        (map (lambda (n) (pn::Arc (->target n) n>>)) (=outgoing n))))))
-   
-   (ExecutableNode
-    (lambda (n)
-      (define name (->name n))
-      (define predecessor (car (=incoming n)))
-      (if (ast-subtype? predecessor 'ExecutableNode)
-          (pn::Transition
-           name
-           (list (pn::Arc predecessor >>n))
-           (list (pn::Arc name n>>)))
-          (list))))
-   
-   (MergeNode
-    (lambda (n)
-      (define name (->name n))
-      (define successor (->target (car (=outgoing n))))
-      (map
-       (lambda (n)
+      (fold-left
+       (lambda (in n)
          (define predecessor (->source n))
-         (pn::Transition
-          (:tname predecessor name)
-          (list (pn::Arc predecessor >>n))
-          (list (pn::Arc successor n>>))))
+         (define predecessor? (=n-lookup n predecessor))
+         (if (or (not predecessor?) (not (ast-subtype? predecessor? 'ForkNode)))
+             (cons
+              (pn::Transition
+               (n-name predecessor name)
+               (list (pn::Arc predecessor (>>? n)))
+               (list (pn::Arc name n>>)))
+              in)
+             in))
+       (list)
        (=incoming n))))
    
-   (DecisionNode
+   (ForkNode
     (lambda (n)
       (define name (->name n))
-      (define predecessor (->source (car (=incoming n))))
-      (map
-       (lambda (n)
-         (define successor (->target n))
-         (pn::Transition
-          (:tname name successor)
-          (list (pn::Arc predecessor (>>? n)))
-          (list (pn::Arc successor n>>))))
-       (=outgoing n))))))
+      (define in (car (=incoming n)))
+      (define predecessor (->source in))
+      (list
+       (pn::Transition
+        (n-name predecessor name)
+        (list (pn::Arc predecessor (>>? in)))
+        (list (pn::Arc name n>>)))
+       (pn::Transition
+        (n-name name '*)
+        (list (pn::Arc name >>n))
+        (map (lambda (n) (pn::Arc (->target n) n>>)) (=outgoing n))))))
+   
+   (JoinNode
+    (lambda (n)
+      (define name (->name n))
+      (list
+       (pn::Transition
+        (n-name '* name)
+        (map (lambda (n) (pn::Arc (->source n) (>>? n))) (=incoming n))
+        (list (pn::Arc name n>>))))))))
  
  (compile-ag-specifications spec))
