@@ -46,6 +46,7 @@
  (define (=petrinet n)        (att-value 'petrinet n))
  (define (=places n)          (att-value 'places n))
  (define (=transitions n)     (att-value 'transitions n))
+ (define (=computation n)     (att-value 'computation n))
  
  ; Type Support:
  (define (Boolean)            #f)
@@ -194,12 +195,6 @@
   
   (define (in n f s)          (f (length (=incoming n)) s))
   (define (out n f s)         (f (length (=outgoing n)) s))
-  ;(define (simple-neighbors n)
-  ;  (define (simple? n ->)
-  ;    (let ((n (=n-lookup n (-> n))))
-  ;      (and n (ast-subtype? n 'ExecutableNode))))
-  ;  (and (for-all (lambda (n) (simple? n ->source)) (=incoming n))
-  ;       (for-all (lambda (n) (simple? n ->target)) (=outgoing n))))
   (define (guarded n g)
     (define (guarded n)
       (if (ast-subtype? n 'ControlFlow)
@@ -235,13 +230,18 @@
  (with-specification
   spec
   
-  (define >>n (list (lambda (t) #t)))
+  (define (v-token n ->)
+    (ast-child 1 (pn:->Token* (=places (=v-lookup n (-> n))))))
+  (define (v-value n ->)
+    (let ((n (v-token n ->))) (lambda x (pn:->value n))))
   (define (>>? n)
-    (if (ast-subtype? n 'ControlFlow)
-        (let ((var-token (ast-child 1 (pn:->Token* (=places (=v-lookup n (->guard n)))))))
-          (list (lambda (t) (pn:->value var-token))))
-        >>n))
-  (define n>> (lambda x #t))
+    (list
+     (if (ast-subtype? n 'ControlFlow)
+         (pn::Arc (->source n) (list (v-value n ->guard)))
+         (pn::Arc (->source n) (list (lambda (t) #t))))))
+  (define (n>> n)
+    (define target (->target n))
+    (pn::Arc target (lambda x (display target) #t)))
   (define (v-name n)
     (string->symbol (string-append "variable@" (symbol->string n))))
   (define (n-name n1 n2)
@@ -271,44 +271,64 @@
    
    (ActivityNode
     (lambda (n)
-      (define name (->name n))
       (fold-left
-       (lambda (in n)
-         (define predecessor (->source n))
-         (define predecessor? (=n-lookup n predecessor))
+       (lambda (transitions incoming)
+         (define predecessor? (=n-lookup incoming (->source incoming)))
          (if (or (not predecessor?) (not (ast-subtype? predecessor? 'ForkNode)))
              (cons
               (pn::Transition
-               (n-name predecessor name)
-               (list (pn::Arc predecessor (>>? n)))
-               (list (pn::Arc name n>>)))
-              in)
-             in))
+               (->name incoming)
+               (list (>>? incoming))
+               (list (n>> incoming)))
+              transitions)
+             transitions))
        (list)
        (=incoming n))))
    
    (ForkNode
     (lambda (n)
-      (define name (->name n))
-      (define in (car (=incoming n)))
-      (define predecessor (->source in))
+      (define incoming (car (=incoming n)))
+      (define outgoing (=outgoing n))
       (list
        (pn::Transition
-        (n-name predecessor name)
-        (list (pn::Arc predecessor (>>? in)))
-        (list (pn::Arc name n>>)))
+        (->name incoming)
+        (list (>>? incoming))
+        (list (n>> incoming)))
        (pn::Transition
-        (n-name name '*)
-        (list (pn::Arc name >>n))
-        (map (lambda (n) (pn::Arc (->target n) n>>)) (=outgoing n))))))
+        (->name (car outgoing))
+        (list (>>? (car outgoing)))
+        (map n>> outgoing)))))
    
    (JoinNode
     (lambda (n)
-      (define name (->name n))
+      (define incoming (=incoming n))
       (list
        (pn::Transition
-        (n-name '* name)
-        (map (lambda (n) (pn::Arc (->source n) (>>? n))) (=incoming n))
-        (list (pn::Arc name n>>))))))))
+        (->name (car incoming))
+        (map >>? incoming)
+        (list (n>> (car incoming))))))))
+  
+  (ag-rule
+   computation
+   
+   (ExecutableNode
+    (lambda (n)
+      (define computations (map =computation (=expressions n)))
+      (lambda () (for-each apply computations))))
+   
+   (UnaryExpression
+    (lambda (n)
+      (define assignee (v-token n ->assignee))
+      (define op1 (v-value n ->operand1))
+      (define op (->operator n))
+      (lambda () (rewrite-terminal assignee 'value (op (op1))))))
+   
+   (BinaryExpression
+    (lambda (n)
+      (define assignee (v-token n ->assignee))
+      (define op1 (v-value n ->operand1))
+      (define op2 (v-value n ->operand2))
+      (define op (->operator n))
+      (lambda () (rewrite-terminal assignee 'value (op (op1) (op2))))))))
  
  (compile-ag-specifications spec))
