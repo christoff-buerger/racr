@@ -32,6 +32,7 @@
    (let ((net (=petrinet activity)))
      ;(print-ast net (list) (current-output-port))
      (unless (pn:=valid? net) (exception: "Invalid Diagram"))
-     (pn:run-petrinet! net)))
+     ;(pn:run-petrinet! net)
+     ))
  
  (pn:initialise-petrinet-language))

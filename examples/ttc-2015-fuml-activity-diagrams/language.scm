@@ -235,10 +235,9 @@
   (define (v-value n ->)
     (let ((n (v-token n ->))) (lambda x (pn:->value n))))
   (define (>>? n)
-    (list
-     (if (ast-subtype? n 'ControlFlow)
-         (pn::Arc (->source n) (list (v-value n ->guard)))
-         (pn::Arc (->source n) (list (lambda (t) #t))))))
+    (if (ast-subtype? n 'ControlFlow)
+        (pn::Arc (->source n) (list (v-value n ->guard)))
+        (pn::Arc (->source n) (list (lambda (t) #t)))))
   (define (n>> n)
     (define target (->target n))
     (pn::Arc target (lambda x (display target) #t)))
