@@ -32,6 +32,10 @@
    (let ((net (=petrinet activity)))
      ;(print-ast net (list) (current-output-port))
      (unless (pn:=valid? net) (exception: "Invalid Diagram"))
+     ;(let loop ()
+     ;  (define enabled? (find =enabled? (=transitions petrinet)))
+     ;  (when enabled?
+     ;    ()))
      ;(pn:run-petrinet! net)
      ))
  

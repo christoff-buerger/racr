@@ -37,6 +37,8 @@
  (define (=v-lookup n name)   (hashtable-ref (att-value 'v-lookup n) name #f))
  (define (=n-lookup n name)   (hashtable-ref (att-value 'n-lookup n) name #f))
  (define (=e-lookup n name)   (hashtable-ref (att-value 'e-lookup n) name #f))
+ (define (=source n)          (att-value 'source n))
+ (define (=target n)          (att-value 'target n))
  (define (=outgoing n)        (att-value 'outgoing n))
  (define (=incoming n)        (att-value 'incoming n))
  (define (=initial n)         (att-value 'initial n))
@@ -136,9 +138,11 @@
     (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
     table)
   
-  (ag-rule v-lookup (Activity (lambda (n) (make-symbol-table ->name (=variables n)))))
-  (ag-rule n-lookup (Activity (lambda (n) (make-symbol-table ->name (=nodes n)))))
-  (ag-rule e-lookup (Activity (lambda (n) (make-symbol-table ->name (=edges n)))))
+  (ag-rule v-lookup (Activity     (lambda (n) (make-symbol-table ->name (=variables n)))))
+  (ag-rule n-lookup (Activity     (lambda (n) (make-symbol-table ->name (=nodes n)))))
+  (ag-rule e-lookup (Activity     (lambda (n) (make-symbol-table ->name (=edges n)))))
+  (ag-rule source   (ActivityEdge (lambda (n) (=n-lookup n (->source n)))))
+  (ag-rule target   (ActivityEdge (lambda (n) (=n-lookup n (->target n)))))
   
   (ag-rule
    outgoing
@@ -206,16 +210,16 @@
   (ag-rule
    valid?
    (Variable       (lambda (n) (=well-typed? n)))
-   (ActivityEdge   (lambda (n) (eq? (=e-lookup n (->name n)) n)))
+   (ActivityEdge   (lambda (n) (eq? (=e-lookup n (->name n)) n) (=source n) (=target n)))
    (ControlFlow    (lambda (n)
-                     (let ((v (=v-lookup n (->guard n))))
-                       (and (eq? (=e-lookup n (->name n)) n) v (eq? (->type v) Boolean)))))
+                     (and (eq? (=e-lookup n (->name n)) n) (=source n) (=target n)
+                          (let ((v (=v-lookup n (->guard n)))) (and v (eq? (->type v) Boolean))))))
    (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f) (eq? (=initial n) n))))
    (FinalNode      (lambda (n) (and (in n = 1) (out n = 0) (guarded n #f) (eq? (=final n) n))))
    (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f))))
    (JoinNode       (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
-   (DecisionNode   (lambda (n) (and (in n = 1) (out n > 1) (guarded n #t))))
-   (MergeNode      (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
+   (DecisionNode   (lambda (n) (and (in n = 1) (out n >= 1) (guarded n #t))))
+   (MergeNode      (lambda (n) (and (in n >= 1) (out n = 1) (guarded n #f))))
    (ExecutableNode (lambda (n) (and (in n = 1) (out n = 1) (guarded n #f)
                                     (for-all =well-typed? (=expressions n)))))
    (Activity
@@ -239,12 +243,9 @@
         (pn::Arc (->source n) (list (v-value n ->guard)))
         (pn::Arc (->source n) (list (lambda (t) #t)))))
   (define (n>> n)
-    (define target (->target n))
-    (pn::Arc target (lambda x (display target) #t)))
+    (pn::Arc (->target n) (=computation (=target n))))
   (define (v-name n)
     (string->symbol (string-append "variable@" (symbol->string n))))
-  (define (n-name n1 n2)
-    (string->symbol (string-append (symbol->string n1) "->" (symbol->string n2))))
   
   (ag-rule
    petrinet
@@ -272,15 +273,14 @@
     (lambda (n)
       (fold-left
        (lambda (transitions incoming)
-         (define predecessor? (=n-lookup incoming (->source incoming)))
-         (if (or (not predecessor?) (not (ast-subtype? predecessor? 'ForkNode)))
+         (if (ast-subtype? (=source incoming) 'ForkNode)
+             transitions
              (cons
               (pn::Transition
                (->name incoming)
                (list (>>? incoming))
                (list (n>> incoming)))
-              transitions)
-             transitions))
+              transitions)))
        (list)
        (=incoming n))))
    
@@ -310,10 +310,16 @@
   (ag-rule
    computation
    
+   (ActivityNode
+    (lambda (n)
+      (define trace (->name n))
+      (lambda x (display trace) #t)))
+   
    (ExecutableNode
     (lambda (n)
+      (define trace (->name n))
       (define computations (map =computation (=expressions n)))
-      (lambda () (for-each apply computations))))
+      (lambda x (display trace) (for-each apply computations) #t)))
    
    (UnaryExpression
     (lambda (n)
