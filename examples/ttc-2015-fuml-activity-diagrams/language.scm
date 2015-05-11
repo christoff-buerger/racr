@@ -7,11 +7,11 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams language)
- (export exception: Boolean Integer Undefined && //
+ (export exception: trace Boolean Integer Undefined && //
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
          ->name ->initial ->source ->target
-         =variables =edges =v-lookup =e-lookup =valid? =petrinet)
+         =variables =edges =v-lookup =e-lookup =initial =valid? =v-accessor =petrinet)
  (import (rnrs) (racr core) (prefix (atomic-petrinets analyses) pn:))
  
  (define spec                 (create-specification))
@@ -45,23 +45,17 @@
  (define (=final n)           (att-value 'final n))
  (define (=well-typed? n)     (att-value 'well-typed? n))
  (define (=valid? n)          (att-value 'valid? n))
+ (define (=v-token n)         (att-value 'v-token n))
+ (define (=v-accessor n)      (att-value 'v-accessor n))
  (define (=petrinet n)        (att-value 'petrinet n))
  (define (=places n)          (att-value 'places n))
  (define (=transitions n)     (att-value 'transitions n))
  (define (=computation n)     (att-value 'computation n))
  
- ; Type Support:
- (define (Boolean)            #f)
- (define (Integer)            #f)
- (define (Undefined)          #f)
- 
- ; Operator support:
- (define (&& . a)             (for-all (lambda (x) x) a))
- (define (// . a)             (find (lambda (x) x) a))
- 
  ; AST Constructors:
  (define (:Activity id v n e)
-   (create-ast spec 'Activity (list id (create-ast-list v) (create-ast-list n) (create-ast-list e))))
+   (create-ast
+    spec 'Activity (list id (create-ast-list v) (create-ast-list n) (create-ast-list e))))
  (define (:Variable id t i)
    (create-ast spec 'Variable (list id t i)))
  (define (:ActivityEdge id s t)
@@ -87,8 +81,15 @@
  (define (:BinaryExpression a op op1 op2)
    (create-ast spec 'BinaryExpression (list a op op1 op2)))
  
- ;;; Exceptions:
+ ; Tracing, Type & Operator Support:
+ (define (trace . message)    (for-each display message) (newline))
+ (define (Boolean)            #f)
+ (define (Integer)            #f)
+ (define (Undefined)          #f)
+ (define (&& . a)             (for-all (lambda (x) x) a))
+ (define (// . a)             (find (lambda (x) x) a))
  
+ ; Exceptions:
  (define-condition-type fuml-exception &violation make-fuml-exception fuml-exception?)
  (define (exception: message)
    (raise-continuable (condition (make-fuml-exception) (make-message-condition message))))
@@ -231,21 +232,55 @@
  
  ;;; Code Generation:
  
+ ; The execution semantics of activity diagrams are given by their translation to Petri nets:
+ ;  (1) For each variable a place with a single token whose value is its value exists.
+ ;  (2) For each node an equally named place exists.
+ ;  (3) The activity edges connecting a node N with its successor nodes S are realised as a single
+ ;      or several transitions which consume a token of N's place and push it to a place of a
+ ;      certain or all S. The rules are:
+ ;      (a) For each successor of a decision one transition is constructed, which is enabled iff
+ ;          the token value of the respective place their constraint variable refers to is true.
+ ;          Its source is the decision's place and its target the respective successor's place.
+ ;      (b) For each predecessor of a merge one transition is constructed. Its source is the
+ ;          respective predecessor's place and its target the merge's place.
+ ;      (c) For all successors of a fork a single connecting transition is constructed. Its single
+ ;          source is the fork's place and its targets are the successors' places.
+ ;      (d) For all predecessors of a join a single connecting transition is constructed. Its
+ ;          sources are the predecessors' places and its single target is the join's place.
+ ;      (e) For each further edge between nodes another transition between their respective places
+ ;          is constructed.
+ ;      (f) When a transition is executed it consumes a single token from each source and places a
+ ;          single token in each target.
+ ;  (4) The execution semantics of executable nodes are:
+ ;      (a) The expressions of executable nodes are executed IMMEDIATELY BEFORE a token is placed
+ ;          in its respective place.
+ ;      (b) When executed, the expressions of executable nodes read and write the token values of
+ ;          the respective places of their variables.
+ ; From (1-3) the following construction is deduced:
+ ;  (1) Places are constructed by attributes associated with nodes and variables:
+ ;      (a) Each variable constructs one place.
+ ;      (b) Each node constructs one place.
+ ;  (2) Transitions are constructed by attributes associated with nodes:
+ ;      (a) Nodes construct their predecessor transitions, except for fork predecessors.
+ ;      (b) Nodes, except forks, do not construct their successor transitions.
+ 
  (with-specification
   spec
   
-  (define (v-token n ->)
-    (ast-child 1 (pn:->Token* (=places (=v-lookup n (-> n))))))
-  (define (v-value n ->)
-    (let ((n (v-token n ->))) (lambda x (pn:->value n))))
   (define (>>? n)
     (if (ast-subtype? n 'ControlFlow)
-        (pn::Arc (->source n) (list (v-value n ->guard)))
+        (pn::Arc (->source n) (list (=v-accessor (=v-lookup n (->guard n)))))
         (pn::Arc (->source n) (list (lambda (t) #t)))))
   (define (n>> n)
     (pn::Arc (->target n) (=computation (=target n))))
-  (define (v-name n)
-    (string->symbol (string-append "variable@" (symbol->string n))))
+  
+  (ag-rule
+   v-token
+   (Variable       (lambda (n) (ast-child 1 (pn:->Token* (=places n))))))
+  
+  (ag-rule
+   v-accessor
+   (Variable       (lambda (n) (define token (=v-token n)) (lambda x (pn:->value token)))))
   
   (ag-rule
    petrinet
@@ -254,9 +289,12 @@
   (ag-rule
    places
    (Activity       (lambda (n) (append (map =places (=variables n)) (map =places (=nodes n)))))
-   (Variable       (lambda (n) (pn::Place (v-name (->name n)) (pn::Token (->initial n)))))
    (ActivityNode   (lambda (n) (pn::Place (->name n))))
-   (InitialNode    (lambda (n) (pn::Place (->name n) (pn::Token #t)))))
+   (InitialNode    (lambda (n) (pn::Place (->name n) (pn::Token #t))))
+   (Variable       (lambda (n)
+                     (pn::Place
+                      (string->symbol (string-append "@" (symbol->string (->name n))))
+                      (pn::Token (->initial n))))))
   
   (ag-rule
    transitions
@@ -264,10 +302,6 @@
    (Activity
     (lambda (n)
       (fold-left (lambda (result n) (append (=transitions n) result)) (list) (=nodes n))))
-   
-   ; Construction constraints:
-   ;  (2) Nodes construct their predecessor transitions, except for fork predecessors
-   ;  (2) Nodes, except forks, do not construct their successor transitions
    
    (ActivityNode
     (lambda (n)
@@ -312,28 +346,28 @@
    
    (ActivityNode
     (lambda (n)
-      (define trace (->name n))
-      (lambda x (display trace) #t)))
+      (define executed (->name n))
+      (lambda x (trace executed) (list #t))))
    
    (ExecutableNode
     (lambda (n)
-      (define trace (->name n))
+      (define executed (->name n))
       (define computations (map =computation (=expressions n)))
-      (lambda x (display trace) (for-each apply computations) #t)))
+      (lambda x (trace executed) (for-each (lambda (f) (f)) computations) (list #t))))
    
    (UnaryExpression
     (lambda (n)
-      (define assignee (v-token n ->assignee))
-      (define op1 (v-value n ->operand1))
+      (define assignee (=v-token (=v-lookup n (->assignee n))))
+      (define op1 (=v-accessor (=v-lookup n (->operand1 n))))
       (define op (->operator n))
-      (lambda () (rewrite-terminal assignee 'value (op (op1))))))
+      (lambda () (rewrite-terminal 'value assignee (op (op1))))))
    
    (BinaryExpression
     (lambda (n)
-      (define assignee (v-token n ->assignee))
-      (define op1 (v-value n ->operand1))
-      (define op2 (v-value n ->operand2))
+      (define assignee (=v-token (=v-lookup n (->assignee n))))
+      (define op1 (=v-accessor (=v-lookup n (->operand1 n))))
+      (define op2 (=v-accessor (=v-lookup n (->operand2 n))))
       (define op (->operator n))
-      (lambda () (rewrite-terminal assignee 'value (op (op1) (op2))))))))
+      (lambda () (rewrite-terminal 'value assignee (op (op1) (op2))))))))
  
  (compile-ag-specifications spec))

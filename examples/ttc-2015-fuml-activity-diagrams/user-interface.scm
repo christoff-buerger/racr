@@ -14,29 +14,25 @@
          (prefix (atomic-petrinets analyses) pn:)
          (prefix (atomic-petrinets user-interface) pn:))
  
- (define (run-activity-diagram diagram-file input-file trace)
+ (define (run-activity-diagram diagram-file input-file)
    (define activity (parse-diagram diagram-file))
-   (define input (if input-file (parse-diagram-input input-file) (list)))
-   ;(print-ast activity (list (cons 'valid? (lambda (v) v))) (current-output-port))
-   (for-each
-    (lambda (n)
-      (define variable (=v-lookup activity (->name n)))
-      (unless variable (exception: "Unknown Input"))
-      (unless (eq? (->initial variable) Undefined) (exception: "Unknown Input"))
-      (rewrite-terminal 'initial variable (->initial n)))
-    input)
+   (when input-file
+     (for-each
+      (lambda (n)
+        (define variable (=v-lookup activity (->name n)))
+        (unless variable (exception: "Unknown Input"))
+        (unless (eq? (->initial variable) Undefined) (exception: "Unknown Input"))
+        (rewrite-terminal 'initial variable (->initial n)))
+      (parse-diagram-input input-file)))
    (unless (for-all (lambda (n) (not (eq? (->initial n) Undefined))) (=variables activity))
      (exception: "Missing Input"))
-   ;(print-ast activity (list (cons 'valid? (lambda (v) v))) (current-output-port))
    (unless (=valid? activity) (exception: "Invalid Diagram"))
    (let ((net (=petrinet activity)))
-     ;(print-ast net (list) (current-output-port))
      (unless (pn:=valid? net) (exception: "Invalid Diagram"))
-     ;(let loop ()
-     ;  (define enabled? (find =enabled? (=transitions petrinet)))
-     ;  (when enabled?
-     ;    ()))
-     ;(pn:run-petrinet! net)
-     ))
+     (trace (->name (=initial activity)))
+     (pn:run-petrinet! net)
+     (for-each
+      (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
+      (=variables activity))))
  
  (pn:initialise-petrinet-language))
