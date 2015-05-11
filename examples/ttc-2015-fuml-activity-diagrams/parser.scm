@@ -10,10 +10,10 @@
  (export parse-diagram parse-diagram-input)
  (import (rnrs) (ttc-2015-fuml-activity-diagrams language))
  
- (define (parse-diagram file)
+ (define (parse-diagram file) ; Parse activity diagram of input file.
    (with-input-from-file file parse-activity))
  
- (define (parse-diagram-input file) ; BEWARE: Not thread save because of in-table and out-table.
+ (define (parse-diagram-input file) ; Parse list of variables of input file. Not thread save!
    (with-input-from-file file
      (lambda ()
        (define (parse-input)
@@ -34,11 +34,11 @@
      (unless (apply p-char constraints) (exception: "Parsing Error (unexpected character)"))
      (read-char)))
  
- (define (char= to-read) ; Construct filter for certain character that can be used by p-char and r-char.
+ (define (char= to-read) ; Construct character filter for p-char and r-char.
    (lambda (char-read)
      (char=? char-read to-read)))
  
- (define (consume-whitespace) ; Discard whitespace, including new line characters and one line comments (//).
+ (define (consume-whitespace) ; Discard whitespace, also new line characters & one line comments.
    (when (p-char char-whitespace?) (r-char) (consume-whitespace))
    (when (p-char (char= #\/))
      (r-char)
@@ -88,11 +88,14 @@
    (cond ((p-char (char= #\,)) (parse-keyword ",") (cons elem (parse-list f)))
          (else (list elem))))
  
- (define in-table (make-eq-hashtable 3000))
- (define out-table (make-eq-hashtable 3000))
+ (define in-table (make-eq-hashtable 3000)) ; Tracks consistency of in-edges between nodes & edges.
+ (define out-table (make-eq-hashtable 3000)) ; Tracks consistency of out-edges.
  
  (define (parse-activity)
-   (define name #f)(define Variable* (list))(define ActivityNode* (list))(define ActivityEdge* (list))
+   (define name #f)
+   (define Variable* (list))
+   (define ActivityNode* (list))
+   (define ActivityEdge* (list))
    (hashtable-clear! in-table)
    (hashtable-clear! out-table)
    (consume-whitespace)
@@ -101,11 +104,11 @@
    (when (p-char (char= #\())
      (parse-keyword "(")
      (unless (p-char (char= #\)))
-       (set! Variable* (append Variable* (parse-list parse-input))))
+       (set! Variable* (append Variable* (parse-list parse-input-variable))))
      (parse-keyword ")"))
    (parse-keyword "{")
    (unless (p-char (char= #\n))
-     (set! Variable* (append Variable* (parse-list parse-local))))
+     (set! Variable* (append Variable* (parse-list parse-local-variable))))
    (parse-keyword "nodes")
    (parse-keyword "{")
    (unless (p-char (char= #\}))
@@ -132,11 +135,11 @@
        (exception: "Parsing Error (inconsistent edges)"))
      activity))
  
- (define (parse-input)
+ (define (parse-input-variable)
    (define type (parse-type))
    (:Variable (parse-identifier) type Undefined))
  
- (define (parse-local)
+ (define (parse-local-variable)
    (define type (parse-type))
    (define name (parse-identifier))
    (parse-keyword "=")
@@ -242,7 +245,10 @@
      (parse-keyword ")")))
  
  (define (parse-edge)
-   (define name #f)(define source #f)(define target #f)(define guard #f)
+   (define name #f)
+   (define source #f)
+   (define target #f)
+   (define guard #f)
    (parse-keyword "flow")
    (set! name (parse-identifier))
    (parse-keyword "from")
