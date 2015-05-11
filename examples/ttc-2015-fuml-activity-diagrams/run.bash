@@ -6,18 +6,16 @@
 # author: C. Bürger
 
 ################################################################################################################ Parse arguments:
-while getopts s:d:i:t: opt
+while getopts s:d:i: opt
 do
 	case $opt in
 		s)	system="$OPTARG";;
 		d)	diagram="$OPTARG";;
 		i)	input="$OPTARG";;
-		t)	trace="$OPTARG";;
 		?)
 			echo "Usage: -s Scheme system (racket, larceny, petite))"
 			echo "       -d Activity diagram"
-			echo "       -i Activity diagram input"
-			echo "       -t Execution trace"
+			echo "       -i Activity diagram input"	
 			exit 2
 	esac
 done
@@ -33,15 +31,9 @@ then
 	echo " !!! ERROR: No activity diagram to interpret given !!!" >&2
 	exit 2
 fi
-if [ -z "$trace" ]
-then
-	echo " !!! ERROR: No tracing log given !!!" >&2
-	exit 2
-fi
-
 if [ -z "$input" ]
 then
-	input=":"
+	input=":false:"
 fi
 
 ############################################################################### Configure temporary resources & execution script:
@@ -49,8 +41,7 @@ old_pwd=`pwd`
 
 my_exit(){
 	cd $old_pwd
-	rm script.scm 
-	rm tmp-trace.trace
+	rm script.scm	
 	exit 0
 }
 trap 'my_exit' 1 2 3 9 15
@@ -59,37 +50,23 @@ echo "#!r6rs" > script.scm
 echo "(import (rnrs) (ttc-2015-fuml-activity-diagrams user-interface))" >> script.scm
 echo "(define diagram (cadr (command-line)))" >> script.scm
 echo "(define input (caddr (command-line)))" >> script.scm
-echo "(define trace (cadddr (command-line)))" >> script.scm
-echo '(set! input (if (string=? input ":") #f input))' >> script.scm
-echo "(run-activity-diagram diagram input trace)" >> script.scm
+echo '(set! input (if (string=? input ":false:") #f input))' >> script.scm
+echo "(run-activity-diagram diagram input)" >> script.scm
 
 ####################################################################################################### Execute activity diagram:
 case "$system" in
 larceny)
 	larceny --r6rs --path "../../racr/larceny-bin:../atomic-petrinets/larceny-bin:larceny-bin" \
-		--program script.scm -- $diagram $input tmp-trace.trace;;
+		--program script.scm -- $diagram $input;;
 racket)
 	plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
-		script.scm $diagram $input tmp-trace.trace;;
+		script.scm $diagram $input;;
 petite)
 	petite --libdirs "../..:.." \
-		--program script.scm $diagram $input tmp-trace.trace;;
+		--program script.scm $diagram $input;;
 *)
-	echo " !!! ERROR: Unknown Scheme system [$system] !!!"
-	touch tmp-trace.trace
+	echo " !!! ERROR: Unknown Scheme system [$system] !!!"	
 	my_exit;;
 esac
-
-############################################################################################################# Save/compare trace:
-if [ -e "$trace" ]
-then
-	diff_result=`diff --text trace.trace "$trace"`
-	if [ "$diff_result" != "" ]
-	then
-		echo " !!! RESULT ERROR !!!"
-	fi
-else
-	cp -p tmp-trace.trace "$trace"
-fi
 
 my_exit
