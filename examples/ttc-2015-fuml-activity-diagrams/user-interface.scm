@@ -14,7 +14,7 @@
          (prefix (atomic-petrinets analyses) pn:)
          (prefix (atomic-petrinets user-interface) pn:))
  
- (define (run-activity-diagram diagram-file input-file)
+ (define (run-activity-diagram diagram-file input-file) ; Execute diagram & print trace on std-out.
    (define activity (parse-diagram diagram-file))
    (when input-file
      (for-each
