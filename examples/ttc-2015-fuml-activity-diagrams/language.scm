@@ -81,13 +81,14 @@
  (define (:BinaryExpression a op op1 op2)
    (create-ast spec 'BinaryExpression (list a op op1 op2)))
  
- ; Tracing, Type & Operator Support:
- (define (trace . message)    (for-each display message) (newline))
- (define (Boolean)            #f)
- (define (Integer)            #f)
- (define (Undefined)          #f)
+ ; Type, Operator & Tracing Support:
+ (define-record-type atom     (sealed #t)(opaque #t))
+ (define Boolean              (make-atom))
+ (define Integer              (make-atom))
+ (define Undefined            (make-atom))
  (define (&& . a)             (for-all (lambda (x) x) a))
  (define (// . a)             (find (lambda (x) x) a))
+ (define (trace . message)    (for-each display message) (newline))
  
  ; Exceptions:
  (define-condition-type fuml-exception &violation make-fuml-exception fuml-exception?)
