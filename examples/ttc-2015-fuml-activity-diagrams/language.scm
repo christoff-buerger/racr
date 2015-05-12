@@ -42,7 +42,6 @@
  (define (=outgoing n)        (att-value 'outgoing n))
  (define (=incoming n)        (att-value 'incoming n))
  (define (=initial n)         (att-value 'initial n))
- (define (=final n)           (att-value 'final n))
  (define (=well-typed? n)     (att-value 'well-typed? n))
  (define (=valid? n)          (att-value 'valid? n))
  (define (=v-token n)         (att-value 'v-token n))
@@ -118,7 +117,7 @@
  
  ;;; Query Support:
  
- (with-specification
+ (with-specification ; For each list type cache its elements (list of variables, nodes, edges,...).
   spec
   (ag-rule variables   (Activity       (lambda (n) (ast-children (ast-child 'Variable* n)))))
   (ag-rule nodes       (Activity       (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
@@ -130,16 +129,17 @@
  (with-specification
   spec
   
-  (define (make-symbol-table -> l)
+  (define (make-symbol-table -> l) ; Hash the entities of a list w.r.t. a certain field.
     (define table (make-eq-hashtable))
     (for-each (lambda (n) (hashtable-set! table (-> n) n)) l)
     table)
   
-  (define (make-connection-table -> l)
+  (define (make-connection-table -> l) ; Hash ALL entities of a list (equally keyed in same set).
     (define table (make-eq-hashtable))
     (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
     table)
   
+  ; Hashmaps of variables, nodes & edges and source and target nodes of edges:
   (ag-rule v-lookup (Activity     (lambda (n) (make-symbol-table ->name (=variables n)))))
   (ag-rule n-lookup (Activity     (lambda (n) (make-symbol-table ->name (=nodes n)))))
   (ag-rule e-lookup (Activity     (lambda (n) (make-symbol-table ->name (=edges n)))))
@@ -147,22 +147,18 @@
   (ag-rule target   (ActivityEdge (lambda (n) (=n-lookup n (->target n)))))
   
   (ag-rule
-   outgoing
+   outgoing ; List of incoming edges of a node.
    (Activity     (lambda (n) (make-connection-table ->source (=edges n))))
    (ActivityNode (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
   
   (ag-rule
-   incoming
+   incoming ; List of outgoing edges of a node.
    (Activity     (lambda (n) (make-connection-table ->target (=edges n))))
    (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
   
   (ag-rule
-   initial
-   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'InitialNode)) (=nodes n)))))
-  
-  (ag-rule
-   final
-   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'FinalNode)) (=nodes n))))))
+   initial ; The diagram's initial node.
+   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'InitialNode)) (=nodes n))))))
  
  ;;; Type Analysis:
  
@@ -170,7 +166,7 @@
   spec
   
   (ag-rule
-   well-typed?
+   well-typed? ; Have variables proper initialisation values and are expressions type correct?
    
    (Variable
     (lambda (n)
@@ -199,9 +195,9 @@
  (with-specification
   spec
   
-  (define (in n f s)          (f (length (=incoming n)) s))
-  (define (out n f s)         (f (length (=outgoing n)) s))
-  (define (guarded n g)
+  (define (in n f s)          (f (length (=incoming n)) s)) ; Number of incoming edges satisfies f?
+  (define (out n f s)         (f (length (=outgoing n)) s)) ; Number of outgoing edges satisfies f?
+  (define (guarded n g) ; All outgoing edges of n are guarded/not guarded?
     (define (guarded n)
       (if (ast-subtype? n 'ControlFlow)
           (let ((var (=v-lookup n (->guard n))))
@@ -210,14 +206,14 @@
     (for-all guarded (=outgoing n)))
   
   (ag-rule
-   valid?
+   valid? ; Is the diagram well-formed?
    (Variable       (lambda (n) (=well-typed? n)))
    (ActivityEdge   (lambda (n) (eq? (=e-lookup n (->name n)) n) (=source n) (=target n)))
    (ControlFlow    (lambda (n)
                      (and (eq? (=e-lookup n (->name n)) n) (=source n) (=target n)
                           (let ((v (=v-lookup n (->guard n)))) (and v (eq? (->type v) Boolean))))))
    (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f) (eq? (=initial n) n))))
-   (FinalNode      (lambda (n) (and (in n = 1) (out n = 0) (guarded n #f) (eq? (=final n) n))))
+   (FinalNode      (lambda (n) (and (in n >= 1) (out n = 0) (guarded n #f))))
    (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f))))
    (JoinNode       (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
    (DecisionNode   (lambda (n) (and (in n = 1) (out n >= 1) (guarded n #t))))
@@ -226,7 +222,7 @@
                                     (for-all =well-typed? (=expressions n)))))
    (Activity
     (lambda (n)
-      (and (=initial n) (=final n)
+      (and (=initial n)
            (for-all =valid? (=variables n))
            (for-all =valid? (=nodes n))
            (for-all =valid? (=edges n)))))))
@@ -234,14 +230,14 @@
  ;;; Code Generation:
  
  ; The execution semantics of activity diagrams are given by their translation to Petri nets:
- ;  (1) For each variable a place with a single token whose value is its value exists.
+ ;  (1) For each variable exists a place with a single token whose value is the variable's value.
  ;  (2) For each node an equally named place exists.
  ;  (3) The activity edges connecting a node N with its successor nodes S are realised as a single
  ;      or several transitions which consume a token of N's place and push it to a place of a
  ;      certain or all S. The rules are:
- ;      (a) For each successor of a decision one transition is constructed, which is enabled iff
- ;          the token value of the respective place their constraint variable refers to is true.
- ;          Its source is the decision's place and its target the respective successor's place.
+ ;      (a) For each successor of a decision one transition is constructed. It is enabled iff the
+ ;          token value of its constrainted variable is true. Its source is the decision's place
+ ;          and its target the respective successor's place.
  ;      (b) For each predecessor of a merge one transition is constructed. Its source is the
  ;          respective predecessor's place and its target the merge's place.
  ;      (c) For all successors of a fork a single connecting transition is constructed. Its single
@@ -250,45 +246,45 @@
  ;          sources are the predecessors' places and its single target is the join's place.
  ;      (e) For each further edge between nodes another transition between their respective places
  ;          is constructed.
- ;      (f) When a transition is executed it consumes a single token from each source and places a
+ ;      (f) When a transition is fired it consumes a single token from each source and places a
  ;          single token in each target.
  ;  (4) The execution semantics of executable nodes are:
  ;      (a) The expressions of executable nodes are executed IMMEDIATELY BEFORE a token is placed
- ;          in its respective place.
+ ;          in their respective place.
  ;      (b) When executed, the expressions of executable nodes read and write the token values of
  ;          the respective places of their variables.
  ; From (1-3) the following construction is deduced:
- ;  (1) Places are constructed by attributes associated with nodes and variables:
+ ;  (A) Places are constructed by attributes associated with nodes and variables:
  ;      (a) Each variable constructs one place.
  ;      (b) Each node constructs one place.
- ;  (2) Transitions are constructed by attributes associated with nodes:
+ ;  (B) Transitions are constructed by attributes associated with nodes:
  ;      (a) Nodes construct their predecessor transitions, except for fork predecessors.
  ;      (b) Nodes, except forks, do not construct their successor transitions.
  
  (with-specification
   spec
   
-  (define (>>? n)
+  (define (>>? n) ; Construct incoming Petri net arc for activity edge.
     (if (ast-subtype? n 'ControlFlow)
         (pn::Arc (->source n) (list (=v-accessor (=v-lookup n (->guard n)))))
         (pn::Arc (->source n) (list (lambda (t) #t)))))
-  (define (n>> n)
+  (define (n>> n) ; Construct outgoing Petri net arc for activity edge.
     (pn::Arc (->target n) (=computation (=target n))))
   
   (ag-rule
-   v-token
+   v-token ; The Petri net token encoding the runtime value of the variable.
    (Variable       (lambda (n) (ast-child 1 (pn:->Token* (=places n))))))
   
   (ag-rule
-   v-accessor
+   v-accessor ; Function returning the runtime value of the variable.
    (Variable       (lambda (n) (define token (=v-token n)) (lambda x (pn:->value token)))))
   
   (ag-rule
-   petrinet
+   petrinet ; The Petri net simulating the activity diagram's execution.
    (Activity       (lambda (n) (pn::AtomicPetrinet (=places n) (=transitions n)))))
   
   (ag-rule
-   places
+   places ; List of places of the simulating Petri net.
    (Activity       (lambda (n) (append (map =places (=variables n)) (map =places (=nodes n)))))
    (ActivityNode   (lambda (n) (pn::Place (->name n))))
    (InitialNode    (lambda (n) (pn::Place (->name n) (pn::Token #t))))
@@ -298,7 +294,7 @@
                       (pn::Token (->initial n))))))
   
   (ag-rule
-   transitions
+   transitions ; List of transitions of the simulating Petri net.
    
    (Activity
     (lambda (n)
@@ -343,7 +339,7 @@
         (list (n>> (car incoming))))))))
   
   (ag-rule
-   computation
+   computation ; Function encoding the execution semantics of nodes (including their expressions).
    
    (ActivityNode
     (lambda (n)
