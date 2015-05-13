@@ -38,6 +38,9 @@
     <Compile Include="Accessors.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="Widget.cs" />
+    <Compile Include="..\..\Racr\Racr\Racr.cs">
+      <Link>Racr.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
@@ -51,9 +54,6 @@
     </Reference>
     <Reference Include="racr.hash">
       <HintPath>..\..\..\racr\racr.hash.dll</HintPath>
-    </Reference>
-    <Reference Include="Racr">
-      <HintPath>..\..\Racr\Racr\bin\Debug\Racr.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
