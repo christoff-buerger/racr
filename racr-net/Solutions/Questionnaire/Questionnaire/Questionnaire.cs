@@ -270,6 +270,7 @@ class Questionnaire {
 		}
 	}
 
+	[STAThread]
 	public static void Main(string[] args) {
 		Racr.AstNode ast;
 		if (args.Length == 1) {
