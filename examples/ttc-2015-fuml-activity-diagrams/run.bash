@@ -6,16 +6,18 @@
 # author: C. Bürger
 
 ################################################################################################################ Parse arguments:
-while getopts s:d:i: opt
+while getopts s:d:i:m: opt
 do
 	case $opt in
 		s)	system="$OPTARG";;
 		d)	diagram="$OPTARG";;
 		i)	input="$OPTARG";;
+		m)	mode="$OPTARG";;
 		?)
 			echo "Usage: -s Scheme system (racket, larceny, petite))"
 			echo "       -d Activity diagram"
-			echo "       -i Activity diagram input"	
+			echo "       -i Activity diagram input"
+			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness, 5=PN-execution)"
 			exit 2
 	esac
 done
@@ -35,6 +37,14 @@ if [ -z "$input" ]
 then
 	input=":false:"
 fi
+if [ -z "$mode" ]
+then
+	mode=1
+else if (( "$mode" < 1 || "$mode" > 5 ))
+then
+	echo " !!! ERROR: No valid mode selected !!!" >&2
+	exit 2
+fi fi
 
 ############################################################################### Configure temporary resources & execution script:
 old_pwd=`pwd`
@@ -50,20 +60,22 @@ echo "#!r6rs" > script.scm
 echo "(import (rnrs) (ttc-2015-fuml-activity-diagrams user-interface))" >> script.scm
 echo "(define diagram (cadr (command-line)))" >> script.scm
 echo "(define input (caddr (command-line)))" >> script.scm
+echo "(define mode (cadddr (command-line)))" >> script.scm
 echo '(set! input (if (string=? input ":false:") #f input))' >> script.scm
-echo "(run-activity-diagram diagram input)" >> script.scm
+echo '(set! mode (string->number mode))' >> script.scm
+echo "(run-activity-diagram diagram input mode)" >> script.scm
 
 ####################################################################################################### Execute activity diagram:
 case "$system" in
 larceny)
 	larceny --r6rs --path "../../racr/larceny-bin:../atomic-petrinets/larceny-bin:larceny-bin" \
-		--program script.scm -- $diagram $input;;
+		--program script.scm -- $diagram $input $mode;;
 racket)
 	plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
-		script.scm $diagram $input;;
+		script.scm $diagram $input $mode;;
 petite)
 	petite --libdirs "../..:.." \
-		--program script.scm $diagram $input;;
+		--program script.scm $diagram $input $mode;;
 *)
 	echo " !!! ERROR: Unknown Scheme system [$system] !!!"	
 	my_exit;;

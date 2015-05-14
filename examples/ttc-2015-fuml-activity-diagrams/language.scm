@@ -147,14 +147,14 @@
   (ag-rule target   (ActivityEdge (lambda (n) (=n-lookup n (->target n)))))
   
   (ag-rule
-   outgoing ; List of incoming edges of a node.
-   (Activity     (lambda (n) (make-connection-table ->source (=edges n))))
-   (ActivityNode (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
-  
-  (ag-rule
-   incoming ; List of outgoing edges of a node.
+   incoming ; List of incoming edges of a node.
    (Activity     (lambda (n) (make-connection-table ->target (=edges n))))
    (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
+  
+  (ag-rule
+   outgoing ; List of outgoing edges of a node.
+   (Activity     (lambda (n) (make-connection-table ->source (=edges n))))
+   (ActivityNode (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
   
   (ag-rule
    initial ; The diagram's initial node.

@@ -14,7 +14,7 @@
          (prefix (atomic-petrinets analyses) pn:)
          (prefix (atomic-petrinets user-interface) pn:))
  
- (define (run-activity-diagram diagram-file input-file) ; Execute diagram & print trace on std-out.
+ (define (run-activity-diagram diagram-file input-file mode) ; Execute diagram & print trace.
    (define activity (parse-diagram diagram-file))
    (when input-file
      (for-each
@@ -26,13 +26,17 @@
       (parse-diagram-input input-file)))
    (unless (for-all (lambda (n) (not (eq? (->initial n) Undefined))) (=variables activity))
      (exception: "Missing Input"))
-   (unless (=valid? activity) (exception: "Invalid Diagram"))
-   (let ((net (=petrinet activity)))
-     (unless (pn:=valid? net) (exception: "Invalid Diagram"))
-     (trace (->name (=initial activity)))
-     (pn:run-petrinet! net)
-     (for-each
-      (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
-      (=variables activity))))
+   (when (> mode 1)
+     (unless (=valid? activity) (exception: "Invalid Diagram"))
+     (when (> mode 2)
+       (let ((net (=petrinet activity)))
+         (when (> mode 3)
+           (unless (pn:=valid? net) (exception: "Invalid Diagram"))
+           (when (> mode 4)
+             (trace (->name (=initial activity)))
+             (pn:run-petrinet! net)
+             (for-each
+              (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
+              (=variables activity))))))))
  
  (pn:initialise-petrinet-language))
