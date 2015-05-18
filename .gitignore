@@ -11,6 +11,8 @@
 **/*-gen
 # Ignore generated binary directories:
 **/*-bin
+**/bin
+**/obj
 # Ignore generated Java Archives:
 **/tinycpp-*.jar
 # Ignore profiling measurements:
