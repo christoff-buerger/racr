@@ -1,3 +1,6 @@
+@libraries:
+../../racr
+@sources:
 exception-api
 type
 state

@@ -23,7 +23,7 @@ activity test6 (bool internal) {
 		flow edge43 from register to decisionInternal,
 		flow edge44 from decisionInternal to assignToProjectExternal [notinternal],
 		flow edge45 from decisionInternal to getWelcomePackage [internal],
-		flow edge46 from getWelcomePackage to forGetWelcomePackage,
+		flow edge46 from getWelcomePackage to forkGetWelcomePackage,
 		flow edge47 from forkGetWelcomePackage to assignToProject,
 		flow edge48 from forkGetWelcomePackage to addToWebsite,
 		flow edge49 from assignToProject to joinManagerInterview,

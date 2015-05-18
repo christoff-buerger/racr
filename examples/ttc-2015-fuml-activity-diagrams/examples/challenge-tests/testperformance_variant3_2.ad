@@ -1,4 +1,4 @@
-activity testperformance_variant3_1 (int i) {
+activity testperformance_variant3_2 (int i) {
 	int value2 = 2,
 	bool iG2 = false,
 	bool iE2 = false,

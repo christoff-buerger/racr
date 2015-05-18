@@ -1,4 +1,7 @@
-@../atomic-petrinets
+@libraries:
+../../racr
+../atomic-petrinets
+@sources:
 language
 parser
 user-interface

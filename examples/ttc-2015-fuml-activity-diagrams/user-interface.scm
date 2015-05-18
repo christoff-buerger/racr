@@ -7,8 +7,36 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams user-interface)
- (export parse)
- (import (rnrs) (racr testing) (ttc-2015-fuml-activity-diagrams parser))
+ (export run-activity-diagram)
+ (import (rnrs) (racr core) (racr testing)
+         (ttc-2015-fuml-activity-diagrams language)
+         (ttc-2015-fuml-activity-diagrams parser)
+         (prefix (atomic-petrinets analyses) pn:)
+         (prefix (atomic-petrinets user-interface) pn:))
  
- (define (parse f)
-   (parse-diagram f)));(print-ast (tparse "examples/correct/test1.ad") (list) (current-output-port))
+ (define (run-activity-diagram diagram-file input-file mode) ; Execute diagram & print trace.
+   (define activity (parse-diagram diagram-file))
+   (when input-file
+     (for-each
+      (lambda (n)
+        (define variable (=v-lookup activity (->name n)))
+        (unless variable (exception: "Unknown Input"))
+        (unless (eq? (->initial variable) Undefined) (exception: "Unknown Input"))
+        (rewrite-terminal 'initial variable (->initial n)))
+      (parse-diagram-input input-file)))
+   (unless (for-all (lambda (n) (not (eq? (->initial n) Undefined))) (=variables activity))
+     (exception: "Missing Input"))
+   (when (> mode 1)
+     (unless (=valid? activity) (exception: "Invalid Diagram"))
+     (when (> mode 2)
+       (let ((net (=petrinet activity)))
+         (when (> mode 3)
+           (unless (pn:=valid? net) (exception: "Invalid Diagram"))
+           (when (> mode 4)
+             (trace (->name (=initial activity)))
+             (pn:run-petrinet! net)
+             (for-each
+              (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
+              (=variables activity))))))))
+ 
+ (pn:initialise-petrinet-language))

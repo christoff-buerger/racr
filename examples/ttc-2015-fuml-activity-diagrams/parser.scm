@@ -10,10 +10,10 @@
  (export parse-diagram parse-diagram-input)
  (import (rnrs) (ttc-2015-fuml-activity-diagrams language))
  
- (define (parse-diagram file)
+ (define (parse-diagram file) ; Parse activity diagram of input file.
    (with-input-from-file file parse-activity))
  
- (define (parse-diagram-input file)
+ (define (parse-diagram-input file) ; Parse list of variables of input file. Not thread save!
    (with-input-from-file file
      (lambda ()
        (define (parse-input)
@@ -31,14 +31,14 @@
  
  (define r-char ; Similar to p-char but additionally increments the parsing position.
    (lambda constraints
-     (unless (apply p-char constraints) (exception: "Parsing Error"))
+     (unless (apply p-char constraints) (exception: "Parsing Error (unexpected character)"))
      (read-char)))
  
- (define (char= to-read) ; Construct filter for certain character that can be used by p- and r-char.
+ (define (char= to-read) ; Construct character filter for p-char and r-char.
    (lambda (char-read)
      (char=? char-read to-read)))
  
- (define (consume-whitespace)
+ (define (consume-whitespace) ; Discard whitespace, also new line characters & one line comments.
    (when (p-char char-whitespace?) (r-char) (consume-whitespace))
    (when (p-char (char= #\/))
      (r-char)
@@ -49,7 +49,7 @@
            (begin (r-char) (loop))))
      (consume-whitespace)))
  
- (define (parse-boolean)
+ (define (parse-boolean) ; Parse boolean constants (false/true).
    (cond ((p-char (char= #\f)) (parse-keyword "false") #f)
          (else (parse-keyword "true") #t)))
  
@@ -76,31 +76,39 @@
    (consume-whitespace)
    id)
  
- (define (parse-constant)
+ (define (parse-constant) ; Parse integer and boolean constants.
    (if (p-char char-numeric?) (parse-integer) (parse-boolean)))
  
- (define (parse-keyword keyword)
+ (define (parse-keyword keyword) ; Parse given character sequence and consume trailing whitespace.
    (string-for-each (lambda (c) (r-char (char= c))) keyword)
    (consume-whitespace))
  
- (define (parse-list f)
+ (define (parse-list f) ; Parse comma separated list of given parser combinator.
    (define elem (f))
    (cond ((p-char (char= #\,)) (parse-keyword ",") (cons elem (parse-list f)))
          (else (list elem))))
  
+ (define in-table (make-eq-hashtable 3000)) ; Tracks consistency of in-edges between nodes & edges.
+ (define out-table (make-eq-hashtable 3000)) ; Tracks consistency of out-edges.
+ 
  (define (parse-activity)
-   (define name #f)(define Variable* (list))(define ActivityNode* (list))(define ActivityEdge* (list))
+   (define name #f)
+   (define Variable* (list))
+   (define ActivityNode* (list))
+   (define ActivityEdge* (list))
+   (hashtable-clear! in-table)
+   (hashtable-clear! out-table)
    (consume-whitespace)
    (parse-keyword "activity")
    (set! name (parse-identifier))
    (when (p-char (char= #\())
      (parse-keyword "(")
      (unless (p-char (char= #\)))
-       (set! Variable* (append Variable* (parse-list parse-input))))
+       (set! Variable* (append Variable* (parse-list parse-input-variable))))
      (parse-keyword ")"))
    (parse-keyword "{")
    (unless (p-char (char= #\n))
-     (set! Variable* (append Variable* (parse-list parse-local))))
+     (set! Variable* (append Variable* (parse-list parse-local-variable))))
    (parse-keyword "nodes")
    (parse-keyword "{")
    (unless (p-char (char= #\}))
@@ -112,14 +120,26 @@
      (set! ActivityEdge* (parse-list parse-edge)))
    (parse-keyword "}")
    (parse-keyword "}")
-   (when (p-char) (exception: "Parsing Error"))
-   (:Activity name Variable* ActivityNode* ActivityEdge*))
+   (when (p-char) (exception: "Parsing Error (expected EOF; unexpected further characters)"))
+   (let ((activity (:Activity name Variable* ActivityNode* ActivityEdge*)))
+     (unless
+         (and
+          (for-all
+              (lambda (n)
+                (define in (hashtable-ref in-table (->name n) #f))
+                (define out (hashtable-ref out-table (->name n) #f))
+                (and in out (eq? (->target n) in) (eq? (->source n) out)))
+            (=edges activity))
+          (for-all (lambda (k) (=e-lookup activity k)) (vector->list (hashtable-keys in-table)))
+          (for-all (lambda (k) (=e-lookup activity k)) (vector->list (hashtable-keys out-table))))
+       (exception: "Parsing Error (inconsistent edges)"))
+     activity))
  
- (define (parse-input)
+ (define (parse-input-variable)
    (define type (parse-type))
-   (:Variable (parse-identifier) type (list)))
+   (:Variable (parse-identifier) type Undefined))
  
- (define (parse-local)
+ (define (parse-local-variable)
    (define type (parse-type))
    (define name (parse-identifier))
    (parse-keyword "=")
@@ -158,14 +178,14 @@
        ((p-char (char= #\a))
         (parse-keyword "action")
         :ExecutableNode)
-       (else (exception: "Parsing Error"))))
+       (else (exception: "Parsing Error (unknown node type)"))))
    (set! name (parse-identifier))
    (when (and (eq? type :ExecutableNode) (p-char (char= #\c)))
      (parse-keyword "comp")
      (parse-keyword "{")
      (set! expressions (parse-list parse-expression))
      (parse-keyword "}"))
-   (consume-edges)
+   (consume-edges name)
    (if (eq? type :ExecutableNode)
        (type name expressions)
        (type name)))
@@ -202,20 +222,33 @@
      ((p-char (char= #\|))
       (parse-keyword "|") //)))
  
- (define (consume-edges)
+ (define (consume-edges node-name)
    (when (p-char (char= #\i))
      (parse-keyword "in")
      (parse-keyword "(")
-     (parse-list parse-identifier)
+     (for-each
+      (lambda (id)
+        (when (hashtable-ref in-table id #f)
+          (exception: "Parsing Error (inconsistent edges)"))
+        (hashtable-set! in-table id node-name))
+      (parse-list parse-identifier))
      (parse-keyword ")"))
    (when (p-char (char= #\o))
      (parse-keyword "out")
      (parse-keyword "(")
-     (parse-list parse-identifier)
+     (for-each
+      (lambda (id)
+        (when (hashtable-ref out-table id #f)
+          (exception: "Parsing Error (inconsistent edges)"))
+        (hashtable-set! out-table id node-name))
+      (parse-list parse-identifier))
      (parse-keyword ")")))
  
  (define (parse-edge)
-   (define name #f)(define source #f)(define target #f)(define guard #f)
+   (define name #f)
+   (define source #f)
+   (define target #f)
+   (define guard #f)
    (parse-keyword "flow")
    (set! name (parse-identifier))
    (parse-keyword "from")
@@ -226,4 +259,4 @@
      (parse-keyword "[")
      (set! guard (parse-identifier))
      (parse-keyword "]"))
-   (if guard (:ControlFlow source target guard) (:ActivityEdge source target))))
+   (if guard (:ControlFlow name source target guard) (:ActivityEdge name source target))))

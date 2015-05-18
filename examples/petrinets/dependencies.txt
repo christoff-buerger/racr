@@ -1,3 +1,6 @@
+@libraries:
+../../racr
+@sources:
 ast
 access-support
 name-analysis

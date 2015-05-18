@@ -7,10 +7,12 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams language)
- (export exception: Boolean Integer && //
+ (export exception: trace Boolean Integer Undefined && //
          :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
-         :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression)
- (import (rnrs) (racr core) (atomic-petrinets user-interface))
+         :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
+         ->name ->initial ->source ->target
+         =variables =edges =v-lookup =e-lookup =initial =valid? =v-accessor =petrinet)
+ (import (rnrs) (racr core) (prefix (atomic-petrinets analyses) pn:))
  
  (define spec                 (create-specification))
  
@@ -21,40 +23,44 @@
  (define (->source n)         (ast-child 'source n))
  (define (->target n)         (ast-child 'target n))
  (define (->guard n)          (ast-child 'guard n))
- (define (->asignee n)        (ast-child 'asignee n))
+ (define (->assignee n)       (ast-child 'assignee n))
  (define (->operator n)       (ast-child 'operator n))
  (define (->operand1 n)       (ast-child 'operand1 n))
  (define (->operand2 n)       (ast-child 'operand2 n))
+ (define (<- n)               (ast-parent n))
  
  ; Attribute Accessors:
  (define (=variables n)       (att-value 'variables n))
  (define (=nodes n)           (att-value 'nodes n))
  (define (=edges n)           (att-value 'edges n))
  (define (=expressions n)     (att-value 'expressions n))
- (define (=var n name)        (att-value 'var n name))
- (define (=node n name)       (att-value 'node n name))
+ (define (=v-lookup n name)   (hashtable-ref (att-value 'v-lookup n) name #f))
+ (define (=n-lookup n name)   (hashtable-ref (att-value 'n-lookup n) name #f))
+ (define (=e-lookup n name)   (hashtable-ref (att-value 'e-lookup n) name #f))
+ (define (=source n)          (att-value 'source n))
+ (define (=target n)          (att-value 'target n))
  (define (=outgoing n)        (att-value 'outgoing n))
  (define (=incoming n)        (att-value 'incoming n))
+ (define (=initial n)         (att-value 'initial n))
  (define (=well-typed? n)     (att-value 'well-typed? n))
  (define (=valid? n)          (att-value 'valid? n))
- 
- ; Type Support:
- (define (Boolean)            #f)
- (define (Integer)            #f)
- 
- ; Operator support:
- (define (&& . a)             (for-all (lambda (x) x) a))
- (define (// . a)             (find (lambda (x) x) a))
+ (define (=v-token n)         (att-value 'v-token n))
+ (define (=v-accessor n)      (att-value 'v-accessor n))
+ (define (=petrinet n)        (att-value 'petrinet n))
+ (define (=places n)          (att-value 'places n))
+ (define (=transitions n)     (att-value 'transitions n))
+ (define (=computation n)     (att-value 'computation n))
  
  ; AST Constructors:
  (define (:Activity id v n e)
-   (create-ast spec 'Activity (list id (create-ast-list v) (create-ast-list n) (create-ast-list e))))
+   (create-ast
+    spec 'Activity (list id (create-ast-list v) (create-ast-list n) (create-ast-list e))))
  (define (:Variable id t i)
    (create-ast spec 'Variable (list id t i)))
- (define (:ActivityEdge s t)
-   (create-ast spec 'ActivityEdge (list s t)))
- (define (:ControlFlow s t g)
-   (create-ast spec 'ControlFlow (list s t g)))
+ (define (:ActivityEdge id s t)
+   (create-ast spec 'ActivityEdge (list id s t)))
+ (define (:ControlFlow id s t g)
+   (create-ast spec 'ControlFlow (list id s t g)))
  (define (:InitialNode id)
    (create-ast spec 'InitialNode (list id)))
  (define (:FinalNode id)
@@ -74,8 +80,16 @@
  (define (:BinaryExpression a op op1 op2)
    (create-ast spec 'BinaryExpression (list a op op1 op2)))
  
- ;;; Exceptions:
+ ; Type, Operator & Tracing Support:
+ (define-record-type atom     (sealed #t)(opaque #t))
+ (define Boolean              (make-atom))
+ (define Integer              (make-atom))
+ (define Undefined            (make-atom))
+ (define (&& . a)             (for-all (lambda (x) x) a))
+ (define (// . a)             (find (lambda (x) x) a))
+ (define (trace . message)    (for-each display message) (newline))
  
+ ; Exceptions:
  (define-condition-type fuml-exception &violation make-fuml-exception fuml-exception?)
  (define (exception: message)
    (raise-continuable (condition (make-fuml-exception) (make-message-condition message))))
@@ -86,7 +100,7 @@
   spec
   (ast-rule 'Activity->name-Variable*-ActivityNode*-ActivityEdge*)
   (ast-rule 'Variable->name-type-initial)
-  (ast-rule 'ActivityEdge->source-target)
+  (ast-rule 'ActivityEdge->name-source-target)
   (ast-rule 'ControlFlow:ActivityEdge->guard)
   (ast-rule 'ActivityNode->name)
   (ast-rule 'InitialNode:ActivityNode->)
@@ -103,31 +117,48 @@
  
  ;;; Query Support:
  
- (with-specification
+ (with-specification ; For each list type cache its elements (list of variables, nodes, edges,...).
   spec
-  (ag-rule variables   (Activity (lambda (n) (ast-children (ast-child 'Variable* n)))))
-  (ag-rule nodes       (Activity (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
-  (ag-rule edges       (Activity (lambda (n) (ast-children (ast-child 'ActivityEdge* n)))))
-  (ag-rule expressions (Activity (lambda (n) (ast-children (ast-child 'Expression* n))))))
+  (ag-rule variables   (Activity       (lambda (n) (ast-children (ast-child 'Variable* n)))))
+  (ag-rule nodes       (Activity       (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
+  (ag-rule edges       (Activity       (lambda (n) (ast-children (ast-child 'ActivityEdge* n)))))
+  (ag-rule expressions (ExecutableNode (lambda (n) (ast-children (ast-child 'Expression* n))))))
  
  ;;; Name Analysis:
  
  (with-specification
   spec
   
-  (define (find-name name l)
-    (find (lambda (n) (eq? (->name n) name)) l))
+  (define (make-symbol-table -> l) ; Hash the entities of a list w.r.t. a certain field.
+    (define table (make-eq-hashtable))
+    (for-each (lambda (n) (hashtable-set! table (-> n) n)) l)
+    table)
   
-  (ag-rule var  (Activity (lambda (n name) (find-name name (=variables n)))))
-  (ag-rule node (Activity (lambda (n name) (find-name name (=nodes n)))))
+  (define (make-connection-table -> l) ; Hash ALL entities of a list (equally keyed in same set).
+    (define table (make-eq-hashtable))
+    (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
+    table)
+  
+  ; Hashmaps of variables, nodes & edges and source and target nodes of edges:
+  (ag-rule v-lookup (Activity     (lambda (n) (make-symbol-table ->name (=variables n)))))
+  (ag-rule n-lookup (Activity     (lambda (n) (make-symbol-table ->name (=nodes n)))))
+  (ag-rule e-lookup (Activity     (lambda (n) (make-symbol-table ->name (=edges n)))))
+  (ag-rule source   (ActivityEdge (lambda (n) (=n-lookup n (->source n)))))
+  (ag-rule target   (ActivityEdge (lambda (n) (=n-lookup n (->target n)))))
   
   (ag-rule
-   outgoing
-   (ActivityNode (lambda (n) (filter (lambda (e) (eq? (->source e) (->name n))) (=edges n)))))
+   incoming ; List of incoming edges of a node.
+   (Activity     (lambda (n) (make-connection-table ->target (=edges n))))
+   (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
   
   (ag-rule
-   incoming
-   (ActivityNode (lambda (n) (filter (lambda (e) (eq? (->target e) (->name n))) (=edges n))))))
+   outgoing ; List of outgoing edges of a node.
+   (Activity     (lambda (n) (make-connection-table ->source (=edges n))))
+   (ActivityNode (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
+  
+  (ag-rule
+   initial ; The diagram's initial node.
+   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'InitialNode)) (=nodes n))))))
  
  ;;; Type Analysis:
  
@@ -135,7 +166,7 @@
   spec
   
   (ag-rule
-   well-typed?
+   well-typed? ; Have variables proper initialisation values and are expressions type correct?
    
    (Variable
     (lambda (n)
@@ -143,15 +174,15 @@
    
    (UnaryExpression
     (lambda (n)
-      (define ass (=var (->asignee n)))
-      (define op (=var (->operand1 n)))
+      (define ass (=v-lookup n (->assignee n)))
+      (define op (=v-lookup n (->operand1 n)))
       (and ass op (eq? (->type op) Boolean) (eq? (->type ass) Boolean))))
    
    (BinaryExpression
     (lambda (n)
-      (define ass (=var (->asignee n)))
-      (define op1 (=var (->operand1 n)))
-      (define op2 (=var (->operand2 n)))
+      (define ass (=v-lookup n (->assignee n)))
+      (define op1 (=v-lookup n (->operand1 n)))
+      (define op2 (=v-lookup n (->operand2 n)))
       (define (in . l) (memq (->operator n) l))
       (define (op-type t) (and (eq? (->type op1) t) (eq? (->type op2) t)))
       (and ass op1 op2
@@ -164,31 +195,176 @@
  (with-specification
   spec
   
-  (define (in n f s) (f (length (=incoming n)) s))
-  (define (out n f s) (f (length (=outgoing n)) s))
-  (define (guarded n g)
-    (and
-     (for-all (lambda (n) (not (ast-subtype? n 'ControlFlow))) (=incoming n))
-     (for-all (lambda (n)
-                (if (ast-subtype? n 'ControlFlow)
-                    (let ((var (=var n (->guard n))))
-                      (and g var (eq? (->type var) Boolean)))
-                    (not g)))
-       (=outgoing n))))
+  (define (in n f s)          (f (length (=incoming n)) s)) ; Number of incoming edges satisfies f?
+  (define (out n f s)         (f (length (=outgoing n)) s)) ; Number of outgoing edges satisfies f?
+  (define (guarded n g) ; All outgoing edges of n are guarded/not guarded?
+    (define (guarded n)
+      (if (ast-subtype? n 'ControlFlow)
+          (let ((var (=v-lookup n (->guard n))))
+            (and g var (eq? (->type var) Boolean)))
+          (not g)))
+    (for-all guarded (=outgoing n)))
   
   (ag-rule
-   valid?
-   (Activity       (lambda (n) (for-all =valid? (append (=variables n) (=nodes n) (=edges n)))))
+   valid? ; Is the diagram well-formed?
    (Variable       (lambda (n) (=well-typed? n)))
-   (ControlFlow    (lambda (n) (let ((v (=var n (->guard n)))) (and v (eq? (->type v) Boolean)))))
-   (ActivityEdge   (lambda (n) #t))
-   (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f))))
-   (FinalNode      (lambda (n) (and (in n = 1) (out n = 0) (guarded n #f))))
+   (ActivityEdge   (lambda (n) (eq? (=e-lookup n (->name n)) n) (=source n) (=target n)))
+   (ControlFlow    (lambda (n)
+                     (and (eq? (=e-lookup n (->name n)) n) (=source n) (=target n)
+                          (let ((v (=v-lookup n (->guard n)))) (and v (eq? (->type v) Boolean))))))
+   (InitialNode    (lambda (n) (and (in n = 0) (out n = 1) (guarded n #f) (eq? (=initial n) n))))
+   (FinalNode      (lambda (n) (and (in n >= 1) (out n = 0) (guarded n #f))))
    (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f))))
    (JoinNode       (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
-   (DecisionNode   (lambda (n) (and (in n = 1) (out n > 1) (guarded n #t))))
-   (MergeNode      (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
+   (DecisionNode   (lambda (n) (and (in n = 1) (out n >= 1) (guarded n #t))))
+   (MergeNode      (lambda (n) (and (in n >= 1) (out n = 1) (guarded n #f))))
    (ExecutableNode (lambda (n) (and (in n = 1) (out n = 1) (guarded n #f)
-                                    (for-all =well-typed? (=expressions n))))))
+                                    (for-all =well-typed? (=expressions n)))))
+   (Activity
+    (lambda (n)
+      (and (=initial n)
+           (for-all =valid? (=variables n))
+           (for-all =valid? (=nodes n))
+           (for-all =valid? (=edges n)))))))
+ 
+ ;;; Code Generation:
+ 
+ ; The execution semantics of activity diagrams are given by their translation to Petri nets:
+ ;  (1) For each variable exists a place with a single token whose value is the variable's value.
+ ;  (2) For each node an equally named place exists.
+ ;  (3) The activity edges connecting a node N with its successor nodes S are realised as a single
+ ;      or several transitions which consume a token of N's place and push it to a place of a
+ ;      certain or all S. The rules are:
+ ;      (a) For each successor of a decision one transition is constructed. It is enabled iff the
+ ;          token value of its constrainted variable is true. Its source is the decision's place
+ ;          and its target the respective successor's place.
+ ;      (b) For each predecessor of a merge one transition is constructed. Its source is the
+ ;          respective predecessor's place and its target the merge's place.
+ ;      (c) For all successors of a fork a single connecting transition is constructed. Its single
+ ;          source is the fork's place and its targets are the successors' places.
+ ;      (d) For all predecessors of a join a single connecting transition is constructed. Its
+ ;          sources are the predecessors' places and its single target is the join's place.
+ ;      (e) For each further edge between nodes another transition between their respective places
+ ;          is constructed.
+ ;      (f) When a transition is fired it consumes a single token from each source and places a
+ ;          single token in each target.
+ ;  (4) The execution semantics of executable nodes are:
+ ;      (a) The expressions of executable nodes are executed IMMEDIATELY BEFORE a token is placed
+ ;          in their respective place.
+ ;      (b) When executed, the expressions of executable nodes read and write the token values of
+ ;          the respective places of their variables.
+ ; From (1-3) the following construction is deduced:
+ ;  (A) Places are constructed by attributes associated with nodes and variables:
+ ;      (a) Each variable constructs one place.
+ ;      (b) Each node constructs one place.
+ ;  (B) Transitions are constructed by attributes associated with nodes:
+ ;      (a) Nodes construct their predecessor transitions, except for fork predecessors.
+ ;      (b) Nodes, except forks, do not construct their successor transitions.
+ 
+ (with-specification
+  spec
   
-  (compile-ag-specifications)))
+  (define (>>? n) ; Construct incoming Petri net arc for activity edge.
+    (if (ast-subtype? n 'ControlFlow)
+        (pn::Arc (->source n) (list (=v-accessor (=v-lookup n (->guard n)))))
+        (pn::Arc (->source n) (list (lambda (t) #t)))))
+  (define (n>> n) ; Construct outgoing Petri net arc for activity edge.
+    (pn::Arc (->target n) (=computation (=target n))))
+  
+  (ag-rule
+   v-token ; The Petri net token encoding the runtime value of the variable.
+   (Variable       (lambda (n) (ast-child 1 (pn:->Token* (=places n))))))
+  
+  (ag-rule
+   v-accessor ; Function returning the runtime value of the variable.
+   (Variable       (lambda (n) (define token (=v-token n)) (lambda x (pn:->value token)))))
+  
+  (ag-rule
+   petrinet ; The Petri net simulating the activity diagram's execution.
+   (Activity       (lambda (n) (pn::AtomicPetrinet (=places n) (=transitions n)))))
+  
+  (ag-rule
+   places ; List of places of the simulating Petri net.
+   (Activity       (lambda (n) (append (map =places (=variables n)) (map =places (=nodes n)))))
+   (ActivityNode   (lambda (n) (pn::Place (->name n))))
+   (InitialNode    (lambda (n) (pn::Place (->name n) (pn::Token #t))))
+   (Variable       (lambda (n)
+                     (pn::Place
+                      (string->symbol (string-append "@" (symbol->string (->name n))))
+                      (pn::Token (->initial n))))))
+  
+  (ag-rule
+   transitions ; List of transitions of the simulating Petri net.
+   
+   (Activity
+    (lambda (n)
+      (fold-left (lambda (result n) (append (=transitions n) result)) (list) (=nodes n))))
+   
+   (ActivityNode
+    (lambda (n)
+      (fold-left
+       (lambda (transitions incoming)
+         (if (ast-subtype? (=source incoming) 'ForkNode)
+             transitions
+             (cons
+              (pn::Transition
+               (->name incoming)
+               (list (>>? incoming))
+               (list (n>> incoming)))
+              transitions)))
+       (list)
+       (=incoming n))))
+   
+   (ForkNode
+    (lambda (n)
+      (define incoming (car (=incoming n)))
+      (define outgoing (=outgoing n))
+      (list
+       (pn::Transition
+        (->name incoming)
+        (list (>>? incoming))
+        (list (n>> incoming)))
+       (pn::Transition
+        (->name (car outgoing))
+        (list (>>? (car outgoing)))
+        (map n>> outgoing)))))
+   
+   (JoinNode
+    (lambda (n)
+      (define incoming (=incoming n))
+      (list
+       (pn::Transition
+        (->name (car incoming))
+        (map >>? incoming)
+        (list (n>> (car incoming))))))))
+  
+  (ag-rule
+   computation ; Function encoding the execution semantics of nodes (including their expressions).
+   
+   (ActivityNode
+    (lambda (n)
+      (define executed (->name n))
+      (lambda x (trace executed) (list #t))))
+   
+   (ExecutableNode
+    (lambda (n)
+      (define executed (->name n))
+      (define computations (map =computation (=expressions n)))
+      (lambda x (trace executed) (for-each (lambda (f) (f)) computations) (list #t))))
+   
+   (UnaryExpression
+    (lambda (n)
+      (define assignee (=v-token (=v-lookup n (->assignee n))))
+      (define op1 (=v-accessor (=v-lookup n (->operand1 n))))
+      (define op (->operator n))
+      (lambda () (rewrite-terminal 'value assignee (op (op1))))))
+   
+   (BinaryExpression
+    (lambda (n)
+      (define assignee (=v-token (=v-lookup n (->assignee n))))
+      (define op1 (=v-accessor (=v-lookup n (->operand1 n))))
+      (define op2 (=v-accessor (=v-lookup n (->operand2 n))))
+      (define op (->operator n))
+      (lambda () (rewrite-terminal 'value assignee (op (op1) (op2))))))))
+ 
+ (compile-ag-specifications spec))
