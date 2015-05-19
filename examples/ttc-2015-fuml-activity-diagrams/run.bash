@@ -39,7 +39,7 @@ then
 fi
 if [ -z "$mode" ]
 then
-	mode=1
+	mode=5
 else if (( "$mode" < 1 || "$mode" > 5 ))
 then
 	echo " !!! ERROR: No valid mode selected !!!" >&2
