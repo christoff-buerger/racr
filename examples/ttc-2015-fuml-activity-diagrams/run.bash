@@ -25,8 +25,7 @@ shift $(( OPTIND - 1 ))
 
 if [ -z "$system" ]
 then
-	echo " !!! ERROR: No Scheme system given !!!" >&2
-	exit 2
+	system="larceny"
 fi
 if [ -z "$diagram" ]
 then
