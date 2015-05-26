@@ -17,7 +17,8 @@ do
 			echo "Usage: -s Scheme system (racket, larceny, petite))"
 			echo "       -d Activity diagram"
 			echo "       -i Activity diagram input"
-			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness, 5=PN-execution)"
+			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness"
+			echo "                5=PN-execution (no enabled passes), 6=PN-execution (use enabled passes))"
 			exit 2
 	esac
 done
@@ -25,8 +26,7 @@ shift $(( OPTIND - 1 ))
 
 if [ -z "$system" ]
 then
-	echo " !!! ERROR: No Scheme system given !!!" >&2
-	exit 2
+	system="larceny"
 fi
 if [ -z "$diagram" ]
 then
@@ -39,8 +39,8 @@ then
 fi
 if [ -z "$mode" ]
 then
-	mode=1
-else if (( "$mode" < 1 || "$mode" > 5 ))
+	mode=5
+else if (( "$mode" < 1 || "$mode" > 6 ))
 then
 	echo " !!! ERROR: No valid mode selected !!!" >&2
 	exit 2

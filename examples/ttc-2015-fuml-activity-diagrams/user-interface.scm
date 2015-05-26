@@ -34,7 +34,12 @@
            (unless (pn:=valid? net) (exception: "Invalid Diagram"))
            (when (> mode 4)
              (trace (->name (=initial activity)))
-             (pn:run-petrinet! net)
+             (if (= mode 5)
+                 (pn:run-petrinet! net)
+                 (do ((enabled (filter pn:=enabled? (pn:=transitions net))
+                               (filter pn:=enabled? (pn:=transitions net))))
+                   ((null? enabled))
+                   (for-each pn:fire-transition! enabled)))
              (for-each
               (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
               (=variables activity))))))))
