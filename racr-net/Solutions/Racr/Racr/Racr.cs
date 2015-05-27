@@ -413,8 +413,6 @@ static public class Racr {
 
 		// attribution
 		public object AttValue(string attName, params object[] args) {
-			Console.WriteLine("> {0} {1}", attName, IsListNode() ? "*": NodeType() );
-
 			var l = new object[args.Length + 2];
 			l[0] = SymbolTable.StringToObject(attName);
 			l[1] = ast;
