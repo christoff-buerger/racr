@@ -1,12 +1,17 @@
+/*
+ This program and the accompanying materials are made available under the
+ terms of the MIT license (X11 license) which accompanies this distribution.
+
+ Author: D. Langner, C. Bürger
+*/
+
 using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
-
 enum ValueTypes { Boolean, String, Number, ErrorType }
-
 
 class QL : Racr.Specification {
 	static QL ql;

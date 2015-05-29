@@ -1,6 +1,12 @@
+/*
+ This program and the accompanying materials are made available under the
+ terms of the MIT license (X11 license) which accompanies this distribution.
+
+ Author: D. Langner, C. Bürger
+*/
+
 using System;
 using System.Windows.Forms;
-
 
 abstract class Widget : FlowLayoutPanel {
 	public Widget(string label) {
