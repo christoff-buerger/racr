@@ -4,7 +4,7 @@
 ; Author: D. Langner, C. Bürger
 
 (library
- (racr hash)
+ (hashtable-iron-scheme-adapter)
  (export
   hashtable-ref*
   hashtable-set!*
@@ -31,16 +31,6 @@
  (define hashtable-contains?*
    (lambda (h k)
      (hashtable-contains? h (if (null? k) nil k))))
- 
- ; (define hashtable-entries*
- ;   (lambda (h)
- ;     (let-values
- ;       (((kv vv) (hashtable-entries h)))
- ;       (let ((n (vector-length kv)))
- ;             (do ([i 0 (+ i 1)])
- ;                 ((= i n))
- ;               (when (eq? (vector-ref kv i) nil) (vector-set! kv i '()))))
- ;       (values kv vv)))))
  
  (define hashtable-entries*
    (lambda (h)

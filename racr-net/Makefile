@@ -3,26 +3,30 @@
 
 # Author: D. Langner, C. Bürger
 
-all: racr/racr.core.dll racr/racr.hash.dll
+# Ironscheme interpreter alias
+IS := mono ~/IronScheme/IronScheme.Console32-v2.exe
 
-# Ironscheme alias
-IS := is
-
+all: racr.core.dll hashtable-iron-scheme-adapter.dll Racr.dll
 
 TMP := $(shell mktemp)
 
-racr/racr.core.dll racr/racr.hash.dll: racr/core.sls Makefile
+racr.core.dll hashtable-iron-scheme-adapter.dll:  ../racr/core.scm transcribe.py Makefile
+	@mkdir -p racr
+	@./transcribe.py
 	@echo '(import (racr core))' > $(TMP)
 	@echo '(compile "$(TMP)")' | $(IS)
 	@echo '(cadr (library-path))' | $(IS) | awk 'NR == 2 {\
-		system("mv " substr($$0,3) "/racr.core.dll racr/racr.core.dll");\
-		system("mv " substr($$0,3) "/racr.hash.dll racr/racr.hash.dll");\
+		system("mv " substr($$0,3) "/racr.core.dll .");\
+		system("mv " substr($$0,3) "/hashtable-iron-scheme-adapter.dll .");\
 	}'
+	@rm -r racr
 
 
-racr/core.sls: ../racr/core.scm transcribe.py Makefile
-	./transcribe.py
+Racr.dll: racr.core.dll hashtable-iron-scheme-adapter.dll
+	xbuild
+	cp bin/Debug/Racr.dll .
 
 
 clean:
-	rm -f racr/core.sls racr/racr.core.dll racr/racr.hash.dll
+	rm -f racr.core.dll hashtable-iron-scheme-adapter.dll
+	rm -rf bin obj Racr.dd

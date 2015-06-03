@@ -42,7 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="IronScheme">
-      <HintPath>..\..\..\IronScheme.dll</HintPath>
+      <HintPath>IronScheme.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

@@ -4,4 +4,4 @@
 # Author: D. Langner, C. Bürger
 
 Test.dll: Test.cs
-	mono-csc $< -r:IronScheme.dll -target:library -pkg:nunit -out:$@
+	mono-csc $< -r:../racr-net/IronScheme.dll -target:library -pkg:nunit -out:$@
