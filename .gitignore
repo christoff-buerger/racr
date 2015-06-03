@@ -9,8 +9,10 @@
 **/.DS_Store
 # Ignore generated code directories:
 **/*-gen
-# Ignore generated binary directories:
+# Ignore generated object & binary directories:
 **/*-bin
+**/bin
+**/obj
 # Ignore generated Java Archives:
 **/tinycpp-*.jar
 # Ignore profiling measurements:
