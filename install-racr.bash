@@ -105,11 +105,35 @@ then
 	done
 fi
 
+if which guild > /dev/null
+then
+	echo "==========================================>>> Compile for Guile:"
+	for l in ${libraries[@]}
+	do
+		l_bin="$l/guile-bin"
+		l_lib="$l_bin/`basename "$l"`"
+		rm -rf "$l_bin"
+		mkdir -p "$l_lib"
+		read_dependencies "$l/dependencies.txt"
+		lib_path="--load-path=$l_bin"
+		for x in ${local_libraries[@]}
+		do
+			lib_path+=" --load-path=$x/guile-bin"
+		done
+		for x in ${local_sources[@]}
+		do
+			cp -p "$x.scm" "$l_lib"
+			x=`basename "$x"`
+			guild compile $lib_path --output="$l_lib/$x.go" "$l_lib/$x.scm"
+		done
+	done
+fi
+
 if which larceny > /dev/null
 then
-	echo "=========================================>>> Compile for Larceny:"
+	echo "=========================================>>> Compile for larceny:"
 	
-	# Create compile script
+	# Create compile script:
 	cd $old_pwd
 	echo "#!r6rs" > compile-stale
 	echo "(import (rnrs) (larceny compiler))" >> compile-stale
@@ -119,7 +143,7 @@ then
 	# Compile libraries:
 	for l in ${libraries[@]}
 	do
-		ll=`echo $l | rev | cut -d/ -f1 | rev` # extract last file part of string
+		ll=`echo $l | rev | cut -d/ -f1 | rev` # Extract last file part of string
 		cd $l
 		rm -rf larceny-bin
 		mkdir -p larceny-bin/$ll

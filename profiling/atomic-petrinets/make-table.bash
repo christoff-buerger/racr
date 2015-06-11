@@ -42,9 +42,9 @@ do
 	IFS='/' read -ra config_line <<< "$line"
 	column_names+=( "${config_line[0]}" )
 done < $configuration
+num_columns=${#column_names[@]}
 
 ############################################################################################################# Print table header:
-num_columns=${#column_names[@]}
 if [ ! -e $table_file ]
 then
 	for (( i = 0; i < num_columns; i++ ))
