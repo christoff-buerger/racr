@@ -71,7 +71,9 @@ larceny)
 	larceny --r6rs --path "../../racr/larceny-bin:../atomic-petrinets/larceny-bin:larceny-bin" \
 		--program script.scm -- $diagram $input $mode;;
 racket)
-	plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
+	#plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
+	#	script.scm $diagram $input $mode;;
+	racket --search "../../racr/racket-bin" --search "../atomic-petrinets/racket-bin" --search "racket-bin" \
 		script.scm $diagram $input $mode;;
 guile)
 	guile --no-auto-compile -L "../../racr/guile-bin" -C "../../racr/guile-bin" \
