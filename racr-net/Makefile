@@ -29,4 +29,4 @@ Racr.dll: racr.core.dll hashtable-iron-scheme-adapter.dll
 
 clean:
 	rm -f racr.core.dll hashtable-iron-scheme-adapter.dll
-	rm -rf bin obj Racr.dd
+	rm -rf bin obj Racr.dll
