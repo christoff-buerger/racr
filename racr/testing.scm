@@ -107,11 +107,11 @@
  ; the case, the test function throws an exception.
  (define construct-reevaluation-tests
    (lambda ()
-     (let* ((reevaluation-table (make-hashtable equal-hash equal? 50))
+     (let* ((reevaluation-table (make-eq-hashtable 50))
             (equation-preparator
              (lambda (att-name equation)
                (lambda (n)
-                 (hashtable-set! reevaluation-table (cons att-name n) #t)
+                 (hashtable-update! reevaluation-table att-name (lambda (v) (cons n v)) (list))
                  (equation n))))
             (reevaluation-tester
              (lambda args
@@ -120,10 +120,10 @@
                    (for-each
                     (lambda (n)
                       (att-value att-name n) ; Force attribute evaluation or cache-hit!
-                      (unless (boolean=? flushed? (hashtable-contains? reevaluation-table (cons att-name n)))
+                      (unless (boolean=? flushed? (and (memq n (hashtable-ref reevaluation-table att-name (list))) #t))
                         (assertion-violation 'prepare-rewrite-tests:influence-tester "RACR Test API: Rewrite test failed!" (list att-name n)))
                       (when flushed?
-                        (hashtable-delete! reevaluation-table (cons att-name n))))
+                        (hashtable-update! reevaluation-table att-name (lambda (v) (remq n v)) (list))))
                     (if (list? n) n (list n)))))
                ; Ensure, that the specified influenced attributes are node/attribute name combinations:
                (unless (even? (length args))
