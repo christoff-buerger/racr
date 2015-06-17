@@ -14,7 +14,7 @@ class C::D
 {
 public:
     static int a;
-	class E;
+    class E;
     class F;
     static void m(int h)
     {
@@ -38,11 +38,11 @@ class C::D::E
 {
 public:
     static int a;
-	static void m(int h)
-	{
-		D::a = h;
+    static void m(int h)
+    {
+        D::a = h;
         F::a = h;
-	}
+    }
 };
 
 int main()

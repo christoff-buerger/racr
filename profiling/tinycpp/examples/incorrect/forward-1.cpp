@@ -27,11 +27,11 @@ class C::D::E
 {
 public:
     static int a;
-	static void m(int h)
-	{
-		D::a = h;
+    static void m(int h)
+    {
+        D::a = h;
         //F::a = h; // F only declared but not defined yet.
-	}
+    }
 };
 
 class C::D::F

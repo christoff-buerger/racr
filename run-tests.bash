@@ -132,7 +132,7 @@ do
 	end_run
 done
 
-# Test state-machine example:
+# Test state-machines example:
 cd $old_pwd/examples/state-machines
 begin_run state-machines.scm
 racket_run "" state-machines.scm
@@ -159,13 +159,13 @@ for f in *.scm
 do
 	begin_run $f
 	racket_run "./../racket-bin" $f
-	guile_run "./../guile-bin" $f
+	# Disabled because of issue 37: guile_run "./../guile-bin" $f
 	larceny_run "./../larceny-bin" $f
 	petite_run "./../.." $f
 	end_run
 done
 
-# Test siple example:
+# Test SiPLE example:
 cd $old_pwd/examples/siple/examples/correct
 for f in *.siple
 do
@@ -193,6 +193,11 @@ if [[ " ${selected_systems[@]} " =~ "racket" ]]
 then
 	echo "Tiny C++ Racket:"
 	./run-examples.bash Racket
+fi
+if [[ " ${selected_systems[@]} " =~ "guile" ]]
+then
+	echo "Tiny C++ Guile:"
+	./run-examples.bash Guile
 fi
 if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 then

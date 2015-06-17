@@ -5,6 +5,6 @@
 
 #!r6rs
 
-(import (rnrs) (tinycpp-racr main))
+(import (rnrs) (prefix (tinycpp-racr main) tcpp:))
 
-(apply compile (cdr (command-line)))
+(apply tcpp:compile (cdr (command-line)))

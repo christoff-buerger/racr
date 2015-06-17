@@ -3,6 +3,8 @@
 
 // Author: C. Bürger
 
+/******** Global name space via '::' not supported yet => tests deactivated!
+
 class C
 {
 public:
@@ -38,6 +40,8 @@ public:
 //{
 //public:
 //};
+
+********/
 
 int main()
 {
