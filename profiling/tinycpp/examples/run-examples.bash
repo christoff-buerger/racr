@@ -34,6 +34,10 @@ run(){
 	Racket)
 		plt-r6rs ++path "$old_pwd/../tinycpp-racr/racket-bin" ++path "$old_pwd/../../../racr/racket-bin" \
 			$scheme_script $3;;
+	Guile)
+		guile --no-auto-compile -L "$old_pwd/../tinycpp-racr/guile-bin" -C "$old_pwd/../tinycpp-racr/guile-bin" \
+			-L "$old_pwd/../../../racr/guile-bin" -C "$old_pwd/../../../racr/guile-bin" \
+			-s $scheme_script $3;;
 	Java_d)
 		java -jar $old_pwd/../tinycpp-jastadd/tinycpp-declarative.jar $java_option $3;;
 	Java_i)

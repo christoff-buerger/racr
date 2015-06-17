@@ -5,6 +5,50 @@
 
 # author: C. Bürger
 
+################################################################################################################ Parse arguments:
+supported_systems=( racket guile larceny petite )
+selected_systems=()
+while getopts s: opt
+do
+	case $opt in
+		s)
+			if [[ " ${supported_systems[@]} " =~ " ${OPTARG} " ]]
+			then
+				if which "${OPTARG}" > /dev/null
+				then
+					selected_systems+=( "$OPTARG" )
+				else
+					echo " !!! ERROR: [$OPTARG] not installed !!!" >&2
+					exit 2
+				fi
+			else
+				echo " !!! ERROR: Unknown [$OPTARG] Scheme system !!!" >&2
+				exit 2
+			fi;;
+		?)
+			echo "Usage: -s Scheme system (${supported_systems[@]})"	
+			exit 2
+	esac
+done
+shift $(( OPTIND - 1 ))
+
+if [ -z "$selected_systems" ]
+then
+	for s in ${supported_systems[@]}
+	do
+		if which "$s" > /dev/null
+		then
+			selected_systems+=( "$s" )
+		fi
+	done
+	if [ -z "$selected_systems" ]
+	then
+		echo " !!! ERROR: No Scheme system found !!!" >&2
+		exit 2
+	fi
+fi
+
+###################################################################################################### Define exeution functions:
 old_pwd=`pwd`
 
 begin_run(){
@@ -12,7 +56,7 @@ begin_run(){
 }
 
 racket_run(){
-	if which plt-r6rs > /dev/null
+	if [[ " ${selected_systems[@]} " =~ "racket" ]]
 	then
 		printf " Racket"
 		if [ "$1" == "" ]
@@ -25,8 +69,24 @@ racket_run(){
 	fi
 }
 
+guile_run(){
+	if [[ " ${selected_systems[@]} " =~ "guile" ]]
+	then
+		printf " Guile"
+		if [ "$1" == "" ]
+		then
+			llibs="-L $old_pwd/racr/guile-bin"
+			clibs="-C $old_pwd/racr/guile-bin"
+		else
+			llibs="-L $old_pwd/racr/guile-bin -L $1"
+			clibs="-C $old_pwd/racr/guile-bin -C $1"
+		fi
+		guile --no-auto-compile $llibs $clibs -s $2
+	fi
+}
+
 larceny_run(){
-	if which larceny > /dev/null
+	if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 	then
 		printf " Larceny"
 		if [ "$1" == "" ]
@@ -40,7 +100,7 @@ larceny_run(){
 }
 
 petite_run(){
-	if which petite > /dev/null
+	if [[ " ${selected_systems[@]} " =~ "petite" ]]
 	then
 		printf " Petite"
 		if [ "$1" == "" ]
@@ -57,6 +117,7 @@ end_run(){
 	echo ""
 }
 
+################################################################################################################## Execute tests:
 echo "=========================================>>> Run Tests:"
 
 # Test basic API:
@@ -65,15 +126,17 @@ for f in *.scm
 do
 	begin_run $f
 	racket_run "" $f
+	guile_run "" $f
 	larceny_run "" $f
 	petite_run "" $f
 	end_run
 done
 
-# Test state-machine example:
+# Test state-machines example:
 cd $old_pwd/examples/state-machines
 begin_run state-machines.scm
 racket_run "" state-machines.scm
+guile_run "" state-machines.scm
 larceny_run "" state-machines.scm
 petite_run "" state-machines.scm
 end_run
@@ -84,6 +147,7 @@ for f in *.scm
 do
 	begin_run $f
 	racket_run "./../racket-bin" $f
+	guile_run "./../guile-bin" $f
 	larceny_run "./../larceny-bin" $f
 	petite_run "./../.." $f
 	end_run
@@ -95,17 +159,19 @@ for f in *.scm
 do
 	begin_run $f
 	racket_run "./../racket-bin" $f
+	# Disabled because of issue 37: guile_run "./../guile-bin" $f
 	larceny_run "./../larceny-bin" $f
 	petite_run "./../.." $f
 	end_run
 done
 
-# Test siple example:
+# Test SiPLE example:
 cd $old_pwd/examples/siple/examples/correct
 for f in *.siple
 do
 	begin_run $f
 	racket_run "./../../racket-bin" "./../run-correct.scm $f"
+	guile_run "./../../guile-bin" "./../run-correct.scm $f"
 	larceny_run "./../../larceny-bin" "./../run-correct.scm -- $f"
 	petite_run "./../../.." "./../run-correct.scm $f"
 	end_run
@@ -115,6 +181,7 @@ for f in *.siple
 do
 	begin_run $f
 	racket_run "./../../racket-bin" "./../run-incorrect.scm $f"
+	guile_run "./../../guile-bin" "./../run-incorrect.scm $f"
 	larceny_run "./../../larceny-bin" "./../run-incorrect.scm -- $f"
 	petite_run "./../../.." "./../run-incorrect.scm $f"
 	end_run
@@ -122,17 +189,22 @@ done
 
 # Test Tiny C++ example:
 cd $old_pwd/profiling/tinycpp/examples
-if which plt-r6rs > /dev/null
+if [[ " ${selected_systems[@]} " =~ "racket" ]]
 then
 	echo "Tiny C++ Racket:"
 	./run-examples.bash Racket
 fi
-if which larceny > /dev/null
+if [[ " ${selected_systems[@]} " =~ "guile" ]]
+then
+	echo "Tiny C++ Guile:"
+	./run-examples.bash Guile
+fi
+if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 then
 	echo "Tiny C++ Larceny:"
 	./run-examples.bash Larceny
 fi
-if which petite > /dev/null
+if [[ " ${selected_systems[@]} " =~ "petite" ]]
 then
 	echo "Tiny C++ Petite Chez Scheme:"
 	./run-examples.bash Petite

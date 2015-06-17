@@ -30,7 +30,7 @@ Objectives:
     * Reference attributes: Graph and name analysis problems
     * Circular attributes: Transitive closure, control- and data-flow problems
 
-## ICGT 2015: _RACR_ motivation and overview example submitted to the 8th International Conference on Graph Transformation
+## _SLE 2015_: _RACR_ motivation and overview example submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
 **Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, Rewrite novice, _RACR_ novice
 **Size:** Small
@@ -46,7 +46,7 @@ Objectives:
   * Overview of essential _RACR_ features (AST scheme + attribution = ASG scheme, rewrites)
   * Self-contained, easy and fast to understand motivation of RAG-controlled rewriting
 
-## Questionnaires: Language Workbench Challenges 2013 & 2014
+## Questionnaires: _Language Workbench Challenges 2013 & 2014_
 
 **Difficult level:** Reference attribute grammar disciple, Rewrite novice, _RACR_ disciple
 **Size:** Small/Medium

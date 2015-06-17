@@ -225,6 +225,29 @@
        (s1 -> s3)
        (s2 -> s4)
        (s3 -> s5)))
+    (define sm-4
+      ; Correct state machine:
+      ;          *s1---s9---s10*
+      ;         /   \
+      ;       s2     s3
+      ;       |     /  \
+      ;       s4---s5  s6
+      ;        \       /
+      ;         s7*---s8
+      (state-machine
+       s1
+       (s7 s10)
+       (s1 -> s2)
+       (s1 -> s3)
+       (s1 -> s9)
+       (s9 -> s10)
+       (s2 -> s4)
+       (s3 -> s5)
+       (s3 -> s6)
+       (s5 -> s4)
+       (s4 -> s7)
+       (s6 -> s8)
+       (s8 -> s7)))
     
     ; Test sm-1:
     (assert (att-value 'lookup-state sm-1 's5))
@@ -253,11 +276,45 @@
     (assert (not (att-value 'correct? sm-1)))
     (rewrite-terminal 'finals sm-1 (cons 'sn (ast-child 'finals sm-1)))
     (assert (att-value 'correct? sm-1))
+    (rewrite-terminal 'finals sm-1 (list 's4))
+    (assert (not (att-value 'correct? sm-1)))
+    (rewrite-add (ast-child 'Transition* sm-1) (create-ast sm-spec 'Transition (list 'sn 's5)))
+    (assert (att-value 'correct? sm-1))
     
     ; Test sm-2:
     (assert (not (att-value 'correct? sm-2)))
     
     ; Test sm-3:
-    (assert (not (att-value 'correct? sm-3)))))
+    (assert (not (att-value 'correct? sm-3)))
+    
+    ; Test sm-4:
+    (assert (att-value 'correct? sm-4))
+    (assert
+     (let ((reachable (att-value 'reachable (att-value 'lookup-state sm-4 's3))))
+       (and
+        (= (length reachable) 5)
+        (memq (att-value 'lookup-state sm-4 's5) reachable)
+        (memq (att-value 'lookup-state sm-4 's4) reachable)
+        (memq (att-value 'lookup-state sm-4 's7) reachable)
+        (memq (att-value 'lookup-state sm-4 's6) reachable)
+        (memq (att-value 'lookup-state sm-4 's8) reachable))))
+    (assert
+     (let ((reachable (att-value 'reachable (att-value 'lookup-state sm-4 's6))))
+       (and
+        (= (length reachable) 2)
+        (memq (att-value 'lookup-state sm-4 's8) reachable)
+        (memq (att-value 'lookup-state sm-4 's7) reachable))))
+    (assert
+     (let ((reachable (att-value 'reachable (att-value 'lookup-state sm-4 's5))))
+       (and
+        (= (length reachable) 2)
+        (memq (att-value 'lookup-state sm-4 's4) reachable)
+        (memq (att-value 'lookup-state sm-4 's7) reachable))))
+    (assert
+     (let ((reachable (att-value 'reachable (att-value 'lookup-state sm-4 's2))))
+       (and
+        (= (length reachable) 2)
+        (memq (att-value 'lookup-state sm-4 's4) reachable)
+        (memq (att-value 'lookup-state sm-4 's7) reachable))))))
 
 (run-tests)

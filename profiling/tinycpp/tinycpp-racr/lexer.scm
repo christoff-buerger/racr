@@ -92,6 +92,14 @@
                   (my-read-char)
                   (loop)))
               (recognize-token (my-read-char)))
+             ((and (char=? c #\/) (char=? (my-peek-char) #\*))
+              (my-read-char)(my-read-char) ; Consume the "/*"
+              (let loop ((was-*? #f))
+                (cond
+                  ((eof-object? (my-peek-char)) (lexer-error "Unfinished multiline comment." #\space))
+                  ((and was-*? (char=? (my-peek-char) #\/)) (my-read-char)) ; Consume the "/"
+                  (else (loop (char=? (my-read-char) #\*)))))
+              (recognize-token (my-read-char)))
              ((char-alphabetic? c)
               (let ((id (read-identifier (list c))))
                 (cond

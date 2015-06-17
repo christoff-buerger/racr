@@ -5,8 +5,8 @@
 
 #!r6rs
 
-(import (rnrs) (racr testing) (tinycpp-racr main) (tinycpp-racr exception-api))
+(import (rnrs) (racr testing) (prefix (tinycpp-racr main) tcpp:) (tinycpp-racr exception-api))
 
 (assert-exception
  tinycpp-racr-exception?
- (apply compile (cdr (command-line))))
+ (apply tcpp:compile (cdr (command-line))))

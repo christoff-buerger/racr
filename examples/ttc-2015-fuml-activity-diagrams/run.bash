@@ -14,7 +14,7 @@ do
 		i)	input="$OPTARG";;
 		m)	mode="$OPTARG";;
 		?)
-			echo "Usage: -s Scheme system (racket, larceny, petite))"
+			echo "Usage: -s Scheme system (racket, guile, larceny, petite))"
 			echo "       -d Activity diagram"
 			echo "       -i Activity diagram input"
 			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness"
@@ -71,8 +71,15 @@ larceny)
 	larceny --r6rs --path "../../racr/larceny-bin:../atomic-petrinets/larceny-bin:larceny-bin" \
 		--program script.scm -- $diagram $input $mode;;
 racket)
-	plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
+	#plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
+	#	script.scm $diagram $input $mode;;
+	racket --search "../../racr/racket-bin" --search "../atomic-petrinets/racket-bin" --search "racket-bin" \
 		script.scm $diagram $input $mode;;
+guile)
+	guile --no-auto-compile -L "../../racr/guile-bin" -C "../../racr/guile-bin" \
+		-L "../atomic-petrinets/guile-bin" -C "../atomic-petrinets/guile-bin" \
+		-L "guile-bin" -C "guile-bin" \
+		-s script.scm $diagram $input $mode;;
 petite)
 	petite --libdirs "../..:.." \
 		--program script.scm $diagram $input $mode;;
