@@ -5,31 +5,70 @@
 
 # author: C. Bürger
 
+################################################################################################################ Parse arguments:
 old_pwd=`pwd`
-
-# Array of libraries to compile; First element must be RACR:
-declare -a libraries=(
-	$old_pwd/racr
-	# Find all directories with 'dependencies.txt'; Each such directory contains Scheme libraries:
-	$(find $old_pwd -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
-
-if (( $# > 0 ))
-then
-	new_libraries=( )
-	for l in ${libraries[@]}
-	do
-		for name in $*
-		do
-			if `echo "$l" | grep -q "/$name"$`
+supported_systems=( racket guile larceny petite )
+selected_systems=()
+supported_libraries=( $(find "$old_pwd" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
+selected_libraries=( "$old_pwd"/racr )
+while getopts s:i: opt
+do
+	case $opt in
+		s)
+			if [[ " ${supported_systems[@]} " =~ " ${OPTARG} " ]]
 			then
-				new_libraries+=( "$l" )
-				break
-			fi
-		done
+				if which "${OPTARG}" > /dev/null
+				then
+					selected_systems+=( "$OPTARG" )
+				else
+					echo " !!! ERROR: [$OPTARG] not installed !!!" >&2
+					exit 2
+				fi
+			else
+				echo " !!! ERROR: Unknown [$OPTARG] Scheme system !!!" >&2
+				exit 2
+			fi;;
+		i)
+			broken=""
+			for l in ${supported_libraries[@]}
+			do
+				if `echo "$l" | grep -q "/${OPTARG}"$`
+				then
+					selected_libraries+=( "$l" )
+					broken=true
+					break
+				fi
+			done
+			if [ -z  "$broken" ]
+			then
+				echo " !!! ERROR: Unknown [${OPTARG}] library !!!" >&2
+				exit 2
+			fi;;
+		?)
+			echo "Usage: -s Scheme system (${supported_systems[@]})"
+			echo "       -i Module to install"
+			exit 2
+	esac
+done
+shift $(( OPTIND - 1 ))
+
+if [ -z "$selected_systems" ]
+then
+	for s in ${supported_systems[@]}
+	do
+		if which "$s" > /dev/null
+		then
+			selected_systems+=( "$s" )
+		fi
 	done
-	libraries=( ${new_libraries[@]} )
+	if [ -z "$selected_systems" ]
+	then
+		echo " !!! ERROR: No Scheme system found !!!" >&2
+		exit 2
+	fi
 fi
 
+####################################################################################################### Define support functions:
 read_dependencies(){
 	mode=initial
 	local_dir=`dirname "$1"`
@@ -45,7 +84,7 @@ read_dependencies(){
 				mode=systems
 				continue
 			fi
-			local_systems=( racket larceny )
+			local_systems=( racket guile larceny )
 			if [ "$line" = "@libraries:" ]
 			then
 				mode=libraries
@@ -84,11 +123,12 @@ read_dependencies(){
 	done < "$1"
 }
 
-if which plt-r6rs > /dev/null
+############################################################################################################## Install libraries:
+if [[ " ${selected_systems[@]} " =~ "racket" ]]
 then
 	echo "=========================================>>> Compile for Racket:"
 	
-	for l in ${libraries[@]}
+	for l in ${selected_libraries[@]}
 	do
 		rm -rf "$l/racket-bin"
 		mkdir -p "$l/racket-bin/`basename "$l"`"
@@ -105,10 +145,10 @@ then
 	done
 fi
 
-if which guild > /dev/null
+if [[ " ${selected_systems[@]} " =~ "guile" ]]
 then
 	echo "==========================================>>> Compile for Guile:"
-	for l in ${libraries[@]}
+	for l in ${selected_libraries[@]}
 	do
 		l_bin="$l/guile-bin"
 		l_lib="$l_bin/`basename "$l"`"
@@ -129,7 +169,7 @@ then
 	done
 fi
 
-if which larceny > /dev/null
+if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 then
 	echo "=========================================>>> Compile for larceny:"
 	
@@ -141,7 +181,7 @@ then
 	echo "(compile-stale-libraries)" >> compile-stale
 	
 	# Compile libraries:
-	for l in ${libraries[@]}
+	for l in ${selected_libraries[@]}
 	do
 		ll=`echo $l | rev | cut -d/ -f1 | rev` # Extract last file part of string
 		cd $l
