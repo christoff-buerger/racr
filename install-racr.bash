@@ -9,8 +9,9 @@
 old_pwd=`pwd`
 supported_systems=( racket guile larceny petite )
 selected_systems=()
-supported_libraries=( $(find "$old_pwd" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
-selected_libraries=( "$old_pwd"/racr )
+supported_libraries=( "$old_pwd"/racr )
+supported_libraries+=( $(find "$old_pwd" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
+selected_libraries=()
 while getopts s:i: opt
 do
 	case $opt in
@@ -29,17 +30,16 @@ do
 				exit 2
 			fi;;
 		i)
-			broken=""
+			found=""
 			for l in ${supported_libraries[@]}
 			do
 				if `echo "$l" | grep -q "/${OPTARG}"$`
 				then
 					selected_libraries+=( "$l" )
-					broken=true
-					break
+					found=true	
 				fi
 			done
-			if [ -z  "$broken" ]
+			if [ -z  "$found" ]
 			then
 				echo " !!! ERROR: Unknown [${OPTARG}] library !!!" >&2
 				exit 2
@@ -66,6 +66,11 @@ then
 		echo " !!! ERROR: No Scheme system found !!!" >&2
 		exit 2
 	fi
+fi
+
+if [ -z "$selected_libraries" ]
+then	
+	selected_libraries=${supported_libraries[@]}
 fi
 
 ####################################################################################################### Define support functions:
