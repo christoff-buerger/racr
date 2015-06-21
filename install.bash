@@ -7,11 +7,12 @@
 
 ################################################################################################################ Parse arguments:
 old_pwd=`pwd`
-supported_systems=( racket guile larceny petite )
+supported_systems=( racket guile larceny )
 selected_systems=()
 supported_libraries=( "$old_pwd"/racr )
 supported_libraries+=( $(find "$old_pwd" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
 selected_libraries=()
+
 while getopts s:i: opt
 do
 	case $opt in
@@ -39,7 +40,7 @@ do
 					found=true	
 				fi
 			done
-			if [ -z  "$found" ]
+			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: Unknown [${OPTARG}] library !!!" >&2
 				exit 2
@@ -89,7 +90,7 @@ read_dependencies(){
 				mode=systems
 				continue
 			fi
-			local_systems=( racket guile larceny )
+			local_systems=${selected_systems[@]}
 			if [ "$line" = "@libraries:" ]
 			then
 				mode=libraries
@@ -113,7 +114,10 @@ read_dependencies(){
 				mode=sources
 				continue
 			fi
-			local_systems+=( "$local_dir/$line" )
+			if [[ " ${selected_systems[@]} " =~ "$line" ]]
+			then
+				local_systems+=( "$line" )
+			fi
 			continue;;
 		libraries)
 			if [ "$line" = "@sources:" ]
@@ -135,18 +139,21 @@ then
 	
 	for l in ${selected_libraries[@]}
 	do
-		rm -rf "$l/racket-bin"
-		mkdir -p "$l/racket-bin/`basename "$l"`"
 		read_dependencies "$l/dependencies.txt"
-		lib_path=""
-		for x in ${local_libraries[@]}
-		do
-			lib_path+=" ++path $x/racket-bin"
-		done
-		for x in ${local_sources[@]}
-		do
-			plt-r6rs $lib_path --install --collections "$l/racket-bin" "$x.scm"
-		done
+		if [[ " ${local_systems[@]} " =~ "racket" ]]
+			then
+			rm -rf "$l/racket-bin"
+			mkdir -p "$l/racket-bin/`basename "$l"`"
+			lib_path=""
+			for x in ${local_libraries[@]}
+			do
+				lib_path+=" ++path $x/racket-bin"
+			done
+			for x in ${local_sources[@]}
+			do
+				plt-r6rs $lib_path --install --collections "$l/racket-bin" "$x.scm"
+			done
+		fi
 	done
 fi
 
@@ -155,22 +162,25 @@ then
 	echo "==========================================>>> Compile for Guile:"
 	for l in ${selected_libraries[@]}
 	do
-		l_bin="$l/guile-bin"
-		l_lib="$l_bin/`basename "$l"`"
-		rm -rf "$l_bin"
-		mkdir -p "$l_lib"
 		read_dependencies "$l/dependencies.txt"
-		lib_path="--load-path=$l_bin"
-		for x in ${local_libraries[@]}
-		do
-			lib_path+=" --load-path=$x/guile-bin"
-		done
-		for x in ${local_sources[@]}
-		do
-			cp -p "$x.scm" "$l_lib"
-			x=`basename "$x"`
-			guild compile $lib_path --output="$l_lib/$x.go" "$l_lib/$x.scm"
-		done
+		if [[ " ${local_systems[@]} " =~ "guile" ]]
+		then
+			l_bin="$l/guile-bin"
+			l_lib="$l_bin/`basename "$l"`"
+			rm -rf "$l_bin"
+			mkdir -p "$l_lib"
+			lib_path="--load-path=$l_bin"
+			for x in ${local_libraries[@]}
+			do
+				lib_path+=" --load-path=$x/guile-bin"
+			done
+			for x in ${local_sources[@]}
+			do
+				cp -p "$x.scm" "$l_lib"
+				x=`basename "$x"`
+				guild compile $lib_path --output="$l_lib/$x.go" "$l_lib/$x.scm"
+			done
+		fi
 	done
 fi
 
@@ -188,24 +198,27 @@ then
 	# Compile libraries:
 	for l in ${selected_libraries[@]}
 	do
-		ll=`echo $l | rev | cut -d/ -f1 | rev` # Extract last file part of string
-		cd $l
-		rm -rf larceny-bin
-		mkdir -p larceny-bin/$ll
 		read_dependencies "$l/dependencies.txt"
-		lib_path=".."
-		for x in ${local_libraries[@]}
-		do
-			lib_path+=":$x/larceny-bin"
-		done
-		for f in *.scm
-		do
-			cp -p $f larceny-bin/$ll/${f%.*}.sls
-		done
-		cd larceny-bin/$ll
-		cp -p $old_pwd/compile-stale .
-		larceny --r6rs --path $lib_path --program compile-stale
-		rm compile-stale
+		if [[ " ${local_systems[@]} " =~ "larceny" ]]
+		then
+			ll=`echo $l | rev | cut -d/ -f1 | rev` # Extract last file part of string
+			cd $l
+			rm -rf larceny-bin
+			mkdir -p larceny-bin/$ll
+			lib_path=".."
+			for x in ${local_libraries[@]}
+			do
+				lib_path+=":$x/larceny-bin"
+			done
+			for f in *.scm
+			do
+				cp -p $f larceny-bin/$ll/${f%.*}.sls
+			done
+			cd larceny-bin/$ll
+			cp -p $old_pwd/compile-stale .
+			larceny --r6rs --path $lib_path --program compile-stale
+			rm compile-stale
+		fi
 	done
 	
 	# Delete compile script:
