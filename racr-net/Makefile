@@ -3,12 +3,23 @@
 
 # Author: D. Langner, C. Bürger
 
-# Ironscheme interpreter alias
-IS := mono ~/IronScheme/IronScheme.Console32-v2.exe
+# Find IronScheme interpreter:
+ISCONSOLE := IronScheme.Console32-v2.exe
+ifndef IS
+$(error Path to $(ISCONSOLE) not set; use IS=path flag to set it)
+else
+ifeq (,$(wildcard $(IS)/$(ISCONSOLE)))
+$(error $(ISCONSOLE) does not exist at $(IS))
+endif
+ifeq (,$(shell which mono))
+$(error Missing .NET runtime environment)
+endif
+override IS := mono $(IS)/$(ISCONSOLE)
+endif
+
+TMP := $(shell mktemp compile-script.XXXX)
 
 all: racr.core.dll hashtable-iron-scheme-adapter.dll Racr.dll
-
-TMP := $(shell mktemp)
 
 racr.core.dll hashtable-iron-scheme-adapter.dll:  ../racr/core.scm transcribe.py Makefile
 	@mkdir -p racr
@@ -21,11 +32,9 @@ racr.core.dll hashtable-iron-scheme-adapter.dll:  ../racr/core.scm transcribe.py
 	}'
 	@rm -r racr
 
-
 Racr.dll: racr.core.dll hashtable-iron-scheme-adapter.dll
 	xbuild
 	cp bin/Debug/Racr.dll .
-
 
 clean:
 	rm -f racr.core.dll hashtable-iron-scheme-adapter.dll
