@@ -2,9 +2,12 @@
 
 **Beware:** _RACR_ must be [installed](../documentation/requirements-and-installation.md) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
 
+**Note:** The following examples are ordered in increasing difficulty level.
+
 ## Binary Numbers
 
-**Difficult level:** Attribute grammar and _RACR_ novice
+**Difficult level:** Attribute grammar novice, _RACR_ novice
+**New features:** Introduction to synthsised and inherited attributes
 **Size:** Very small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
@@ -18,7 +21,8 @@ Objectives:
 
 ## State Machines
 
-**Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, _RACR_ novice
+**Difficult level:** Reference attribute grammar novice, _RACR_ novice
+**New features:** Introduction to reference and circular attributes, attribute broadcasting
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 **Web documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
@@ -32,7 +36,8 @@ Objectives:
 
 ## _SLE 2015_: _RACR_ motivation and overview example submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
-**Difficult level:** Attribute grammar disciple, Reference attribute grammar novice, Rewrite novice, _RACR_ novice
+**Difficult level:** Reference attribute grammar controlled rewriting novice, _RACR_ novice
+**New features:** Introduction to rewrites and incremental evaluation
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
@@ -48,7 +53,8 @@ Objectives:
 
 ## Questionnaires: _Language Workbench Challenges 2013 & 2014_
 
-**Difficult level:** Reference attribute grammar disciple, Rewrite novice, _RACR_ disciple
+**Difficult level:** Reference attribute grammar controlled rewriting disciple, _RACR_ disciple
+**New features:** Extensive introduction to RAG-controlled rewriting and incremental evaluation
 **Size:** Small/Medium
 **Scheme library:** Yes
 
