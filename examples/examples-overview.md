@@ -1,8 +1,8 @@
 # Examples Overview
 
-**Beware:** _RACR_ must be [installed](../documentation/requirements-and-installation.md) for the examples to work. Examples that are _Scheme_ libraries have to be installed themselves.
+**Beware:** _RACR_ must be [installed](../documentation/requirements-and-installation.md) for the examples to work.
 
-**Note:** The following examples are ordered in increasing difficulty.
+**Note:** The examples are ordered in increasing difficulty.
 
 ## Binary Numbers
 
@@ -32,9 +32,9 @@ _RACR_ specification implementing a simple finite state machine language providi
 The example shows, how reference attributes declaratively induce edges on abstract syntax trees, extending them to abstract syntax graphs. Such reference attribute induced edges form semantic overlay graphs and are typical for name and type analyses. In the example, reference attributes are used to 'transform' the abstract syntax tree, which was constructed by parsing a textual state machine representation, to the respective, actual, state machine diagram. The graph resulting from this name analysis is well-suited for further analyses, like the implemented state reachability.
 
 Objectives:
-  * Introduction to reference and circular attributes in _RACR_, their typical applications and advantages
-    * Reference attributes: Graph analyses
-    * Circular attributes: Transitive closure analyses
+  * Introduction to reference and circular attributes in _RACR_, their typical applications and advantages:
+    * Reference attributes: Graph analyses (like a name analyses to lookup the incoming and outgoing transitions of states)
+    * Circular attributes: Transitive closure analyses (like state reachability)
 
 ## _SLE 2015_: _RACR_ motivation and overview example submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
@@ -71,13 +71,13 @@ The _RACR_ solution is unique in several ways:
 
 Thus, each abstract syntax graph is model of both, the given and computed information _and_ their graphical representation. The respective attributes enable a clear encapsulation of language concerns, for which reason a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automagically realised by _RACR's_ incremental evaluation.
 
-The solution uses [_Racket_](http://racket-lang.org) libraries for its GUI implementation, for which reason it only works with _Racket_.
+The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation for which reason it only works with _Racket_.
 
 Objectives:
   * Simple models@runtime example introducing _RACR_-based incremental evaluation:
     * Encoding of state in abstract syntax trees (model of real world: questions presented in a GUI to a user)
     * State changes via rewriting (model updates: user answers)
-    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of expression values & re-rendering of GUI elements if necessary)
+    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the expression values of computed questions & re-rendering of GUI elements if necessary)
 
 ## Petri Nets
 
