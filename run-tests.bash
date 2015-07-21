@@ -26,7 +26,7 @@ do
 				exit 2
 			fi;;
 		?)
-			echo "Usage: -s Scheme system (${supported_systems[@]})"	
+			echo "Usage: -s Scheme system (${supported_systems[@]})"
 			exit 2
 	esac
 done
@@ -48,9 +48,9 @@ then
 	fi
 fi
 
-###################################################################################################### Define exeution functions:
 old_pwd=`pwd`
 
+##################################################################################################### Define execution functions:
 begin_run(){
 	echo `pwd`/$1
 }

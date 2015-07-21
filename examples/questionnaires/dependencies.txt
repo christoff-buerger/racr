@@ -2,6 +2,6 @@
 racket
 @libraries:
 ../../racr
-../../examples/atomic-petrinets
 @sources:
-profiling
+user-interface
+language
