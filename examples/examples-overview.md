@@ -25,7 +25,7 @@ Objectives:
 **New features:** Introduction to reference and circular attributes and attribute broadcasting and inheritance
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
-**Web documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
+**Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
 
 _RACR_ specification implementing a simple finite state machine language providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
 
