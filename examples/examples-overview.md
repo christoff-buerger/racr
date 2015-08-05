@@ -66,7 +66,7 @@ Implementation of the Questionnaire Language, the competition scenario of the [L
 
 **Figure 1:** Correct example questionnaire and its rendering.
 
-![correct-questionnaire-scenario](questionnaires/documentation/figures/correct-questionnaire-scenario.png)
+![erroneous-questionnaire-scenario](questionnaires/documentation/figures/erroneous-questionnaire-scenario.png)
 
 **Figure 2:** Incorrect example questionnaire and its rendering.
 
