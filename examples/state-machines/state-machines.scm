@@ -9,15 +9,6 @@
 
 (define sm-spec (create-specification))
 
-; Attribute Accessors:
-(define (=final? n)               (att-value 'final? n))
-(define (=lookup-state n s)       (att-value 'lookup-state n s))
-(define (=initial-state n)        (att-value 'initial-state n))
-(define (=filter-transitions n f) (att-value 'filter-transitions n f))
-(define (=successors n)           (att-value 'successors n))
-(define (=reachable n)            (att-value 'reachable n))
-(define (=correct? n)             (att-value 'correct? n))
-
 ; AST Accessors:
 (define (->State* n)              (ast-child 'State* n))
 (define (->Transition* n)         (ast-child 'Transition* n))
@@ -28,6 +19,15 @@
 (define (->target n)              (ast-child 'target n))
 (define (->* n)                   (ast-children n))
 (define (<- n)                    (ast-parent n))
+
+; Attribute Accessors:
+(define (=final? n)               (att-value 'final? n))
+(define (=lookup-state n s)       (att-value 'lookup-state n s))
+(define (=initial-state n)        (att-value 'initial-state n))
+(define (=filter-transitions n f) (att-value 'filter-transitions n f))
+(define (=successors n)           (att-value 'successors n))
+(define (=reachable n)            (att-value 'reachable n))
+(define (=correct? n)             (att-value 'correct? n))
 
 ; AST Constructors:
 (define (:StateMachine s t i f)
@@ -41,7 +41,6 @@
 ; Support functions:
 (define (set-union s1 s2)
   (append (filter (lambda (e1) (not (memq e1 s2))) s1) s2))
-
 (define (set-eq s1 s2)
   (and (= (length s1) (length s2)) (for-all (lambda (e) (memq e s2)) s1)))
 

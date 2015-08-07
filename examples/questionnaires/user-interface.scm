@@ -47,20 +47,6 @@
  (define (=widget n)           (att-value 'widget n))
  (define (=render n)           (att-value 'render n))
  
- ; Type Support:
- (define (Boolean)             (list 'Boolean))
- (define (Number)              (list 'Number))
- (define (String)              (list 'String))
- (define (ErrorType)           (list 'ErrorType))
- (define (valid-type! t)
-   (if (memq t (list Boolean Number String)) t (raise "Unknown type.")))
- 
- ; Operator support:
- (define (&& . a)              (for-all (lambda (x) x) a))
- (define (// . a)              (find (lambda (x) x) a))
- (define (!= . a)
-   (or (null? a) (and (not (memq (car a) (cdr a))) (apply != (cdr a)))))
- 
  ; AST Constructors:
  (define (Form . e)
    (create-ast ql 'Form (list (create-ast-list (cons (~? ErrorType "" (~! #f)) e)))))
@@ -80,6 +66,18 @@
    (create-ast ql 'Constant (list v)))
  (define (~~ o . a)
    (create-ast ql 'Computation (list o (create-ast-list a))))
+
+ ; Type & Operator Support:
+ (define (Boolean)             (list 'Boolean))
+ (define (Number)              (list 'Number))
+ (define (String)              (list 'String))
+ (define (ErrorType)           (list 'ErrorType))
+ (define (valid-type! t)       (if (memq t (list Boolean Number String))
+                                   t (raise "Unknown type.")))
+ (define (&& . a)              (for-all (lambda (x) x) a))
+ (define (// . a)              (find (lambda (x) x) a))
+ (define (!= . a)
+   (or (null? a) (and (not (memq (car a) (cdr a))) (apply != (cdr a)))))
  
  ;;; Loading & saving:
  

@@ -28,14 +28,6 @@
 (define (Needs-coercion? n)   (att-value 'Needs-coercion? n))
 (define (Superfluous-cast? n) (att-value 'Superfluous-cast? n))
 
-; Type Support & Support Functions:
-(define (=? e1 e2)            (equal? e1 e2))
-(define Integer               (list 'Integer))
-(define Real                  (list 'Real))
-(define Error-Type            (list 'Error-Type))
-(define (valid-type! t)
-  (if (memq t (list Integer Real)) t (raise "Unknown type.")))
-
 ; AST Constructors:
 (define (Prog . s)
   (create-ast language 'Prog (list (create-ast-list s) (DErr))))
@@ -53,6 +45,14 @@
   (create-ast language 'BiOp (list op1 op2)))
 (define (Use? n)
   (and (not (ast-list-node? n)) (=? (ast-node-type n) 'Use)))
+
+; Type Support & Support Functions:
+(define (=? e1 e2)            (equal? e1 e2))
+(define Integer               (list 'Integer))
+(define Real                  (list 'Real))
+(define Error-Type            (list 'Error-Type))
+(define (valid-type! t)
+  (if (memq t (list Integer Real)) t (raise "Unknown type.")))
 
 ;;; Abstract Syntax Tree Scheme:
 
@@ -156,7 +156,7 @@
     (rewrite-subtree op1 (create-ast-bud))
     (rewrite-subtree n op1)))
 
-;;; Program normalisation:
+;;; Program Normalisation:
 
 (define (normalise-program n)
   (let ((trans1
