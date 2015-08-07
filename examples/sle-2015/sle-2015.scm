@@ -8,7 +8,7 @@
 (import (rnrs) (racr core) (racr testing))
 
 (define language              (create-specification))
-(define (=? e1 e2)            (equal? e1 e2))
+
 ; AST Accessors:
 (define (->DErr n)            (ast-child 'DErr n))
 (define (->Stmt* n)           (ast-child 'Stmt* n))
@@ -19,6 +19,7 @@
 (define (<- n)                (ast-parent n))
 (define (->* n)               (ast-children n))
 (define (index n)             (ast-child-index n))
+
 ; Attribute Accessors:
 (define (L-Decl n name)       (att-value 'L-Decl n name))
 (define (G-Decl n name)       (att-value 'G-Decl n name))
@@ -26,12 +27,15 @@
 (define (Well-formed? n)      (att-value 'Well-formed? n))
 (define (Needs-coercion? n)   (att-value 'Needs-coercion? n))
 (define (Superfluous-cast? n) (att-value 'Superfluous-cast? n))
-; Type Support:
+
+; Type Support & Support Functions:
+(define (=? e1 e2)            (equal? e1 e2))
 (define Integer               (list 'Integer))
 (define Real                  (list 'Real))
 (define Error-Type            (list 'Error-Type))
 (define (valid-type! t)
   (if (memq t (list Integer Real)) t (raise "Unknown type.")))
+
 ; AST Constructors:
 (define (Prog . s)
   (create-ast language 'Prog (list (create-ast-list s) (DErr))))
