@@ -15,19 +15,6 @@
  
  (define pn                   (create-specification))
  
- ; Attribute Accessors:
- (define (=places n)          (att-value 'places n))
- (define (=transitions n)     (att-value 'transitions n))
- (define (=in-arcs n)         (att-value 'in-arcs n))
- (define (=out-arcs n)        (att-value 'out-arcs n))
- (define (=p-lookup n name)   (hashtable-ref (att-value 'p-lookup n) name #f))
- (define (=t-lookup n name)   (hashtable-ref (att-value 't-lookup n) name #f))
- (define (=in-lookup n name)  (hashtable-ref (att-value 'in-lookup n) name #f))
- (define (=out-lookup n name) (hashtable-ref (att-value 'out-lookup n) name #f))
- (define (=place n)           (att-value 'place n))
- (define (=valid? n)          (att-value 'valid? n))
- (define (=enabled? n)        (att-value 'enabled? n))
- 
  ; AST Accessors:
  (define (->Place* n)         (ast-child 'Place* n))
  (define (->Transition* n)    (ast-child 'Transition* n))
@@ -40,6 +27,19 @@
  (define (->consumers n)      (ast-child 'consumers n))
  (define (->* n)              (ast-children n))
  (define (<- n)               (ast-parent n))
+ 
+ ; Attribute Accessors:
+ (define (=places n)          (att-value 'places n))
+ (define (=transitions n)     (att-value 'transitions n))
+ (define (=in-arcs n)         (att-value 'in-arcs n))
+ (define (=out-arcs n)        (att-value 'out-arcs n))
+ (define (=p-lookup n name)   (hashtable-ref (att-value 'p-lookup n) name #f))
+ (define (=t-lookup n name)   (hashtable-ref (att-value 't-lookup n) name #f))
+ (define (=in-lookup n name)  (hashtable-ref (att-value 'in-lookup n) name #f))
+ (define (=out-lookup n name) (hashtable-ref (att-value 'out-lookup n) name #f))
+ (define (=place n)           (att-value 'place n))
+ (define (=valid? n)          (att-value 'valid? n))
+ (define (=enabled? n)        (att-value 'enabled? n))
  
  ; AST Constructors:
  (define (:AtomicPetrinet p t)

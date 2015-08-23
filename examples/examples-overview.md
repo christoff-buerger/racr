@@ -15,8 +15,8 @@ _RACR_ introduction based on Knuth's classical attribute grammar paper and its "
 
 Objectives:
   * Introduction to _RACR_:
-    * Abstract syntax tree specifications: Non-terminals, productions, inheritance
-    * Attribute specifications: Synthesised & inherited attributes
+    * Abstract syntax tree specifications: non-terminals, productions, inheritance
+    * Attribute specifications: synthesised & inherited attributes
     * Abstract syntax tree & attribute query functions
 
 ## State Machines
@@ -25,7 +25,7 @@ Objectives:
 **New features:** Introduction to reference and circular attributes and attribute broadcasting and inheritance
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
-**Web documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
+**Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
 
 _RACR_ specification implementing a simple finite state machine language providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
 
@@ -60,24 +60,31 @@ Objectives:
 **Size:** Small/Medium
 **Scheme library:** Yes
 
-Implementation of the Questionnaire Language, the competition scenario of the [Language Workbench Challenges 2013 and 2014](http://www.languageworkbenches.net). For a description of the scenario consult `./questionnaires/documentation/language-workbench-challenge-2013.pdf`.
+Implementation of the Questionnaire Language, the competition scenario of the [Language Workbench Challenges 2013 and 2014](http://www.languageworkbenches.net). For a description of the scenario consult `./questionnaires/documentation/language-workbench-challenge-2013.pdf`. The questionnaires of the _RACR_ solution look as follows:
 
-Questionnaires, as defined in the _Language Workbench Challenge_, consist of arbitrary many questions. Each question is typed and can be computed, in which case it does not ask users for a value but instead evaluates a given expression and shows the result. Questions can also be part of a group, which means they are only shown if their group condition is true. Groups can be nested. Nesting has no further meaning besides combining group conditions. The value of a question, whether computed or user-given, is only visible for succeeding expressions. The same question is at most shown once. If it can be several times shown, only its first occurrence is active, i.e., shown to users and used in expressions. Questionnaires are statically typed and only well-formed if type correct. The value of unanswered questions is undefined. Computations on undefined yield undefined themselves. If a group condition is undefined, the condition is treated to be _false_.
+![correct-questionnaire-scenario](questionnaires/documentation/figures/correct-questionnaire-scenario.png)
+
+**Figure 1:** Correct example questionnaire and its rendering.
+
+![erroneous-questionnaire-scenario](questionnaires/documentation/figures/erroneous-questionnaire-scenario.png)
+
+**Figure 2:** Incorrect example questionnaire and its rendering.
+
+Questionnaires, as defined in the _Language Workbench Challenge_, consist of arbitrary many questions. Each question is typed and can be computed, in which case it does not ask users for a value but instead evaluates a given expression and shows the result. Questions can also be part of a group, which means they are only shown if their group condition is _true_. Groups can be nested. Nesting has no further meaning besides combining group conditions. The value of a question, whether computed or user-given, is only visible for succeeding expressions (declare before use). The same question is at most shown once. If it can be shown several times, only its first occurrence is active, i.e., shown to users and its value used in expressions. Questionnaires are statically typed and only well-formed if type correct. The value of unanswered questions is undefined. Computations on undefined yield undefined themselves. If a group condition is undefined, the group is not shown (i.e., the condition is treated to be _false_).
 
 The _RACR_ solution is unique in several ways:
-
-  * The widgets of the GUI are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental, i.e., when drawing the GUI, the application will only re-render the GUI elements that changed since their last rendering (for example if the value of computed questions changed, new answers are typed or question groups are disabled or enabled).
+  * The abstract syntax graphs of questionnaires model both, the given and computed information _and_ their graphical representation.
+  * The widgets of the GUI are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental, i.e., when drawing the GUI, the application will only re-render the GUI elements that changed since their last rendering (for example, if new answers change the value of computed questions or enable or disable groups).
+  * Attributes clearly encapsulates all language concerns; a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automagically realised by _RACR's_ incremental evaluation.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the abstract syntax tree representing the respective questionnaire and its current answer state.
-
-Thus, each abstract syntax graph is model of both, the given and computed information _and_ their graphical representation. The respective attributes enable a clear encapsulation of language concerns, for which reason a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automagically realised by _RACR's_ incremental evaluation.
 
 The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation for which reason it only works with _Racket_.
 
 Objectives:
-  * Simple models@runtime example introducing _RACR_-based incremental evaluation:
-    * Encoding of state in abstract syntax trees (model of real world: questions presented in a GUI to a user)
+  * Simple example showing the application of RAG-controlled rewriting for runtime models (_models@runtime_), in particular regarding incremental analyses:
+    * Abstract syntax tree encodes real world state (model of real world: questions presented in a GUI to a user)
     * State changes via rewriting (model updates: user answers)
-    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the expression values of computed questions & re-rendering of GUI elements if necessary)
+    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the values of computed questions & re-rendering of GUI elements as necessary)
 
 ## Petri Nets
 
