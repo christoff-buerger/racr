@@ -36,7 +36,7 @@ Objectives:
     * Reference attributes: Graph analyses (like a name analyses to lookup the incoming and outgoing transitions of states)
     * Circular attributes: Transitive closure analyses (like state reachability)
 
-## _SLE 2015_: _RACR_ motivation and overview example submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
+## _SLE 2015_: RAG-controlled rewriting motivation and overview submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
 **Difficult level:** RAG-controlled rewriting novice, _RACR_ novice
 **New features:** Rewrites
