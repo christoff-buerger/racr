@@ -7,7 +7,7 @@
 ## Binary Numbers
 
 **Difficult level:** Attribute grammar novice, _RACR_ novice
-**New features:** Introduction to synthesised and inherited attributes
+**New features:** Abstract syntax trees and attribution, synthesised and inherited attributes
 **Size:** Very small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
@@ -22,7 +22,7 @@ Objectives:
 ## State Machines
 
 **Difficult level:** Reference attribute grammar novice, _RACR_ novice
-**New features:** Introduction to reference and circular attributes and attribute broadcasting and inheritance
+**New features:** Reference and circular attributes, attribute broadcasting, attribute inheritance
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 **Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
@@ -39,24 +39,38 @@ Objectives:
 ## _SLE 2015_: _RACR_ motivation and overview example submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
 **Difficult level:** RAG-controlled rewriting novice, _RACR_ novice
-**New features:** Introduction to rewrites and incremental evaluation
+**New features:** Rewrites, concepts of RAG-controlled rewriting
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
-This example summarises and motivates the essential features of _RACR_ by implementing a simple nested programming language, enriched with type coercion, superfluous cast optimisation and type refactoring. The example shows:
-  * How reference attributes extend abstract syntax trees to abstract syntax graphs
-  * How dynamic attribute dependencies extend abstract syntax graphs to dynamic attribute dependency graphs
-  * The importance and benefits of dynamic dependencies for incremental attribute evaluation
-  * How reference attribute grammar analyses can be used to ease the development of transformations
+This example summarises and motivates the essential features of _RACR_ by implementing a simple nested programming language, enriched with type coercion, superfluous cast optimisation and type refactoring. The example gives an overview of the basic concepts of RAG-controlled rewriting:
+  * How reference attributes extend _abstract syntax trees_ to _abstract syntax graphs_
+  * How _dynamic attribute dependencies_ extend abstract syntax graphs to _dynamic attribute dependency graphs_
+  * The importance and benefits of dynamic dependencies for _incremental attribute evaluation_
+  * How reference attribute grammar based analyses can be used to ease the development of _rewrite-based transformations_
 
 Objectives:
   * Overview of essential _RACR_ features (abstract syntax tree scheme + attribution = abstract syntax graph scheme, rewrites)
   * Self-contained, easy and fast to understand motivation of RAG-controlled rewriting
 
+## Atomic Petri Nets
+
+**Difficult level:** RAG-controlled rewriting novice, _RACR_ disciple
+**New application:** RAG-controlled rewriting for incremental program execution
+**Size:** Small
+**Scheme library:** Yes
+
+## _TTC 2015 fUML Activity Diagrams_: Solution of _The TTC 2015 Model Execution Case_ submitted to the _8th Transformation Tool Contest_
+
+**Difficult level:** RAG-controlled rewriting disciple, _RACR_ experienced
+**New concept:** Language reuse by means of cross-language higher-order attributes
+**Size:** Small/Medium
+**Scheme library:** Yes
+
 ## Questionnaires: _Language Workbench Challenges 2013 & 2014_
 
-**Difficult level:** RAG-controlled rewriting disciple, _RACR_ disciple
-**New features:** Extensive introduction to RAG-controlled rewriting and incremental evaluation
+**Difficult level:** RAG-controlled rewriting disciple, _RACR_ experienced
+**New application:** RAG-controlled rewriting for interactive runtime models
 **Size:** Small/Medium
 **Scheme library:** Yes
 
@@ -81,14 +95,15 @@ The _RACR_ solution is unique in several ways:
 The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation for which reason it only works with _Racket_.
 
 Objectives:
-  * Simple example showing the application of RAG-controlled rewriting for runtime models (_models@runtime_), in particular regarding incremental analyses:
+  * Simple example showing the application of RAG-controlled rewriting for runtime models, in particular regarding incremental analyses:
     * Abstract syntax tree encodes real world state (model of real world: questions presented in a GUI to a user)
     * State changes via rewriting (model updates: user answers)
     * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the values of computed questions & re-rendering of GUI elements as necessary)
 
 ## Petri Nets
 
-**Difficult level:** Reference attribute grammar disciple, Rewrite disciple, _RACR_ disciple
+**Difficult level:** RAG-controlled rewriting experienced, _RACR_ experienced
+**New concept:** Language reuse by inheritance
 **Size:** Medium
 **Scheme library:** Yes
 
