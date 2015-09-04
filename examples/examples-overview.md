@@ -39,7 +39,7 @@ Objectives:
 ## _SLE 2015_: _RACR_ motivation and overview example submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
 **Difficult level:** RAG-controlled rewriting novice, _RACR_ novice
-**New features:** Rewrites, concepts of RAG-controlled rewriting
+**New features:** Rewrites
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
@@ -50,8 +50,12 @@ This example summarises and motivates the essential features of _RACR_ by implem
   * How reference attribute grammar based analyses can be used to ease the development of _rewrite-based transformations_
 
 Objectives:
-  * Overview of essential _RACR_ features (abstract syntax tree scheme + attribution = abstract syntax graph scheme, rewrites)
-  * Self-contained, easy and fast to understand motivation of RAG-controlled rewriting
+  * Self-contained, easy and fast to understand introduction to RAG-controlled rewriting
+  * Overview of essential _RACR_ features
+    * Specification, query and rewrite functions
+    * Abstract syntax graph memoization
+    * Application of attribute-based analyses for transformations
+    * Incremental evaluation
 
 ## Atomic Petri Nets
 
