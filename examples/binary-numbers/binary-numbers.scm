@@ -125,7 +125,7 @@
   (assert-exception (parse "1.1a"))
   (assert-exception (parse "1.a1"))
   
-  ; Test translator:
+  ; Test interpreter:
   (assert (= (bin->dec "0") 0))
   (assert (= (bin->dec "1") 1))
   (assert (= (bin->dec "01") 1))
