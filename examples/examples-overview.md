@@ -27,7 +27,7 @@ Objectives:
 **Scheme library:** No, ordinary _Scheme_ top-level program
 **Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
 
-_RACR_ specification implementing a simple finite state machine language providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
+Simple finite state machine language implementation providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
 
 The example shows, how reference attributes declaratively induce edges on abstract syntax trees, extending them to abstract syntax graphs. Such reference attribute induced edges form semantic overlay graphs and are typical for name and type analyses. In the example, reference attributes are used to 'transform' the abstract syntax tree, which was constructed by parsing a textual state machine representation, to the respective, actual, state machine diagram. The graph resulting from this name analysis is well-suited for further analyses, like the implemented state reachability.
 
@@ -63,6 +63,16 @@ Objectives:
 **New application:** RAG-controlled rewriting for incremental program execution
 **Size:** Small
 **Scheme library:** Yes
+
+Implementation of a coloured, weighted Petri net interpreter that supports arbitrary input arc conditions and output computations. Reference attribute grammar based analyses are used to perform name, enabled and well-formedness analyses of Petri nets; rewrites are used to implement their actual execution semantics, i.e., the firing of enabled transitions.
+
+The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. While executing this loop, enabled analyses are automatically optimised by incremental attribute evaluation.
+
+Objectives:
+  * Introduction to RAG-controlled rewriting and dynamic, incremental reference attribute evaluation:
+    * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
+    * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed, and add produced, tokens of fired transitions)
+    * Incremental Evaluation: Attributes are only reevaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only reevaluated if the last fired transition influenced it)
 
 ## _TTC 2015 fUML Activity Diagrams_: Solution of _The TTC 2015 Model Execution Case_ submitted to the _8th Transformation Tool Contest_
 
