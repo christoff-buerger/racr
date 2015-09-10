@@ -13,11 +13,10 @@
 
 _RACR_ introduction based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example. For details about it see: Donald E. Knuth, _Semantics of Context-Free Languages_, Theory of Computing Systems, volume 2, number 2, pages 127-145, Springer, 1968.
 
-Objectives:
-  * Introduction to _RACR_:
-    * Abstract syntax tree specifications: non-terminals, productions, inheritance
-    * Attribute specifications: synthesised & inherited attributes
-    * Abstract syntax tree & attribute query functions
+**Objective:** Introduction to _RACR_.
+ * Abstract syntax tree specifications: non-terminals, productions, inheritance
+ * Attribute specifications: synthesised & inherited attributes
+ * Abstract syntax tree & attribute query functions
 
 ## State Machines
 
@@ -31,10 +30,9 @@ Simple finite state machine language implementation providing attributes to sear
 
 The example shows, how reference attributes declaratively induce edges on abstract syntax trees, extending them to abstract syntax graphs. Such reference attribute induced edges form semantic overlay graphs and are typical for name and type analyses. In the example, reference attributes are used to 'transform' the abstract syntax tree, which was constructed by parsing a textual state machine representation, to the respective, actual, state machine diagram. The graph resulting from this name analysis is well-suited for further analyses, like the implemented state reachability.
 
-Objectives:
-  * Introduction to reference and circular attributes in _RACR_, their typical applications and advantages:
-    * Reference attributes: Graph analyses (like a name analyses to lookup the incoming and outgoing transitions of states)
-    * Circular attributes: Transitive closure analyses (like state reachability)
+**Objective:** Introduction to reference and circular attributes, their typical applications and advantages.
+  * Reference attributes: Graph analyses (like a name analyses to lookup the incoming and outgoing transitions of states)
+  * Circular attributes: Transitive closure analyses (like state reachability)
 
 ## _SLE 2015_: RAG-controlled rewriting motivation and overview submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
@@ -49,13 +47,11 @@ This example summarises and motivates the essential features of _RACR_ by implem
   * The importance and benefits of dynamic dependencies for _incremental attribute evaluation_
   * How reference attribute grammar based analyses can be used to ease the development of _rewrite-based transformations_
 
-Objectives:
-  * Self-contained, easy and fast to understand introduction to RAG-controlled rewriting
-  * Overview of essential _RACR_ features
-    * Specification, query and rewrite functions
-    * Abstract syntax graph memoization
-    * Application of attribute-based analyses for transformations
-    * Incremental evaluation
+**Objective:** Self-contained, easy and fast to understand introduction to RAG-controlled rewriting; overview of essential _RACR_ features.
+ * Specification, query and rewrite functions
+ * Abstract syntax graph memoization
+ * Application of attribute-based analyses for transformations
+ * Incremental evaluation
 
 ## Atomic Petri Nets
 
@@ -66,13 +62,12 @@ Objectives:
 
 Implementation of a coloured, weighted Petri net interpreter that supports arbitrary input arc conditions and output computations. Reference attribute grammar based analyses are used to perform name, enabled and well-formedness analyses of Petri nets; rewrites are used to implement their actual execution semantics, i.e., the firing of enabled transitions.
 
-The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. While executing this loop, enabled analyses are automatically optimised by incremental attribute evaluation.
+The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. While executing this loop, enabled analysis are automatically optimised by incremental attribute evaluation.
 
-Objectives:
-  * Introduction to RAG-controlled rewriting and dynamic, incremental reference attribute evaluation:
-    * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
-    * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed, and add produced, tokens of fired transitions)
-    * Incremental Evaluation: Attributes are only reevaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only reevaluated if the last fired transition influenced it)
+**Objective:** Introduction to RAG-controlled rewriting and dynamic, incremental reference attribute evaluation.
+ * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
+ * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed, and add produced, tokens of fired transitions)
+ * Incremental Evaluation: Attributes are only reevaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only reevaluated if the last fired transition influenced it)
 
 ## _TTC 2015 fUML Activity Diagrams_: Solution of _The TTC 2015 Model Execution Case_ submitted to the _8th Transformation Tool Contest_
 
@@ -108,11 +103,10 @@ The _RACR_ solution is unique in several ways:
 
 The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation for which reason it only works with _Racket_.
 
-Objectives:
-  * Simple example showing the application of RAG-controlled rewriting for runtime models, in particular regarding incremental analyses:
-    * Abstract syntax tree encodes real world state (model of real world: questions presented in a GUI to a user)
-    * State changes via rewriting (model updates: user answers)
-    * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the values of computed questions & re-rendering of GUI elements as necessary)
+**Objective:** Simple example showing the application of RAG-controlled rewriting for runtime models, in particular regarding incremental analyses.
+ * Abstract syntax tree encodes real world state (model of real world: questions presented in a GUI to a user)
+ * State changes via rewriting (model updates: user answers)
+ * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the values of computed questions & re-rendering of GUI elements as necessary)
 
 ## Petri Nets
 
