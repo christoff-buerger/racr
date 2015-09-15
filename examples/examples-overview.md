@@ -62,7 +62,7 @@ This example summarises and motivates the essential features of _RACR_ by implem
 
 Implementation of a coloured, weighted Petri net interpreter that supports arbitrary input arc conditions and output computations. Reference attribute grammar based analyses are used to perform name, enabled and well-formedness analyses of Petri nets; rewrites are used to implement their actual execution semantics, i.e., the firing of enabled transitions.
 
-The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. While executing this loop, enabled analysis is automatically optimised by incremental attribute evaluation.
+The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. During this loop, enabled analysis is automatically optimised by incremental attribute evaluation.
 
 **Objective:** Introduction to RAG-controlled rewriting and dynamic, incremental attribute evaluation.
  * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
