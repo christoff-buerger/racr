@@ -11,7 +11,9 @@
 **Size:** Very small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
-_RACR_ introduction based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example. For details about it see: Donald E. Knuth, _Semantics of Context-Free Languages_, Theory of Computing Systems, volume 2, number 2, pages 127-145, Springer, 1968.
+_RACR_ introduction based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example. For details cf.:
+
+> Donald E. Knuth, _Semantics of Context-Free Languages_, Theory of Computing Systems, volume 2, number 2, pages 127-145, Springer, 1968.
 
 **Objective:** Introduction to _RACR_.
  * Abstract syntax tree specifications: non-terminals, productions, inheritance
@@ -34,12 +36,13 @@ The example shows, how reference attributes declaratively induce edges on abstra
   * Reference attributes: Graph analyses (like a name analyses to lookup the incoming and outgoing transitions of states)
   * Circular attributes: Transitive closure analyses (like state reachability)
 
-## _SLE 2015_: RAG-controlled rewriting motivation and overview submitted to the _8th ACM SIGPLAN International Conference on Software Language Engineering_
+## _SLE 2015_: RAG-controlled rewriting motivation and overview
 
 **Difficult level:** RAG-controlled rewriting novice, _RACR_ novice
 **New features:** Rewrites
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
+**Peer-reviewed:** Published at the _8th ACM SIGPLAN International Conference on Software Language Engineering_
 
 This example summarises and motivates the essential features of _RACR_ by implementing a simple nested programming language, enriched with type coercion, superfluous cast optimisation and type refactoring. The example gives an overview of the basic concepts of RAG-controlled rewriting:
   * How reference attributes extend _abstract syntax trees_ to _abstract syntax graphs_
@@ -67,14 +70,15 @@ The example demonstrates the reuse of attribute-based analyses to ease and contr
 **Objective:** Introduction to RAG-controlled rewriting and dynamic, incremental attribute evaluation.
  * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
  * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed and add produced tokens of fired transitions)
- * Incremental Evaluation: Attributes are only reevaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only reevaluated if the last fired transition influenced it)
+ * Incremental Evaluation: Attributes are only re-evaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only re-evaluated if the last fired transition influenced it)
 
-## _TTC 2015 fUML Activity Diagrams_: Solution of _The TTC 2015 Model Execution Case_ submitted to the _8th Transformation Tool Contest_
+## _TTC 2015_: _fUML Activity Diagrams_
 
 **Difficult level:** RAG-controlled rewriting disciple, _RACR_ experienced
 **New concept:** Language reuse by means of cross-language higher-order attributes
 **Size:** Small/Medium
 **Scheme library:** Yes
+**Peer-reviewed:** Published at the _8th Transformation Tool Contest_ as a solution of _The TTC 2015 Model Execution Case_
 
 ## Questionnaires: _Language Workbench Challenges 2013 & 2014_
 
@@ -97,8 +101,8 @@ Questionnaires, as defined in the _Language Workbench Challenge_, consist of arb
 
 The _RACR_ solution is unique in several ways:
   * The abstract syntax graphs of questionnaires model both, the given and computed information _and_ their graphical representation.
-  * The widgets of the GUI are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automagically becomes incremental, i.e., when drawing the GUI, the application will only re-render the GUI elements that changed since their last rendering (for example, if new answers change the value of computed questions or enable or disable groups).
-  * Attributes clearly encapsulates all language concerns; a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automagically realised by _RACR's_ incremental evaluation.
+  * The widgets of the GUI are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automatically becomes incremental, i.e., when drawing the GUI, the application will only re-render the GUI elements that changed since their last rendering (for example, if new answers change the value of computed questions or enable or disable groups).
+  * Attributes clearly encapsulates all language concerns; a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automatically realised by _RACR's_ incremental evaluation.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the abstract syntax tree representing the respective questionnaire and its current answer state.
 
 The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation for which reason it only works with _Racket_.
