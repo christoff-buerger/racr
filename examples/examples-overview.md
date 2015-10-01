@@ -80,7 +80,7 @@ The example demonstrates the reuse of attribute-based analyses to ease and contr
 **Scheme library:** Yes
 **Peer-reviewed:** Published at the _8th Transformation Tool Contest_ as a solution of _The TTC 2015 Model Execution Case_
 
-## Questionnaires: _Language Workbench Challenges 2013 & 2014_
+## _Language Workbench Challenges 2013 & 2014_: Questionnaires
 
 **Difficult level:** RAG-controlled rewriting disciple, _RACR_ experienced
 **New application:** RAG-controlled rewriting for interactive runtime models
