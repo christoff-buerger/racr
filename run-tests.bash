@@ -132,7 +132,16 @@ do
 	end_run
 done
 
-# Test state-machines example:
+# Test binary numbers example:
+cd $old_pwd/examples/binary-numbers
+begin_run binary-numbers.scm
+racket_run "" binary-numbers.scm
+guile_run "" binary-numbers.scm
+larceny_run "" binary-numbers.scm
+petite_run "" binary-numbers.scm
+end_run
+
+# Test state machines example:
 cd $old_pwd/examples/state-machines
 begin_run state-machines.scm
 racket_run "" state-machines.scm
@@ -141,7 +150,7 @@ larceny_run "" state-machines.scm
 petite_run "" state-machines.scm
 end_run
 
-# Test atomic petrinets example:
+# Test atomic Petri nets example:
 cd $old_pwd/examples/atomic-petrinets/examples
 for f in *.scm
 do
@@ -153,13 +162,13 @@ do
 	end_run
 done
 
-# Test petrinets example:
+# Test Petri nets example:
 cd $old_pwd/examples/petrinets/examples
 for f in *.scm
 do
 	begin_run $f
 	racket_run "./../racket-bin" $f
-	# Disabled because of issue 37: guile_run "./../guile-bin" $f
+	#guile_run "./../guile-bin" $f # Disabled because of issue 37.
 	larceny_run "./../larceny-bin" $f
 	petite_run "./../.." $f
 	end_run

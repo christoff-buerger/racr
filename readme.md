@@ -6,7 +6,7 @@
 
 # Documentation
 
-For documentation consult the [_RACR_ reference manual](documentation/title.md). Examples are in `./examples`, including their [documentation](examples/examples-overview.md).
+For documentation consult _RACR's_ [reference manual](documentation/title.md). A short [synopsis](documentation/synopsis.md) gives an overview what _RACR_ is all about; also consider its [feature list](documentation/introduction.md#racr-features). To get started, [documented examples](examples/examples-overview.md) are provided in the `./examples` directory. [Installation instructions](documentation/requirements-and-installation.md) are also provided.
 
 # License
 

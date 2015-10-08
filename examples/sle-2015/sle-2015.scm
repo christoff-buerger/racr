@@ -122,15 +122,14 @@
  language
  
  (ag-rule
-  Needs-coercion?
-  (Prog (lambda (n) #f))
-  ((Cast Op1)
-   (lambda (n) #f))
-  ((BiOp Op1)
+  Needs-coercion? ; Inherited attribute
+  (Prog (lambda (n) #f)) ; Default...
+  ((Cast Op1) (lambda (n) #f)) ; ...equations
+  ((BiOp Op1) ; Equation for first operand
    (lambda (n)
      (and (=? (Type n) Integer)
           (=? (Type (->Op2 (<- n))) Real))))
-  ((BiOp Op2)
+  ((BiOp Op2) ; Equation for second operand
    (lambda (n)
      (and (=? (Type n) Integer)
           (=? (Type (->Op1 (<- n))) Real))))))
@@ -146,7 +145,7 @@
  language
  
  (ag-rule
-  Superfluous-cast?
+  Superfluous-cast? ; Synthesised attribute
   (Prog (lambda (n) #f))
   (Stmt (lambda (n) #f))
   (Cast (lambda (n) (=? (Type n) (Type (->Op1 n)))))))
@@ -159,12 +158,12 @@
 ;;; Program Normalisation:
 
 (define (normalise-program n)
-  (let ((trans1
-         (lambda (n)
+  (let ((trans1 ; Transformer function...
+         (lambda (n) ; ...for type coercion
            (and (Needs-coercion? n)
                 (cast-to-real n))))
-        (trans2
-         (lambda (n)
+        (trans2 ; Transformer function...
+         (lambda (n) ; ...for cast optimisation
            (and (Superfluous-cast? n)
                 (delete-cast n)))))
     (perform-rewrites n 'top-down trans1 trans2)))

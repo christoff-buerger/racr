@@ -7,7 +7,7 @@
 
 (import (rnrs) (racr core))
 
-(define sm-spec (create-specification))
+(define sm-spec                   (create-specification))
 
 ; AST Accessors:
 (define (->State* n)              (ast-child 'State* n))

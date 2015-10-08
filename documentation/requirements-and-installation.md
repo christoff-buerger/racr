@@ -16,6 +16,6 @@ _RACR_ and some of its examples are provided as _Scheme_ libraries. The instanti
 
 The `install.bash` _Bash_ shell script distributed with _RACR's_ source code can be used to compile and ease the loading of _RACR_ for the above mentioned _Scheme_ systems. It detects if the system's executable to load/compile _R6RS_ libraries is in your path and performs all necessary compilation and configuration actions. If throughout the process any artefacts are generated like binaries, they are stored in `name-of-scheme-system-bin` directories which are contained in the directory with the respective library source files. Thus, all generated artefacts are local to _RACR's_ source code distribution.
 
-Note, that the script installs all libraries distributed with _RACR_, including its examples. It handles libraries only; the ordinary top-level programs distributed with _RACR_ are not considered.
+Note, that the script installs all libraries distributed with _RACR_, including its [examples](../examples/examples-overview.md). It handles libraries only; the ordinary top-level programs distributed with _RACR_ are not considered.
 
 To get an idea how to use _RACR's_ libraries in your _Scheme_ system, consult the `run-tests.bash` script. The script validates the installation by running a set of test cases.
