@@ -57,7 +57,7 @@ static public class Racr {
 	private static Callable rewriteAdd;
 	private static Callable rewriteInsert;
 	private static Callable rewriteDelete;
-	
+
 
 	private static Callable astAnnotationSet;
 	private static Callable astWeaveAnnotations;
@@ -154,7 +154,7 @@ static public class Racr {
 			RegisterAgRules(this.GetType());
 		}
 
-		public void RegisterAgRules(Type type=null) {
+		public void RegisterAgRules(Type type) {
 			var methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 			foreach (var method in methods) {
 				foreach (var attr in method.GetCustomAttributes(typeof(AgRuleAttribute), false)) {
@@ -173,7 +173,7 @@ static public class Racr {
 		}
 
 		public void CompileAgSpecifications() { compileAgSpecifications.Call(spec); }
-		
+
 
 		static readonly Type[][] paramTypesArray = new Type[][] {
 			new Type[] {},
@@ -182,7 +182,6 @@ static public class Racr {
 			new Type[] { typeof(object), typeof(object), typeof(object) },
 			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object) },
 			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object), typeof(object) },
-			// ...
 		};
 
 		static readonly Type[] callTargets = new Type[] {
@@ -192,7 +191,6 @@ static public class Racr {
 			typeof(CallTarget3),
 			typeof(CallTarget4),
 			typeof(CallTarget5),
-			// ...
 		};
 
 		static Callable WrapToCallable(MethodInfo method) {
@@ -231,6 +229,12 @@ static public class Racr {
 				WrapToCallable(equation.Method),
 				false);
 		}
+		public void SpecifyAttribute<R>(string attName, string nonTerminal, string contextName, bool cached, Func<AstNode,R> equation) {
+			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
+		}
+		public void SpecifyAttribute<R,T>(string attName, string nonTerminal, string contextName, bool cached, Func<AstNode,R,T> equation) {
+			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
+		}
 
 		// factory methods
 		public AstNode CreateAst(string nonTerminal, params object[] children) {
@@ -249,13 +253,9 @@ static public class Racr {
 	public struct Range {
 		public int min;
 		public int max;
-		public Range(int min, int max) {
+		public Range(int min, int max=0) {
 			this.min = min;
 			this.max = max;
-		}
-		public Range(int min) {
-			this.min = min;
-			this.max = 0;
 		}
 		internal Cons ToCons() {
 			return new Cons(min, max > 0 ? max : SymbolTable.StringToObject("*"));
