@@ -97,14 +97,12 @@
 
 (display "Start\n")
 
-(display (att-value 'Eval root))
-(newline)
 
-;(let loop ((i 0))
-;  (let
-;    ((def (ast-child (+ (mod i 26) 1) defs)))
-;    (display (att-value 'Eval root))
-;    (newline)
-;    (rewrite-terminal 'value def (+ (ast-child 'value def) 1))
-;    (when (< i 1000) (loop (+ i 1)))))
-;
+(let loop ((i 0))
+  (let
+    ((def (ast-child (+ (mod i 26) 1) defs)))
+    (display (att-value 'Eval root))
+    (newline)
+    (rewrite-terminal 'value def (+ (ast-child 'value def) 1))
+    (when (< i 1000) (loop (+ i 1)))))
+
