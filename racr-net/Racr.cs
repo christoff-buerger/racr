@@ -208,8 +208,9 @@ static public class Racr {
 			gen.Emit(OpCodes.Call, getNodeInfo);
 
 			for (int i = 1; i < paramTypes.Length; i++) {
-				gen.Emit(OpCodes.Ldarg_S, i);
+				gen.Emit(OpCodes.Ldarg_S, (byte) i);
 				if (paramTypes[i].IsValueType) gen.Emit(OpCodes.Unbox_Any, paramTypes[i]);
+				else gen.Emit(OpCodes.Castclass, paramTypes[i]);
 			}
 			gen.Emit(OpCodes.Call, method);
 			if (method.ReturnType.IsValueType) gen.Emit(OpCodes.Box, method.ReturnType);
