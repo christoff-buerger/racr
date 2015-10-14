@@ -13,8 +13,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{26ED33DA-9166-4BED-BA79-AC930E82AA07}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Test</RootNamespace>
-    <AssemblyName>Test</AssemblyName>
+    <RootNamespace>MathExp</RootNamespace>
+    <AssemblyName>MathExp</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>

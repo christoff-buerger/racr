@@ -29,7 +29,7 @@ def set_children(n):
 
 
 n = new_node()
-for i in range(999): add_node(n)
+for i in range(4999): add_node(n)
 set_children(n)
 
 #import pprint
