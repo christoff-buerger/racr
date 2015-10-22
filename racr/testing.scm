@@ -9,6 +9,7 @@
  (racr testing)
  (export
   print-ast
+  include
   assert-exception
   construct-reevaluation-tests)
  (import (rnrs) (racr core))
@@ -79,6 +80,25 @@
            (cdr (ast-rule->production (ast-node-rule n)))
            (ast-children n)))))
      (my-display #\newline)))
+ 
+ ; Syntax form expanding to a begin expression containing the forms of a given source code file.
+ (define-syntax include
+   (lambda (x)
+     (define read-file
+       (lambda (fn k)
+         (let ((p (open-input-file fn)))
+           (let f ((x (read p)))
+             (if (eof-object? x)
+                 (begin (close-port p) '())
+                 (cons (datum->syntax k x) (f (read p))))))))
+     (syntax-case x ()
+       ((_ filename default)
+        (let ((fn (syntax->datum #'filename)))
+          (if (file-exists? fn) #'(include filename) #'default)))
+       ((k filename)
+        (let ((fn (syntax->datum #'filename)))
+          (with-syntax (((expr ...) (read-file fn #'k)))
+            #'(begin expr ...)))))))
  
  ; Syntax form used to assert, that the evaluation of some expression fails with an exception.
  (define-syntax assert-exception
