@@ -69,32 +69,32 @@ class App {
 
 
 		var defs = spec.CreateAstList(
-				spec.CreateAst("Def", "a",  0.0),
-				spec.CreateAst("Def", "b",  1.0),
-				spec.CreateAst("Def", "c",  2.0),
-				spec.CreateAst("Def", "d",  3.0),
-				spec.CreateAst("Def", "e",  4.0),
-				spec.CreateAst("Def", "f",  5.0),
-				spec.CreateAst("Def", "g",  6.0),
-				spec.CreateAst("Def", "h",  7.0),
-				spec.CreateAst("Def", "i",  8.0),
-				spec.CreateAst("Def", "j",  9.0),
-				spec.CreateAst("Def", "k", 10.0),
-				spec.CreateAst("Def", "l", 11.0),
-				spec.CreateAst("Def", "m", 12.0),
-				spec.CreateAst("Def", "n", 13.0),
-				spec.CreateAst("Def", "o", 14.0),
-				spec.CreateAst("Def", "p", 15.0),
-				spec.CreateAst("Def", "q", 16.0),
-				spec.CreateAst("Def", "r", 17.0),
-				spec.CreateAst("Def", "s", 18.0),
-				spec.CreateAst("Def", "t", 19.0),
-				spec.CreateAst("Def", "u", 20.0),
-				spec.CreateAst("Def", "v", 21.0),
-				spec.CreateAst("Def", "w", 22.0),
-				spec.CreateAst("Def", "x", 23.0),
-				spec.CreateAst("Def", "y", 24.0),
-				spec.CreateAst("Def", "z", 25.0));
+				spec.CreateAst("Def", "a", 0.0),
+				spec.CreateAst("Def", "b", 0.1),
+				spec.CreateAst("Def", "c", 0.2),
+				spec.CreateAst("Def", "d", 0.3),
+				spec.CreateAst("Def", "e", 0.4),
+				spec.CreateAst("Def", "f", 0.5),
+				spec.CreateAst("Def", "g", 0.6),
+				spec.CreateAst("Def", "h", 0.7),
+				spec.CreateAst("Def", "i", 0.8),
+				spec.CreateAst("Def", "j", 0.9),
+				spec.CreateAst("Def", "k", 1.0),
+				spec.CreateAst("Def", "l", 1.1),
+				spec.CreateAst("Def", "m", 1.2),
+				spec.CreateAst("Def", "n", 1.3),
+				spec.CreateAst("Def", "o", 1.4),
+				spec.CreateAst("Def", "p", 1.5),
+				spec.CreateAst("Def", "q", 1.6),
+				spec.CreateAst("Def", "r", 1.7),
+				spec.CreateAst("Def", "s", 1.8),
+				spec.CreateAst("Def", "t", 1.9),
+				spec.CreateAst("Def", "u", 2.0),
+				spec.CreateAst("Def", "v", 2.1),
+				spec.CreateAst("Def", "w", 2.2),
+				spec.CreateAst("Def", "x", 2.3),
+				spec.CreateAst("Def", "y", 2.4),
+				spec.CreateAst("Def", "z", 2.5));
 
 		var exp = Generated.Tree(spec);
 
@@ -107,7 +107,7 @@ class App {
 		for (int i = 0; i < 1000; i++) {
 			var def = defs.Child(i % 26 + 1);
 			Console.WriteLine("{0}: {1}", i, root.Eval());
-			def.RewriteTerminal("value", (def.Child<double>("value") + 1.0) % 26.0);
+			def.RewriteTerminal("value", (def.Child<double>("value") + 0.1) % 3.0);
 		}
 
 		watch.Stop();
