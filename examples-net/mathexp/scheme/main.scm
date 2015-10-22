@@ -104,6 +104,8 @@
     (rewrite-terminal 'value def (mod (+ (ast-child 'value def) 1.0) 26.0))
     (when (< i 1000) (loop (+ i 1)))))
 
-(display "time: ")
-(display (* (time-nanosecond (time-difference (current-time) t)) 0.000001))
+(define dif (time-difference (current-time) t))
+
+(display "Time: ")
+(display (+ (time-second dif) (* (time-nanosecond dif) 0.000000001)))
 (newline)

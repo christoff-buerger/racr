@@ -8,6 +8,9 @@ creates 'Generated.cs' and 'scheme/generated.sls'
 
 import random, string, sys
 
+
+
+
 def new_node():
 	return [random.choice("+*"), None, None]
 
@@ -28,8 +31,10 @@ def set_children(n):
 			n[i] = random.choice(string.lowercase)
 
 
+cnt = int(sys.argv[-1])
+
 n = new_node()
-for i in range(4999): add_node(n)
+for i in range(cnt - 1): add_node(n)
 set_children(n)
 
 #import pprint
@@ -67,7 +72,7 @@ def scheme_format_tree(n, depth=0):
 
 
 
-open("Generated.cs", "w").write("""
+open("Generated%d.cs" % cnt, "w").write("""
 static class Generated {
 	public static Racr.AstNode Tree(Racr.Specification spec) {
 		return %s;
@@ -76,7 +81,7 @@ static class Generated {
 """ % format_tree(n, 2)[2:])
 
 
-open("scheme/generated.sls", "w").write("""
+open("scheme/generated%d.sls" % cnt, "w").write("""
 (library
  (generated)
  (export tree)
