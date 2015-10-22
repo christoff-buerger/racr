@@ -24,10 +24,11 @@ all: racr.core.dll hashtable-iron-scheme-adapter.dll Racr.dll
 racr.core.dll hashtable-iron-scheme-adapter.dll:  ../racr/core.scm transcribe.py Makefile
 	@mkdir -p racr
 	@./transcribe.py
-	@echo '(import (racr core))' > $(TMP)
+	@echo '(import (racr core) (racr testing))' > $(TMP)
 	@echo '(compile "$(TMP)")' | $(IS)
 	@echo '(cadr (library-path))' | $(IS) | awk 'NR == 2 {\
 		system("mv " substr($$0,3) "/racr.core.dll .");\
+		system("mv " substr($$0,3) "/racr.testing.dll .");\
 		system("mv " substr($$0,3) "/hashtable-iron-scheme-adapter.dll .");\
 	}'
 	@rm -r racr
@@ -37,5 +38,5 @@ Racr.dll: racr.core.dll hashtable-iron-scheme-adapter.dll
 	cp bin/Debug/Racr.dll .
 
 clean:
-	rm -f racr.core.dll hashtable-iron-scheme-adapter.dll
+	rm -f racr.core.dll racr.testing.dll hashtable-iron-scheme-adapter.dll
 	rm -rf bin obj Racr.dll

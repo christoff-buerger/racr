@@ -3,5 +3,9 @@
 
 # Author: D. Langner, C. Bürger
 
-Test.dll: Test.cs
-	mono-csc $< -r:../racr-net/IronScheme.dll -target:library -pkg:nunit -out:$@
+Test.dll: Test.cs Makefile
+	mono-csc Test.cs -r:../racr-net/IronScheme.dll -r:../racr-net/Racr.dll -target:library -pkg:nunit -out:$@
+	cp ../racr-net/*dll .
+
+clean:
+	rm -f *.dll
