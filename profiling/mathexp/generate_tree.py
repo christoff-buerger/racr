@@ -1,13 +1,12 @@
 #!/usr/bin/python
 
 """
-creates 'Generated.cs' and 'scheme/generated.sls'
+creates 'GeneratedX.cs' and 'scheme/generatedX.sls'
 """
-
-
 
 import random, string, sys
 
+cnt = int(sys.argv[-1])
 
 
 
@@ -31,7 +30,6 @@ def set_children(n):
 			n[i] = random.choice(string.lowercase)
 
 
-cnt = int(sys.argv[-1])
 
 n = new_node()
 for i in range(cnt - 1): add_node(n)
