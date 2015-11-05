@@ -15,11 +15,10 @@
          =p-lookup =t-lookup =in-lookup =out-lookup =place =valid? =enabled?
          
          :ComposedNet :Glueing :Inport :Outport
-         ->Port* ->Glueing*
-         ->Net1 ->Net2
+         ->Port* ->Glueing* ->Net1 ->Net2
          ->outport ->inport
-         =ports =glueings =root =<-net =inport? =outport? =find-subnet
-         =inport =outport =glued? =fused-places)
+         =ports =glueings =<-net =subnet-iter =inport? =outport?
+         =find-subnet =inport =outport =glued? =fused-places)
  (import (rnrs) (racr core))
  
  (define pn                    (create-specification))
@@ -61,11 +60,11 @@
  
  (define (=ports n)            (att-value 'ports n))
  (define (=glueings n)         (att-value 'glueings n))
- (define (=root n)             (att-value 'root n))
  (define (=<-net n)            (att-value '<-net n))
+ (define (=subnet-iter n)      (att-value 'subnet-iter n))
  (define (=inport? n)          (att-value 'inport? n))
  (define (=outport? n)         (att-value 'outport? n))
- (define (=find-subnet n name) (att-value 'find-subnet n name))
+ (define (=find-subnet n name) ((=subnet-iter n) (lambda (name* n) (and (eq? name* name) n))))
  (define (=inport n)           (att-value 'inport n))
  (define (=outport n)          (att-value 'outport n))
  (define (=glued? n . l)       (apply att-value 'glued? n l))
@@ -94,6 +93,9 @@
    (create-ast pn 'Outport (list p)))
  
  ; Support Functions:
+ (define (set-union s1 s2)
+   (append (filter (lambda (e1) (not (memq e1 s2))) s1) s2))
+ 
  (define (make-symbol-table decls ->key . conditions) ; BEWARE: Redefinition
    (define table (make-eq-hashtable))
    (for-each
@@ -133,7 +135,12 @@
     
     (ag-rule ports       (AtomicPetrinet (lambda (n) (->* (->Port* n)))))
     (ag-rule glueings    (ComposedNet    (lambda (n) (->* (->Glueing* n)))))
-    (ag-rule root        (Petrinet       (lambda (n) (if (ast-has-parent? n) (=root (<- n)) n))))
+    (ag-rule <-net       (AtomicPetrinet (lambda (n) (<- (<- n)))))
+    (ag-rule subnet-iter (AtomicPetrinet (lambda (n) (let ((name (->name n)))
+                                                       (lambda (f) (f name n))))))
+    (ag-rule subnet-iter (ComposedNet    (lambda (n) (let* ((i1 (=subnet-iter (->Net1 n)))
+                                                            (i2 (=subnet-iter (->Net2 n))))
+                                                       (lambda (f) (or (i1 f) (i2 f)))))))
     
     ;;; Name Analysis:
     
@@ -148,11 +155,13 @@
     (ag-rule outport?    (Place          (lambda (n) (=out-lookup n (->name n)))))
     (ag-rule in-lookup   (AtomicPetrinet (lambda (n) (make-symbol-table (=ports n) ->place Inport?))))
     (ag-rule out-lookup  (AtomicPetrinet (lambda (n) (make-symbol-table (=ports n) ->place Outport?))))
-    (ag-rule find-subnet (AtomicPetrinet (lambda (n name) (and (eq? (->name n) name) n))))
-    (ag-rule find-subnet (ComposedNet    (lambda (n name) (or (=find-subnet (->Net1 n) name)
-                                                              (=find-subnet (->Net2 n) name)))))
     
     ;;; Composition Analysis:
+    
+    (ag-rule inport  (Glueing (lambda (n) (let ((net (=find-subnet n (car (->inport n)))))
+                                            (and net (=in-lookup net (cdr (->inport n))))))))
+    (ag-rule outport (Glueing (lambda (n) (let ((net (=find-subnet n (car (->outport n)))))
+                                            (and net (=out-lookup net (cdr (->outport n))))))))
     
     (ag-rule
      glued? ; Is the port glued (return its glueing if so)?
@@ -162,14 +171,22 @@
      (ComposedNet    (lambda (n p) (or (find (lambda (n) (=glued? n p)) (=glueings n))
                                        (and (ast-has-parent? n) (=glued? (<- n) p))))))
     
-    (ag-rule inport  (Glueing (lambda (n) (let ((net (=find-subnet (car (->inport n)))))
-                                            (and net (=in-lookup net (cdr (->inport n))))))))
-    (ag-rule outport (Glueing (lambda (n) (let ((net (=find-subnet (car (->outport n)))))
-                                            (and net (=out-lookup net (cdr (->outport n))))))))
-
     (ag-rule
      fused-places
-     (Place 'TODO))
+     (Place
+      (lambda (n)
+        (let* ((inport? (=inport? n))
+               (outport? (=outport? n))
+               (glueing?+ (and inport? (=glued? inport?)))
+               (glueing?- (and outport? (=glued? outport?)))
+               (fused-place?+ (and glueing?+ (=place (=outport glueing?+))))
+               (fused-place?- (and glueing?- (=place (=inport glueing?-))))
+               (fused-places+ (if fused-place?+ (=fused-places fused-place?+) (list)))
+               (fused-places- (if fused-place?- (=fused-places fused-place?-) (list))))
+          (set-union (list n) (set-union fused-places+ fused-places-))))
+      (list)
+      (lambda (r1 r2)
+        (= (length r1) (length r2)))))
     
     ;;; Well-formedness Analysis:
     
@@ -185,8 +202,7 @@
      ((Transition Out)   (lambda (n) (and (=place n) (eq? (=out-lookup n (->place n)) n))))
      (AtomicPetrinet     (lambda (n) (and (for-all =valid? (=places n)) ; BEWARE: Redefinition
                                           (for-all =valid? (=transitions n))
-                                          (for-all =valid? (=ports n))
-                                          (eq? (=find-subnet (=root n) (->name n)) n)))))
+                                          (for-all =valid? (=ports n))))))
     
     (ag-rule
      valid?
@@ -196,7 +212,13 @@
                                        (and in out (eq? (=glued? in) n) (eq? (=glued? out) n)))))
      (ComposedNet        (lambda (n) (and (=valid? (->Net1 n))
                                           (=valid? (->Net2 n))
-                                          (for-all =valid? (=glueings n))))))
+                                          (for-all =valid? (=glueings n))
+                                          (not
+                                           (let ((names (list)))
+                                             ((=subnet-iter (->Net1 n))
+                                              (lambda (name n) (set! names (cons name names)) #f))
+                                             ((=subnet-iter (->Net2 n))
+                                              (lambda (name n) (memq name names)))))))))
     
     ;;; Enabled Analysis:
     
