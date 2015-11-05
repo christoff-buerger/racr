@@ -6,12 +6,12 @@
 #!r6rs
 
 (library
- (petrinets ui)
+ (composed-petrinets user-interface)
  (export
   make-petrinet
   make-transition
   compose-petrinets)
- (import (rnrs) (racr core) (petrinets main))
+ (import (rnrs) (racr core) (petrinets analyses))
  
  (define initialize-places
    (lambda (petrinet)

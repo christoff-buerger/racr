@@ -22,7 +22,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr core) (petrinets main) (petrinets ui))
+(import (rnrs) (racr core) (composed-petrinets user-interface))
 
 (init-ast)
 (init-attribution)

@@ -6,7 +6,7 @@
 #!r6rs
 
 (library
- (atomic-petrinets analyses)
+ (composed-petrinets analyses)
  (export specify-analyses pn
          :AtomicPetrinet :Place :Token :Transition :Arc
          ->Place* ->Transition* ->Token* ->In ->Out

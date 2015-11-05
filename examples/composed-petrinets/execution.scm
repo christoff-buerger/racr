@@ -6,7 +6,7 @@
 #!r6rs
 
 (library
- (petrinets main)
+ (composed-petrinets execution)
  (export
   print-marking
   print-enabled
