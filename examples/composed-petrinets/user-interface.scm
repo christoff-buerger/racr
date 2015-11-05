@@ -7,136 +7,35 @@
 
 (library
  (composed-petrinets user-interface)
- (export
-  make-petrinet
-  make-transition
-  compose-petrinets)
- (import (rnrs) (racr core) (petrinets analyses))
+ (export petrinet: transition: compose-petrinets:)
+ (import (rnrs) (racr core) (atomic-petrinets user-interface)
+         (composed-petrinets analyses) (composed-petrinets execution))
  
- (define initialize-places
-   (lambda (petrinet)
-     (ast-for-each-child
-      (lambda (i transition)
-        (for-each
-         (lambda (arc)
-           (unless (att-value 'place arc)
-             (rewrite-add
-              (ast-child 'Place* petrinet)
-              (create-ast
-               petrinet-specification
-               'Place
-               (list
-                (ast-child 'place arc)
-                (create-ast-list (list)))))))
-         (append
-          (ast-children (ast-child 'In transition))
-          (ast-children (ast-child 'Out transition)))))
-      (ast-child 'Transition* petrinet))))
+ (define-syntax petrinet: ; BEWARE: Redefinition
+   (syntax-rules ()
+     ((_ name (inport ...) (outport ...)
+         ((place start-marking ...) ...)
+         transition ... )
+      (let ((net
+             (:AtomicPetrinet
+              'name
+              (list (:Place 'place (:Token start-marking) ...)
+                    ...)
+              (list transition
+                    ...)
+              (list (:Inport 'inport) ... (:Outport 'outport) ...))))
+        (unless (=valid? net)
+          (exception: "Cannot construct Petri net; The net is not well-formed."))
+        net))))
  
- (define-syntax make-petrinet
-   (lambda (x)
-     (define identifier-list?
-       (lambda (l)
-         (for-all identifier? l)))
-     (syntax-case x ()
-       ((_ name (inport ...) (outport ...) ((place start-marking ...) ...) transition ... )
-        (and
-         (identifier? #'name)
-         (identifier-list? #'(inport ...))
-         (identifier-list? #'(outport ...))
-         (identifier-list? #'(place ...)))
-        #`(let ((pn
-                 (create-ast
-                  petrinet-specification
-                  'AtomicPetrinet
-                  (list
-                   'name
-                   (create-ast-list
-                    (list
-                     (create-ast
-                      petrinet-specification
-                      'Place
-                      (list
-                       'place
-                       (create-ast-list
-                        (list
-                         (create-ast petrinet-specification 'Token (list start-marking)) ...)))) ...))
-                   (create-ast-list
-                    (list
-                     transition ...))
-                   (create-ast-list
-                    (list
-                     (create-ast petrinet-specification 'InPort (list 'inport)) ...
-                     (create-ast petrinet-specification 'OutPort (list 'outport)) ...))))))
-            ; Initialize the places without explicit start marking:
-            (initialize-places pn)
-            ; Ensure, that the petrinet is well-formed:
-            (unless (att-value 'well-formed? pn)
-              (throw-petrinets-exception "Cannot construct Petri Net; The Petri Net is not well-formed."))
-            ; Return the constructed Petri Net:
-            pn)))))
- 
- (define-syntax make-transition
-   (lambda (x)
-     (define identifier-list?
-       (lambda (l)
-         (for-all identifier? l)))
-     (syntax-case x ()
-       ((k name ((input-place (variable matching-condition) ...) ...) ((output-place to-produce ...) ...))
-        (and
-         (identifier? #'name)
-         (identifier-list? #'(variable ... ...))
-         (identifier-list? #'(input-place ...))
-         (identifier-list? #'(output-place ...)))
-        #`(create-ast
-           petrinet-specification
-           'Transition
-           (list
-            'name
-            (create-ast-list
-             (list
-              (create-ast
-               petrinet-specification
-               'Arc
-               (list
-                'input-place
-                (list
-                 (lambda (variable)
-                   matching-condition) ...))) ...))
-            (create-ast-list
-             (list
-              (create-ast
-               petrinet-specification
-               'Arc
-               (list
-                'output-place
-                (lambda (variable ... ...)
-                  (list to-produce ...)))) ...))))))))
- 
- (define-syntax compose-petrinets
-   (lambda (x)
-     (syntax-case x ()
-       ((_ net1 net2 (((out-net out-port) (in-net in-port)) ...))
-        (for-all identifier? #'(out-net ... out-port ... in-net ... in-port ...))
-        #'(let* ((net1* net1)
-                 (net2* net2)
-                 (pn
-                  (create-ast
-                   petrinet-specification
-                   'ComposedPetrinet
-                   (list
-                    net1*
-                    net2*
-                    (create-ast-list
-                     (list
-                      (create-ast
-                       petrinet-specification
-                       'Glueing
-                       (list
-                        (cons 'out-net 'out-port)
-                        (cons 'in-net 'in-port))) ...))))))
-            ; Ensure, that the composed net is well-formed:
-            (unless (att-value 'well-formed? pn)
-              (throw-petrinets-exception "Cannot compose Petri Nets; The composed net is not well-formed."))
-            ; Return the composed net:
-            pn))))))
+ (define-syntax compose-petrinets:
+   (syntax-rules ()
+     ((_ net1 net2 ((out-net out-port) (in-net in-port)) ...)
+      (let ((net* (:ComposedNet
+                   net1 net2
+                   (:Glueing (cons 'out-net 'out-port) (cons 'in-net 'in-port)) ...)))
+        (unless (=valid? net*)
+          (rewrite-subtree (->Net1 net*) (make-ast-bud))
+          (rewrite-subtree (->Net2 net*) (make-ast-bud))
+          (exception: "Cannot compose Petri nets; The composed net is not well-formed."))
+        net*)))))

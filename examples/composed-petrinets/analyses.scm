@@ -3,6 +3,40 @@
 
 ; Author: C. Bürger
 
+; The implemented port concept for Petri net composition is based on
+; 
+;                               "Simple Composition of Nets"
+;                                     Wolfgang Reisig
+;          Applications and Theory of Petri Nets: 30th International Conference
+;               Lecture Notes in Computer Science, Volume 5606, Pages 23-42
+;                                   Springer, June 2009
+;                      Editors: Giuliana Franceschinis, Karsten Wolf
+;                                    978-3-642-02423-8
+; 
+; The implementation differs in three details:
+;  1. To avoid the indexing problem, ports are not fused by name equivalence, but rather
+;     user-specified explicit glueing of in- and out-ports.
+;  2. The glueing of ports of the same type (e.g., two in-ports) is not permitted. Instead
+;     it must be explicitely modeled by constructing a special glueing net that is
+;     composed with the in- or out-ports to fuse. E.g., consider Fig. 8, where two
+;     equivalent warehouses are composed. In the example the two order in-ports and two
+;     goods out-ports of the two warehouses are fused, such that the composed warehouse
+;     has only one order in-port and one goods out-port. The same can be modeled more
+;     precisely, by first constructing a new glueing Petri net that only has one order
+;     in-port and one goods out-port and additionally two artificial out-ports orders1 and
+;     orders2 and two artificial in-ports goods1 and goods2. Two transitions connect the
+;     three order and goods places respectively. The order related transition models
+;     whether the order1 and order2 ports compete for token or not (i.e., the two
+;     warehouses represent alternative or parallel processes). Similarly, the goods related
+;     transition models whether the warehouses are synchronized or just the first
+;     delivering any good succeeds. By composing the glue net with the two warehouses,
+;     the meaning of the fusion of the warehouses' in- and out-ports becomes clear.
+;  3. The fusion of different places of the same atomic petrinet is not permitted. The
+;     reason for this decision is two-fold. Technically, the implemented firing semantics
+;     can fail in such cases. Logically, the structure of subnets should be immutable.
+;     After all they are black-box components. To fuse their places can result in
+;     unexpected and unintended black-box behaviour.
+
 #!r6rs
 
 (library
@@ -71,9 +105,9 @@
  (define (=fused-places n)     (att-value 'fused-places n))
  
  ; AST Constructors:
- (define (:AtomicPetrinet p t i) ; BEWARE: Redefinition
+ (define (:AtomicPetrinet n p t i) ; BEWARE: Redefinition
    (create-ast pn 'AtomicPetrinet
-               (list (create-ast-list p) (create-ast-list t) (create-ast-list i))))
+               (list n (create-ast-list p) (create-ast-list t) (create-ast-list i))))
  (define (:Place n . t)
    (create-ast pn 'Place (list n (create-ast-list t))))
  (define (:Token v)
@@ -83,8 +117,8 @@
  (define (:Arc p f)
    (create-ast pn 'Arc (list p f)))
  
- (define (:ComposedNet n1 n2)
-   (create-ast pn 'ComposedNet (list n1 n2)))
+ (define (:ComposedNet n1 n2 . g)
+   (create-ast pn 'ComposedNet (list n1 n2 (create-ast-list g))))
  (define (:Glueing o i)
    (create-ast pn 'Glueing (list o i)))
  (define (:Inport p)
