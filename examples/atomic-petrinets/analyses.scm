@@ -7,8 +7,10 @@
 
 (library
  (atomic-petrinets analyses)
- (export specify-analyses pn :AtomicPetrinet :Place :Token :Transition :Arc
-         ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
+ (export specify-analyses pn
+         :AtomicPetrinet :Place :Token :Transition :Arc
+         ->Place* ->Transition* ->Token* ->In ->Out
+         ->name ->value ->place ->consumers ->* <-
          =places =transitions =in-arcs =out-arcs
          =p-lookup =t-lookup =in-lookup =out-lookup =place =valid? =enabled? =executor)
  (import (rnrs) (racr core))
