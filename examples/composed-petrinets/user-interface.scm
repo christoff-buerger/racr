@@ -8,18 +8,18 @@
 (library
  (composed-petrinets user-interface)
  (export initialise-petrinet-language petrinet: compose-petrinets:
-         run-petrinet! ;interpret-petrinet!
-         ;assert-marking assert-enabled
+         run-petrinet! interpret-petrinet!
+         assert-marking assert-enabled
          (rename (ap:transition: transition:)
                  (ap:exception: exception:)
                  (ap:fire-transition! fire-transition!)
                  (ap:petrinets-exception? petrinets-exception?)))
  (import (rnrs) (racr core) (prefix (atomic-petrinets user-interface) ap:)
          (composed-petrinets analyses))
-
+ 
  ;;; Syntax:
  
- (define-syntax petrinet: ; BEWARE: Redefinition
+ (define-syntax petrinet: ; REDEFINITION: add ports
    (syntax-rules ()
      ((_ name (inport ...) (outport ...)
          ((place start-marking ...) ...)
@@ -47,10 +47,10 @@
           (rewrite-subtree (->Net2 net*) (make-ast-bud))
           (ap:exception: "Cannot compose Petri nets; The composed net is not well-formed."))
         net*))))
-
+ 
  ;;; Execution:
  
- (define (run-petrinet! petrinet) ; BEWARE: Redefinition
+ (define (run-petrinet! petrinet) ; REDEFINITION: iterate subnets
    (unless (=valid? petrinet)
      (ap:exception: "Cannot run Petri Net; The given net is not well-formed."))
    (let ((enabled? ((=subnet-iter petrinet) (lambda (name n) (find =enabled? (=transitions n))))))
@@ -59,12 +59,28 @@
        (run-petrinet! petrinet))))
  
  ;;; REPL Interpreter:
-
+ 
+ (define (interpret-petrinet! net)
+   (unless (=valid? net)
+     (ap:exception: "Cannot interpret Petri Net; The given net is not well-formed."))
+   (when
+       ((=subnet-iter net)
+        (lambda (name n)
+          (display "======>> ") (display name) (display " <<======\n")
+          (ap:interpret-petrinet! n)))
+     (interpret-petrinet! net)))
+ 
  ;;; Testing:
+
+ (define (assert-marking net . marking) ; REDEFINITION: classify regarding subnets
+   (for-each (lambda (m) (ap:assert-marking (=find-subnet net (car m)) (cdr m))) marking))
+
+ (define (assert-enabled net . enabled) ; REDEFINITION: classify regarding subnets
+   (for-each (lambda (e) (ap:assert-enabled (=find-subnet net (car e)) (cdr e))) enabled))
  
  ;;; Initialisation:
  
- (define (initialise-petrinet-language) ; BEWARE: Redefinition
+ (define (initialise-petrinet-language) ; REDEFINITION: initialise composed Petri net language
    (when (= (specification->phase pn) 1)
      (specify-analyses)
      (compile-ag-specifications pn))))

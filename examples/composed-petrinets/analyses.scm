@@ -5,13 +5,13 @@
 
 ; The implemented port concept for Petri net composition is based on
 ; 
-;                               "Simple Composition of Nets"
-;                                     Wolfgang Reisig
-;          Applications and Theory of Petri Nets: 30th International Conference
-;               Lecture Notes in Computer Science, Volume 5606, Pages 23-42
-;                                   Springer, June 2009
-;                      Editors: Giuliana Franceschinis, Karsten Wolf
-;                                    978-3-642-02423-8
+;                                   "Simple Composition of Nets"
+;                                         Wolfgang Reisig
+;              Applications and Theory of Petri Nets: 30th International Conference
+;                   Lecture Notes in Computer Science, Volume 5606, Pages 23-42
+;                                       Springer, June 2009
+;                          Editors: Giuliana Franceschinis, Karsten Wolf
+;                                        978-3-642-02423-8
 ; 
 ; The implementation differs in three details:
 ;  1) EXTENSION:   Ports are not automatically fused just because they share a common name. Rather,
@@ -109,7 +109,7 @@
  (define (=fused-places n)     (att-value 'fused-places n))
  
  ; AST Constructors:
- (define (:AtomicPetrinet n p t i) ; BEWARE: Redefinition
+ (define (:AtomicPetrinet n p t i) ; REDEFINITION: add name & ports
    (create-ast pn 'AtomicPetrinet
                (list n (create-ast-list p) (create-ast-list t) (create-ast-list i))))
  (define (:Place n . t)
@@ -134,7 +134,7 @@
  (define (set-union s1 s2)
    (append (filter (lambda (e1) (not (memq e1 s2))) s1) s2))
  
- (define (make-symbol-table decls ->key . conditions) ; BEWARE: Redefinition
+ (define (make-symbol-table decls ->key . conditions) ; REDEFINITION: consider conditions
    (define table (make-eq-hashtable))
    (for-each
     (lambda (n)
@@ -149,7 +149,7 @@
     
     ;;; AST Scheme:
     
-    (ast-rule 'AtomicPetrinet:Petrinet->name-Place*-Transition*-Port*) ; BEWARE: Redefinition
+    (ast-rule 'AtomicPetrinet:Petrinet->name-Place*-Transition*-Port*) ; REDEFINITION: add name & ports
     (ast-rule 'Place->name-Token*)
     (ast-rule 'Token->value)
     (ast-rule 'Transition->name-Arc*<In-Arc*<Out)
@@ -230,7 +230,7 @@
     
     (ag-rule
      valid?
-     (Place              (lambda (n) (and (eq? (=p-lookup n (->name n)) n) ; BEWARE: Redefinition
+     (Place              (lambda (n) (and (eq? (=p-lookup n (->name n)) n) ; REDEFINITION: no fusion within atomic nets
                                           (for-all (lambda (f) (not (eq? (=<-net f) (=<-net n))))
                                             (remq n (=fused-places n))))))
      (Transition         (lambda (n) (and (eq? (=t-lookup n (->name n)) n)
@@ -238,7 +238,7 @@
                                           (for-all =valid? (=out-arcs n)))))
      ((Transition In)    (lambda (n) (and (=place n) (eq? (=in-lookup n (->place n)) n))))
      ((Transition Out)   (lambda (n) (and (=place n) (eq? (=out-lookup n (->place n)) n))))
-     (AtomicPetrinet     (lambda (n) (and (for-all =valid? (=places n)) ; BEWARE: Redefinition
+     (AtomicPetrinet     (lambda (n) (and (for-all =valid? (=places n)) ; REDEFINITION: check ports
                                           (for-all =valid? (=transitions n))
                                           (for-all =valid? (=ports n))))))
     
