@@ -43,8 +43,8 @@
                    net1 net2
                    (:Glueing (cons 'out-net 'out-port) (cons 'in-net 'in-port)) ...)))
         (unless (=valid? net*)
-          (rewrite-subtree (->Net1 net*) (make-ast-bud))
-          (rewrite-subtree (->Net2 net*) (make-ast-bud))
+          (rewrite-subtree (->Net1 net*) (create-ast-bud))
+          (rewrite-subtree (->Net2 net*) (create-ast-bud))
           (ap:exception: "Cannot compose Petri nets; The composed net is not well-formed."))
         net*))))
  

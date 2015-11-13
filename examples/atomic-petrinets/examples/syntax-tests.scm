@@ -14,9 +14,12 @@
    (petrinet: ((A))
               (transition: a () ())
               (transition: a () ())))
-  (assert-exception ; Unknown place.
+  (assert-exception ; Unknown source place.
    (petrinet: ()
               (transition: a ((A)    ) (       ))))
+  (assert-exception ; Unknown target place.
+   (petrinet: ()
+              (transition: a (       ) ((A)    ))))
   (assert-exception ; Non-unique ingoing arcs.
    (petrinet: ((A))
               (transition: a ((A) (A)) (       ))))

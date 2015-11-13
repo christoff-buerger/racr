@@ -162,7 +162,7 @@
     (ast-rule 'Inport:Port->)
     (ast-rule 'Outport:Port->)
     
-    (compile-ast-specifications 'AtomicPetrinet)
+    (compile-ast-specifications 'Petrinet)
     
     ;;; Query Support:
     
@@ -173,7 +173,7 @@
     
     (ag-rule ports       (AtomicPetrinet (lambda (n) (->* (->Port* n)))))
     (ag-rule glueings    (ComposedNet    (lambda (n) (->* (->Glueing* n)))))
-    (ag-rule <-net       (AtomicPetrinet (lambda (n) (<- (<- n)))))
+    (ag-rule <-net       (Place          (lambda (n) (<- (<- n)))))
     (ag-rule subnet-iter (AtomicPetrinet (lambda (n) (let ((name (->name n)))
                                                        (lambda (f) (f name n))))))
     (ag-rule subnet-iter (ComposedNet    (lambda (n) (let* ((i1 (=subnet-iter (->Net1 n)))
@@ -217,8 +217,10 @@
                (outport? (=outport? n))
                (glueing?+ (and inport? (=glued? inport?)))
                (glueing?- (and outport? (=glued? outport?)))
-               (fused-place?+ (and glueing?+ (=place (=outport glueing?+))))
-               (fused-place?- (and glueing?- (=place (=inport glueing?-))))
+               (glued-port?+ (and glueing?+ (=outport glueing?+)))
+               (glued-port?- (and glueing?- (=inport glueing?-)))
+               (fused-place?+ (and glued-port?+ (=place glued-port?+)))
+               (fused-place?- (and glued-port?- (=place glued-port?-)))
                (fused-places+ (if fused-place?+ (=fused-places fused-place?+) (list)))
                (fused-places- (if fused-place?- (=fused-places fused-place?-) (list))))
           (set-union (list n) (set-union fused-places+ fused-places-))))
@@ -304,7 +306,7 @@
             (append result (=enabled? n)))
           (list)
           (=in-arcs n))))))
-
+    
     (ag-rule
      executor
      (Transition
