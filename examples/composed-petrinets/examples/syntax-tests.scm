@@ -7,24 +7,25 @@
 
 (import (rnrs) (racr testing) (composed-petrinets user-interface) (composed-petrinets analyses))
 
+(define (make-net-1)
+  (compose-petrinets: ; Not glued: (in: c | out: c | in/out: a)
+   (petrinet: a (in* in/out) (in/out) ((in*) (in/out)))
+   (compose-petrinets:
+    (petrinet: b (in/out*) (in/out*) ((in/out*)))
+    (petrinet: c (in) (out* out) ((out*) (in) (out)))
+    ((c out*) (b in/out*)))
+   ((b in/out*) (a in*))))
+
+(define (make-net-2)
+  (compose-petrinets: ; Not glued: (in: f | out: d | in/out: e)
+   (compose-petrinets:
+    (petrinet: d (in*) (out) ((in*) (out)))
+    (petrinet: e (in/out* in/out) (in/out* in/out) ((in/out*) (in/out)))
+    ((e in/out*) (d in*)))
+   (petrinet: f (in) (out*) ((in) (out*)))
+   ((f out*) (e in/out*))))
+
 (define (run-error-cases)
-  #|
-  (assert-exception ; Non-unique places.
-   (petrinet: ((A) (A))))
-  (assert-exception ; Non-unique transitions.
-   (petrinet: ((A))
-              (transition: a () ())
-              (transition: a () ())))
-  (assert-exception ; Unknown place.
-   (petrinet: ()
-              (transition: a ((A)    ) (       ))))
-  (assert-exception ; Non-unique ingoing arcs.
-   (petrinet: ((A))
-              (transition: a ((A) (A)) (       ))))
-  (assert-exception ; Non-unique outgoing arcs.
-   (petrinet: ((A))
-              (transition: a (       ) ((A) (A)))))
-|#
   ;;; Atomic Petri nets:
   
   (assert-exception ; Non-unique in-ports
@@ -62,89 +63,65 @@
     (petrinet: a () (A) ((A)))
     (petrinet: b () (A) ((A)))
     ((b A) (a A))))
-  (assert-exception ; in- to out-port glueing (wrong direction of token flow)
+  (assert-exception ; Twisted glueing (in-ports as out-port and vice versa)
    (compose-petrinets:
     (petrinet: a (A) () ((A)))
     (petrinet: b () (A) ((A)))
     ((a A) (b A))))
+  (assert-exception ; Fusion of places of the same atomic net
+   (compose-petrinets:
+    (petrinet: a (A) (A) ((A)))
+    (petrinet: b (A) (B) ((A) (B)))
+    ((a A) (b A))
+    ((b B) (a A))))
   
   ;;; Nested composition structure:
   
-  (let ((net1 ; Non-unique subnets
+  (let ((net-1 ; Non-unique subnets
          (compose-petrinets:
           (petrinet: a () () ())
           (compose-petrinets:
            (petrinet: b () () ())
            (petrinet: c () () ()))))
-        (net2
+        (net-2
          (compose-petrinets:
           (petrinet: d () () ())
           (petrinet: b () () ()))))
     (assert-exception
-     (compose-petrinets: net1 net2)))
+     (compose-petrinets: net-1 net-2)))
   
-  (let ((net1 ; Unknown in-port glueing
-         (compose-petrinets: ; Non-glued: (b () (B))
-          (petrinet: a (A) () ((A)))
-          (compose-petrinets: ; Non-glued: (b () (A B))
-           (petrinet: b (A) (A B) ((A) (B)))
-           (petrinet: c () (A) ((A)))
-           ((c A) (b A)))
-          ((b A) (a A))))
-        (net2
-         (compose-petrinets: ; Non-glued: (d (B) ())
-          (petrinet: d (A B) () ((A) (B)))
-          (petrinet: e () (A) ((A)))
-          ((e A) (d A)))))
-    (assert-exception
-     (compose-petrinets: net1 net2 ((b B) (d B*)))))
-  
-  (let ((net1 ; Unknown out-port glueing
-         (compose-petrinets: ; Non-glued: (b () (B))
-          (petrinet: a (A) () ((A)))
-          (compose-petrinets: ; Non-glued: (b () (A B))
-           (petrinet: b (A) (A B) ((A) (B)))
-           (petrinet: c () (A) ((A)))
-           ((c A) (b A)))
-          ((b A) (a A))))
-        (net2
-         (compose-petrinets: ; Non-glued: (d (B) ())
-          (petrinet: d (A B) () ((A) (B)))
-          (petrinet: e () (A) ((A)))
-          ((e A) (d A)))))
-    (assert-exception
-     (compose-petrinets: net1 net2 ((b B*) (d B)))))
-  #t)
+  (assert-exception ; Unknown in-port glueing
+   (compose-petrinets: (make-net-1) (make-net-2) ((c out) (f /in/))))
+  (assert-exception ; Unknown out-port glueing
+   (compose-petrinets: (make-net-1) (make-net-2) ((d /out/) (c in))))
+  (assert-exception ; in- to in-port glueing
+   (compose-petrinets: (make-net-1) (make-net-2) ((c in) (f in))))
+  (assert-exception ; out- to out-port glueing
+   (compose-petrinets: (make-net-1) (make-net-2) ((d out) (c out))))
+  (assert-exception ; Twisted glueing (in-port as out-port and vice versa)
+   (compose-petrinets: (make-net-1) (make-net-2) ((f in) (c out))))
+  (assert-exception ; Fusion of places of the same atomic net
+   (compose-petrinets: (make-net-1) (make-net-2)
+                       ((c out) (e in/out))
+                       ((e in/out) (a in/out))
+                       ((a in/out) (c in))))
+  (assert-exception ; Glueing of shadowed in-port
+   (compose-petrinets: (make-net-1) (make-net-2)
+                       ((a in/out) (e in/out*))))
+  (assert-exception ; Glueing of shadowed out-port
+   (compose-petrinets: (make-net-1) (make-net-2)
+                       ((c out*) (f in)))))
 
 (define (run-correct-cases)
-  #|
-  (petrinet: (         )                                                          )  ; Empty net.
-  (petrinet: ((A) (B 1))                                                          )  ; No transitions.
-  (petrinet: ((A) (B 1)) (transition: a (                         ) (           )))  ; No arcs.
-  (petrinet: ((A) (B 1)) (transition: a ((A) (B (a 1))            ) (           )))  ; No outgoing arcs.
-  (petrinet: ((A) (B 1)) (transition: a ((A) (B (a 1) (b 2) (c 3))) ((A) (B 1 b))))  ; Weights & colours.
-  (petrinet: ((A) (B 1)) (transition: a (                         ) ((A) (B 1  ))))  ; No ingoing arcs.
-|#
-  (compose-petrinets: ; Flat composition
-   (petrinet: a (A) (B) ((A) (B)))
-   (petrinet: b (B) (A) ((A) (B)))
-   ((b A) (a A))
-   ((a B) (b B)))
-  (let ((net1 ; Nested composition
-         (compose-petrinets: ; Non-glued: (a (B) ()), (b () (B))
-          (petrinet: a (A B) () ((A) (B)))
-          (compose-petrinets: ; Non-glued: (b () (A B))
-           (petrinet: b (A) (A B) ((A) (B)))
-           (petrinet: c () (A) ((A)))
-           ((c A) (b A)))
-          ((b A) (a A))))
-        (net2
-         (compose-petrinets: ; Non-glued: (d (B) ()), (e () (B))
-          (petrinet: d (A B) () ((A) (B)))
-          (petrinet: e () (A B) ((A) (B)))
-          ((e A) (d A)))))
-    (compose-petrinets: net1 net2 ((b B) (d B)) ((e B) (a B))))
-  #t)
+  (make-net-1)
+  (make-net-2)
+  (compose-petrinets:
+   (make-net-1)
+   (make-net-2)
+   ((d out) (a in/out))
+   ((a in/out) (e in/out))
+   ((e in/out) (c in))
+   ((c out) (f in))))
 
 (define (run-tests)
   (run-error-cases)
