@@ -19,7 +19,7 @@
  
  ;;; Syntax:
  
- (define-syntax petrinet: ; REDEFINITION: add ports
+ (define-syntax petrinet: ; REDEFINITION: add name & ports
    (syntax-rules ()
      ((_ name (inport ...) (outport ...)
          ((place start-marking ...) ...)
@@ -50,7 +50,7 @@
  
  ;;; Execution:
  
- (define (run-petrinet! petrinet) ; REDEFINITION: iterate subnets
+ (define (run-petrinet! petrinet) ; REDEFINITION: consider subnets
    (unless (=valid? petrinet)
      (ap:exception: "Cannot run Petri Net; The given net is not well-formed."))
    (let ((enabled? ((=subnet-iter petrinet) (lambda (name n) (find =enabled? (=transitions n))))))
@@ -60,7 +60,7 @@
  
  ;;; REPL Interpreter:
  
- (define (interpret-petrinet! net)
+ (define (interpret-petrinet! net) ; REDEFINITION: consider subnets
    (unless (=valid? net)
      (ap:exception: "Cannot interpret Petri Net; The given net is not well-formed."))
    (when
@@ -72,10 +72,10 @@
  
  ;;; Testing:
 
- (define (assert-marking net . marking) ; REDEFINITION: classify regarding subnets
+ (define (assert-marking net . marking) ; REDEFINITION: consider subnets
    (for-each (lambda (m) (ap:assert-marking (=find-subnet net (car m)) (cdr m))) marking))
 
- (define (assert-enabled net . enabled) ; REDEFINITION: classify regarding subnets
+ (define (assert-enabled net . enabled) ; REDEFINITION: consider subnets
    (for-each (lambda (e) (ap:assert-enabled (=find-subnet net (car e)) (cdr e))) enabled))
  
  ;;; Initialisation:

@@ -21,7 +21,6 @@
 (define Token 'Token)
 
 (define (make-cookie-automaton)
-  (initialise-petrinet-language)
   (petrinet:
    ((H Box Box Box Box Box Box* Box*)
     (D Token)
@@ -329,4 +328,5 @@
   
   (set! Box* 'Box*)) ; Undo test fixture.
 
+(initialise-petrinet-language)
 (run-tests)

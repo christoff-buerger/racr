@@ -36,13 +36,13 @@
    (petrinet: net (A) () ()))
   (assert-exception ; Unknown out-port
    (petrinet: net () (A) ()))
-  (assert-exception ; Non-unique subnets (flat)
-   (compose-petrinets:
-    (petrinet: a () () ())
-    (petrinet: a () () ())))
   
   ;;; Flat composition structure:
   
+  (assert-exception ; Non-unique subnets
+   (compose-petrinets:
+    (petrinet: a () () ())
+    (petrinet: a () () ())))
   (assert-exception ; Unknown in-port glueing
    (compose-petrinets:
     (petrinet: a (A) () ((A)))
@@ -63,7 +63,7 @@
     (petrinet: a () (A) ((A)))
     (petrinet: b () (A) ((A)))
     ((b A) (a A))))
-  (assert-exception ; Twisted glueing (in-ports as out-port and vice versa)
+  (assert-exception ; Twisted glueing (in-port as out-port and vice versa)
    (compose-petrinets:
     (petrinet: a (A) () ((A)))
     (petrinet: b () (A) ((A)))
@@ -115,13 +115,11 @@
 (define (run-correct-cases)
   (make-net-1)
   (make-net-2)
-  (compose-petrinets:
-   (make-net-1)
-   (make-net-2)
-   ((d out) (a in/out))
-   ((a in/out) (e in/out))
-   ((e in/out) (c in))
-   ((c out) (f in))))
+  (compose-petrinets: (make-net-1) (make-net-2)
+                      ((d out) (a in/out))
+                      ((a in/out) (e in/out))
+                      ((e in/out) (c in))
+                      ((c out) (f in))))
 
 (define (run-tests)
   (run-error-cases)
