@@ -130,7 +130,7 @@ Extension of the atomic Petri nets language with place fusion semantics, enablin
 A highlight of the example is the automatically optimised enabled analysis thanks to the incremental evaluation semantics of _RACR_. Compositions, executions and decompositions of nets can be arbitrarily intertwined whereas name, well-formedness, composition and enabled analyses are incrementally evaluated.
 
 Objectives:
- * Extensive incremental evaluation scenario with complex analyses deducing rewrites
+ * Extensive incremental evaluation scenario where rewrites are deduced using complex analyses
  * Systematic language extensions by refining existing analyses and introducing new ones
 
 ## SiPLE (Simple imperative Programming Language Example)
