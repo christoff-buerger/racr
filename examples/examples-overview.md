@@ -13,7 +13,9 @@
 
 _RACR_ introduction based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example. For details cf.:
 
-> Donald E. Knuth, _Semantics of Context-Free Languages_, Theory of Computing Systems, volume 2, number 2, pages 127-145, Springer, 1968.
+> Donald Ervin Knuth. "Semantics of Context-Free Languages".
+> In: _Theory of Computing Systems_.
+> Volume 2, Number 2. Springer, June 1968, pages 127-145.
 
 **Objective:** Introduction to _RACR_.
  * Abstract syntax tree specifications: non-terminals, productions, inheritance
@@ -123,7 +125,7 @@ Extension of the atomic Petri nets language with place fusion semantics, enablin
 
 > Wolfgang Reisig. "Simple Composition of Nets".
 > In: _Applications and Theory of Petri Nets: 30th International Conference_.
-> Volume 5605. Lecture Notes in Computer Science. Springer, June 2009, pages 23--42
+> Volume 5605. Lecture Notes in Computer Science. Springer, June 2009, pages 23-42
 
 A highlight of the example is the automatically optimised enabled analysis thanks to the incremental evaluation semantics of _RACR_. Compositions, executions and decompositions of nets can be arbitrarily intertwined whereas name, well-formedness, composition and enabled analyses are incrementally evaluated.
 
