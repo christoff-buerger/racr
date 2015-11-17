@@ -120,9 +120,11 @@ The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation 
 **Scheme library:** Yes
 
 Extension of the atomic Petri nets language with place fusion semantics, enabling the composition of nets by sharing common places. Composition is based on marking places as special in- and output-ports as presented by
-> Wolfgang Reisig. "Simple Composition of Nets"
-> In: _Applications and Theory of Petri Nets: 30th International Conference_
+
+> Wolfgang Reisig. "Simple Composition of Nets".
+> In: _Applications and Theory of Petri Nets: 30th International Conference_.
 > Volume 5605. Lecture Notes in Computer Science. Springer, June 2009, pages 23--42
+
 A highlight of the example is the automatically optimised enabled analysis thanks to the incremental evaluation semantics of _RACR_. Compositions, executions and decompositions of nets can be arbitrarily intertwined whereas name, well-formedness, composition and enabled analyses are incrementally evaluated.
 
 Objectives:
