@@ -13,7 +13,7 @@ my_exit(){
 trap 'my_exit' 1 2 3 9 15
 
 echo "#!r6rs" > script.scm
-echo "(import (questionnaires language) (questionnaires user-interface))" >> script.scm
+echo "(import (questionnaires language))" >> script.scm
 echo "(load-questionnaire)" >> script.scm
 
 racket -S ../../racr/racket-bin -S racket-bin script.scm #plt-r6rs ++path ../../racr/racket-bin ++path racket-bin script.scm
