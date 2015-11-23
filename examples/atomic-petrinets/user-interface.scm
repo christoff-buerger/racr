@@ -7,11 +7,24 @@
 
 (library
  (atomic-petrinets user-interface)
- (export initialise-petrinet-language petrinet: transition: =p-lookup =t-lookup
+ (export initialise-petrinet-language petrinet: transition: exception:
          fire-transition! run-petrinet! interpret-petrinet!
          petrinets-exception? assert-marking assert-enabled)
  (import (rnrs) (rnrs mutable-pairs) (racr core) (racr testing)
-         (atomic-petrinets analyses) (atomic-petrinets execution))
+         (atomic-petrinets analyses))
+ 
+ ;;; Exceptions:
+ 
+ (define-condition-type petrinets-exception
+   &violation
+   make-petrinets-exception
+   petrinets-exception?)
+ 
+ (define (exception: message)
+   (raise-continuable
+    (condition
+     (make-petrinets-exception)
+     (make-message-condition message))))
  
  ;;; Syntax:
  
@@ -45,6 +58,24 @@
               (lambda (variable ... ...) (list to-produce ...)))
              ...)))))
  
+ ;;; Execution:
+ 
+ (define (run-petrinet! petrinet)
+   (unless (=valid? petrinet)
+     (exception: "Cannot run Petri Net; The given net is not well-formed."))
+   (let ((enabled? (find =enabled? (=transitions petrinet))))
+     (when enabled?
+       (fire-transition! enabled?)
+       (run-petrinet! petrinet))))
+ 
+ (define (fire-transition! transition)
+   (define enabled? (=enabled? transition))
+   (unless enabled?
+     (exception: "Cannot fire transition; The transition is not enabled."))
+   (let ((consumed-tokens (map ->value enabled?)))
+     (for-each rewrite-delete enabled?)
+     ((=executor transition) consumed-tokens)))
+ 
  ;;; REPL Interpreter:
  
  (define (interpret-petrinet! net)
@@ -57,15 +88,19 @@
       (display (map ->value (->* (->Token* n)))) (display "\n"))
     (=places net))
    (display "Enabled:\n  ")
-   (display (map ->name (filter =enabled? (=transitions net)))) (display "\n")
-   (let ((input? (read)))
-     (when (and input? (not (eof-object? input?)))
-       (let ((to-fire? (=t-lookup net input?)))
-         (unless to-fire?
-           (exception: "Cannot interpret Petri Net; Undefined transition to execute."))
-         (display "Fire:\n  ") (display (->name to-fire?)) (display "\n")
-         (fire-transition! to-fire?)
-         (interpret-petrinet! net)))))
+   (display (map ->name (filter =enabled? (=transitions net))))
+   (display "\nFire (#f to terminate, EOF to abort):  ")
+   (let ((input (read)))
+     (cond
+       ((eof-object? input) #t)
+       ((not input) #f)
+       (else
+        (let ((to-fire? (=t-lookup net input)))
+          (unless to-fire?
+            (exception: "Cannot interpret Petri Net; Undefined transition to execute."))
+          (display "  ") (display (->name to-fire?)) (display "\n")
+          (fire-transition! to-fire?)
+          (interpret-petrinet! net))))))
  
  ;;; Testing:
  
@@ -100,5 +135,4 @@
  (define (initialise-petrinet-language)
    (when (= (specification->phase pn) 1)
      (specify-analyses)
-     (specify-execution)
      (compile-ag-specifications pn))))

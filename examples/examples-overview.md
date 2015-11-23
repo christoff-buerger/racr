@@ -13,7 +13,9 @@
 
 _RACR_ introduction based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example. For details cf.:
 
-> Donald E. Knuth, _Semantics of Context-Free Languages_, Theory of Computing Systems, volume 2, number 2, pages 127-145, Springer, 1968.
+> Donald Ervin Knuth. "Semantics of Context-Free Languages".
+> In: _Theory of Computing Systems_.
+> Volume 2, Number 2. Springer, June 1968, pages 127-145.
 
 **Objective:** Introduction to _RACR_.
  * Abstract syntax tree specifications: non-terminals, productions, inheritance
@@ -112,20 +114,24 @@ The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation 
  * State changes via rewriting (model updates: user answers)
  * State reasoning and reaction on changes via attributes (model reasoning to derive real world actions: computation of the values of computed questions & re-rendering of GUI elements as necessary)
 
-## Petri Nets
+## Composed Petri Nets
 
 **Difficult level:** RAG-controlled rewriting experienced, _RACR_ experienced
-**New concept:** Language reuse by inheritance
+**New concept:** Language reuse and extension by specification inheritance and refinement
 **Size:** Medium
 **Scheme library:** Yes
 
-_RACR_ specification implementing coloured, weighted Petri nets that can be composed using place fusion and support arbitrary input arc conditions and output computations. A reference attribute grammar is used to perform name, enabled, composition and well-formedness analyses of Petri nets and their transitions. _RACR_ rewrites are used to implement their actual execution semantics, i.e., the firing of enabled transitions. A user friendly interface for the specification of Petri nets and their composition and execution is provided in the form of _Scheme_ macros. _RACR_'s incremental attribute evaluation ensures an optimised and efficient enabled analysis, even in case of arbitrarily intertwined compositions, executions (i.e., transition firing) and decompositions. The implemented composition semantics are based on the concept of in- and output ports as presented by Wolfgang Reisig in _Simple Composition of Nets_, Applications and Theory of Petri Nets: 30th International Conference, Lecture Notes in Computer Science, Volume 5606, Pages 23-42, Springer, June 2009.
+Extension of the atomic Petri nets language with place fusion semantics, enabling the composition of nets by sharing common places. Composition is based on marking places as special in- and output-ports as presented by
+
+> Wolfgang Reisig. "Simple Composition of Nets".
+> In: _Applications and Theory of Petri Nets: 30th International Conference_.
+> Volume 5605. Lecture Notes in Computer Science. Springer, June 2009, pages 23-42
+
+A highlight of the example is the automatically optimised enabled analysis thanks to the incremental evaluation semantics of _RACR_. Compositions, executions and decompositions of nets can be arbitrarily intertwined whereas name, well-formedness, composition and enabled analyses are incrementally evaluated.
 
 Objectives:
-  * Introduction to RAG-controlled rewriting & dynamic, incremental reference attribute evaluation:
-    * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
-    * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that simulate the firing of transitions by adding and deleting tokens or rewrites that compose Petri nets)
-    * Incremental Evaluation: Attributes are only reevaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only reevaluated if the last fired transition or the last performed composition influenced it)
+ * Extensive incremental evaluation scenario where rewrites are deduced using complex analyses
+ * Systematic language extensions by refining existing analyses and introducing new ones
 
 ## SiPLE (Simple imperative Programming Language Example)
 

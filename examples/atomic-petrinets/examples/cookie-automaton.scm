@@ -12,7 +12,8 @@
 
 #!r6rs
 
-(import (rnrs) (racr core) (racr testing) (atomic-petrinets user-interface))
+(import (rnrs) (racr core) (racr testing)
+        (atomic-petrinets user-interface) (atomic-petrinets analyses))
 
 (define Box 'Box)
 (define Box* 'Box*)
@@ -20,7 +21,6 @@
 (define Token 'Token)
 
 (define (make-cookie-automaton)
-  (initialise-petrinet-language)
   (petrinet:
    ((H Box Box Box Box Box Box* Box*)
     (D Token)
@@ -328,4 +328,5 @@
   
   (set! Box* 'Box*)) ; Undo test fixture.
 
+(initialise-petrinet-language)
 (run-tests)

@@ -7,10 +7,12 @@
 
 (library
  (atomic-petrinets analyses)
- (export specify-analyses pn :AtomicPetrinet :Place :Token :Transition :Arc
-         ->Place* ->Transition* ->Token* ->In ->Out ->name ->value ->place ->consumers ->* <-
+ (export specify-analyses pn
+         :AtomicPetrinet :Place :Token :Transition :Arc
+         ->Place* ->Transition* ->Token* ->In ->Out
+         ->name ->value ->place ->consumers ->* <-
          =places =transitions =in-arcs =out-arcs
-         =p-lookup =t-lookup =in-lookup =out-lookup =place =valid? =enabled?)
+         =p-lookup =t-lookup =in-lookup =out-lookup =place =valid? =enabled? =executor)
  (import (rnrs) (racr core))
  
  (define pn                   (create-specification))
@@ -40,6 +42,7 @@
  (define (=place n)           (att-value 'place n))
  (define (=valid? n)          (att-value 'valid? n))
  (define (=enabled? n)        (att-value 'enabled? n))
+ (define (=executor n)        (att-value 'executor n))
  
  ; AST Constructors:
  (define (:AtomicPetrinet p t)
@@ -145,4 +148,19 @@
           (lambda (result n)
             (append result (=enabled? n)))
           (list)
-          (=in-arcs n)))))))))
+          (=in-arcs n))))))
+    
+    (ag-rule
+     executor
+     (Transition
+      (lambda (n)
+        (define producers (map ->consumers (=out-arcs n)))
+        (define destinations (map ->Token* (map =place (=out-arcs n))))
+        (lambda (consumed-tokens)
+          (for-each
+           (lambda (producer destination)
+             (for-each
+              (lambda (value) (rewrite-add destination (:Token value)))
+              (apply producer consumed-tokens)))
+           producers
+           destinations))))))))

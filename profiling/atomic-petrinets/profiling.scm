@@ -7,10 +7,8 @@
 
 (library
  (atomic-petrinets profiling)
- (export make-profiling-net)
- (import (rnrs) (racr core) (atomic-petrinets analyses) (atomic-petrinets user-interface)
-         (prefix (racket) r:) ;(prefix (racket base) r:)
-         )
+ (export profiling-net profile)
+ (import (rnrs) (racr core) (racr testing) (atomic-petrinets analyses) (atomic-petrinets user-interface))
  
  (define (make-profiling-net $transitions $influenced $local-places $tokens)
    (define (make-name . i)
@@ -42,24 +40,17 @@
            (set! out (cons (:Arc name (lambda x (list #t))) out))))
        ; Initialise the transition:
        (set! transitions (cons (:Transition (make-name index) in out) transitions))))
-   ;;; Construct Petri net:
+   ;;; Construct and prepare Petri net:
    (let ((net (:AtomicPetrinet places transitions)))
-     (unless (=valid? net)
-       (raise "Cannot construct Petri net; The net is not well-formed."))
+     (unless (=valid? net) (raise "Cannot construct Petri net; The net is not well-formed."))
+     (for-each =enabled? (=transitions net))
      net))
  
- (define (d)
-   ;(r:collect-garbage)
-   (display (r:current-memory-use)) (display "\n")
-   (let ((net (r:time (make-profiling-net 560 20 13 3))))
-     (r:time
-      (do ((i 0 (+ i 1))) ((= i 3000))
-       ;(display i) (display ": ") (display (filter =enabled? (=transitions net))) (display "\n")
-       (fire-transition! (find =enabled? (=transitions net)))))
-     (display (r:current-memory-use)) (display "\nNumpy")
-     ;(r:dump-memory-stats)
-     net))
+ (define profiling-net
+   (begin
+     (initialise-petrinet-language)
+     (include "profiling-net-configuration.scm" (make-profiling-net 560 20 13 3))))
  
- (initialise-petrinet-language)
- 
- )
+ (define (profile $executions)
+   (do ((i 0 (+ i 1))) ((>= i $executions))
+     (fire-transition! (find =enabled? (=transitions profiling-net))))))

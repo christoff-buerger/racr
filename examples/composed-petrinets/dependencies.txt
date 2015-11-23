@@ -1,0 +1,6 @@
+@libraries:
+../../racr
+../atomic-petrinets
+@sources:
+analyses
+user-interface
