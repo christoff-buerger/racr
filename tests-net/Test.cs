@@ -11,10 +11,12 @@ using IronScheme;
 using IronScheme.Runtime;
 using NUnit.Framework;
 
-[TestFixture]
-class Test {
 
-	const string racrPath = "../../";
+
+[TestFixture]
+class RacrTests {
+
+	const string racrPath = "../";
 
 	static void EvalScript(string path) { File.ReadAllText(racrPath + path).Eval(); }
 
@@ -107,3 +109,86 @@ class Test {
 		}
 	}
 }
+
+
+
+
+[TestFixture]
+class App {
+
+
+
+	[Test]
+	public static void TestRewriteRefine() {
+		var spec = new Racr.Specification();
+
+
+		spec.AstRule("S->A");
+		spec.AstRule("A->a");
+		spec.AstRule("Aa:A->b-c");
+		spec.CompileAstSpecifications("S");
+		spec.CompileAgSpecifications();
+
+		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "A", 1));
+		var A = ast.Child("A");
+
+		Console.WriteLine("{0}", A.NumChildren() == 1);
+		Console.WriteLine("{0}", A.NodeType() == "A");
+
+		A.RewriteRefine("Aa", 2, 3);
+
+		Console.WriteLine("{0}", A.NumChildren() == 3);
+		Console.WriteLine("{0}", A.NodeType() == "Aa");
+
+		foreach (var c in A.Children()) Console.WriteLine(c);
+
+	}
+
+	[Test]
+	public static void TestRewriteAbstract() {
+		var spec = new Racr.Specification();
+
+		spec.AstRule("S->A");
+		spec.AstRule("A->a");
+		spec.AstRule("Aa:A->b-c");
+		spec.CompileAstSpecifications("S");
+		spec.CompileAgSpecifications();
+
+		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "Aa", 1, 2, 3));
+		var A = ast.Child("A");
+
+		Console.WriteLine(A.NumChildren() == 3);
+		Console.WriteLine(A.NodeType() == "Aa");
+
+		var c = A.RewriteAbstract("A");
+		foreach (var x in c) Console.WriteLine(x);
+
+		Console.WriteLine(A.NumChildren() == 1);
+		Console.WriteLine(A.NodeType() == "A");
+
+	}
+
+	[Test]
+	public static void TestRewriteSubtree() {
+		var spec = new Racr.Specification();
+
+		spec.AstRule("S->A");
+		spec.AstRule("A->a");
+		spec.AstRule("Aa:A->b-c");
+		spec.CompileAstSpecifications("S");
+		spec.CompileAgSpecifications();
+
+		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "A", 42));
+		var A = ast.Child("A");
+
+		Console.WriteLine(A.HasParent());
+		Console.WriteLine(ast.Child("A").NodeType());
+
+		A.RewriteSubtree(new Racr.AstNode(spec, "Aa", 1, 2, 3));
+
+		Console.WriteLine(A.HasParent());
+		Console.WriteLine(ast.Child("A").NodeType());
+	}
+}
+
+
