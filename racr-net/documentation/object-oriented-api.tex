@@ -1,0 +1,401 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% Author: D. Langner, C. Bürger
+
+\chapter{RACR-NET Implementierung: Objektorientierte Schnittstelle}\label{umsetzung2}
+
+Dieses Kapitel beschäftigt sich mit der Verwirklichung einer objektorientierten C\#"=Schnittstelle für RACR: RACR-NET\footnote{Die Quellen von RACR-NET sind bereits in denen von RACR aufgenommen und stehen unter MIT-Lizenz zur Verfügung.}. Dabei sollen die in Kapitel~\ref{evaluation1} für verbesserungswürdig befundenen Probleme der prozeduralen Schnittstelle gelöst werden. Erreicht wird dies durch Refactoring der prozeduralen Schnittstelle. Die Idee hierbei ist, dass dessen Funktionalitäten entweder für RACR-Spezifikationen oder AST-Knoten definiert sind, sich also in zwei entsprechende Klassen partitionieren lassen (\csh{RACR.Specification} und \csh{RACR.AstNode}). Jede statische Methode der prozeduralen Schnittstelle (außer dem statischen \csh{Racr}"=Konstruktor) wird in eine Objektmethode einer der beiden Klassen umgeformt.
+
+Die folgenden Unterkapitel stellen zunächst die resultierende objektorientierte Schnittstelle vor und demonstrieren deren Verwendung anhand eines Beispiels. Danach wird auf Details der Implementierung eingegangen. Eine Evaluation der Schnittstelle erfolgt in Kapitel~\ref{ausblick}.
+
+\section{Überblick über die objektorientierte Schittstelle}
+
+Im Folgenden wird lediglich die Schnittstelle für Sprachspezifikationen und AST-Knoten eingeführt. Auf konkrete Details ihrer Implementierung wird in Kapitel~\ref{implementierung} eingegangen.
+
+\subsection{Spezifikationsschnittstelle}\label{spezifikation}
+
+\csh{RACR.Specification} ist die Hüllklasse für Sprach"=Spezifikationen. Prozeduren, die auf Spezifikationen arbeiten, muss als erstes Argument stets eine \scm{ast-specification} übergeben werden. Diese Prozeduren sollen nun über entsprechende Methoden der Klasse \csh{Racr.Specification} aufgerufen werden. Deren Name und Signatur zeigt Quelltext~\ref{csh:spec}. Die Klasse umfasst Methoden zur Spezifikation eines AST-Schemas (\csh{AstRule}) und zur Attribuierung (\csh{SpecifyAttribute}) sowie Fabrikmethoden zur Erzeugung von AST-Knoten (\csh{CreateAst}, \csh{CreateAstList} und \csh{CreateAstBud}).
+
+\begin{lstlisting}[language=csh, caption={Schnittstelle der Klasse \csh{Racr.Specification}}, label=csh:spec]
+interface ISpecification {
+	public void AstRule(string rule);
+	public void CompileAstSpecifications(string start);
+	public void CompileAgSpecifications();
+	public void SpecifyAttribute(string name, string nonTerm,
+						string context, bool cached, Delegate eq);
+	public void SpecifyAttribute<R>(string name, string nonTerm,
+						string context, bool cached, Func<AstNode,R> eq);
+	public void SpecifyAttribute<R,T>(string name, string nonTerm,
+						string context, bool cached, Func<AstNode,R,T> eq);
+	public AstNode CreateAst(string nonTerm, params object[] children);
+	public AstNode CreateAstList(params object[] children);
+	public AstNode CreateAstBud();
+}
+\end{lstlisting}
+
+Der entscheidende Unterschied zur prozeduralen Schnittstelle besteht darin, dass der erste Parameter einer Attributgleichungsfunktion mit dem konkreten Typ \csh{Racr.AstNode} versehen ist (Zeilen 8 und 10). Zugriffe auf dem \scm{node}"=Record sollen auch innerhalb von Attributgleichungen über die Klasse \csh{Racr.AstNode} geschehen. Auf diese Weise soll die Verwendung des vieldeutigen Typs \csh{object} weitestgehend eingeschränkt werden. Allgemein ist der Verzicht von \csh{object} für Kind-Knoten jedoch nicht möglich, da Terminale beliebigen Typs sein können, weswegen die Methoden \csh{CreateAst} und \csh{CreateAstList} genau wie in der prozeduralen Schnittstelle ein \csh{object}"=Array als Argument für die Kind-Knoten erwarten.
+
+\subsection{Schnittstelle zum Abfragen von AST-Information}\label{ast-knoten}
+
+Mittels der Klasse \csh{RACR.AstNode} soll dem Nutzer ein objektorientierter Zugriff auf AST"=Knoten geboten werden. Quelltext~\ref{csh:astnode} zeigt die Schnittstelle der Klasse. Methoden zur Graphersetzung und zum Setzen und Lesen von Annotationen wurden der Kürze halber ausgelassen.
+
+\begin{lstlisting}[language=csh, caption={Schnittstelle der Klasse \csh{Racr.AstNode}}, label=csh:astnode]
+interface IAstNode {
+	public AstNode Parent();
+	public AstNode Child(int index);		// Nichtterminal
+	public AstNode Child(string name);		// Nichtterminal
+	public AstNode Sibling(int index);		// Nichtterminal
+	public AstNode Sibling(string name);	// Nichtterminal
+	public T Child<T>(int index);			// Terminal
+	public T Child<T>(string name);			// Terminal
+	public T Sibling<T>(int index);			// Terminal
+	public T Sibling<T>(string name);		// Terminal
+	public bool IsNode();
+	public bool HasParent();
+	public int ChildIndex();
+	public bool HasChild(string name);
+	public int NumChildren();
+	public bool HasSibling(string name);
+	public string NodeType();
+	public bool IsListNode();
+	public bool IsBudNode();
+	public virtual object[] Children(params Range[] bounds);
+	public virtual void ForEachChild(Action<int,object> f,
+									 params Range[] bounds);
+	public virtual object FindChild(Func<int,object,bool> f,
+									params Range[] bounds);
+	public virtual object FindChildA(Func<int,object,object> f,
+									 params Range[] bounds);
+	public object AttValue(string attName, params object[] args);
+	public T AttValue<T>(string attName, params object[] args);
+	// ...
+\end{lstlisting}
+
+In anderen Referenzattributgrammatik=Werkzeugen, wie JastAdd~\cite{Ekman2007}, wird für jeden Knotentyp einer Grammatik eine eigene Klasse mit maßgeschneiderten Methoden zum Zugriff auf Kind-Knoten und Attribute geboten. Anforderung \textbf{A2} in Kapitel~\ref{anforderungen1} schließt den Einsatz derartiger Code-Generation jedoch aus, da hierfür die Grammatik schon zur Übersetzungszeit bekannt sein muss. Stattdessen wird für alle Knotentypen eine einheitliche, generische Schnittstelle bereitgestellt.
+
+In Scheme werden Prozeduren oft mit Präfixen versehen, um auf die Objekt-Typen hinzudeuten, auf die sie angewendet werden. Außerdem werden auf diese Weise Namenskollisionen vermieden. In RACR ist dem Namen von Prozeduren, die zur Abfrage von AST"=Information dienen, der Präfix \scm{ast-} vorangestellt. Für die entsprechenden Methoden von \csh{Racr.AstNode} wurde zur Verbesserung der Benutzerfreundlichkeit jedoch auf Präfixe verzichtet. Andernfalls wird Anforderung \textbf{A3} auch hier erfüllt.
+
+Die Schnittstelle unterscheidet beim Zugriff auf Kind- und Geschwister-Knoten explizit zwischen Terminalen und Nichtterminalen. Die Methodengruppen \csh{Child} und \csh{Sibling} umfassen jeweils vier Methoden. Die nicht-generischen Ausführungen (Zeile~3 bis 6) beziehen sich auf Nichtterminale. Entsprechend ist der Rückgabewert jener Methoden vom Typ \csh{Racr.AstNode}. Terminale können beliebigen Typs sein, weshalb die generischen Methoden (Zeilen~7 bis 10) einen Typ-Parameter erwarten, der den Typ des zu liefernden Terminals entsprechen muss. Somit wird die Verwendung des Typs \csh{object} unterbunden. Die Typumwandlungen erfolgen innerhalb der Implementierung der Schnittstelle. Fehler bei der Angabe der Typ-Parameter führen dazu, dass währen der Programmlaufzeit Exceptions (\csh{System.InvalidCastException}) ausgelöst werden.
+
+Auch \csh{AttValue} hat eine generische Umsetzung. Analog zu den Akzessoren für Terminale, spezifiziert der Typ-Parameter den Typ des Attributwertes.
+
+Die vorgestellten Typ-parametrisierten Methoden können im Zusammenwirken mit sprachspezifischen zusätzlichen Hilfsfunktionen gekapselt werden, um den Zugriff auf Attribute sowie Kind- und Geschwister-Knoten zu vereinfachen und zu verkürzen. Außerdem wird dadurch eine konsistente Typisierung erreicht. Das folgende Kapitel demonstriert diesen Ansatz anhand eines Beispiels.
+
+\section{Anwendungsbeispiel}\label{anwendungsbeispiel}
+
+Die gewünschte Arbeitsweise der C\#"=Schnittstelle für RACR soll anhand eines Beispiels veranschaulicht werden. Quelltext~\ref{csh:bsp-ast-regeln} definiert die Grammatik einer Sprache für einfache arithmetische Ausdrücke. Sie beinhaltet eine Liste von Konstanten-Definitionen (\csh{"Def"}) und einen beliebig tiefen AST, der den zu berechnenden Ausdruck (\csh{"Exp"}) repräsentiert. Ausdrücke können Zahlen (\csh{"Number"}), Konstanten (\csh{"Const"}) sowie Additionen (\csh{"AddExp"}) und Multiplikation (\csh{"MulExp"}) weiterer Ausdrücke sein.
+
+\begin{lstlisting}[language=csh, caption={Spezifikation von AST-Regeln}, label=csh:bsp-ast-regeln]
+var spec = new Racr.Specification();
+spec.AstRule("Root->Def*<Defs-Exp");
+spec.AstRule("Def->name-value");
+spec.AstRule("Exp->");
+spec.AstRule("BinExp:Exp->Exp<A-Exp<B");
+spec.AstRule("AddExp:BinExp->");
+spec.AstRule("MulExp:BinExp->");
+spec.AstRule("Number:Exp->value");
+spec.AstRule("Const:Exp->name");
+spec.CompileAstSpecifications("Root");
+\end{lstlisting}
+
+Zuerst wird die Klasse \csh{Racr.Specification} instanziiert. Auf dem erzeugten Objekt werden anschließend via \csh{AstRule} die AST-Regeln der Sprache definiert. Die Spezifikationsphase des AST"=Schemas wird durch einen Aufruf von \csh{CompileAstSpecifications} abgeschlossen.
+
+Diese Sprache soll um Attribute zur Berechnung von Ausdrücken ergänzt werden. Für gewöhnlich wird innerhalb einer Attributsfunktion auf AST-Knoten relativ zu dem Knoten, dessen Attribut ausgewertet werden soll, sowie auf weitere Attribute zugegriffen. Um diese Zugriffe zu vereinfachen, werden in RACR"=Anwendungen typischerweise sprachspezifische Akzessor"=Prozeduren definiert, welche statt den von RACR bereitgestellten generischen Methoden genutzt werden können. Der Name solcher sprachspezifischen Akzessor-Prozeduren spiegelt das abzufragende Kind beziehungsweise Attribut wider. Die explizite Angabe eines Kind- oder Attributnamens, wie von den generischen Akzessor"=Prozeduren RACRs benötigt, entfällt somit, was die Lesbarkeit, Wartbarkeit und Prägnanz von Sprachspezifikationen erhöht. In C\# erfüllen solche Hilfsfunktionen den zusätzlichen Zweck, die dynamischen Typumwandlungen bei Zugriffen auf Terminale oder Attribute auszulagern.
+
+\begin{lstlisting}[language=csh, caption={Hilfsmethoden für den Zugriff auf Kind-Knoten und Attribute}, label=csh:bsp-accessors]
+static class Accessors {
+	// Kind-Knoten
+	public static Racr.AstNode GetExp(this Racr.AstNode n) {
+		return n.Child("Exp");
+	}
+	public static Racr.AstNode GetDefs(this Racr.AstNode n) {
+		return n.Child("Defs");
+	}
+	public static Racr.AstNode GetA(this Racr.AstNode n) {
+		return n.Child("A");
+	}
+	public static Racr.AstNode GetB(this Racr.AstNode n) {
+		return n.Child("B");
+	}
+	public static double GetValue(this Racr.AstNode n) {
+		return n.Child<double>("value");
+	}
+	public static string GetName(this Racr.AstNode n) {
+		return n.Child<string>("name");
+	}
+	// Attribute
+	public static double Eval(this Racr.AstNode n) {
+		return n.AttValue<double>("Eval");
+	}
+	public static Racr.AstNode Lookup(this Racr.AstNode n, string name) {
+		return n.AttValue<Racr.AstNode>("Lookup", name);
+	}
+}
+\end{lstlisting}
+
+Quelltext~\ref{csh:bsp-accessors} definiert Extension-Methoden, die für die obige Beispielsprache als Akzessoren agieren. Die Typen der Terminale \csh{"value"} und \csh{"name"} sind explizit als \csh{double} (Zeile~15) beziehungsweise \csh{string} (Zeile~18) angegeben. Logischerweise müssen die gleichen Datentypen bei der Attributsspezifikation und AST-Konstruktion zum Einsatz kommen.
+
+Die Methoden \csh{Eval} und \csh{Lookup} dienen zum Zugriff auf gleichnamige Attribute. Das Attribut \csh{"Eval"} berechnet den Wert eines Ausdrucks. \csh{"Lookup"} ist ein parametrisiertes Referenzattribut, das den zugehörigen Definitionsknoten einer Konstanten liefert.
+
+\begin{lstlisting}[language=csh, caption={Attributsspezifikationen}, label=csh:bsp-attribute]
+spec.SpecifyAttribute("Eval", "Root", "*", true, (n) =>
+	n.GetExp().Eval());
+
+spec.SpecifyAttribute("Eval", "AddExp", "*", true, (n) =>
+	n.GetA().Eval() + n.GetB().Eval());
+
+spec.SpecifyAttribute("Eval", "MulExp", "*", true, (n) =>
+	n.GetA().Eval() * n.GetB().Eval());
+
+spec.SpecifyAttribute("Eval", "Number", "*", true, (n) =>
+	n.GetValue());
+
+spec.SpecifyAttribute("Eval", "Const", "*", true, (n) =>
+	n.Lookup(n.GetName()).GetValue());
+
+spec.SpecifyAttribute("Lookup", "Root", "*", true,
+					  (Racr.AstNode n, string name) =>
+	(Racr.AstNode) n.GetDefs().FindChild((i, d) =>
+		((Racr.AstNode) d).GetName() == name));
+
+spec.CompileAgSpecifications();
+\end{lstlisting}
+
+Quelltext~\ref{csh:bsp-attribute} zeigt die Spezifikation der genannten Attribute unter Verwendung der Akzessoren aus Quelltext~\ref{csh:bsp-accessors}. Das Attribut \csh{"Eval"} wird für die Nichtterminale \csh{"Root"}, \csh{"AddExp"}, \csh{"MulExp"}, \csh{"Number"} und \csh{"Const"} definiert. Interessant ist die Verwendung von \csh{Lookup} auf dem \csh{"Const"}"=Knoten selbst (Zeile~14), obwohl das Attribut \csh{"Lookup"} nur für den \csh{"Root"}"=Knoten definiert wird. RACR implementiert Attribut-Broadcasting: Wenn ein Attribut für den Typ eines AST-Knotes, auf dem es aufgerufen wird, nicht definiert ist, wird der Attributsaufruf an den Eltern-Knoten weitergeleitet. Die Typsignatur der Attributsfunktion von \csh{"Lookup"} entspricht der Signatur der entsprechenden Akzessor-Methode. Der zusätzliche Parameter hält den Namen der Konstanten. \csh{FindChild} durchwandert linear die Liste von \csh{"Def"}"=Knoten und terminiert bei Namensübereinstimmung mit dem gefundenen Knoten. Bei erfolgloser Suche gibt die Methode \csh{null} zurück.
+
+\begin{lstlisting}[language=csh, caption={AST-Konstruktion}, label=csh:bsp-ast]
+var spec = new MySpec();
+var defs = spec.CreateAstList(
+				spec.CreateAst("Def", "e", 2.718),
+				spec.CreateAst("Def", "pi", 3.142));
+var exp = spec.CreateAst("AddExp",
+			   spec.CreateAst("Number", 5.0),
+			   spec.CreateAst("MulExp",
+					spec.CreateAst("Const", "pi"),
+					spec.CreateAst("Number", 2.0)));
+var root = spec.CreateAst("Root", defs, exp);
+Console.WriteLine("Eval: {0}", root.Eval());
+\end{lstlisting}
+
+In Quelltext~\ref{csh:bsp-ast} wird ein AST der Sprache unter Verwendung der Fabrikmethoden von \csh{Racr.Specification} konstruiert. Der Ausdruck entspricht dabei $5+(\pi\times2)$. Das Ergebnis des Ausdrucks wird mittels \csh{Eval} auf dem Wurzelknoten berechnet und anschließend ausgegeben (Zeile~11).
+
+\begin{figure}[ht!]
+	\centering
+	\includegraphics[width=0.9\linewidth]{figures/example-mapping.pdf}
+	\caption{Beziehungen zwischen Adapter"=Objekten und \scm{node}"=Records im AST}
+	\label{fig:bsp-graph}
+\end{figure}
+
+\section{Herausforderungen bei der Implementierung}\label{probleme}
+
+Um das vorgestellte Verhalten der Schnittstelle zu realisieren, sind diverse programmiertechnische Hürden zu überwinden, die in diesem Kapitel nähergebracht werden sollen. Wichtig ist hierbei, dass die inkrementelle Auswertungssemantik RACRs für C\#"=Nutzer erhalten bleiben soll. Statt RACR in C\# nachzubauen, soll deshalb vielmehr die existierende Implementierung genutzt werden. Das impliziert, dass die RACR"=Scheme"=Implementierung alle AST- und Attributdaten hält und Zugriffe auf diese protokolliert, um einen dynamischen Abhängigkeitsgraphen zur inkrementellen Auswertung aufzubauen. Jeder Zugriff von C\# auf AST- und Attributdaten muss entsprechend auf RACR abgebildet werden. Andererseits sollen C\# Nutzer mit der Scheme"=Implementierung nicht in Berührung kommen, das heißt, nur mit nativen C\#"=Objekten arbeiten.
+
+Um die Konsequenzen dieser Anforderungen bezüglich der Implementierung der Schnittstelle zu erläutern, soll auf das Anwendungsbeispiel aus Kapitel~\ref{anwendungsbeispiel} Bezug genommen werden. Abbildung~\ref{fig:bsp-graph} stellt die dort angelegten Objekte des ASTs und deren Beziehungen zueinander dar. Die schwarzen, durchgezogenen Linien und Pfeile repräsentieren die von RACR bei der AST"=Konstruktion erzeugen Assoziationen der \scm{node}"=Records zueinander beziehungsweise zu Terminalen.  Die bijektiven Assoziationen zwischen einer \csh{Racr.AstNode}"=Instanz und dem zugehörigen \scm{node}"=Record sind als gestrichelte Linien dargestellt. Die kleinen Quadrate repräsentieren die Attribute \scm{'Eval} (E) und \scm{'Lookup} (L). Die blauen beziehungsweise roten Pfeile kennzeichnen deren Abhängigkeiten auf weitere Attribute und Kind-Knoten. Der resultierende Graph wird von RACR zur inkrementellen Auswertung aufgebaut.
+
+Entscheidend ist, dass \csh{Racr.AstNode}"=Instanzen keine Aggregationen zueinander besitzen. Sie fungieren lediglich als Proxy für die \scm{node}"=Objekte. Die eigentlichen Daten werden von RACR in Scheme gehalten. Jede AST- und Attributabfrage erfordert deshalb mehrfache Kontextwechsel zwischen C\# und Scheme. Während der Attributsauswertung registriert RACR diese Abfragen und baut zur Realisierung der inkrementellen Auswertung einen dynamischen Abhängigkeitsgraphen für das jeweilige Attribut auf.
+
+\begin{figure}[]
+	\centering
+	\includegraphics[scale=0.83]{figures/call-stack.pdf}
+	\caption{Zeitliche Abfolge von API-Aufrufen}
+	\label{fig:bsp-stack}
+\end{figure}
+
+Abbildung~\ref{fig:bsp-stack} veranschaulicht die zeitliche Abfolge von Methodenaufrufen der objektorientierten Schnittstelle (links) und parallel dazu die Aufrufe der Scheme-Prozeduren von RACR (rechts), die bei der Auswertung des Attributs \csh{"Eval"} auf dem Wurzelknoten ausgelöst werden. Rote Pfeile repräsentieren die Kontextwechsel bei Funktionsaufrufen. Für terminierende Funktionen sind die Kontextwechsel als blaue Pfeile dargestellt. Außerdem kennzeichnen Pfeile den Datenfluss von AST"=Knoten, wobei zwischen Nichtterminalen und Terminalen unterschieden wird. Für die Fälle, wo Nichtterminale übergeben werden, sind die Pfeile mit dem Namen der \csh{Racr.AstNode}"=Instanz und des \scm{node}"=Records aus Abbildung~\ref{fig:bsp-graph} beschriftet.
+
+Der Aufruf von \csh{AttValue} auf der \csh{Racr.AstNode}"=Instanz \csh{c1} soll an RACR weitergeleitet werden, indem für den zugehörigen \scm{node}"=Record die Prozedur \scm{att-value} aufgerufen wird. Da die Attributcaches noch leer sind, muss die Attributgleichung für das Attribut \scm{'Eval} und dem Knotentyp \scm{'Root} ausgewertet werden. RACR ruft die zuvor via \scm{specify-attribute} angegebene Prozedur mit \scm{s1} als Argument auf. Diese Prozedur ist ein \csh{Callable}"=Objekt, in welchem das \csh{Delegate}"=Objekt von Quelltext~\ref{csh:bsp-attribute} (Zeile 2) gekapselt werden muss. Der Aufruf von \csh{Call} mit einem \scm{node}"=Record als Argument muss in dem Aufruf des Delegaten mit der entsprechenden \csh{Racr.AstNode}"=Instanz als Argument resultieren. Innerhalb des Delegaten wird auf \csh{c1} die Methode \csh{Child} aufgerufen, wo für den zugehörigen \csh{node}"=Record die Prozedur \scm{ast-child} aufgerufen wird. Diese gibt den Record \scm{s5} zurück. Der ursprüngliche \csh{Child}"=Aufruf muss diesen Record auf seine entsprechende \csh{Racr.AstNode}"=Instanz \csh{c5} abbilden. Es ist nicht hinreichend, wenn \csh{Child} einfach den \scm{node}"=Record zurückgäbe, da dies Anforderung \textbf{A5} verletzten würde. Die Wechsel zwischen C\# und Scheme setzt sich fort, bis der Ausdruck schließlich berechnet ist.
+
+Es geht hervor, dass ein ständiger Kontextwechsel zwischen C\# und Scheme besteht. Zur Realisierung der Kontextwechsel von C\# zu Scheme bedarf es einer Abbildung von \csh{Racr.AstNode}"=Instanz auf \scm{node}"=Record. Das gleiche gilt entsprechend umgekehrt für Kontextwechsel von Scheme zu C\#. Methoden, die diese Abbildungen ausführen, müssen vorzugsweise leichtgewichtige Implementierungen haben, da sie notwendigerweise häufig aufgerufen werden. Im Wesentlichen ergeben sich also die drei folgenden Probleme:
+
+\makeatletter
+\let\orig@item\item
+
+\def\item{%
+	\@ifnextchar{[}%
+	{\lstinline@item}%
+		{\orig@item}%
+}
+
+\begingroup
+\catcode`\]=\active
+\gdef\lstinline@item[{%
+\setbox0\hbox\bgroup
+\catcode`\]=\active
+\let]\lstinline@item@end
+}
+\endgroup
+
+\def\lstinline@item@end{%
+	\egroup
+	\orig@item[\usebox0]%
+}
+
+\makeatother
+
+\begin{description}
+	\item[\textbf{Abbildung zwischen \csh{Racr.AstNode} und \scm{node}"=Record:}] Es muss die Möglichkeit geschaffen werden, zwischen der Scheme- und der C\#-Identität eines AST-Knotens zu wechseln. Diese Abbildung muss in allen Methoden, die auf \csh{Racr.AstNode}"=Instanzen arbeiten, zum Tragen kommen.
+	\item[\textbf{Unterscheidung bei Kind-Knoten zwischen Terminalen und Nichtterminalen:}] In einigen Methoden, die uniform auf Terminalen wie Nichtterminalen angewendet werden, darf die besagte Abbildung nur bedingt eingesetzt werden, da in RACR Terminale als ungekapselte Wert"=Objekte gehandhabt werden.
+	\item[\textbf{Wrapping der Attributsfunktionen:}] Der erste Parameter einer Attributsfunktion ist der AST"=Knoten, dessen Attribut ausgewertet werden soll. Aus der Sicht des C\#"=Nutzers handelt es sich um eine \csh{Racr.AstNode}"=Instanz. RACR übergibt zur Attributauswertung jedoch keine \csh{Racr.AstNode}"=Instanz, sondern den Handler des \scm{node}"=Records an das \scm{Callable}"=Objekt. Die Delegaten der Attributsgleichung müssen daher in einer Methode gekapselt werden, welche den \scm{node}"=Record auf dessen entsprechende \csh{Racr.AstNode}"=Instanz abbildet.
+\end{description}
+
+Die Lösung dieser Probleme ist Gegenstand des folgenden Kapitels.
+
+\section{Implementierung}\label{implementierung}
+
+In diesem Kapitel werden die Lösungen der in Kapitel~\ref{probleme} angeführten Probleme der Implementierung präsentiert.
+
+\subsection{Brücke zwischen C\#- und Scheme-Objekten}\label{brücke}
+
+Instanzen von \csh{Racr.Specification} und \csh{Racr.AstNode} müssen notwendigerweise den Handler des jeweiligen Scheme"=Records halten, um bei Methodenaufrufen diesen an die zugehörige Scheme"=Prozedur weiterleiten zu können. Im Konstruktor von \csh{Racr.Specification} wird via \csh{createSpecification.Call} ein neuer \scm{ast-spezifikation}"=Record angelegt, dessen Referenz in einem privaten Feld der Klasse, \csh{internal object} \csh{handler}, gespeichert wird. Alle weiteren Methoden leiten analog zum prozeduralen Ansatz die erhaltenen Daten an Aufrufe der zugehörigen \csh{Callable}"=Objekte weiter, jedoch unter der Benutzung von \csh{handler} als erstes Argument.
+
+Gleichsam verhält es sich mit der Klasse \csh{Racr.AstNode}. Die Abbildung von einer \csh{Racr.AstNode}"=Instanz auf deren zugehörigen \scm{node}"=Record ist schlicht mit dem Zugriff auf \csh{handler} realisiert. Wie der Abbildung~\ref{fig:bsp-stack} zu entnehmen, ist jedoch eine unidirektionale Abbildung von \csh{Racr.AstNode}"=Instanzen auf \scm{node}"=Records nicht ausreichend. Eine Abbildung von \scm{node}"=Record auf \csh{Racr.AstNode}"=Instanz ist außerdem von Nöten. Dazu wird der Record um ein Feld ergänzt, das eine Referenz auf die Instanz hält.
+
+\begin{lstlisting}[language=scm, caption={Angepasste Definition des \csh{node}"=Records}, label=scm:node]
+(define-record-type node
+  (fields
+   (mutable evaluator-state)
+   (mutable ast-rule)
+   (mutable parent)
+   (mutable children)
+   (mutable attributes)
+   (mutable cache-influences)
+   (mutable annotations)
+   (mutable csh-instance))      ; das neue Feld
+  (opaque #t)(sealed #t)
+  (protocol
+   (lambda (new)
+     (lambda (ast-rule parent children)
+       (new #f ast-rule parent children
+            (list) (list) (list)
+            #f)))))             ; und dessen Initialwert
+\end{lstlisting}
+
+Quelltext~\ref{scm:node} zeigt die angepasste Definition des \scm{node}"=Records in \verb|racr/core.sls|. Auf Zeile~10 wird der Record um das Feld \scm{csh-instance} erweitert. Im Record-Konstruktor wird dieses vorerst auf \scm{#f} initialisiert. Des Weiteren müssen die Prozeduren zum Setzen (\scm{node-csh-instance-set!}) und Lesen (\scm{node-csh-instance}) des Felds aus der Scheme"=Bibliothek exportiert werden und im statischen Konstruktor von \csh{Racr} entsprechende \csh{Callable}"=Objekte initialisiert werden.
+
+Nach der Erzeugung des \scm{node}"=Records im Konstruktor von \csh{Racr.AstNode} muss die \csh{this}"=Referenz in \scm{csh-instance} gespeichert werden. Die Hilfsfunktion \csh{GetNode} extrahiert die Referenz von dem Handler.
+
+\begin{lstlisting}[language=csh]
+private static AstNode GetNode(object ast) {
+	return nodeCshInstance.Call(ast) as AstNode;
+}
+\end{lstlisting}
+
+Mittels \csh{GetNode} und dem Zugriff auf \csh{handler} ist somit eine bidirektionale Abbildung zwischen \scm{node}"=Record und \csh{Racr.AstNode} geschaffen.
+
+\subsection{Berücksichtigung von Terminalen}
+
+Aufgrund der dynamischen Typisierung Schemes bietet RACR dem Nutzer eine generische Schnittstelle zum Zugriff auf Kinder- und Geschwister-Knoten – sowohl Terminale als auch Nichtterminale. In Kapitel~\ref{ast-knoten} wurde gezeigt, dass im Gegensatz dazu der Klasse \csh{Racr.AstNode} für den Zugriff auf Kind"= und Geschwister-Knoten für Terminale und Nichtterminale jeweils unterschiedliche Methoden bereitgestellt werden: Methoden für den Zugriff auf Terminale erwarten einen zusätzlichen Typ"=Parameter. Aus der Typsignatur einiger Methoden ist jedoch nicht ablesbar, ob es sich bei den übergebenen oder zu liefernden Knoten um Terminale oder Nichtterminale handelt. Nutzer müssen sich an die Grammatik der Spezifikation halten und die korrekten Akzessoren, mit gegebenenfalls passenden Typ"=Parameter, nutzen.
+
+Auch in der Implementierung der Schnittstelle muss innerhalb dieser Methoden bei Kind-Knoten zwischen Nichtterminalen und Terminalen unterschieden werden können, um entsprechend die Abbildungsfunktionen einzusetzen beziehungsweise davon abzusehen, da die Abbildung nur bei Nichtterminalen zum Tragen kommen darf. Dies betrifft folgende Methoden von \csh{Racr.AstNode}: den Konstruktor, \csh{Children}, \csh{ForEachChild}, \csh{FindChild}, \csh{FindChildA}, \csh{RewriteRefine} und \csh{RewriteAbstract}. Diese Methoden realisieren die RACR"=Prozeduren \scm{ast-children}, \scm{ast-for-each-child}, \scm{ast-find-child}, \scm{ast-find-child*}, \scm{rewrite-refine} und \scm{rewrite-abstract}. RACR bietet eine Reihe undokumentierter Prozeduren zur Abfrage von Meta-Information bezüglich der AST-Schemas und Attribuierung für Spezifikationen eines ASTs. Folgende sind für den vorgestellten Zweck erforderlich:
+
+\begin{itemize}
+	\item \scm{(specification->find-ast-rule spec non-term)} liefert die einem Nichtterminal zugehörige AST"=Regel.
+	\item \scm{(ast-rule->production rule)} liefert eine Liste mit den Produktionssymbolen einer AST"=Regel.
+	\item \scm{(symbol->non-terminal? symbol)} bestimmt, ob ein Symbol ein Nichtterminal ist.
+\end{itemize}
+
+Die Objekte für AST"=Regeln und Symbole sind RACR"=interne Scheme"=Records. Mittels dieser Prozeduren wird im Konstruktor von \csh{Racr.AstNode} für jeden Kind"=Knoten bestimmt, ob er ein Nichtterminal ist. Diese Information wird aus Gründen der Effizienz direkt in der Klassen"=Instanz gespeichert, um gegebenenfalls wiederverwendet zu werden.
+
+\begin{lstlisting}[language=csh, caption={Initialisierungen im Konstruktor von \csh{Racr.AstNode}}, label=csh:astnode-const]
+public class AstNode {
+	internal object handler;
+	private bool[] ntChilren;
+	public AstNode(Specification spec, string nonTerm,
+				   params object[] children)
+	{
+		var nt = SymbolTable.StringToObject(nonTerm);
+		var rule = specificationFindAstRule.Call(spec.handler, nt);
+		var symbols = astRuleProduction.Call(rule) as Cons;
+		ntChilren = new bool[children.Length];
+		Cons list = null;
+		Cons marker = null;
+		for (int i = 0; i < children.Length; i++) {
+			symbols = symbols.cdr as Cons;
+			ntChilren[i] = symbolIsNonTerminal.Call<bool>(symbols.car);
+			var child = ntChilren[i] ? (children[i] as AstNode).handler
+									 : children[i];
+			var cons = new Cons(child);
+			if (list == null) list = marker = cons;
+			else {
+				marker.cdr = cons;
+				marker = cons;
+			}
+		}
+		handler = createAst.Call(spec.handler, nt, list);
+		nodeCshInstanceSet.Call(handler, this);
+	}
+\end{lstlisting}
+
+Quelltext~\ref{csh:astnode-const} zeigt diesen Vorgang. Der Konstruktor enthält eine \csh{for}"=Schleife, die das übergebene Kind"=Knoten"=Array traversiert. Parallel wird die Scheme"=Liste der Produktionssymbole durchwandert und die Information, ob ein Kind ein Nichtterminal ist, in \csh{ntChildren} gespeichert (Zeile~15). Zusätzlich wird eine Scheme"=Liste zur Weitergabe der Knote an \scm{create-ast} konstruiert: Für Nichtterminal"=Kinder wird aus der \csh{Racr.AstNode}"=Instanz der Handler auf den \scm{node}"=Record extrahiert (Zeile~16). Terminale werden direkt übergeben (Zeile~17). Interessant sind auch Zeilen~25 und 26, in denen \csh{handler} beziehungsweise \scm{csh-instance} gesetzt werden, wie in Kapitel~\ref{brücke} beschrieben.
+
+In der Implementierung der übrigen, oben genannten Methoden, kann zur Unterscheidung von Terminalen und Nichtterminalen für den $n$-ten Kind-Knoten das entsprechende Element in \csh{ntChildren} konsultiert werden.
+
+\subsection{Wrapping der Attributsfunktionen}
+
+Attributsfunktionen werden in Form von Delegaten an die Methode \csh{SpecifyAttribute} der Klasse \csh{Racr.Specification} übergeben. Quelltext~\ref{csh:falsche-specattr} zeigt eine naive Implementierung, in welcher analog zur Implementierung der prozeduralen Schnittstelle auf dem \csh{Delegate}"=Objekt IronSchemes die Extension-Methode \csh{ToSchemeProcedure} aufgerufen wird um ein \csh{Callable}"=Objekt zu erzeugen, das anschließend an den Aufruf der Scheme"=Prozedur \scm{specify-attribute} übergeben wird.
+
+\begin{lstlisting}[language=csh, caption={Naive Implementierung von \csh{SpecifyAttribute}}, label=csh:falsche-specattr]
+public void SpecifyAttribute(string name, string nonTerm, string context,
+							 bool cached, Delegate equation)
+{
+	specifyAttribute.Call(
+		handler,
+		SymbolTable.StringToObject(name),
+		SymbolTable.StringToObject(nonTerm),
+		SymbolTable.StringToObject(context),
+		cached,
+		equation.ToSchemeProzedure(),
+		false);
+}
+\end{lstlisting}
+
+Wie in Kapitel~\ref{spezifikation} vorgestellt, soll der erste Parameter einer Attributsfunktion vom Typ \csh{Racr.AstNode} sein. Der Attributauswerter RACRs (die Prozedur \scm{att-value}) erwartet jedoch Attributsfunktionen, deren erstes Argument ein RACR \scm{node}"=Record ist — der AST Knoten mit welchem die auszuwertende Attributsinstanz assoziiert ist. Die Auswertung einer in C\# definierten Attributsfunktionn löst demnach einen Laufzeitfehler aus, da innerhalb des \csh{Callable} der Versuch, den \scm{node}"=Record des AST-Knoten in eine \csh{Racr.AstNode}"=Instanz umzuwandeln scheitert. Auf dem \csh{Delegate}"=Objekt, das die Attributsgeichung hält, kann \csh{ToSchemeProcedure} zur Erzeugung eines \csh{Callable}"=Objekts nicht direkt angewandt werden. Die Delegaten müssen in einer weiteren Methode gekapselt werden, innerhalb welcher die Abbildung von \scm{node}"=Record auf \csh{Racr.AstNode}"=Instanz zum Einsatz kommen muss. Analog zur prozeduralen Schnittstelle, müssen beliebig typisierte Rückgabewerte sowie etwaige weitere Parameter unterstützt werden (siehe Kapitel~\ref{prozeduren}). Da die Typsignatur des Delegaten während der Übersetzung unbekannt ist, muss mithilfe von Reflexion eine passende Wrapper"=Methode zur Laufzeit generiert werden.
+
+Wegen der dynamischen Typisierung Schemes sind Parameter und Rückgabewert der Methode \csh{Call} der \csh{Callable}"=Schnittstelle allesamt mit \csh{object} typisiert. Für Delegaten, die von Scheme aus aufgerufen werden sollen, sich jedoch in der Typsignatur von \csh{Call} unterscheiden, wird in der Methode \csh{ToSchemeProcedure} eine Wrapper"=Methode erzeugt, in welcher entsprechende Typumwandlungen ausgeführt werden. Für mit einem Werttypen typisierte Parameter des Delegaten muss eine Konvertierung von \csh{object} zu diesem Werttypen realisiert werden (Unboxing). Ähnlich verhält es sich mit den Rückgabewerten, wobei gegebenenfalls von Werttyp nach \csh{object} konvertiert wird (Boxing). Derartige Typumwandlungen sind rechentechnisch aufwendig. Ein doppeltes Methoden-Wrapping ist daher zu vermeiden. Es soll eine dynamische Methode erzeugt werden, in welcher einerseits die Abbildungsfunktion auf den AST"=Knoten, also den ersten Parameter des Delegaten, angewendet wird und zusätzlich für alle übrigen Parameter und den Rückgabewert das Unboxing beziehungsweise Boxing ausgeführt wird, unter der Bedingung, dass es sich jeweils um einen Werttypen handeln.
+
+C\# umfasst eine Schnittstelle, um zur Laufzeit dynamische Methoden zu erzeugen. Damit in Verbindung bietet IronScheme die leichtgewichtige Fabrikmethode \csh{Closure.Create}, welche ein \csh{Delegate}"=Objekt erwartet, dessen Parameter und Rückgabewert mit \csh{object} typisiert sind, und ein \csh{Callable} liefert. Dieses Objekt hält im Wesentlichen eine Referenz auf den Delegaten. Der entscheidende Unterschied von \csh{Closure.Create} zu \csh{ToSchemeProcedure} besteht darin, dass dabei kein Wrapping des \csh{Delegate} (Unboxing und Boxing) ausgeführt werden muss, da die Signatur des Delegaten bereits in der notwendigen Form vorliegt.
+
+\begin{lstlisting}[language=csh, caption={Dynamische Methodengenerierung und Typzuordnung}, label=csh:wraptocallable]
+static Callable WrapToCallable(this Delegate equation) {
+	MethodInfo method = equation.Method;
+	Type[] paramTypes = method.GetParameters()
+	.Select(p => p.ParameterType).ToArray();
+	if (paramTypes.Length == 0
+	|| !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
+		throw new ArgumentException(
+				"type of delegate's first argument must be AstNode.");
+	}
+
+	var dynmeth = new DynamicMethod("", typeof(object),
+						paramTypesArray[paramTypes.Length], true);
+	var gen = dynmeth.GetILGenerator();
+
+	gen.Emit(OpCodes.Ldarg_0);
+	var getNodeInfo = ((Delegate)(Func<object, AstNode>)GetNode).Method;
+	gen.Emit(OpCodes.Call, getNodeInfo);
+	
+	for (int i = 1; i < paramTypes.Length; i++) {
+		gen.Emit(OpCodes.Ldarg_S, i);
+		if (paramTypes[i].IsValueType) {
+			gen.Emit(OpCodes.Unbox_Any, paramTypes[i]);
+		}
+		else {
+			gen.Emit(OpCodes.Castclass, paramTypes[i]);
+		}
+	}
+	gen.Emit(OpCodes.Call, method);
+	if (method.ReturnType.IsValueType) {
+		gen.Emit(OpCodes.Box, method.ReturnType);
+	}
+	gen.Emit(OpCodes.Ret);
+
+	Type outType = callTargets[paramTypes.Length];
+	return Closure.Create(dynmeth.CreateDelegate(outType),
+						  paramTypes.Length);
+}
+\end{lstlisting}
+
+Quelltext~\ref{csh:wraptocallable} zeigt die Implementierung der statischen Methode \csh{WrapToCallable}, welche \csh{ToSchemeProzedure} in Quelltext~\ref{csh:falsche-specattr} (Zeile~10) ersetzen soll. Der wichtigste Teil der Methode umfasst die Zeilen~15 bis 32. Hier wird der IL"=Code der dynamischen Methode festgelegt. Dabei werden Opcodes für das Laden von Argumenten, Methodenaufrufe, Unboxing und Boxing, sowie das Beenden der Methode eingesetzt. Folgende Schritte sollen in der zu erzeugenden Wrapper"=Methode ausgeführt werden: Zuerst wird der erste Parameter (der AST-Knoten) geladen und anschließend \csh{GetNode} aufgerufen (Zeile~15 bis 17). Als nächstes werden alle weiteren Parameter geladen (Zeile~20). Falls es sich bei deren Typ um Werttypen handelt, wird Unboxing ausgeführt (Zeile~22). Für Referenztypen muss stattdessen eine dynamische Typumwandlung erfolgen (Zeile~25). Schließlich wird das \csh{Delegat}"=Objekt aufgerufen, innerhalb welchem der Attributwert berechnet werden soll (Zeile~28). Wenn der Attributwert mit einem Werttyp typisiert ist, so wird Boxing angewendet (Zeile~29 bis 31). Damit terminiert die dynamische Methode (Zeile~32).
+
+Nun wird aus dem \csh{DynamicMethod}"=Objekt mittels \csh{CreateDelegate} ein \csh{Delegat} erzeugt, das anschießend an \csh{Closure.Create} übergeben wird (Zeile~32 und 33). Das resultierende \csh{Callable} ist eine Attributsfunktion, welche einerseits in C\# definiert wurde (und daher nur unter Beachtung der objektorientierten Schnittstelle von RACR-NET implementiert wurde) und andererseits vom Attributsauswerter der existierenden RACR"-Scheme"-Implementierung verarbeitet werden kann. Somit ist das generierte \csh{Callable} eine korrekte C\#"=Attributsfunktion für \scm{specify-attribute}.

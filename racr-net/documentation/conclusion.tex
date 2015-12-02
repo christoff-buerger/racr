@@ -1,0 +1,22 @@
+% This program and the accompanying materials are made available under the
+% terms of the MIT license (X11 license) which accompanies this distribution.
+
+% Author: D. Langner, C. Bürger
+
+\chapter{Zusammenfassung und Ausblick}\label{ausblick}
+
+Abschließend wird der Beitrag dieser Arbeit noch einmal zusammengefasst und ein Ausblick auf offene Fragen und Erweiterungsmöglichkeiten gegeben.
+
+\section{Eine objektorientierte Bibliothek für RAG-gesteuerte Graphersetzung}
+
+In dieser Arbeit wurde die Umsetzung einer objektorientierten Schnittstelle von RACR, der Scheme"=Bibliothek zur Referenzattributgrammatik"=gesteuerten Graphersetzung, für die Software"=Plattform .NET präsentiert. Diese Schnittstelle namens RACR"=NET ermöglicht es, RACR"=Anwendungen in C\# zu programmieren.
+
+IronScheme, eine Scheme-Implementierung für .NET, wurde als virtuelle Maschine eingesetzt, um innerhalb der Methoden der Schnittstelle die entsprechenden RACR-Prozeduren aufzurufen. Da sich IronScheme zur Ausführung von RACR-Anwendungen als nicht hinreichend R6RS-konform herausstellte, wurden geringfügige Veränderungen am Quellcode RACRs bezüglich der \scm{hashtable}"=Prozeduren vorgenommen, um Grenzfälle zu umgehen. Unter Verwendung der IronScheme"=Klassenbibliothek wurde erst eine imperative Schnittstelle geschaffen. Darauf aufbauend entstand eine benutzerfreundliche, objektorientierte Schnittstelle, die den vollständigen Funktionsumfang RACRs über Stellvertreter"=Objekte für Spezifikationen und AST"=Knoten abbildet.
+
+In der Schnittstelle kommen keine Scheme-spezifischen Datentypen zum Einsatz, sodass Nutzer RACR"=NET ohne jegliche Scheme"=Kenntnisse einsetzen können. Gleichzeitig bleibt die Nähe zu RACRs originalen Scheme"=Schnittstelle bewahrt. Der indirekte Zugriff auf AST"=Knoten erzeugt in RACR-NET"=Anwendungen einen Performance"=Overhead gegenüber äquivalenten, via IronScheme ausgeführten RACR"=Anwendungen. Dieser wurde für eine Beispiel"=Anwendung bestimmt und beträgt 4,3\,\%.
+
+\section{Zukünftige Arbeiten}
+
+RACR-NET dient dem Zweck, die RAG"=gesteuerte Graphersetzung von dem gewählten Technikraum .NET aus nutzen zu können. Bisher wurde nur gezeigt, wie die Schnittstelle von C\# aus eingesetzt wird. Es existiert jedoch eine Vielzahl von .NET"=Sprachen, innerhalb welcher RACR-NET eingesetzt werden kann. Inwieweit dies für solche Sprachen effektiv umgesetzt werden kann, die neben Objektorientierung andere Programmierparadigmen verfolgen (zum Beispiel F\# mit der funktionale Programmierung), muss noch untersucht werden.
+
+Ein interessanter Anwendungsfall besteht darin, bereits bestehende in Scheme implementierte RACR"=Anwendungen von C\# aus über RACR-NET zu erweitern. Dies schließt die Möglichkeit ein, AST"=Schemas um zusätzliche AST"=Regeln zu ergänzen und weitere Attribute zu definieren. Um die Erweiterbarkeit einer via Scheme spezifizierten Sprache in C\# zu ermöglichen und Kopplung und Vererbung von Attributgrammatiken über Sprachgrenzen hinaus zu realisieren, bedarf es weiterer Arbeit. Eine wichtige Aufgabe liegt dabei in der Sonderbehandlung des Falls, dass in Scheme definierte Referenzattribute in C\# ausgewertet werden, da diese als AST"=Knoten statt eines Stellvertreter"=Objekts ein RACR"=internes Objekt liefern. Der korrekte Umgang mit diesen Datentypen setzt Scheme"=Kenntnisse voraus, die RACR-NET in den jetzigen Anwendungsszenarien nicht verlangt.
