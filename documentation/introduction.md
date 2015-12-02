@@ -84,11 +84,11 @@ AST Rewrites:
   * Deconstruction, refinement and reuse of AST fragments via bud-node replacement
   * Automatic attribute dependency and cache maintenance in the presence of rewrites
 
-_C_ Foreign Call Interface:
-  * Use complete _RACR_ API in _C_ programs
-  * Dynamically load _RACR_ programs written in _Scheme_
-  * Use _C_ functions to implement attribute equations
-  * Easy packing and unpacking of _Scheme_ values; Automatic marshalling of expected _RACR_ function arguments
+_C#_ Integration based on [IronScheme](https://ironscheme.codeplex.com):
+  * Use _RACR_ in _C#_/_.NET_
+  * No opaque _Scheme_ types or values; just _C#_
+  * Use _C#_ to specify attributes, their equations and rewrites
+  * Take advantage of _RACR's_ incremental evaluation, and other features, in _C#_
 
 ## Structure of the Manual
 
