@@ -54,7 +54,7 @@ This example summarises and motivates the essential features of _RACR_ by implem
 
 The example is accompanied by a peer-reviewed paper which motivates and explains these concepts:
 
-> Christoff Bürger. "Reference Attribute Grammar Controlled Graph Rewriting".
+> Christoff Bürger. "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
 > In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
 > ACM, October 2015, pages 89-100.
 
