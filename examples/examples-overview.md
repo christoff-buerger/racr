@@ -139,6 +139,11 @@ Objectives:
 **Scheme library:** Yes
 **Peer-reviewed:** Published at the _8th Transformation Tool Contest_ as a solution of _The TTC 2015 Model Execution Case_
 
+> Christoff Bürger. "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
+> In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
+> Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
+> [Original version](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
+
 ## SiPLE (Simple imperative Programming Language Example)
 
 **Difficult level:** Reference attribute grammar experienced, Rewriting novice, _RACR_ experienced
