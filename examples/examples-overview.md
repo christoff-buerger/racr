@@ -1,6 +1,6 @@
 # Examples Overview
 
-**Beware:** _RACR_ must be [installed](../documentation/requirements-and-installation.md) for the examples to work.
+**Beware:** _RACR_ must be [installed](../racr/documentation/requirements-and-installation.md) for the examples to work.
 
 **Note:** The examples are ordered in increasing difficulty.
 
@@ -52,6 +52,12 @@ This example summarises and motivates the essential features of _RACR_ by implem
   * The importance and benefits of dynamic dependencies for _incremental attribute evaluation_
   * How reference attribute grammar based analyses can be used to ease the development of _rewrite-based transformations_
 
+The example is accompanied by a peer-reviewed paper which motivates and explains these concepts:
+
+> Christoff Bürger. "Reference Attribute Grammar Controlled Graph Rewriting".
+> In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
+> ACM, October 2015, pages 89-100.
+
 **Objective:** Self-contained, easy and fast to understand introduction to RAG-controlled rewriting; overview of essential _RACR_ features.
  * Specification, query and rewrite functions
  * Abstract syntax graph memoization
@@ -73,14 +79,6 @@ The example demonstrates the reuse of attribute-based analyses to ease and contr
  * Reference attributes: Name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
  * Rewrites: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed and add produced tokens of fired transitions)
  * Incremental Evaluation: Attributes are only re-evaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only re-evaluated if the last fired transition influenced it)
-
-## _TTC 2015_: _fUML Activity Diagrams_
-
-**Difficult level:** RAG-controlled rewriting disciple, _RACR_ experienced
-**New concept:** Language reuse by means of cross-language higher-order attributes
-**Size:** Small/Medium
-**Scheme library:** Yes
-**Peer-reviewed:** Published at the _8th Transformation Tool Contest_ as a solution of _The TTC 2015 Model Execution Case_
 
 ## _Language Workbench Challenges 2013 & 2014_: Questionnaires
 
@@ -117,7 +115,7 @@ The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation 
 ## Composed Petri Nets
 
 **Difficult level:** RAG-controlled rewriting experienced, _RACR_ experienced
-**New concept:** Language reuse and extension by specification inheritance and refinement
+**New concept:** Language extension by specification inheritance and refinement
 **Size:** Medium
 **Scheme library:** Yes
 
@@ -132,6 +130,14 @@ A highlight of the example is the automatically optimised enabled analysis thank
 Objectives:
  * Extensive incremental evaluation scenario where rewrites are deduced using complex analyses
  * Systematic language extensions by refining existing analyses and introducing new ones
+
+## _TTC 2015_: _fUML Activity Diagrams_
+
+**Difficult level:** RAG-controlled rewriting experienced, _RACR_ experienced
+**New concept:** Language reuse by means of cross-language higher-order attributes
+**Size:** Medium
+**Scheme library:** Yes
+**Peer-reviewed:** Published at the _8th Transformation Tool Contest_ as a solution of _The TTC 2015 Model Execution Case_
 
 ## SiPLE (Simple imperative Programming Language Example)
 
