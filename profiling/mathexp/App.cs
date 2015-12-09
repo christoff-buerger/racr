@@ -44,29 +44,9 @@ class App {
 		spec.AstRule("Number:Exp->value");
 		spec.AstRule("Const:Exp->name");
 		spec.CompileAstSpecifications("Root");
-
-		spec.SpecifyAttribute("Eval", "Root", "*", true, (n) =>
-			n.GetExp().Eval());
-
-		spec.SpecifyAttribute("Eval", "AddExp", "*", true, (n) =>
-			n.GetA().Eval() + n.GetB().Eval());
-
-		spec.SpecifyAttribute("Eval", "MulExp", "*", true, (n) =>
-			n.GetA().Eval() * n.GetB().Eval());
-
-		spec.SpecifyAttribute("Eval", "Number", "*", true, (n) =>
-			n.GetValue());
-
-		spec.SpecifyAttribute("Eval", "Const", "*", true, (n) =>
-			n.Lookup(n.GetName()).GetValue());
-
-		spec.SpecifyAttribute("Lookup", "Root", "*", true,
-							  (Racr.AstNode n, string name) =>
-			(Racr.AstNode) n.GetDefs().FindChild((i, d) =>
-				((Racr.AstNode) d).GetName() == name));
-
+		
+		spec.RegisterAgRules(typeof(App));
 		spec.CompileAgSpecifications();
-
 
 		var defs = spec.CreateAstList(
 				spec.CreateAst("Def", "a", 0.0),
@@ -112,6 +92,36 @@ class App {
 
 		watch.Stop();
 		Console.WriteLine("Time: {0}", watch.ElapsedMilliseconds * 0.001);
+	}
+
+	[Racr.AgRule("Lookup", "Root", Cached = true, Context = "*")]
+	private static Racr.AstNode EvalConst(Racr.AstNode node, string name) {
+		return (Racr.AstNode)node.GetDefs().FindChild((i, d) => ((Racr.AstNode)d).GetName() == name);
+	}
+
+	[Racr.AgRule("Eval", "Const", Cached = true, Context = "*")]
+	private static double EvalConst(Racr.AstNode node) {
+		return node.Lookup(node.GetName()).GetValue();
+	}
+
+	[Racr.AgRule("Eval", "Number", Cached = true, Context = "*")]
+	private static double EvalNumber(Racr.AstNode node) {
+		return node.GetValue();
+	}
+ 
+	[Racr.AgRule("Eval", "AddExp", Cached = true, Context = "*")]
+	private static double EvalAddExp(Racr.AstNode node) {
+		return node.GetA().Eval() + node.GetB().Eval();
+	}
+
+	[Racr.AgRule("Eval", "MulExp", Cached = true, Context = "*")]
+	private static double EvalMulExp(Racr.AstNode node) {
+		return node.GetA().Eval() * node.GetB().Eval();
+	}
+	
+	[Racr.AgRule("Eval", "Root", Cached = true, Context = "*")]
+	private static double EvalRoot(Racr.AstNode node) {
+		return node.GetExp().Eval();
 	}
 }
 
