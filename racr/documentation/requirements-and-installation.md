@@ -26,4 +26,4 @@ _RACR_ provides a _.NET_ integration called [RACR-NET](../../racr-net/documentat
 
 As knwon from the _Microsoft Build Tools_ and _C#_, `csproj` files are used for building _C#_ code, including _RACR-NET's_ examples and tests. The required libraries are provided as dynamic linked libraries in the `racr-net` directory (`Racr.dll` and `IronScheme.dll`).
 
-**Beware:** Only _RACR-NET_ developers, and not users, should build the `Racr.dll` using the scripts provided in its directory. A local _IronScheme_ distribution must be available; the distributed `IronScheme.dll` is not sufficient.
+**Beware:** _Only _RACR-NET developers, and not users, should build the `Racr.dll` using the scripts provided in its directory. A local IronScheme distribution must be available; the distributed `IronScheme.dll` is not sufficient._
