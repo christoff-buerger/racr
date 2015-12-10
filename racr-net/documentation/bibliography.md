@@ -46,7 +46,7 @@
 
 **[Scowen1998]** Roger S. Scowen. Extended BNF: a generic base standard. Technical report, ISO/IEC 14977, 1998.
 
-**[Shinn2013]** Alex Shinn, John Cowan and Artur A. Gleckler. Revised7 Report on the Algorithmic Language Scheme. Technical report. July 2013. url: http://trac.sacrideo.us/wg/raw- attachment/wiki/WikiStart/r7rs.pdf.
+**[Shinn2013]** Alex Shinn, John Cowan and Artur A. Gleckler. Revised7 Report on the Algorithmic Language Scheme. Technical report. July 2013. url: http://trac.sacrideo.us/wg/raw-attachment/wiki/WikiStart/r7rs.pdf.
 
 **[Soederberg2012]** Emma Söderberg und Görel Hedin. Incremental evaluation of reference attribute grammars using dynamic dependency tracking. Technical report. 2012.
 
