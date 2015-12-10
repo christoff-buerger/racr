@@ -12,11 +12,8 @@ We also maintain a list of [scientific publications and presentations](publicati
 
 # License
 
-This program and the accompanying materials are made available under the
-terms of the MIT license (X11 license) which accompanies this distribution
-(`./license.txt`).
+This program and the accompanying materials are made available under the terms of the MIT license (X11 license) which accompanies this distribution (`./license.txt`).
 
 # Comments
 
-For any remaining questions or comments don't hesitate to write me an e-mail
-(`christoff.buerger@gmail.com`). I appreciate any feedback.
+For any remaining questions or comments don't hesitate to write me an e-mail (`christoff.buerger@gmail.com`). I appreciate any feedback.
