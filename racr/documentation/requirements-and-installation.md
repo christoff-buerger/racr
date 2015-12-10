@@ -22,4 +22,8 @@ To validate the installation, the `run-tests.bash` script can be used. Similarly
 
 ## _.NET_ Installation
 
-_RACR_ provides a _.NET_ integration called [RACR-NET](../../racr-net/documentation/title.md), which is based on _C#_ and [IronScheme](http://ironscheme.codeplex.com). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, _RACR-NET_ itself is in the `racr-net` directory etc. As knwon from the _Microsoft Build Tools_ and _C#_, `csproj` files are used for building any _C#_ code, including _RACR-NET's_ examples and tests. The required libraries are provided as dynamic linked libraries in the `racr-net` directory (`Racr.dll` and `IronScheme.dll`). Only _RACR-NET_ developers, **and not users**, should build the `Racr.dll` using the scripts provided in the directory. To build it, a local _IronScheme_ distribution must be available; the distributed `IronScheme.dll` is not sufficient.
+_RACR_ provides a _.NET_ integration called [RACR-NET](../../racr-net/documentation/title.md), which is based on _C#_ and [IronScheme](http://ironscheme.codeplex.com). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, _RACR-NET_ itself is in the `racr-net` directory etc.
+
+As knwon from the _Microsoft Build Tools_ and _C#_, `csproj` files are used for building _C#_ code, including _RACR-NET's_ examples and tests. The required libraries are provided as dynamic linked libraries in the `racr-net` directory (`Racr.dll` and `IronScheme.dll`).
+
+**Beware:** Only _RACR-NET_ developers, and not users, should build the `Racr.dll` using the scripts provided in its directory. A local _IronScheme_ distribution must be available; the distributed `IronScheme.dll` is not sufficient.
