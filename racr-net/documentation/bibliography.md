@@ -21,7 +21,7 @@ Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31– 4
 "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
 In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
 Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
-[Original version](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](examples/ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
+[Original version](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](../../examples/ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
 
 **[Buerger2015b]** Christoff Bürger.
 "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
@@ -31,7 +31,7 @@ ACM, October 2015, pages 89-100.
 **[Clinger2009]** Will Clinger, Marc Feeley, Chris Hanson, Jonathan Rees and Olin Shivers.
 Scheme Steering Committee Position Statement (Draft).
 August 2009.
-[web](url: http://scheme-reports.org/2009/position-statement.html)
+[web](http://scheme-reports.org/2009/position-statement.html)
 
 **[Demers1981]** Alan Demers, Thomas Reps and Tim Teitelbaum.
 “Incremental evaluation for attribute grammars with application to syntax-directed editors”.
@@ -41,7 +41,7 @@ ACM, January 1981, pages 105–116.
 **[ECMA2012]** ECMA.
 ECMA-335: Common Language Infrastructure (CLI).
 Microsoft, June 2012.
-[web](url: http://www.ecma-international.org/publications/standards/Ecma-335.htm)
+[web](http://www.ecma-international.org/publications/standards/Ecma-335.htm)
 
 **[Ehrig1999]** Hartmut Ehrig, Gregor Engels, and Hans-Jörg Kreowski.
 Handbook of Graph Grammars and Computing by Graph Transformation: Applications, Languages and Tools.
@@ -118,7 +118,7 @@ Technical report, ISO/IEC 14977.
 _Revised 7 Report on the Algorithmic Language Scheme_.
 Technical report.
 July 2013.
-[paper](url: http://trac.sacrideo.us/wg/raw-attachment/wiki/WikiStart/r7rs.pdf)
+[paper](http://trac.sacrideo.us/wg/raw-attachment/wiki/WikiStart/r7rs.pdf)
 
 **[Soederberg2012]** Emma Söderberg und Görel Hedin.
 _Incremental evaluation of reference attribute grammars using dynamic dependency tracking_.
