@@ -7,6 +7,4 @@ ___
 
 ![title](figures/title.png)
 
-**Author:** Daniel Langner (`s8572327@gmail.com`)
-
-**Editor:** Christoff Bürger (`christoff.buerger@gmail.com`)
+**Author:** Daniel Langner (`s8572327@gmail.com`) **Editor:** Christoff Bürger (`christoff.buerger@gmail.com`)
