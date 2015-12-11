@@ -2,16 +2,19 @@
 
 ## Peer-reviewed Publications
 
-> Christoff Bürger. "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
+> Christoff Bürger.
+> "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
 > In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
 > ACM, October 2015, pages 89-100.
 
-> Christoff Bürger and Johannes Mey and René Schöne and Sven Karol and Daniel Langner. "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
+> Christoff Bürger, Johannes Mey, René Schöne, Sven Karol and Daniel Langner.
+> "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
 > In: _MRT 2015: Proceedings of the 10th International Workshop on Models@run.time_.
 > Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31– 40.
 > [paper](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
 
-> Christoff Bürger. "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
+> Christoff Bürger.
+> "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
 > In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
 > Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
 > [Original version](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](examples/ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
