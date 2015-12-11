@@ -7,4 +7,4 @@ ___
 
 ![title](figures/title.png)
 
-*Author:* Christoff Bürger (`christoff.buerger@gmail.com`)
+**Author:** Christoff Bürger (`christoff.buerger@gmail.com`)
