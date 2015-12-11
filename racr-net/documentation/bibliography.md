@@ -41,7 +41,7 @@ ACM, January 1981, pages 105–116.
 **[ECMA2012]** ECMA.
 ECMA-335: Common Language Infrastructure (CLI).
 Microsoft, June 2012.
-[web](http://www.ecma-international.org/publications/standards/Ecma-335.htm)
+[paper](http://www.ecma-international.org/publications/standards/Ecma-335.htm)
 
 **[Ehrig1999]** Hartmut Ehrig, Gregor Engels, and Hans-Jörg Kreowski.
 Handbook of Graph Grammars and Computing by Graph Transformation: Applications, Languages and Tools.
