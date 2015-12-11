@@ -1,3 +1,6 @@
+_[>> Title <<](title.md) [>> Preface <<](synopsis.md) [>> Contents <<](contents.md) [>> Bibliography <<](bibliography.md)_
+___
+
 # Bibliography
 
 **[Avgustinov2008]** Pavel Avgustinov, Torbjörn Ekman and Julian Tibble.
