@@ -48,7 +48,7 @@ Nachdem die Sprache spezifiziert wurde, können ASTs instanziiert werden und Att
 
 Das in Abbildung 2.1 gezeigte Zustandsdiagramm stellt alle Prozeduren _RACRs_ in Beziehung.
 
-![RACR-API](figures/user-interface.png)
+![RACR-API](../../racr/documentation/figures/user-interface.png)
 
 **Abbildung 2.1:** _RACRs_ API \[[Buerger2012](bibliography.md)\]
 
