@@ -11,7 +11,7 @@ Eine Referenzimplementierung der RAG-gesteuerten Graphersetzung liegt in Form ei
 
 Die Vorteile der RAG-gesteuerten Graphersetzung wurden bereits in verschiedenen Bereichen demonstriert. Zum Beispiel wurde mittels _RACR_ eine [domänenspezifische Sprache zur Generierung interaktiver Fragebögen](https://github.com/christoff-buerger/racr/tree/master/examples/questionnaires) ([Language Workbench Challenge 2013](http://www.languageworkbenches.net/wp-content/uploads/2013/11/Ql.pdf) \[[Erdweg2013](bibliography.md)\]) spezifiziert. Des Weiteren wurde _RACR_ zur Implementierung von Laufzeit-Modellen für cyber-physische Systeme zur effizienten selbst-Optimierung hinsichtlich des Energiebedarfs eingesetzt \[[Buerger2015](bibliography.md)\]. Darüber hinaus werden in einer Lösung des _Transformation Tool Contest 2015_ \[[Mayerhofer2015](bibliography.md)\] mittels _RACR_ Transformationen von _fUML-Aktivitätsdiagrammen_ nach ausführbaren Petrinetzen realisiert. Die erzeugten Petrinetze werden hierbei inkrementell von _RACR_ ausgewertet, sodass eine sowohl effiziente als auch wohldefinierte Ausführungssemantik für _fUML-Aktivitätsdiagramme_ gegeben ist \[[Buerger2015a](bibliography.md)\].
 
-# Aufgabenstellung
+## Aufgabenstellung
 
 Um die Nützlichkeit des Verfahrens der RAG-gesteuerten Graphersetzung in zukünftigen Forschungsprojekten in der objektorientierten Programmierung untersuchen zu können, soll _RACR_ in dieser Arbeit innerhalb einer objektorientierten Sprache über eine entsprechende Schnittstelle verfügbar gemacht werden.
 
@@ -19,6 +19,6 @@ Damit die existierende _RACR_-Implementierung genutzt werden kann, muss die Mög
 
 Als Host-Sprache wurde _C#_ ausgewählt. Folglich soll eine _.NET_-Klassenbibliothek namens _RACR-NET_ geschaffen werden, mittels welcher der Funktionsumfang _RACRs_ von _C#_ aus über eine objektorientierte Schnittstelle nutzbar ist. Die Brücke zwischen _Scheme_ und _C#_ soll durch den Einsatz der [IronScheme-VM](http://ironscheme.codeplex.com/) geschaffen werden.
 
-# Struktur der Arbeit
+## Struktur der Arbeit
 
 Die vorliegende Arbeit ist folgendermaßen gegliedert: [Kapitel 2](prerequisites.md) gibt einen Überblick über die RAG-gesteuerte Graphersetzung und andere verwendete Technologien. Die tatsächliche Umsetzung erfolgt in zwei Schritten. Zunächst wird eine prozedurale Schnittstelle entworfen, welche in [Kapitel 3](procedural-api.md) beschrieben wird. Die darauf aufbauende objektorientierte Schnittstelle sowie deren Implementierung werden in [Kapitel 4](object-oriented-api.md) vorgestellt. Anschließend wird das Ergebnis in [Kapitel 5](evaluation.md) getestet und ausgewertet. Die Arbeit endet mit einer Zusammenfassung und einen Ausblick in [Kapitel 6](consculsion.md).
