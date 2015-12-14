@@ -83,6 +83,6 @@ Abbildung 2.2 veranschaulicht die Kompillierungsprozesse, die der Ausführung ei
 symbol		| `Microsoft.Scripting.SymbolId`
 procedure	| `Ironscheme.Runtime.Callable`
 
-**Tabelle 2.3:** _IronSchemes_ Abbildung von _Scheme_-Datentypen auf _.NET_-Datentype
+**Tabelle 2.3:** _IronSchemes_ Abbildung von _Scheme_-Datentypen auf _.NET_-Datentypen
 
 Viele wichtige Datentypen sind als Adapter für _.NET_-Datentypen realisiert, was die Interoperabilität von _IronScheme_ zu anderen _.NET_-Sprachen erhöht. Andere Datentypen implementieren spezielle Schnittstellen. Die für diese Arbeit relevanten _Scheme_-Typen und deren zugehörige _.NET_-Typen sind in Tabelle 2.3 aufgeführt.
