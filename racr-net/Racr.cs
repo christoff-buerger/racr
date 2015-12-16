@@ -69,9 +69,11 @@ static public class Racr {
 	private static Callable astRuleProduction;
 	private static Callable symbolIsNonTerminal;
 
+	private static Callable printAst;
 
 	static Racr() {
 		"(import (racr core))".Eval();
+		"(import (racr testing))".Eval();
 
 		// bridge
 		nodeDotNetInstance			= "node-dot-net-instance".Eval<Callable>();
@@ -132,6 +134,13 @@ static public class Racr {
 		specificationFindAstRule	= "specification->find-ast-rule".Eval<Callable>();
 		astRuleProduction			= "ast-rule->production".Eval<Callable>();
 		symbolIsNonTerminal			= "symbol->non-terminal?".Eval<Callable>();
+
+
+		// testing
+		printAst					= @"(lambda (ast attmap)
+		            						(let ((port (open-output-string)))
+					              				(print-ast ast attmap port)
+								                (get-output-string port)))".Eval<Callable>();
 	}
 
 
@@ -519,6 +528,11 @@ static public class Racr {
 		}
 		public void WeaveAnnotations(string type, string name, object v) {
 			astWeaveAnnotations.Call(ast, SymbolTable.StringToObject(type), SymbolTable.StringToObject(name), v);
+		}
+
+		// testing
+		public string PrintAst() {
+			return (string) printAst.Call(ast, "'()".Eval());
 		}
 	}
 
