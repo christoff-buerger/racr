@@ -182,7 +182,7 @@ Console.WriteLine("Eval: {0}", root.Eval());
 ```
 **Listing 4.6:** AST-Konstruktion
 
-In Quelltext 4.6 wird ein AST der Sprache unter Verwendung der Fabrikmethoden von `Racr.Specification` konstruiert. Der Ausdruck entspricht dabei `5+(\pi\times2)`. Das Ergebnis des Ausdrucks wird mittels `Eval` auf dem Wurzelknoten berechnet und anschließend ausgegeben (Zeile 11).
+In Quelltext 4.6 wird ein AST der Sprache unter Verwendung der Fabrikmethoden von `Racr.Specification` konstruiert. Der Ausdruck entspricht dabei `5 + (pi * 2)`. Das Ergebnis des Ausdrucks wird mittels `Eval` auf dem Wurzelknoten berechnet und anschließend ausgegeben (Zeile 11).
 
 ## Herausforderungen bei der Implementierung
 
