@@ -15,7 +15,7 @@ Bei Referenztypkonvertierungen wie dieser kann während der Code-Übersetzung ni
 
 ```
 object a = "(+ 1 2)".Eval();
-int b = (int) a;			// explizite Umwandlung
+int b = (int) a;					// explizite Umwandlung
 bool c = "(< 3 4)".Eval<bool>();	// generische Methode
 
 bool d = (bool) "(* 2 3)".Eval();	// Laufzeitfehler!
@@ -121,7 +121,7 @@ _Scheme_-Symbole tauchen in _RACRs_ Schnittstelle an vielen Stellen auf. Aufseit
 
 #### Paare
 
-Paare sind in _Scheme_ ein essenzieller Datentyp. In _RACRs_ _Scheme_-Schnittstelle kommen Paare in folgenden Prozeduren zum Einsatz: `ast-children`, `ast-for-each-child`, `ast-find-child` und `ast-find-child*`. Diese Prozeduren verlangen neben anderen Arguenten eine unbestimmte Anzahl von sogenannten Kinder-Intervallen – Paare, die in Form von zwei Indices eine untere und ober Grenze enthalten. [Mit dem _Scheme_-Symbol `'*` kann auch eine offene obere Grenze angegeben werden](https://github.com/christoff-buerger/racr/blob/master/documentation/abstract-syntax-trees.md\#ast-children). Paare entsprechen in _C#_ Objekten der Klasse `Cons` aus der _IronScheme_-Klassenbibliothek. Nutzer sollen mit ihr nicht in Berührung kommen müssen, sondern zur Angaben von Kinder-Intervallen eine für genau diesen Zweck geschaffene Datenstruktur verwenden. Quelltext 3.5 zeigt die dafür konzipierte Struktur `Range`.
+Paare sind in _Scheme_ ein essenzieller Datentyp. In _RACRs_ _Scheme_-Schnittstelle kommen Paare in folgenden Prozeduren zum Einsatz: `ast-children`, `ast-for-each-child`, `ast-find-child` und `ast-find-child*`. Diese Prozeduren verlangen neben anderen Arguenten eine unbestimmte Anzahl von sogenannten Kinder-Intervallen – Paare, die in Form von zwei Indices eine untere und ober Grenze enthalten. [Mit dem _Scheme_-Symbol `'*` kann auch eine offene obere Grenze angegeben werden](../../racr/documentation/abstract-syntax-trees.md#ast-children.md). Paare entsprechen in _C#_ Objekten der Klasse `Cons` aus der _IronScheme_-Klassenbibliothek. Nutzer sollen mit ihr nicht in Berührung kommen müssen, sondern zur Angaben von Kinder-Intervallen eine für genau diesen Zweck geschaffene Datenstruktur verwenden. Quelltext 3.5 zeigt die dafür konzipierte Struktur `Range`.
 
 ```
 public struct Range {
@@ -138,7 +138,7 @@ public struct Range {
 ```
 **Listing 3.5:** Definition der `Range`-Struktur
 
-Zweckmäßig hält die Struktur zwei Felder für die beiden Grenzen, wobei eine obere Grenze mit dem Wert 0 als offen interpretiert wird\footnote{In RACR werden Indices stets von 1 an gezählt.}. Die interne Methode \csh{ToCons} dient dazu, aus dem \csh{Range}"= ein \csh{Cons}"=Objekt zu konstruieren, das von IronScheme aus weiterverarbeitet werden kann. Sie kommt in den Methoden des Interfaces, welche die oben genannten Prozeduren abbilden sollen, zum Einsatz.
+Zweckmäßig hält die Struktur zwei Felder für die beiden Grenzen, wobei eine obere Grenze mit dem Wert 0 als offen interpretiert wird (in _RACR_ werden Indices stets von 1 an gezählt). Die interne Methode `ToCons` dient dazu, aus dem `Range`- ein `Cons`-Objekt zu konstruieren, das von _IronScheme_ aus weiterverarbeitet werden kann. Sie kommt in den Methoden des Interfaces, welche die oben genannten Prozeduren abbilden sollen, zum Einsatz.
 
 #### Listen
 
