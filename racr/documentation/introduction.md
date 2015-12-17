@@ -84,7 +84,7 @@ AST Rewrites:
   * Deconstruction, refinement and reuse of AST fragments via bud-node replacement
   * Automatic attribute dependency and cache maintenance in the presence of rewrites
 
-_C#_ Integration based on [IronScheme](https://ironscheme.codeplex.com):
+[_C#_ Integration](../../racr-net/documentation/title.md) based on [IronScheme](https://ironscheme.codeplex.com):
   * Use _RACR_ in _C#_/_.NET_
   * No opaque _Scheme_ types or values; just _C#_
   * Use _C#_ to specify attributes, their equations and rewrites
