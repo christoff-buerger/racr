@@ -573,7 +573,9 @@ static public class Racr {
 			l[0] = wrap.ToSchemeProcedure();
 			l[1] = ast;
 			for (int i = 0; i < bounds.Length; i++) l[i + 2] = bounds[i].ToCons();
-			return GetNode(astFindChild.Call(l));
+			var ret = astFindChild.Call(l);
+			if (ret.GetType() == typeof(bool) && (bool) ret == false) return null;
+			return GetNode(ret);
 		}
 		public override object FindChildA(Func<int, object, object> f, params Range[] bounds) {
 			Func<int, object, object> wrap = (i, n) => { return f(i, GetNode(n)); };
