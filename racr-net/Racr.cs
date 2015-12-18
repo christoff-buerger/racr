@@ -175,15 +175,6 @@ static public class Racr {
 		public void CompileAgSpecifications() { compileAgSpecifications.Call(spec); }
 
 
-		static readonly Type[][] paramTypesArray = new Type[][] {
-			new Type[] {},
-			new Type[] { typeof(object) },
-			new Type[] { typeof(object), typeof(object) },
-			new Type[] { typeof(object), typeof(object), typeof(object) },
-			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object) },
-			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object), typeof(object) },
-		};
-
 		static readonly Type[] callTargets = new Type[] {
 			typeof(CallTarget0),
 			typeof(CallTarget1),
@@ -191,35 +182,68 @@ static public class Racr {
 			typeof(CallTarget3),
 			typeof(CallTarget4),
 			typeof(CallTarget5),
+			typeof(CallTarget6),
+			typeof(CallTarget7),
+			typeof(CallTarget8),
 		};
 
-		static Callable WrapToCallable(MethodInfo method) {
-			var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-			if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
+		static Callable WrapToCallable(MethodInfo method, object target=null) {
+		
+			var param = method.GetParameters();
+			if (param.Length == 0 || !typeof(AstNode).IsAssignableFrom(param[0].ParameterType)) {
 				throw new ArgumentException("type of delegate's first argument must be AstNode.");
 			}
 
-			var outType = callTargets[paramTypes.Length];
-			var dynmeth = new DynamicMethod("", typeof(object), paramTypesArray[paramTypes.Length], true);
+			// create param type array
+			Type[] dynParam;
+			int offset;
+			if (target != null) {
+				offset = 1;
+				dynParam = new Type[param.Length + 1];
+				dynParam[0] = target.GetType();
+			}
+			else {
+				offset = 0;
+				dynParam = new Type[param.Length];
+			}
+			for (int i = 0; i < param.Length; i++) dynParam[offset + i] = typeof(object);
+
+			// create dynamic method
+			var dynmeth = new DynamicMethod("", typeof(object), dynParam, true);
 			var gen = dynmeth.GetILGenerator();
 
-			gen.Emit(OpCodes.Ldarg_0);
+			// load target
+			if (target != null) gen.Emit(OpCodes.Ldarg_0);
+
+			// node wrapping
+			gen.Emit(OpCodes.Ldarg_S, (byte) offset);
 			var getNodeInfo = ((Delegate)(Func<object, AstNode>)GetNode).Method;
 			gen.Emit(OpCodes.Call, getNodeInfo);
 
-			for (int i = 1; i < paramTypes.Length; i++) {
-				gen.Emit(OpCodes.Ldarg_S, (byte) i);
-				if (paramTypes[i].IsValueType) gen.Emit(OpCodes.Unbox_Any, paramTypes[i]);
-				else gen.Emit(OpCodes.Castclass, paramTypes[i]);
+			// unboxing
+			for (int i = 1; i < param.Length; i++) {
+				gen.Emit(OpCodes.Ldarg_S, (byte) (i + offset));
+				var op = param[i].ParameterType.IsValueType ? OpCodes.Unbox_Any : OpCodes.Castclass;
+				gen.Emit(op, param[i].ParameterType);
 			}
+
+			// call delegate
 			gen.Emit(OpCodes.Call, method);
 			if (method.ReturnType.IsValueType) gen.Emit(OpCodes.Box, method.ReturnType);
 			gen.Emit(OpCodes.Ret);
 
-			return Closure.Create(dynmeth.CreateDelegate(outType), paramTypes.Length);
+			Delegate wrapper;
+			if (target != null) {
+				wrapper = dynmeth.CreateDelegate(callTargets[param.Length], target);
+			}
+			else {
+				wrapper = dynmeth.CreateDelegate(callTargets[param.Length]);
+			}
+			return Closure.Create(wrapper, param.Length);
 		}
 
-		// TODO circDef!!!
+
+		// TODO: circDef!!!
 		public void SpecifyAttribute(string attName, string nonTerminal, string contextName, bool cached, Delegate equation) {
 			specifyAttribute.Call(
 				spec,
@@ -227,7 +251,7 @@ static public class Racr {
 				SymbolTable.StringToObject(nonTerminal),
 				SymbolTable.StringToObject(contextName),
 				cached,
-				WrapToCallable(equation.Method),
+				WrapToCallable(equation.Method, equation.Target),
 				false);
 		}
 		public void SpecifyAttribute<R>(string attName, string nonTerminal, string contextName, bool cached, Func<AstNode,R> equation) {
