@@ -216,6 +216,7 @@
   ;;; Persistency:
   
   (define (: p)      (string->symbol (substring (~a p) 12 (- (string-length (~a p)) 1))))
+  
   (ag-rule
    s-expr ; Symbolic expression representing form.
    (Form             (lambda (n) `(Form ,@(map =s-expr (cdr (->* (->Body n)))))))
