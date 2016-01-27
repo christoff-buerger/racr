@@ -109,7 +109,7 @@
  (define (=fused-places n)     (att-value 'fused-places n))
  
  ; AST Constructors:
- (define (:AtomicPetrinet n p t i) ; REDEFINITION: add name & ports
+ (define (:AtomicPetrinet n p t i) ; Refine!
    (create-ast pn 'AtomicPetrinet
                (list n (create-ast-list p) (create-ast-list t) (create-ast-list i))))
  (define (:Place n . t)
@@ -134,7 +134,7 @@
  (define (set-union s1 s2)
    (append (filter (lambda (e1) (not (memq e1 s2))) s1) s2))
  
- (define (make-symbol-table decls ->key . conditions) ; REDEFINITION: consider conditions
+ (define (make-symbol-table decls ->key . conditions) ; Refine!
    (define table (make-eq-hashtable))
    (for-each
     (lambda (n)
@@ -149,7 +149,7 @@
     
     ;;; AST Scheme:
     
-    (ast-rule 'AtomicPetrinet:Petrinet->name-Place*-Transition*-Port*) ; REDEFINITION: add name & ports
+    (ast-rule 'AtomicPetrinet:Petrinet->name-Place*-Transition*-Port*) ; Refine!
     (ast-rule 'Place->name-Token*)
     (ast-rule 'Token->value)
     (ast-rule 'Transition->name-Arc*<In-Arc*<Out)
@@ -166,51 +166,110 @@
     
     ;;; Query Support:
     
-    (ag-rule places      (AtomicPetrinet (lambda (n) (->* (->Place* n)))))
-    (ag-rule transitions (AtomicPetrinet (lambda (n) (->* (->Transition* n)))))
-    (ag-rule in-arcs     (Transition     (lambda (n) (->* (->In n)))))
-    (ag-rule out-arcs    (Transition     (lambda (n) (->* (->Out n)))))
+    (ag-rule
+     places ; List of places of atomic net.
+     (AtomicPetrinet   (lambda (n) (->* (->Place* n)))))
     
-    (ag-rule ports       (AtomicPetrinet (lambda (n) (->* (->Port* n)))))
-    (ag-rule glueings    (ComposedNet    (lambda (n) (->* (->Glueing* n)))))
-    (ag-rule <-net       (Place          (lambda (n) (<- (<- n)))))
-    (ag-rule subnet-iter (AtomicPetrinet (lambda (n) (let ((name (->name n)))
-                                                       (lambda (f) (f name n))))))
-    (ag-rule subnet-iter (ComposedNet    (lambda (n) (let* ((i1 (=subnet-iter (->Net1 n)))
-                                                            (i2 (=subnet-iter (->Net2 n))))
-                                                       (lambda (f) (or (i1 f) (i2 f)))))))
+    (ag-rule
+     transitions ; List of transitions of atomic net.
+     (AtomicPetrinet   (lambda (n) (->* (->Transition* n)))))
+    
+    (ag-rule
+     in-arcs ; List of ingoing arcs of transition.
+     (Transition       (lambda (n) (->* (->In n)))))
+    
+    (ag-rule
+     out-arcs ; List of outgoing arcs of transition.
+     (Transition       (lambda (n) (->* (->Out n)))))
+    
+    (ag-rule
+     ports ; List of ports of atomic net.
+     (AtomicPetrinet   (lambda (n) (->* (->Port* n)))))
+    
+    (ag-rule
+     glueings ; List of glueings of composed net.
+     (ComposedNet      (lambda (n) (->* (->Glueing* n)))))
+    
+    (ag-rule
+     <-net ; Atomic net place is part of.
+     (Place            (lambda (n) (<- (<- n)))))
+    
+    (ag-rule
+     subnet-iter ; Function iterating subnets considering predicate.
+     (AtomicPetrinet   (lambda (n) (let ((name (->name n)))
+                                     (lambda (f) (f name n)))))
+     (ComposedNet      (lambda (n) (let* ((i1 (=subnet-iter (->Net1 n)))
+                                          (i2 (=subnet-iter (->Net2 n))))
+                                     (lambda (f) (or (i1 f) (i2 f)))))))
     
     ;;; Name Analysis:
     
-    (ag-rule place       (Arc            (lambda (n) (=p-lookup n (->place n)))))
-    (ag-rule p-lookup    (AtomicPetrinet (lambda (n) (make-symbol-table (=places n) ->name))))
-    (ag-rule t-lookup    (AtomicPetrinet (lambda (n) (make-symbol-table (=transitions n) ->name))))
-    (ag-rule in-lookup   (Transition     (lambda (n) (make-symbol-table (=in-arcs n) ->place))))
-    (ag-rule out-lookup  (Transition     (lambda (n) (make-symbol-table (=out-arcs n) ->place))))
+    (ag-rule
+     p-lookup ; Hashmap of all places of atomic net (symbolic name -> place).
+     (AtomicPetrinet   (lambda (n) (make-symbol-table (=places n) ->name))))
     
-    (ag-rule place       (Port           (lambda (n) (=p-lookup n (->place n)))))
-    (ag-rule inport?     (Place          (lambda (n) (=in-lookup n (->name n)))))
-    (ag-rule outport?    (Place          (lambda (n) (=out-lookup n (->name n)))))
-    (ag-rule in-lookup   (AtomicPetrinet (lambda (n) (make-symbol-table (=ports n) ->place Inport?))))
-    (ag-rule out-lookup  (AtomicPetrinet (lambda (n) (make-symbol-table (=ports n) ->place Outport?))))
+    (ag-rule
+     t-lookup ; Hashmap of all transitions of atomic net (symbolic name -> transition).
+     (AtomicPetrinet   (lambda (n) (make-symbol-table (=transitions n) ->name))))
+    
+    (ag-rule
+     in-lookup ; Hashmap of all ingoing arcs of transition (symbolic name -> arc).
+     (Transition       (lambda (n) (make-symbol-table (=in-arcs n) ->place))))
+    
+    (ag-rule
+     out-lookup ; Hashmap of all outgoing arcs of transition (symbolic name -> arc).
+     (Transition       (lambda (n) (make-symbol-table (=out-arcs n) ->place))))
+    
+    (ag-rule
+     place ; Place arc consumes tokens from or produces into (#f if undefined).
+     (Arc              (lambda (n) (=p-lookup n (->place n)))))
+    
+    (ag-rule
+     in-lookup ; Hashmap of all inports of atomic net (symbolic name -> port).
+     (AtomicPetrinet   (lambda (n) (make-symbol-table (=ports n) ->place Inport?))))
+    
+    (ag-rule
+     out-lookup ; Hashmap of all outports of atomic net (symbolic name -> port).
+     (AtomicPetrinet   (lambda (n) (make-symbol-table (=ports n) ->place Outport?))))
+    
+    (ag-rule
+     place ; Place port exposes (#f if undefined).
+     (Port             (lambda (n) (=p-lookup n (->place n)))))
+    
+    (ag-rule
+     inport? ; Is a place an inport (return the inport if so)?
+     (Place            (lambda (n) (=in-lookup n (->name n)))))
+    
+    (ag-rule
+     outport? ; Is a place an outport (return the outport if so)?
+     (Place            (lambda (n) (=out-lookup n (->name n)))))
     
     ;;; Composition Analysis:
     
-    (ag-rule inport  (Glueing (lambda (n) (let ((net (=find-subnet n (car (->inport n)))))
-                                            (and net (=in-lookup net (cdr (->inport n))))))))
-    (ag-rule outport (Glueing (lambda (n) (let ((net (=find-subnet n (car (->outport n)))))
-                                            (and net (=out-lookup net (cdr (->outport n))))))))
+    (ag-rule
+     inport ; Inport of glueing (#f if undefined).
+     (Glueing          (lambda (n) (let ((s (=find-subnet n (car (->inport n)))))
+                                     (and s (=in-lookup s (cdr (->inport n))))))))
+    
+    (ag-rule
+     outport ; Outport of glueing (#f if undefined).
+     (Glueing          (lambda (n) (let ((s (=find-subnet n (car (->outport n)))))
+                                     (and s (=out-lookup s (cdr (->outport n))))))))
     
     (ag-rule
      glued? ; Is the port glued (return its glueing if so)?
-     (Port           (lambda (n) (=glued? (<- n) n)))
-     (Glueing        (lambda (n p) (or (eq? (=inport n) p) (eq? (=outport n) p))))
-     (AtomicPetrinet (lambda (n p) (and (ast-has-parent? n) (=glued? (<- n) p))))
-     (ComposedNet    (lambda (n p) (or (find (lambda (n) (=glued? n p)) (=glueings n))
-                                       (and (ast-has-parent? n) (=glued? (<- n) p))))))
+     (Port             (lambda (n)   (=glued? (<- n) n)))
+     (Glueing          (lambda (n p) (or  (eq? (=inport n) p)
+                                          (eq? (=outport n) p))))
+     (AtomicPetrinet   (lambda (n p) (and (ast-has-parent? n)
+                                          (=glued? (<- n) p))))
+     (ComposedNet      (lambda (n p) (or  (find (lambda (n) (=glued? n p))
+                                                (=glueings n))
+                                          (and (ast-has-parent? n)
+                                               (=glued? (<- n) p))))))
     
     (ag-rule
-     fused-places
+     fused-places ; List of places a place is fused with.
      (Place
       (lambda (n)
         (let* ((inport? (=inport? n))
@@ -219,51 +278,61 @@
                (glueing?- (and outport? (=glued? outport?)))
                (glued-port?+ (and glueing?+ (=outport glueing?+)))
                (glued-port?- (and glueing?- (=inport glueing?-)))
-               (fused-place?+ (and glued-port?+ (=place glued-port?+)))
-               (fused-place?- (and glued-port?- (=place glued-port?-)))
-               (fused-places+ (if fused-place?+ (=fused-places fused-place?+) (list)))
-               (fused-places- (if fused-place?- (=fused-places fused-place?-) (list))))
-          (set-union (list n) (set-union fused-places+ fused-places-))))
-      (list)
-      (lambda (r1 r2)
+               (fused?+ (and glued-port?+ (=place glued-port?+)))
+               (fused?- (and glued-port?- (=place glued-port?-)))
+               (fused+ (if fused?+ (=fused-places fused?+) (list)))
+               (fused- (if fused?- (=fused-places fused?-) (list))))
+          (set-union (list n) (set-union fused+ fused-))))
+      (list) ; bottom value
+      (lambda (r1 r2) ; equality function
         (= (length r1) (length r2)))))
     
     ;;; Well-formedness Analysis:
     
     (ag-rule
-     valid?
-     (Place              (lambda (n) (and (eq? (=p-lookup n (->name n)) n) ; REDEFINITION: no fusion within atomic nets
-                                          (for-all (lambda (f) (not (eq? (=<-net f) (=<-net n))))
-                                            (remq n (=fused-places n))))))
-     (Transition         (lambda (n) (and (eq? (=t-lookup n (->name n)) n)
-                                          (for-all =valid? (=in-arcs n))
-                                          (for-all =valid? (=out-arcs n)))))
-     ((Transition In)    (lambda (n) (and (=place n) (eq? (=in-lookup n (->place n)) n))))
-     ((Transition Out)   (lambda (n) (and (=place n) (eq? (=out-lookup n (->place n)) n))))
-     (AtomicPetrinet     (lambda (n) (and (for-all =valid? (=places n)) ; REDEFINITION: check ports
-                                          (for-all =valid? (=transitions n))
-                                          (for-all =valid? (=ports n))))))
+     valid? ; Are a Petri net component and its parts well-formed?
+     (Place            (lambda (n) (and (eq? (=p-lookup n (->name n)) n) ; Refine!
+                                        (for-all
+                                            (lambda (f)
+                                              (not (eq? (=<-net f) (=<-net n))))
+                                          (remq n (=fused-places n))))))
+     (Transition       (lambda (n) (and (eq? (=t-lookup n (->name n)) n)
+                                        (for-all =valid? (=in-arcs n))
+                                        (for-all =valid? (=out-arcs n)))))
+     ((Transition In)  (lambda (n) (and (=place n)
+                                        (eq? (=in-lookup n (->place n)) n))))
+     ((Transition Out) (lambda (n) (and (=place n)
+                                        (eq? (=out-lookup n (->place n)) n))))
+     (AtomicPetrinet   (lambda (n) (and (for-all =valid? (=places n)) ; Refine!
+                                        (for-all =valid? (=transitions n))
+                                        (for-all =valid? (=ports n))))))
     
     (ag-rule
-     valid?
-     (Inport             (lambda (n) (and (=place n) (eq? (=in-lookup n (->place n)) n))))
-     (Outport            (lambda (n) (and (=place n) (eq? (=out-lookup n (->place n)) n))))
-     (Glueing            (lambda (n) (let ((in (=inport n)) (out (=outport n)))
-                                       (and in out (eq? (=glued? in) n) (eq? (=glued? out) n)))))
-     (ComposedNet        (lambda (n) (and (=valid? (->Net1 n))
-                                          (=valid? (->Net2 n))
-                                          (for-all =valid? (=glueings n))
-                                          (not
-                                           (let ((names (list)))
-                                             ((=subnet-iter (->Net1 n))
-                                              (lambda (name n) (set! names (cons name names)) #f))
-                                             ((=subnet-iter (->Net2 n))
-                                              (lambda (name n) (memq name names)))))))))
+     valid? ; Complete!
+     (Inport           (lambda (n) (and (=place n)
+                                        (eq? (=in-lookup n (->place n)) n))))
+     (Outport          (lambda (n) (and (=place n)
+                                        (eq? (=out-lookup n (->place n)) n))))
+     (Glueing          (lambda (n) (and (=inport n)
+                                        (=outport n)
+                                        (eq? (=glued? (=inport n)) n)
+                                        (eq? (=glued? (=outport n)) n))))
+     (ComposedNet      (lambda (n) (and (=valid? (->Net1 n))
+                                        (=valid? (->Net2 n))
+                                        (for-all =valid? (=glueings n))
+                                        (not
+                                         (let ((names (list)))
+                                           ((=subnet-iter (->Net1 n))
+                                            (lambda (name n)
+                                              (set! names (cons name names)) #f))
+                                           ((=subnet-iter (->Net2 n))
+                                            (lambda (name n)
+                                              (memq name names)))))))))
     
     ;;; Enabled Analysis:
     
     (ag-rule
-     enabled?
+     enabled? ; Is an arc/transition enabled (if so, return list of tokens it consumes)?
      
      (Arc
       (lambda (n)
@@ -283,6 +352,7 @@
               (if consumed? (cons consumed? result) (abort #f)))
             (list)
             (->consumers n))))))
+     
      ;(set!
      ; consumed
      ; (map find-consumable (->consumers n)))
@@ -308,7 +378,7 @@
           (=in-arcs n))))))
     
     (ag-rule
-     executor
+     executor ; For each transition, function that maps consumed tokens to produced.
      (Transition
       (lambda (n)
         (define producers (map ->consumers (=out-arcs n)))

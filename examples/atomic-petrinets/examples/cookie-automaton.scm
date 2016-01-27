@@ -22,43 +22,40 @@
 
 (define (make-cookie-automaton)
   (petrinet:
-   ((H Box Box Box Box Box Box* Box*)
-    (D Token)
-    (G Token)
-    (E 7)
-    (A) (B) (C) (F))
+   ; Places with start marking:
+   ((H Box Box Box Box Box Box* Box*)           ; H with tokens of two different kind
+    (D Token)                                   ; D with 'Token token
+    (G Token)                                   ; G with 'Token token
+    (E 7)                                       ; E with integer token of value 7
+    (A) (B) (C) (F))                            ; All other places have no tokens.
    
-   (transition:
-    c
-    ((D (token (eq? token Token))))
-    ((A Euro)))
+   ; Transitions:
+   (transition: c
+                ((D (token (eq? token Token)))) ; Consume 'Token token from D.
+                ((A 'Euro)))                    ; Produce 'Euro token in A.
    
-   (transition:
-    e
-    ((A (euro (eq? euro Euro))))
-    ((D Token)))
+   (transition: e
+                ((A (euro (eq? euro Euro))))    ; Consume 'Euro token from A.
+                ((D 'Token)))                   ; Produce 'Token token in D.
    
-   (transition:
-    a
-    ((A (euro (eq? euro Euro)))
-     (E (x (>= x 2)))
-     (G (token (eq? token Token))))
-    ((D Token)
-     (E (- x 2))
-     (F Euro)
-     (B Token)))
+   (transition: a
+                ((A (euro (eq? euro Euro)))     ; Consume 'Euro token from A.
+                 (E (x (>= x 2)))               ; Consume an x >= 2 token from E.
+                 (G (token (eq? token Token)))) ; Consume 'Token token from G.
+                ((D 'Token)                     ; Produce 'Token token in D.
+                 (E (- x 2))                    ; Put x decremented by two in E.
+                 (F 'Euro)                      ; Produce 'Euro token in F.
+                 (B 'Token)))                   ; Produce 'Token token in B.
    
-   (transition:
-    b
-    ((B (token (eq? token Token)))
-     (H (y #t) (z #t)))
-    ((G Token)
-     (C y z)))
+   (transition: b
+                ((B (token (eq? token Token)))  ; Consume 'Euro token from B.
+                 (H (y #t) (z #t)))             ; Consume two arbitrary tokens from H.
+                ((G 'Token)                     ; Produce 'Token token in G.
+                 (C y z)))                      ; Put tokens consumed from H in C.
    
-   (transition:
-    d
-    ((C (y #t)))
-    ())))
+   (transition: d
+                ((C (y #t)))                    ; Consume arbitrary token from C.
+                ())))                           ; d is cold-transition: produce nothing.									; d is cold-transition. It produces nothing.)
 
 (define (run-tests)
   ; Test fixture: Transition b nondeterministicly selects boxes from H!

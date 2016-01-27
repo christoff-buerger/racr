@@ -19,7 +19,7 @@
  
  ;;; Syntax:
  
- (define-syntax petrinet: ; REDEFINITION: add name & ports
+ (define-syntax petrinet: ; Refine!
    (syntax-rules ()
      ((_ name (inport ...) (outport ...)
          ((place start-marking ...) ...)
@@ -50,7 +50,7 @@
  
  ;;; Execution:
  
- (define (run-petrinet! petrinet) ; REDEFINITION: consider subnets
+ (define (run-petrinet! petrinet) ; Refine!
    (unless (=valid? petrinet)
      (ap:exception: "Cannot run Petri Net; The given net is not well-formed."))
    (let ((enabled? ((=subnet-iter petrinet) (lambda (name n) (find =enabled? (=transitions n))))))
@@ -60,7 +60,7 @@
  
  ;;; REPL Interpreter:
  
- (define (interpret-petrinet! net) ; REDEFINITION: consider subnets
+ (define (interpret-petrinet! net) ; Refine!
    (unless (=valid? net)
      (ap:exception: "Cannot interpret Petri Net; The given net is not well-formed."))
    (when
@@ -72,15 +72,15 @@
  
  ;;; Testing:
 
- (define (assert-marking net . marking) ; REDEFINITION: consider subnets
+ (define (assert-marking net . marking) ; Refine!
    (for-each (lambda (m) (ap:assert-marking (=find-subnet net (car m)) (cdr m))) marking))
 
- (define (assert-enabled net . enabled) ; REDEFINITION: consider subnets
+ (define (assert-enabled net . enabled) ; Refine!
    (for-each (lambda (e) (ap:assert-enabled (=find-subnet net (car e)) (cdr e))) enabled))
  
  ;;; Initialisation:
  
- (define (initialise-petrinet-language) ; REDEFINITION: initialise composed Petri net language
+ (define (initialise-petrinet-language) ; Refine!
    (when (= (specification->phase pn) 1)
      (specify-analyses)
      (compile-ag-specifications pn))))
