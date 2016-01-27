@@ -10,11 +10,11 @@
  (export profiling-net profile)
  (import (rnrs) (racr core) (racr testing) (atomic-petrinets analyses) (atomic-petrinets user-interface))
  
- (define (make-profiling-net $transitions $influenced $local-places $tokens)
+ (define (make-profiling-net $transitions $influenced $local-places $local-tokens)
    (define (make-name . i)
      (string->symbol (apply string-append "n" (map number->string (map - i)))))
    (define (make-local-tokens)
-     (let loop ((i $tokens))
+     (let loop ((i $local-tokens))
        (if (<= i 0) (list (:Token #t)) (cons (:Token #f) (loop (- i 1))))))
    (define (make-control-tokens index)
      (let loop ((i (- $influenced 1 index)))
