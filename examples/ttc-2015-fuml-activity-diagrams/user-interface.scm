@@ -9,10 +9,10 @@
  (ttc-2015-fuml-activity-diagrams user-interface)
  (export run-activity-diagram)
  (import (rnrs) (racr core) (racr testing)
-         (ttc-2015-fuml-activity-diagrams language)
-         (ttc-2015-fuml-activity-diagrams parser)
          (prefix (atomic-petrinets analyses) pn:)
-         (prefix (atomic-petrinets user-interface) pn:))
+         (prefix (atomic-petrinets user-interface) pn:)
+         (ttc-2015-fuml-activity-diagrams language)
+         (ttc-2015-fuml-activity-diagrams parser))
  
  (define (run-activity-diagram diagram-file input-file mode) ; Execute diagram & print trace.
    (define activity (parse-diagram diagram-file))

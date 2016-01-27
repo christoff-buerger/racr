@@ -7,16 +7,20 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams language)
- (export exception: trace Boolean Integer Undefined && //
-         :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
+ (export :Activity :Variable :ActivityEdge :ControlFlow :InitialNode :FinalNode :ForkNode
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
          ->name ->initial ->source ->target
-         =variables =edges =v-lookup =e-lookup =initial =valid? =v-accessor =petrinet)
+         =variables =edges =v-lookup =e-lookup =initial =valid? =v-accessor =petrinet
+         Boolean Integer Undefined && // trace exception:)
  (import (rnrs) (racr core) (prefix (atomic-petrinets analyses) pn:))
  
  (define spec                 (create-specification))
  
  ; AST Accessors:
+ (define (->Variable* n)      (ast-child 'Variable* n))
+ (define (->ActivityNode* n)  (ast-child 'ActivityNode* n))
+ (define (->ActivityEdge* n)  (ast-child 'ActivityEdge* n))
+ (define (->Expression* n)    (ast-child 'Expression* n))
  (define (->name n)           (ast-child 'name n))
  (define (->type n)           (ast-child 'type n))
  (define (->initial n)        (ast-child 'initial n))
@@ -27,6 +31,7 @@
  (define (->operator n)       (ast-child 'operator n))
  (define (->operand1 n)       (ast-child 'operand1 n))
  (define (->operand2 n)       (ast-child 'operand2 n))
+ (define (->* n)              (ast-children n))
  (define (<- n)               (ast-parent n))
  
  ; Attribute Accessors:
@@ -98,6 +103,7 @@
  
  (with-specification
   spec
+  
   (ast-rule 'Activity->name-Variable*-ActivityNode*-ActivityEdge*)
   (ast-rule 'Variable->name-type-initial)
   (ast-rule 'ActivityEdge->name-source-target)
@@ -113,16 +119,29 @@
   (ast-rule 'Expression->assignee-operator)
   (ast-rule 'UnaryExpression:Expression->operand1)
   (ast-rule 'BinaryExpression:Expression->operand1-operand2)
+  
   (compile-ast-specifications 'Activity))
  
  ;;; Query Support:
  
- (with-specification ; For each list type cache its elements (list of variables, nodes, edges,...).
+ (with-specification
   spec
-  (ag-rule variables   (Activity       (lambda (n) (ast-children (ast-child 'Variable* n)))))
-  (ag-rule nodes       (Activity       (lambda (n) (ast-children (ast-child 'ActivityNode* n)))))
-  (ag-rule edges       (Activity       (lambda (n) (ast-children (ast-child 'ActivityEdge* n)))))
-  (ag-rule expressions (ExecutableNode (lambda (n) (ast-children (ast-child 'Expression* n))))))
+
+  (ag-rule
+   variables ; List of variables of diagram.
+   (Activity       (lambda (n) (->* (->Variable* n)))))
+  
+  (ag-rule
+   nodes ; List of activity nodes of diagram.
+   (Activity       (lambda (n) (->* (->ActivityNode* n)))))
+
+  (ag-rule
+   edges ; List of activity edges of diagram.
+   (Activity       (lambda (n) (->* (->ActivityEdge* n)))))
+
+  (ag-rule
+   expressions ; List of expressions of executable activity node.
+   (ExecutableNode (lambda (n) (->* (->Expression* n))))))
  
  ;;; Name Analysis:
  
@@ -134,31 +153,44 @@
     (for-each (lambda (n) (hashtable-set! table (-> n) n)) l)
     table)
   
-  (define (make-connection-table -> l) ; Hash ALL entities of a list (equally keyed in same set).
+  (define (make-connection-table -> l) ; Hash all entities of a list (equally keyed in same set).
     (define table (make-eq-hashtable))
     (for-each (lambda (n) (hashtable-update! table (-> n) (lambda (v) (cons n v)) (list))) l)
     table)
   
-  ; Hashmaps of variables, nodes & edges and source and target nodes of edges:
-  (ag-rule v-lookup (Activity     (lambda (n) (make-symbol-table ->name (=variables n)))))
-  (ag-rule n-lookup (Activity     (lambda (n) (make-symbol-table ->name (=nodes n)))))
-  (ag-rule e-lookup (Activity     (lambda (n) (make-symbol-table ->name (=edges n)))))
-  (ag-rule source   (ActivityEdge (lambda (n) (=n-lookup n (->source n)))))
-  (ag-rule target   (ActivityEdge (lambda (n) (=n-lookup n (->target n)))))
+  (ag-rule
+   v-lookup ; Hashmap of all variables of diagram (symbolic name -> variable).
+   (Activity       (lambda (n) (make-symbol-table ->name (=variables n)))))
+
+  (ag-rule
+   n-lookup ; Hashmap of all activity nodes of diagram (symbolic name -> node).
+   (Activity       (lambda (n) (make-symbol-table ->name (=nodes n)))))
+
+  (ag-rule
+   e-lookup ; Hashmap of all activity edges of diagram (symbolic name -> edge).
+   (Activity       (lambda (n) (make-symbol-table ->name (=edges n)))))
+
+  (ag-rule
+   source ; Source-node of activity edge (#f if undefined).
+   (ActivityEdge   (lambda (n) (=n-lookup n (->source n)))))
+
+  (ag-rule
+   target ; Target-node of activity edge (#f if undefined).
+   (ActivityEdge   (lambda (n) (=n-lookup n (->target n)))))
   
   (ag-rule
    incoming ; List of incoming edges of a node.
-   (Activity     (lambda (n) (make-connection-table ->target (=edges n))))
-   (ActivityNode (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
+   (Activity       (lambda (n) (make-connection-table ->target (=edges n))))
+   (ActivityNode   (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
   
   (ag-rule
    outgoing ; List of outgoing edges of a node.
-   (Activity     (lambda (n) (make-connection-table ->source (=edges n))))
-   (ActivityNode (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
+   (Activity       (lambda (n) (make-connection-table ->source (=edges n))))
+   (ActivityNode   (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
   
   (ag-rule
    initial ; The diagram's initial node.
-   (Activity     (lambda (n) (find (lambda (n) (ast-subtype? n 'InitialNode)) (=nodes n))))))
+   (Activity       (lambda (n) (find (lambda (n) (ast-subtype? n 'InitialNode)) (=nodes n))))))
  
  ;;; Type Analysis:
  
