@@ -13,7 +13,7 @@
          ->name ->value ->place ->consumers ->* <-
          =places =transitions =in-arcs =out-arcs
          =p-lookup =t-lookup =in-lookup =out-lookup =place =valid? =enabled? =executor)
- (import (rnrs) (racr core))
+ (import (rnrs) (rnrs mutable-pairs) (racr core))
  
  (define pn                   (create-specification))
  
@@ -137,46 +137,27 @@
      
      (Arc
       (lambda (n)
-        (define consumed (list))
-        (define (find-consumable f)
-          (ast-find-child
-           (lambda (i n)
-             (let ((enabled? (and (not (memq n consumed)) (f (->value n)) n)))
-               (when enabled? (set! consumed (cons n consumed)))
-               enabled?))
-           (->Token* (=place n))))
-        (call/cc
-         (lambda (abort)
-           (fold-left
-            (lambda (result f)
-              (define consumed? (find-consumable f))
-              (if consumed? (cons consumed? result) (abort #f)))
-            (list)
-            (->consumers n))))))
-     
-     ;(set!
-     ; consumed
-     ; (map find-consumable (->consumers n)))
-     ;(and (for-all (lambda (x) x) consumed) consumed)))
+        (define consumers (map (lambda (f) (cons #t f)) (->consumers n)))
+        (ast-find-child*
+         (lambda (i n)
+           (define consumer?
+             (find (lambda (c) (and (car c) ((cdr c) (->value n)))) consumers))
+           (when consumer?
+             (set-car! consumer? #f)
+             (set-cdr! consumer? n))
+           (and (not (find car consumers)) (map cdr consumers)))
+         (->Token* (=place n)))))
      
      (Transition
       (lambda (n)
-        ;(define result (list))
-        ;(and
-        ; (not
-        ;  (ast-find-child
-        ;   (lambda (i n)
-        ;     (let ((enabled? (=enabled? n)))
-        ;       (and enabled? (begin (set! result (append result enabled?)) #f))))
-        ;   (->In n)))
-        ; result)
-        (and
-         (not (ast-find-child (lambda (i n) (not (=enabled? n))) (->In n)))
-         (fold-left
-          (lambda (result n)
-            (append result (=enabled? n)))
-          (list)
-          (=in-arcs n))))))
+        (call/cc
+         (lambda (abort)
+           (fold-left
+            (lambda (result n)
+              (define enabled? (=enabled? n))
+              (if enabled? (append result enabled?) (abort #f)))
+            (list)
+            (=in-arcs n)))))))
     
     (ag-rule
      executor ; For each transition, function that maps consumed tokens to produced.
