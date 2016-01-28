@@ -127,8 +127,7 @@
    (define t-enabled (map (lambda (t) (=t-lookup net t)) enabled))
    (define t-!enabled (filter (lambda (t) (not (memq t t-enabled))) (=transitions net)))
    (assert (for-all =enabled? t-enabled))
-   (assert (for-all (lambda (t) (not (=enabled? t))) t-!enabled))
-   (assert-exception petrinets-exception? (for-all fire-transition! t-!enabled)))
+   (assert (for-all (lambda (t) (not (=enabled? t))) t-!enabled)))
  
  ;;; Initialisation:
  
