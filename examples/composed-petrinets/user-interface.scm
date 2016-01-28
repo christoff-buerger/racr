@@ -7,11 +7,10 @@
 
 (library
  (composed-petrinets user-interface)
- (export initialise-petrinet-language petrinet: compose-petrinets:
+ (export initialise-petrinet-language petrinet: transition: compose-petrinets:
          run-petrinet! interpret-petrinet!
          assert-marking assert-enabled
-         (rename (ap:transition: transition:)
-                 (ap:exception: exception:)
+         (rename (ap:exception: exception:)
                  (ap:fire-transition! fire-transition!)
                  (ap:petrinets-exception? petrinets-exception?)))
  (import (rnrs) (racr core) (prefix (atomic-petrinets user-interface) ap:)
@@ -35,6 +34,22 @@
         (unless (=valid? net)
           (ap:exception: "Cannot construct Petri net; The net is not well-formed."))
         net))))
+ 
+ (define-syntax transition: ; Refine!
+   (syntax-rules ()
+     ((_ name
+         ((input-place (variable matching-condition) ...) ...)
+         ((output-place to-produce ...) ...))
+      (:Transition
+       'name
+       (list (:Arc ; Construct composed-petrinets arc!
+              'input-place
+              (list (lambda (variable) matching-condition) ...))
+             ...)
+       (list (:Arc ; Construct composed-petrinets arc!
+              'output-place
+              (lambda (variable ... ...) (list to-produce ...)))
+             ...)))))
  
  (define-syntax compose-petrinets:
    (syntax-rules ()
@@ -71,12 +86,12 @@
      (interpret-petrinet! net)))
  
  ;;; Testing:
-
+ 
  (define (assert-marking net . marking) ; Refine!
-   (for-each (lambda (m) (ap:assert-marking (=find-subnet net (car m)) (cdr m))) marking))
-
+   (for-each (lambda (m) (apply ap:assert-marking (=find-subnet net (car m)) (cdr m))) marking))
+ 
  (define (assert-enabled net . enabled) ; Refine!
-   (for-each (lambda (e) (ap:assert-enabled (=find-subnet net (car e)) (cdr e))) enabled))
+   (for-each (lambda (e) (apply ap:assert-enabled (=find-subnet net (car e)) (cdr e))) enabled))
  
  ;;; Initialisation:
  
