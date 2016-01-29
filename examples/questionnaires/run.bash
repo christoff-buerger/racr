@@ -5,8 +5,11 @@
 
 # author: C. Bürger
 
-# Function always called when the script terminates:
+############################################################################### Configure temporary resources & execution script:
+old_pwd=`pwd`
+
 my_exit(){
+	cd "$old_pwd"
 	rm script.scm
 	exit 0
 }
@@ -16,5 +19,6 @@ echo "#!r6rs" > script.scm
 echo "(import (questionnaires language))" >> script.scm
 echo "(load-questionnaire)" >> script.scm
 
-racket -S ../../racr/racket-bin -S racket-bin script.scm #plt-r6rs ++path ../../racr/racket-bin ++path racket-bin script.scm
+######################################################################################################### Execute questionnaires:
+../../run-program.bash -s racket -e script.scm
 my_exit

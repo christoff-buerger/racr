@@ -162,8 +162,8 @@ do
 	end_run
 done
 
-# Test Petri nets example:
-cd $old_pwd/examples/petrinets/examples
+# Test composed Petri nets example:
+cd $old_pwd/examples/composed-petrinets/examples
 for f in *.scm
 do
 	begin_run $f

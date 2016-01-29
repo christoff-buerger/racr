@@ -9,12 +9,12 @@
 while getopts s:d:i:m: opt
 do
 	case $opt in
-		s)	system="$OPTARG";;
+		s)	selected_system="$OPTARG";;
 		d)	diagram="$OPTARG";;
 		i)	input="$OPTARG";;
 		m)	mode="$OPTARG";;
 		?)
-			echo "Usage: -s Scheme system (racket, guile, larceny, petite))"
+			echo "Usage: -s Scheme system (by default larceny)"
 			echo "       -d Activity diagram"
 			echo "       -i Activity diagram input"
 			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness"
@@ -24,19 +24,22 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ -z "$system" ]
+if [ -z "$selected_system" ]
 then
-	system="larceny"
+	selected_system="larceny"
 fi
+
 if [ -z "$diagram" ]
 then
 	echo " !!! ERROR: No activity diagram to interpret given !!!" >&2
 	exit 2
 fi
+
 if [ -z "$input" ]
 then
 	input=":false:"
 fi
+
 if [ -z "$mode" ]
 then
 	mode=5
@@ -66,26 +69,5 @@ echo '(set! mode (string->number mode))' >> script.scm
 echo "(run-activity-diagram diagram input mode)" >> script.scm
 
 ####################################################################################################### Execute activity diagram:
-case "$system" in
-larceny)
-	larceny --r6rs --path "../../racr/larceny-bin:../atomic-petrinets/larceny-bin:larceny-bin" \
-		--program script.scm -- $diagram $input $mode;;
-racket)
-	#plt-r6rs ++path "../../racr/racket-bin" ++path "../atomic-petrinets/racket-bin" ++path "racket-bin" \
-	#	script.scm $diagram $input $mode;;
-	racket --search "../../racr/racket-bin" --search "../atomic-petrinets/racket-bin" --search "racket-bin" \
-		script.scm $diagram $input $mode;;
-guile)
-	guile --no-auto-compile -L "../../racr/guile-bin" -C "../../racr/guile-bin" \
-		-L "../atomic-petrinets/guile-bin" -C "../atomic-petrinets/guile-bin" \
-		-L "guile-bin" -C "guile-bin" \
-		-s script.scm $diagram $input $mode;;
-petite)
-	petite --libdirs "../..:.." \
-		--program script.scm $diagram $input $mode;;
-*)
-	echo " !!! ERROR: Unknown Scheme system [$system] !!!"	
-	my_exit;;
-esac
-
+../../run-program.bash -s "$selected_system" -e script.scm "$diagram" "$input" "$mode"
 my_exit
