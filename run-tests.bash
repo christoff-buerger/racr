@@ -6,13 +6,14 @@
 # author: C. Bürger
 
 ################################################################################################################ Parse arguments:
-supported_systems=( racket guile larceny petite )
+known_systems=( racket guile larceny petite )
 selected_systems=()
+
 while getopts s: opt
 do
 	case $opt in
 		s)
-			if [[ " ${supported_systems[@]} " =~ " ${OPTARG} " ]]
+			if [[ " ${known_systems[@]} " =~ " ${OPTARG} " ]]
 			then
 				if which "${OPTARG}" > /dev/null
 				then
@@ -26,7 +27,8 @@ do
 				exit 2
 			fi;;
 		?)
-			echo "Usage: -s Scheme system (${supported_systems[@]})"
+			echo "Usage: -s Scheme system (${known_systems[@]})" >&2
+			echo "          Several systems can be set. If no system is selected, all supported are tested." >&2
 			exit 2
 	esac
 done
@@ -34,7 +36,7 @@ shift $(( OPTIND - 1 ))
 
 if [ -z "$selected_systems" ]
 then
-	for s in ${supported_systems[@]}
+	for s in ${known_systems[@]}
 	do
 		if which "$s" > /dev/null
 		then

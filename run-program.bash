@@ -48,7 +48,7 @@ do
 			if [ -z ${libary_to_use+x} ]
 			then
 				libary_to_use="$OPTARG"
-				if [ ! -f "$libary_to_use"/dependencies.txt ]
+				if [ ! -f "$libary_to_use/dependencies.txt" ]
 				then
 					echo " !!! ERROR: [$library_to_use] is not a RACR library directory !!!" >&2
 					exit 2
@@ -59,10 +59,10 @@ do
 				exit 2
 			fi;;
 		?)
-			echo "Usage: -s Scheme system (${known_systems[@]})" >&2
-			echo "       -e Scheme program to execute" >&2
+			echo "Usage: -s Scheme system (${known_systems[@]})." >&2
+			echo "       -e Scheme program to execute." >&2
 			echo "       -c RACR library to use (implicitly set if the program" >&2
-			echo "          to execute is in a RACR library directory) " >&2
+			echo "          to execute is in a RACR library directory)." >&2
 			exit 2
 	esac
 done
@@ -82,10 +82,10 @@ fi
 
 if [ -z ${libary_to_use+x} ]
 then
-	required_libraries=( "$script_dir"/racr )
+	required_libraries=( "$script_dir/racr" )
 else
 	configuration_to_parse="$libary_to_use/dependencies.txt"
-	. "$script_dir"/parse-configuration.bash # Sourced script sets configuration!
+	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
 	then
 		echo "!!! ERROR: Selected Scheme system is not supported by the program !!!" >&2
