@@ -6,19 +6,18 @@
 # author: C. Bürger
 
 ############################################################################### Configure temporary resources & execution script:
-old_pwd=`pwd`
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 my_exit(){
-	cd "$old_pwd"
-	rm script.scm
+	rm "$script_dir/start-script.scm"
 	exit 0
 }
 trap 'my_exit' 1 2 3 9 15
 
-echo "#!r6rs" > script.scm
-echo "(import (questionnaires language))" >> script.scm
-echo "(load-questionnaire)" >> script.scm
+echo "#!r6rs" > "$script_dir/start-script.scm"
+echo "(import (questionnaires language))" >> "$script_dir/start-script.scm"
+echo "(load-questionnaire)" >> "$script_dir/start-script.scm"
 
 ######################################################################################################### Execute questionnaires:
-../../run-program.bash -s racket -e script.scm
+"$script_dir/../../run-program.bash" -s racket -e "$script_dir/start-script.scm"
 my_exit

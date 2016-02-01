@@ -36,9 +36,9 @@ do
 			if [ -z ${to_execute+x} ]
 			then
 				to_execute="$OPTARG"
-				if [ -f "`dirname '$to_execute'`/dependencies.txt" ]
+				if [ -f `dirname "$to_execute"`/dependencies.txt ]
 				then
-					libary_to_use="`dirname '$to_execute'`"
+					library_to_use=`dirname "$to_execute"`
 				fi
 			else
 				echo " !!! ERROR: Several programs to execute specified via -e flag !!!" >&2
@@ -80,11 +80,11 @@ then
 	exit 2
 fi
 
-if [ -z ${libary_to_use+x} ]
+if [ -z ${library_to_use+x} ]
 then
 	required_libraries=( "$script_dir/racr" )
 else
-	configuration_to_parse="$libary_to_use/dependencies.txt"
+	configuration_to_parse="$library_to_use/dependencies.txt"
 	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
 	then
