@@ -14,8 +14,9 @@
          (ttc-2015-fuml-activity-diagrams language)
          (ttc-2015-fuml-activity-diagrams parser))
  
- (define (run-activity-diagram diagram-file input-file mode) ; Execute diagram & print trace.
+ (define (run-activity-diagram diagram-file input-file mode print-trace?) ; Execute diagram.
    (define activity (parse-diagram diagram-file))
+   (if print-trace? (activate-tracing) (deactivate-tracing))
    (when input-file
      (for-each
       (lambda (n)

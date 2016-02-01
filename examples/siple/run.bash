@@ -38,13 +38,21 @@ do
 		?)
 			echo "Usage: -s Scheme system (by default larceny)." >&2
 			echo "       -e SiPLE program to interpret." >&2
-			echo "       -x The executed program is not a valid SiPLE program; expect runtime errors." >&2
-			echo "          Throw an error, if no runtime error is encountered throughout interpretation." >&2
-			echo "          By default, the -x flag is not set; a correct SiPLE program is expected." >&2
+			echo "       -x Specifies, that the executed program is not a valid SiPLE program and runtime" >&2
+			echo "          errors are expected. If no runtime error is encountered throughout interpretation," >&2
+			echo "          an error message is printed on stderr." >&2
+			echo "          By default, a correct SiPLE program is expected." >&2
 			exit 2
 	esac
 done
 shift $(( OPTIND - 1 ))
+
+if [ -z ${execute_incorrect+x} ]
+then
+	start_script="$script_dir/run-correct.scm"
+else
+	start_script="$script_dir/run-incorrect.scm"
+fi
 
 if [ -z ${selected_system+x} ]
 then
@@ -57,24 +65,5 @@ then
 	exit 2
 fi
 
-############################################################################### Configure temporary resources & execution script:
-my_exit(){
-	rm "$script_dir/start-script.scm"
-	exit 0
-}
-trap 'my_exit' 1 2 3 9 15
-
-if [ -z ${execute_incorrect+x} ]
-then
-	echo "#!r6rs" > "$script_dir/start-script.scm"
-	echo "(import (rnrs) (siple main))" >> "$script_dir/start-script.scm"
-	echo "(siple-interpret (cadr (command-line)))" >> "$script_dir/start-script.scm"
-else
-	echo "#!r6rs" > "$script_dir/start-script.scm"
-	echo "(import (rnrs) (siple main) (siple exception-api) (racr testing))" >> "$script_dir/start-script.scm"
-	echo "(assert-exception siple-exception? (siple-interpret (cadr (command-line))))" >> "$script_dir/start-script.scm"
-fi
-
 ########################################################################################################## Execute SiPLE program:
-"$script_dir/../../run-program.bash" -s "$selected_system" -e "$script_dir/start-script.scm" "$program"
-my_exit
+"$script_dir/../../run-program.bash" -s "$selected_system" -e "$start_script" "$program"

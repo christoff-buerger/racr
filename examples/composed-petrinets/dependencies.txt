@@ -1,3 +1,7 @@
+@systems:
+racket
+larceny
+petite
 @libraries:
 ../../racr
 ../atomic-petrinets

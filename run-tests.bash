@@ -6,6 +6,7 @@
 # author: C. Bürger
 
 ################################################################################################################ Parse arguments:
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 known_systems=( racket guile larceny petite )
 selected_systems=()
 
@@ -19,7 +20,7 @@ do
 				then
 					selected_systems+=( "$OPTARG" )
 				else
-					echo " !!! ERROR: [$OPTARG] not installed !!!" >&2
+					echo " !!! ERROR: Scheme system [$OPTARG] not installed !!!" >&2
 					exit 2
 				fi
 			else
@@ -50,72 +51,29 @@ then
 	fi
 fi
 
-old_pwd=`pwd`
-
-##################################################################################################### Define execution functions:
-begin_run(){
-	echo `pwd`/$1
-}
-
-racket_run(){
-	if [[ " ${selected_systems[@]} " =~ "racket" ]]
+###################################################################################################### Define execution function:
+run(){
+	program="$1"
+	library="$2"
+	shift
+	shift
+	args=`if [ -z "$library" ]; then echo $*; else echo -l "$library" $*; fi`
+	echo "$program" $*
+	if [ -z "$library" ]
 	then
-		printf " Racket"
-		if [ "$1" == "" ]
-		then
-			libs="++path $old_pwd/racr/racket-bin"
-		else
-			libs="++path $old_pwd/racr/racket-bin ++path $1"
-		fi
-		plt-r6rs $libs $2
+		supported_systems=${selected_systems[@]}
+	else
+		configuration_to_parse="$library/dependencies.txt"
+		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	fi
-}
-
-guile_run(){
-	if [[ " ${selected_systems[@]} " =~ "guile" ]]
-	then
-		printf " Guile"
-		if [ "$1" == "" ]
+	for s in ${selected_systems[@]}
+	do
+		if [[ " ${supported_systems[@]} " =~ "$s" ]]
 		then
-			llibs="-L $old_pwd/racr/guile-bin"
-			clibs="-C $old_pwd/racr/guile-bin"
-		else
-			llibs="-L $old_pwd/racr/guile-bin -L $1"
-			clibs="-C $old_pwd/racr/guile-bin -C $1"
+			printf " $s"
+			"$script_dir/run-program.bash" -s "$s" -e "$program" $args
 		fi
-		guile --no-auto-compile $llibs $clibs -s $2
-	fi
-}
-
-larceny_run(){
-	if [[ " ${selected_systems[@]} " =~ "larceny" ]]
-	then
-		printf " Larceny"
-		if [ "$1" == "" ]
-		then
-			libs="--path $old_pwd/racr/larceny-bin"
-		else
-			libs="--path $old_pwd/racr/larceny-bin:$1"
-		fi
-		larceny --r6rs $libs --program $2
-	fi
-}
-
-petite_run(){
-	if [[ " ${selected_systems[@]} " =~ "petite" ]]
-	then
-		printf " Petite"
-		if [ "$1" == "" ]
-		then
-			libs="--libdirs $old_pwd"
-		else
-			libs="--libdirs $old_pwd:$1"
-		fi
-		petite $libs --program $2
-	fi
-}
-
-end_run(){
+	done
 	echo ""
 }
 
@@ -123,102 +81,68 @@ end_run(){
 echo "=========================================>>> Run Tests:"
 
 # Test basic API:
-cd $old_pwd/tests
-for f in *.scm
+for f in "$script_dir"/tests/*.scm
 do
-	begin_run $f
-	racket_run "" $f
-	guile_run "" $f
-	larceny_run "" $f
-	petite_run "" $f
-	end_run
+	run "$f" ""
 done
 
 # Test binary numbers example:
-cd $old_pwd/examples/binary-numbers
-begin_run binary-numbers.scm
-racket_run "" binary-numbers.scm
-guile_run "" binary-numbers.scm
-larceny_run "" binary-numbers.scm
-petite_run "" binary-numbers.scm
-end_run
+run "$script_dir/examples/binary-numbers/binary-numbers.scm" ""
 
 # Test state machines example:
-cd $old_pwd/examples/state-machines
-begin_run state-machines.scm
-racket_run "" state-machines.scm
-guile_run "" state-machines.scm
-larceny_run "" state-machines.scm
-petite_run "" state-machines.scm
-end_run
+run "$script_dir/examples/state-machines/state-machines.scm" ""
 
 # Test atomic Petri nets example:
-cd $old_pwd/examples/atomic-petrinets/examples
-for f in *.scm
+for f in "$script_dir"/examples/atomic-petrinets/examples/*.scm
 do
-	begin_run $f
-	racket_run "./../racket-bin" $f
-	guile_run "./../guile-bin" $f
-	larceny_run "./../larceny-bin" $f
-	petite_run "./../.." $f
-	end_run
+	run "$f" "$script_dir/examples/atomic-petrinets"
 done
 
-# Test composed Petri nets example:
-cd $old_pwd/examples/composed-petrinets/examples
-for f in *.scm
+# Test composed Petri nets example (Guile is excluded because of issue #37):
+for f in "$script_dir"/examples/composed-petrinets/examples/*.scm
 do
-	begin_run $f
-	racket_run "./../racket-bin" $f
-	#guile_run "./../guile-bin" $f # Disabled because of issue 37.
-	larceny_run "./../larceny-bin" $f
-	petite_run "./../.." $f
-	end_run
+	run "$f" "$script_dir/examples/composed-petrinets"
+done
+
+# Test fUML Activity Diagrams example:
+for f in "$script_dir"/examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/*.ad
+do
+	input=${f%.ad}.adinput
+	if [ ! -f "$input" ]
+	then
+		input=":false:"
+	fi
+	run "$script_dir/examples/ttc-2015-fuml-activity-diagrams/run.scm" "" "$f" "$input" 5 ":false:"
 done
 
 # Test SiPLE example:
-cd $old_pwd/examples/siple/examples/correct
-for f in *.siple
+for f in "$script_dir"/examples/siple/examples/correct/*.siple
 do
-	begin_run $f
-	racket_run "./../../racket-bin" "./../run-correct.scm $f"
-	guile_run "./../../guile-bin" "./../run-correct.scm $f"
-	larceny_run "./../../larceny-bin" "./../run-correct.scm -- $f"
-	petite_run "./../../.." "./../run-correct.scm $f"
-	end_run
+	run "$script_dir/examples/siple/run-correct.scm" "" "$f"
 done
-cd $old_pwd/examples/siple/examples/incorrect
-for f in *.siple
+for f in "$script_dir"/examples/siple/examples/incorrect/*.siple
 do
-	begin_run $f
-	racket_run "./../../racket-bin" "./../run-incorrect.scm $f"
-	guile_run "./../../guile-bin" "./../run-incorrect.scm $f"
-	larceny_run "./../../larceny-bin" "./../run-incorrect.scm -- $f"
-	petite_run "./../../.." "./../run-incorrect.scm $f"
-	end_run
+	run "$script_dir/examples/siple/run-incorrect.scm" "" "$f"
 done
 
 # Test Tiny C++ example:
-cd $old_pwd/profiling/tinycpp/examples
 if [[ " ${selected_systems[@]} " =~ "racket" ]]
 then
 	echo "Tiny C++ Racket:"
-	./run-examples.bash Racket
+	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Racket
 fi
 if [[ " ${selected_systems[@]} " =~ "guile" ]]
 then
 	echo "Tiny C++ Guile:"
-	./run-examples.bash Guile
+	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Guile
 fi
 if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 then
 	echo "Tiny C++ Larceny:"
-	./run-examples.bash Larceny
+	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Larceny
 fi
 if [[ " ${selected_systems[@]} " =~ "petite" ]]
 then
 	echo "Tiny C++ Petite Chez Scheme:"
-	./run-examples.bash Petite
+	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Petite
 fi
-
-cd $old_pwd

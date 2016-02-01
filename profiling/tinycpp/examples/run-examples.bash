@@ -5,7 +5,7 @@
 
 # author: C. Bürger
 
-old_pwd=`pwd`
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if (( $# < 1 ))
 then
@@ -18,39 +18,39 @@ fi
 run(){
 	case $2 in
 	succeed)
-		scheme_script=$old_pwd/../compile-correct.scm
+		scheme_script=$script_dir/../compile-correct.scm
 		java_option="";;
 	fail)
-		scheme_script=$old_pwd/../compile-incorrect.scm
+		scheme_script=$script_dir/../compile-incorrect.scm
 		java_option="-v";;
 	esac
 	case $1 in
 	Larceny)
-		larceny --r6rs --path "$old_pwd/../tinycpp-racr/larceny-bin:$old_pwd/../../../racr/larceny-bin" \
+		larceny --r6rs --path "$script_dir/../tinycpp-racr/larceny-bin:$script_dir/../../../racr/larceny-bin" \
 			--program $scheme_script -- $3;;
 	Petite)
-		petite --libdirs "$old_pwd/..:$old_pwd/../../.." \
+		petite --libdirs "$script_dir/..:$script_dir/../../.." \
 			--program $scheme_script $3;;
 	Racket)
-		plt-r6rs ++path "$old_pwd/../tinycpp-racr/racket-bin" ++path "$old_pwd/../../../racr/racket-bin" \
+		plt-r6rs ++path "$script_dir/../tinycpp-racr/racket-bin" ++path "$script_dir/../../../racr/racket-bin" \
 			$scheme_script $3;;
 	Guile)
-		guile --no-auto-compile -L "$old_pwd/../tinycpp-racr/guile-bin" -C "$old_pwd/../tinycpp-racr/guile-bin" \
-			-L "$old_pwd/../../../racr/guile-bin" -C "$old_pwd/../../../racr/guile-bin" \
+		guile --no-auto-compile -L "$script_dir/../tinycpp-racr/guile-bin" -C "$script_dir/../tinycpp-racr/guile-bin" \
+			-L "$script_dir/../../../racr/guile-bin" -C "$script_dir/../../../racr/guile-bin" \
 			-s $scheme_script $3;;
 	Java_d)
-		java -jar $old_pwd/../tinycpp-jastadd/tinycpp-declarative.jar $java_option $3;;
+		java -jar $script_dir/../tinycpp-jastadd/tinycpp-declarative.jar $java_option $3;;
 	Java_i)
-		java -jar $old_pwd/../tinycpp-jastadd/tinycpp-iterative.jar $java_option $3;;
+		java -jar $script_dir/../tinycpp-jastadd/tinycpp-iterative.jar $java_option $3;;
 	Java_ic)
-		java -jar $old_pwd/../tinycpp-jastadd/tinycpp-iterative-cached.jar $java_option $3;;
+		java -jar $script_dir/../tinycpp-jastadd/tinycpp-iterative-cached.jar $java_option $3;;
 	*)
 		echo "Invalid script arguments: Unknown system."
 		exit 2
 	esac
 }
 
-cd $old_pwd/correct
+cd $script_dir/correct
 rm -rf results-gen
 mkdir -p results-gen
 for f in *.cpp
@@ -60,7 +60,7 @@ do
 	run $1 succeed results-gen/$f
 done
 
-cd $old_pwd/incorrect
+cd $script_dir/incorrect
 rm -rf results-gen
 mkdir -p results-gen
 for f in *.cpp

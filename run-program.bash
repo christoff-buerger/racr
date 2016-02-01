@@ -45,10 +45,10 @@ do
 				exit 2
 			fi;;
 		l)
-			if [ -z ${libary_to_use+x} ]
+			if [ -z ${library_to_use+x} ]
 			then
-				libary_to_use="$OPTARG"
-				if [ ! -f "$libary_to_use/dependencies.txt" ]
+				library_to_use="$OPTARG"
+				if [ ! -f "$library_to_use/dependencies.txt" ]
 				then
 					echo " !!! ERROR: [$library_to_use] is not a RACR library directory !!!" >&2
 					exit 2
@@ -88,7 +88,7 @@ else
 	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
 	then
-		echo "!!! ERROR: Selected Scheme system is not supported by the program !!!" >&2
+		echo " !!! ERROR: Selected Scheme system is not supported by the program !!!" >&2
 		exit 2
 	fi
 fi

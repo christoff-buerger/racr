@@ -1,0 +1,38 @@
+activity test6 (bool internal) {
+	bool notinternal = false
+	
+	nodes {
+		initial initialNode6 out(edge42),
+		action register comp {notinternal = !internal} in(edge42) out(edge43),
+		decision decisionInternal in(edge43) out(edge44, edge45),
+		action assignToProjectExternal in(edge44) out(edge56),
+		action getWelcomePackage in(edge45) out(edge46),
+		fork forkGetWelcomePackage in(edge46) out(edge47, edge48),
+		action assignToProject in(edge47) out(edge49),
+		action addToWebsite in(edge48) out(edge50),
+		join joinManagerInterview in(edge49, edge50) out(edge51),
+		action managerInterview in(edge51) out(edge52),
+		action managerReport in(edge52) out(edge53),
+		merge mergeAuthorizePayment in(edge53, edge56) out(edge54),
+		action authorizePayment in(edge54) out(edge55),
+		final finalNode6 in(edge55)
+	}
+	
+	edges {
+		flow edge42 from initialNode6 to register,
+		flow edge43 from register to decisionInternal,
+		flow edge44 from decisionInternal to assignToProjectExternal [notinternal],
+		flow edge45 from decisionInternal to getWelcomePackage [internal],
+		flow edge46 from getWelcomePackage to forkGetWelcomePackage,
+		flow edge47 from forkGetWelcomePackage to assignToProject,
+		flow edge48 from forkGetWelcomePackage to addToWebsite,
+		flow edge49 from assignToProject to joinManagerInterview,
+		flow edge50 from addToWebsite to joinManagerInterview,
+		flow edge51 from joinManagerInterview to managerInterview,
+		flow edge52 from managerInterview to managerReport,
+		flow edge53 from managerReport to mergeAuthorizePayment,
+		flow edge54 from mergeAuthorizePayment to authorizePayment,
+		flow edge55 from authorizePayment to finalNode6,
+		flow edge56 from assignToProjectExternal to mergeAuthorizePayment
+	}
+}

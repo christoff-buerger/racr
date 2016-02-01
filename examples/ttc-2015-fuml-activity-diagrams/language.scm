@@ -11,7 +11,7 @@
          :JoinNode :DecisionNode :MergeNode :ExecutableNode :UnaryExpression :BinaryExpression
          ->name ->initial ->source ->target
          =variables =edges =v-lookup =e-lookup =initial =valid? =v-accessor =petrinet
-         Boolean Integer Undefined && // trace exception:)
+         Boolean Integer Undefined && // trace activate-tracing deactivate-tracing exception:)
  (import (rnrs) (racr core) (prefix (atomic-petrinets analyses) pn:))
  
  (define spec                 (create-specification))
@@ -90,9 +90,12 @@
  (define Boolean              (make-atom))
  (define Integer              (make-atom))
  (define Undefined            (make-atom))
+ (define print-trace?         #t)
  (define (&& . a)             (for-all (lambda (x) x) a))
  (define (// . a)             (find (lambda (x) x) a))
- (define (trace . message)    (for-each display message) (newline))
+ (define (trace . message)    (when print-trace? (for-each display message) (newline)))
+ (define (activate-tracing)   (set! print-trace? #t))
+ (define (deactivate-tracing) (set! print-trace? #f))
  
  ; Exceptions:
  (define-condition-type fuml-exception &violation make-fuml-exception fuml-exception?)
@@ -126,7 +129,7 @@
  
  (with-specification
   spec
-
+  
   (ag-rule
    variables ; List of variables of diagram.
    (Activity       (lambda (n) (->* (->Variable* n)))))
@@ -134,11 +137,11 @@
   (ag-rule
    nodes ; List of activity nodes of diagram.
    (Activity       (lambda (n) (->* (->ActivityNode* n)))))
-
+  
   (ag-rule
    edges ; List of activity edges of diagram.
    (Activity       (lambda (n) (->* (->ActivityEdge* n)))))
-
+  
   (ag-rule
    expressions ; List of expressions of executable activity node.
    (ExecutableNode (lambda (n) (->* (->Expression* n))))))
@@ -161,19 +164,19 @@
   (ag-rule
    v-lookup ; Hashmap of all variables of diagram (symbolic name -> variable).
    (Activity       (lambda (n) (make-symbol-table ->name (=variables n)))))
-
+  
   (ag-rule
    n-lookup ; Hashmap of all activity nodes of diagram (symbolic name -> node).
    (Activity       (lambda (n) (make-symbol-table ->name (=nodes n)))))
-
+  
   (ag-rule
    e-lookup ; Hashmap of all activity edges of diagram (symbolic name -> edge).
    (Activity       (lambda (n) (make-symbol-table ->name (=edges n)))))
-
+  
   (ag-rule
    source ; Source-node of activity edge (#f if undefined).
    (ActivityEdge   (lambda (n) (=n-lookup n (->source n)))))
-
+  
   (ag-rule
    target ; Target-node of activity edge (#f if undefined).
    (ActivityEdge   (lambda (n) (=n-lookup n (->target n)))))
