@@ -14,22 +14,11 @@ while getopts s: opt
 do
 	case $opt in
 		s)
-			if [[ " ${known_systems[@]} " =~ " ${OPTARG} " ]]
-			then
-				if which "${OPTARG}" > /dev/null
-				then
-					selected_systems+=( "$OPTARG" )
-				else
-					echo " !!! ERROR: Scheme system [$OPTARG] not installed !!!" >&2
-					exit 2
-				fi
-			else
-				echo " !!! ERROR: Unknown [$OPTARG] Scheme system !!!" >&2
-				exit 2
-			fi;;
+			selected_systems+=( "$OPTARG" );;
 		?)
 			echo "Usage: -s Scheme system (${known_systems[@]})" >&2
-			echo "          Several systems can be set. If no system is selected, all supported are tested." >&2
+			echo "          Several systems can be set. If no system is selected, all" >&2
+			echo "          installed systems, RACR officially supports, are tested." >&2
 			exit 2
 	esac
 done
@@ -61,14 +50,14 @@ run(){
 	echo "$program" $*
 	if [ -z "$library" ]
 	then
-		supported_systems=${selected_systems[@]}
+		unsupported_systems=()
 	else
 		configuration_to_parse="$library/dependencies.txt"
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	fi
 	for s in ${selected_systems[@]}
 	do
-		if [[ " ${supported_systems[@]} " =~ "$s" ]]
+		if [[ ! " ${unsupported_systems[@]} " =~ "$s" ]]
 		then
 			printf " $s"
 			"$script_dir/run-program.bash" -s "$s" -e "$program" $args
@@ -118,31 +107,9 @@ done
 # Test SiPLE example:
 for f in "$script_dir"/examples/siple/examples/correct/*.siple
 do
-	run "$script_dir/examples/siple/run-correct.scm" "" "$f"
+	run "$script_dir/examples/siple/run.scm" "" "$f" ":false:"
 done
 for f in "$script_dir"/examples/siple/examples/incorrect/*.siple
 do
-	run "$script_dir/examples/siple/run-incorrect.scm" "" "$f"
+	run "$script_dir/examples/siple/run.scm" "" "$f" ":true:"
 done
-
-# Test Tiny C++ example:
-if [[ " ${selected_systems[@]} " =~ "racket" ]]
-then
-	echo "Tiny C++ Racket:"
-	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Racket
-fi
-if [[ " ${selected_systems[@]} " =~ "guile" ]]
-then
-	echo "Tiny C++ Guile:"
-	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Guile
-fi
-if [[ " ${selected_systems[@]} " =~ "larceny" ]]
-then
-	echo "Tiny C++ Larceny:"
-	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Larceny
-fi
-if [[ " ${selected_systems[@]} " =~ "petite" ]]
-then
-	echo "Tiny C++ Petite Chez Scheme:"
-	"$script_dir/profiling/tinycpp/examples/run-examples.bash" Petite
-fi

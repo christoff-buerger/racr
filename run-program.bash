@@ -88,7 +88,7 @@ else
 	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
 	then
-		echo " !!! ERROR: Selected Scheme system is not supported by the program !!!" >&2
+		echo " !!! ERROR: Scheme system [$selected_system] not supported by the program !!!" >&2
 		exit 2
 	fi
 fi

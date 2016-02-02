@@ -20,13 +20,7 @@ do
 				exit 2
 			fi;;
 		s)
-			if [ -z ${selected_system+x} ]
-			then
-				selected_system="$OPTARG"
-			else
-				echo " !!! ERROR: Several Scheme systems for execution selected via -s flag !!!" >&2
-				exit 2
-			fi;;
+			selected_system=`echo $selected_system -s "$OPTARG"`;;
 		e)
 			if [ -z ${program+x} ]
 			then
@@ -49,14 +43,12 @@ shift $(( OPTIND - 1 ))
 
 if [ -z ${execute_incorrect+x} ]
 then
-	start_script="$script_dir/run-correct.scm"
-else
-	start_script="$script_dir/run-incorrect.scm"
+	execute_incorrect=":false:"
 fi
 
 if [ -z ${selected_system+x} ]
 then
-	selected_system="larceny"
+	selected_system=`echo -s "larceny"`
 fi
 
 if [ -z ${program+x} ]
@@ -66,4 +58,4 @@ then
 fi
 
 ########################################################################################################## Execute SiPLE program:
-"$script_dir/../../run-program.bash" -s "$selected_system" -e "$start_script" "$program"
+"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" "$program" "$execute_incorrect"

@@ -5,13 +5,14 @@
 
 # author: C. Bürger
 
-# BEWARE: This script must be sourced. It expects two variables to be set and sets four variables:
-#  in)  known_systems:			Array of Scheme systems officially supported by RACR
+# BEWARE: This script must be sourced. It expects two variables to be set and sets five variables:
+#  in)  known_systems:			Array of known Scheme systems, i.e., systems officially supported by RACR
 #  in)  configuration_to_parse:		Configuration file to parse
 #  set) configuration_directory:	Directory containing the configuration file to parse
-#  set) supported_systems:		Array of Scheme systems supported according to the parsed configuration
+#  set) supported_systems:		Array of KNOWN Scheme systems supported according to the parsed configuration
+#  set) unsupported_systems:		Array of KNOWN Scheme systems not supported according to the parsed configuration
 #  set) required_libraries:		Array of paths to the libraries required according to the parsed configuration
-#  set) required_sources:		Array of paths to source files required according to the parsed configuration
+#  set) required_sources:		Array of paths to the source files according to the parsed configuration
 
 if [ -z ${known_systems[@]+x} ]
 then
@@ -28,6 +29,7 @@ fi
 parsing_mode=initial
 configuration_directory=`dirname "$configuration_to_parse"`
 supported_systems=()
+unsupported_systems=()
 required_libraries=( "$configuration_directory" )
 required_sources=()
 while read line
@@ -76,3 +78,11 @@ do
 		required_sources+=( "$configuration_directory/$line" );;
 	esac
 done < "$configuration_to_parse"
+
+for s in ${known_systems[@]}
+do
+	if [[ ! " ${supported_systems[@]} " =~ "$s"  ]]
+	then
+		unsupported_systems+=( "$s" )
+	fi
+done

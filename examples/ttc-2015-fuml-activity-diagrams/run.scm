@@ -14,4 +14,5 @@
 (define mode (string->number (cadddr (command-line))))
 (define print-trace?
   (not (string=? (cadddr (cdr (command-line))) ":false:")))
+
 (run-activity-diagram diagram input? mode print-trace?)

@@ -20,13 +20,7 @@ do
 				exit 2
 			fi;;
 		s)
-			if [ -z ${selected_system+x} ]
-			then
-				selected_system="$OPTARG"
-			else
-				echo " !!! ERROR: Several Scheme systems for execution selected via -s flag !!!" >&2
-				exit 2
-			fi;;
+			selected_system=`echo $selected_system -s "$OPTARG"`;;
 		d)
 			if [ -z ${diagram+x} ]
 			then
@@ -72,7 +66,7 @@ fi
 
 if [ -z ${selected_system+x} ]
 then
-	selected_system="larceny"
+	selected_system=`echo -s "larceny"`
 fi
 
 if [ -z ${diagram+x} ]
@@ -96,4 +90,4 @@ then
 fi fi
 
 ####################################################################################################### Execute activity diagram:
-"$script_dir/../../run-program.bash" -s "$selected_system" -e "$script_dir/run.scm" "$diagram" "$input" "$mode" "$print_trace"
+"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" "$diagram" "$input" "$mode" "$print_trace"
