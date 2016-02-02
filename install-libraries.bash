@@ -135,7 +135,7 @@ if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 then
 	# Use subshell for local directory changes via cd:
 	(
-	echo "=========================================>>> Compile for larceny:"
+	echo "=========================================>>> Compile for Larceny:"
 	# Create compile script:
 	cd "$script_dir"
 	echo "#!r6rs" > compile-stale
@@ -158,9 +158,9 @@ then
 			do
 				lib_path+=":$x/larceny-bin"
 			done
-			for f in *.scm
+			for x in ${required_sources[@]} 
 			do
-				cp -p "$f" "larceny-bin/$ll/${f%.*}.sls"
+				cp -p "$x.scm" "larceny-bin/$ll/`basename "$x"`.sls"
 			done
 			cd "larceny-bin/$ll"
 			cp -p "$script_dir/compile-stale" .
