@@ -57,7 +57,7 @@ static public class Racr {
 	private static Callable rewriteAdd;
 	private static Callable rewriteInsert;
 	private static Callable rewriteDelete;
-	
+
 
 	private static Callable astAnnotationSet;
 	private static Callable astWeaveAnnotations;
@@ -154,7 +154,7 @@ static public class Racr {
 			RegisterAgRules(this.GetType());
 		}
 
-		public void RegisterAgRules(Type type=null) {
+		public void RegisterAgRules(Type type) {
 			var methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 			foreach (var method in methods) {
 				foreach (var attr in method.GetCustomAttributes(typeof(AgRuleAttribute), false)) {
@@ -173,17 +173,7 @@ static public class Racr {
 		}
 
 		public void CompileAgSpecifications() { compileAgSpecifications.Call(spec); }
-		
 
-		static readonly Type[][] paramTypesArray = new Type[][] {
-			new Type[] {},
-			new Type[] { typeof(object) },
-			new Type[] { typeof(object), typeof(object) },
-			new Type[] { typeof(object), typeof(object), typeof(object) },
-			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object) },
-			new Type[] { typeof(object), typeof(object), typeof(object), typeof(object), typeof(object) },
-			// ...
-		};
 
 		static readonly Type[] callTargets = new Type[] {
 			typeof(CallTarget0),
@@ -192,35 +182,68 @@ static public class Racr {
 			typeof(CallTarget3),
 			typeof(CallTarget4),
 			typeof(CallTarget5),
-			// ...
+			typeof(CallTarget6),
+			typeof(CallTarget7),
+			typeof(CallTarget8),
 		};
 
-		static Callable WrapToCallable(MethodInfo method) {
-			var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-			if (paramTypes.Length == 0 || !typeof(AstNode).IsAssignableFrom(paramTypes[0])) {
+		static Callable WrapToCallable(MethodInfo method, object target=null) {
+		
+			var param = method.GetParameters();
+			if (param.Length == 0 || !typeof(AstNode).IsAssignableFrom(param[0].ParameterType)) {
 				throw new ArgumentException("type of delegate's first argument must be AstNode.");
 			}
 
-			var outType = callTargets[paramTypes.Length];
-			var dynmeth = new DynamicMethod("", typeof(object), paramTypesArray[paramTypes.Length], true);
+			// create param type array
+			Type[] dynParam;
+			int offset;
+			if (target != null) {
+				offset = 1;
+				dynParam = new Type[param.Length + 1];
+				dynParam[0] = target.GetType();
+			}
+			else {
+				offset = 0;
+				dynParam = new Type[param.Length];
+			}
+			for (int i = 0; i < param.Length; i++) dynParam[offset + i] = typeof(object);
+
+			// create dynamic method
+			var dynmeth = new DynamicMethod("", typeof(object), dynParam, true);
 			var gen = dynmeth.GetILGenerator();
 
-			gen.Emit(OpCodes.Ldarg_0);
+			// load target
+			if (target != null) gen.Emit(OpCodes.Ldarg_0);
+
+			// node wrapping
+			gen.Emit(OpCodes.Ldarg_S, (byte) offset);
 			var getNodeInfo = ((Delegate)(Func<object, AstNode>)GetNode).Method;
 			gen.Emit(OpCodes.Call, getNodeInfo);
 
-			for (int i = 1; i < paramTypes.Length; i++) {
-				gen.Emit(OpCodes.Ldarg_S, i);
-				if (paramTypes[i].IsValueType) gen.Emit(OpCodes.Unbox_Any, paramTypes[i]);
+			// unboxing
+			for (int i = 1; i < param.Length; i++) {
+				gen.Emit(OpCodes.Ldarg_S, (byte) (i + offset));
+				var op = param[i].ParameterType.IsValueType ? OpCodes.Unbox_Any : OpCodes.Castclass;
+				gen.Emit(op, param[i].ParameterType);
 			}
+
+			// call delegate
 			gen.Emit(OpCodes.Call, method);
 			if (method.ReturnType.IsValueType) gen.Emit(OpCodes.Box, method.ReturnType);
 			gen.Emit(OpCodes.Ret);
 
-			return Closure.Create(dynmeth.CreateDelegate(outType), paramTypes.Length);
+			Delegate wrapper;
+			if (target != null) {
+				wrapper = dynmeth.CreateDelegate(callTargets[param.Length], target);
+			}
+			else {
+				wrapper = dynmeth.CreateDelegate(callTargets[param.Length]);
+			}
+			return Closure.Create(wrapper, param.Length);
 		}
 
-		// TODO circDef!!!
+
+		// TODO: circDef!!!
 		public void SpecifyAttribute(string attName, string nonTerminal, string contextName, bool cached, Delegate equation) {
 			specifyAttribute.Call(
 				spec,
@@ -228,8 +251,14 @@ static public class Racr {
 				SymbolTable.StringToObject(nonTerminal),
 				SymbolTable.StringToObject(contextName),
 				cached,
-				WrapToCallable(equation.Method),
+				WrapToCallable(equation.Method, equation.Target),
 				false);
+		}
+		public void SpecifyAttribute<R>(string attName, string nonTerminal, string contextName, bool cached, Func<AstNode,R> equation) {
+			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
+		}
+		public void SpecifyAttribute<R,T>(string attName, string nonTerminal, string contextName, bool cached, Func<AstNode,R,T> equation) {
+			SpecifyAttribute(attName, nonTerminal, contextName, cached, (Delegate) equation);
 		}
 
 		// factory methods
@@ -249,13 +278,9 @@ static public class Racr {
 	public struct Range {
 		public int min;
 		public int max;
-		public Range(int min, int max) {
+		public Range(int min, int max=0) {
 			this.min = min;
 			this.max = max;
-		}
-		public Range(int min) {
-			this.min = min;
-			this.max = 0;
 		}
 		internal Cons ToCons() {
 			return new Cons(min, max > 0 ? max : SymbolTable.StringToObject("*"));
