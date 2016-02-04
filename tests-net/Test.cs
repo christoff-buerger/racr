@@ -1,8 +1,17 @@
- /*
-  This program and the accompanying materials are made available under the
-  terms of the MIT license (X11 license) which accompanies this distribution.
+/*
+	This program and the accompanying materials are made available under the
+	terms of the MIT license (X11 license) which accompanies this distribution.
+	
+	Author: D. Langner, C. Bürger
+*/
 
-  Author: D. Langner, C. Bürger
+/*
+	NUnit tests to validate the proper execution of RACR's test cases in IronScheme and the
+	graph rewriting adaptation of RACR in RACR-NET. The coverage of all other RACR
+	functionalities in RACR-NET is validated by the C# implementation of the questionnaires
+	example (cf .examples-net/questionnaires).
+	
+	To run the tests from command line type `nunit-console Test.dll`.
 */
 
 using System;
@@ -11,15 +20,10 @@ using IronScheme;
 using IronScheme.Runtime;
 using NUnit.Framework;
 
-
-
 [TestFixture]
-class RacrTests {
-
+public class RacrTests {
 	const string racrPath = "../";
-
-	static void EvalScript(string path) { File.ReadAllText(racrPath + path).Eval(); }
-
+	static void EvalScript(string path) { File.ReadAllText(racrPath + "../../" + path).Eval(); }
 	Callable interpretCorrect;
 	Callable interpretIncorrect;
 
@@ -41,18 +45,17 @@ class RacrTests {
 		".Eval<Callable>();
 	}
 
-	[Test] public void SchemeAdd() 							{ Assert.AreEqual(3, "(+ 1 2)".Eval<int>()); }
+	[Test] public void SchemeAdd() 				{ Assert.AreEqual(3, "(+ 1 2)".Eval<int>()); }
 
-	[Test] public void RacrTestAstConstruction()			{ EvalScript("tests/ast-construction.scm"); }
+	[Test] public void RacrTestAstConstruction()		{ EvalScript("tests/ast-construction.scm"); }
 	[Test] public void RacrTestAttributeEvaluationBasics()	{ EvalScript("tests/attribute-evaluation-basics.scm"); }
 	[Test] public void RacrTestContinuationsInEquations()	{ EvalScript("tests/continuations-in-equations.scm"); }
-	[Test] public void RacrTestPatterns()					{ EvalScript("tests/patterns.scm"); }
-	[Test] public void RacrTestRewriteBasics()				{ EvalScript("tests/rewrite-basics.scm"); }
-	[Test] public void RacrTestRewriteBuds()				{ EvalScript("tests/rewrite-buds.scm"); }
-	[Test] public void RacrTestRewriteLists()				{ EvalScript("tests/rewrite-lists.scm"); }
-	[Test] public void RacrTestRewriteRefineAbstract()		{ EvalScript("tests/rewrite-refine-abstract.scm"); }
-	[Test] public void RacrTestRewriteStrategies()			{ EvalScript("tests/rewrite-strategies.scm"); }
-
+	[Test] public void RacrTestPatterns()			{ EvalScript("tests/patterns.scm"); }
+	[Test] public void RacrTestRewriteBasics()		{ EvalScript("tests/rewrite-basics.scm"); }
+	[Test] public void RacrTestRewriteBuds()		{ EvalScript("tests/rewrite-buds.scm"); }
+	[Test] public void RacrTestRewriteLists()		{ EvalScript("tests/rewrite-lists.scm"); }
+	[Test] public void RacrTestRewriteRefineAbstract()	{ EvalScript("tests/rewrite-refine-abstract.scm"); }
+	[Test] public void RacrTestRewriteStrategies()		{ EvalScript("tests/rewrite-strategies.scm"); }
 
 	[Test]
 	public void RacrExamples() {
@@ -110,18 +113,11 @@ class RacrTests {
 	}
 }
 
-
-
-
 [TestFixture]
-class App {
-
-
-
+public class App {
 	[Test]
-	public static void TestRewriteRefine() {
+	public void TestRewriteRefine() {
 		var spec = new Racr.Specification();
-
 
 		spec.AstRule("S->A");
 		spec.AstRule("A->a");
@@ -141,11 +137,10 @@ class App {
 		Console.WriteLine("{0}", A.NodeType() == "Aa");
 
 		foreach (var c in A.Children()) Console.WriteLine(c);
-
 	}
 
 	[Test]
-	public static void TestRewriteAbstract() {
+	public void TestRewriteAbstract() {
 		var spec = new Racr.Specification();
 
 		spec.AstRule("S->A");
@@ -165,11 +160,10 @@ class App {
 
 		Console.WriteLine(A.NumChildren() == 1);
 		Console.WriteLine(A.NodeType() == "A");
-
 	}
 
 	[Test]
-	public static void TestRewriteSubtree() {
+	public void TestRewriteSubtree() {
 		var spec = new Racr.Specification();
 
 		spec.AstRule("S->A");
@@ -190,5 +184,3 @@ class App {
 		Console.WriteLine(ast.Child("A").NodeType());
 	}
 }
-
-
