@@ -1,7 +1,7 @@
 # This program and the accompanying materials are made available under the
 # terms of the MIT license (X11 license) which accompanies this distribution.
 
-# Author: D. Langner, C. Bürger
+# Author: D. Langner, C. Bürger, J. Mey
 
 # Find IronScheme interpreter:
 ISCONSOLE := IronScheme.Console32-v2.exe
@@ -19,24 +19,26 @@ endif
 
 TMP := $(shell mktemp compile-script.XXXX)
 
-all: racr.core.dll hashtable-iron-scheme-adapter.dll Racr.dll
+all: racr.core.dll racr.testing.dll hashtable-iron-scheme-adapter.dll Racr.dll
 
-racr.core.dll hashtable-iron-scheme-adapter.dll:  ../racr/core.scm transcribe.py Makefile
-	@mkdir -p racr
-	@./transcribe.py
-	@echo '(import (racr core) (racr testing))' > $(TMP)
-	@echo '(compile "$(TMP)")' | $(IS)
-	@echo '(cadr (library-path))' | $(IS) | awk 'NR == 2 {\
+racr.core%dll racr.testing%dll hashtable-iron-scheme-adapter%dll: ../racr/core.scm transcribe.py Makefile
+	mkdir -p racr
+	./transcribe.py
+	echo '(import (racr core) (racr testing))' > $(TMP)
+	echo '(compile "$(TMP)")' | $(IS)
+	echo '(cadr (library-path))' | $(IS) | awk 'NR == 2 {\
 		system("mv " substr($$0,3) "/racr.core.dll .");\
 		system("mv " substr($$0,3) "/racr.testing.dll .");\
 		system("mv " substr($$0,3) "/hashtable-iron-scheme-adapter.dll .");\
 	}'
-	@rm -r racr
+	rm -r racr
+	rm ${TMP}
 
-Racr.dll: racr.core.dll hashtable-iron-scheme-adapter.dll
+Racr.dll: racr.core.dll hashtable-iron-scheme-adapter.dll Racr.cs
 	xbuild
 	cp bin/Debug/Racr.dll .
 
 clean:
 	rm -f racr.core.dll racr.testing.dll hashtable-iron-scheme-adapter.dll
 	rm -rf bin obj Racr.dll
+	rm -f compile-script.*
