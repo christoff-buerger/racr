@@ -5,8 +5,7 @@
 
 # author: C. Bürger
 
-# BEWARE: This script must be sourced. It expects two variables to be set and sets five variables:
-#  in)  known_systems:			Array of known Scheme systems, i.e., systems officially supported by RACR
+# BEWARE: This script must be sourced. It expects one variables to be set and sets five variables:
 #  in)  configuration_to_parse:		Configuration file to parse
 #  set) configuration_directory:	Directory containing the configuration file to parse
 #  set) supported_systems:		Array of KNOWN Scheme systems supported according to the parsed configuration
@@ -14,11 +13,7 @@
 #  set) required_libraries:		Array of paths to the libraries required according to the parsed configuration
 #  set) required_sources:		Array of paths to the source files according to the parsed configuration
 
-if [ -z ${known_systems[@]+x} ]
-then
-	echo " !!! ERROR: Array of known Scheme systems not set !!!" >&2
-	exit 2
-fi
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${configuration_to_parse+x} ]
 then
@@ -41,7 +36,7 @@ do
 			parsing_mode=systems
 			continue
 		fi
-		supported_systems=${known_systems[@]}
+		supported_systems=`"$script_dir/list-scheme-systems.bash" -k`
 		if [ "$line" = "@libraries:" ]
 		then
 			parsing_mode=libraries
@@ -79,7 +74,7 @@ do
 	esac
 done < "$configuration_to_parse"
 
-for s in ${known_systems[@]}
+for s in `"$script_dir/list-scheme-systems.bash" -k`
 do
 	if [[ ! " ${supported_systems[@]} " =~ "$s"  ]]
 	then

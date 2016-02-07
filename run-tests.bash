@@ -7,35 +7,32 @@
 
 ################################################################################################################ Parse arguments:
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-known_systems=( racket guile larceny petite )
-selected_systems=()
 
 while getopts s: opt
 do
 	case $opt in
 		s)
-			selected_systems+=( "$OPTARG" );;
+			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
+			if [ $? -eq 0 ]
+			then
+				selected_systems+=( "$OPTARG" )
+			else
+				exit 2
+			fi;;
 		?)
-			echo "Usage: -s Scheme system (${known_systems[@]})" >&2
+			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
 			echo "          Several systems can be set. If no system is selected, all" >&2
 			echo "          installed systems, RACR officially supports, are tested." >&2
-			exit 2
+			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
-if [ -z "$selected_systems" ]
+if [ -z ${selected_systems+x} ]
 then
-	for s in ${known_systems[@]}
-	do
-		if which "$s" > /dev/null
-		then
-			selected_systems+=( "$s" )
-		fi
-	done
-	if [ -z "$selected_systems" ]
+	selected_systems=`"$script_dir/list-scheme-systems.bash" -i`
+	if [ ! $? -eq 0 ]
 	then
-		echo " !!! ERROR: No Scheme system found !!!" >&2
 		exit 2
 	fi
 fi
@@ -61,6 +58,15 @@ run(){
 		then
 			printf " $s"
 			"$script_dir/run-program.bash" -s "$s" -e "$program" $args
+			if [ ! $? -eq 0 ]
+			then
+				echo "***********************************************" >&2
+				echo "*                                             *" >&2
+				echo "* !!! ERROR: Test failed; testing aborted !!! *" >&2
+				echo "*                                             *" >&2
+				echo "***********************************************" >&2
+				exit 2
+			fi
 		fi
 	done
 	echo ""

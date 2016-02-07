@@ -7,7 +7,6 @@
 
 ################################################################################################################ Parse arguments:
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-known_systems=( racket guile larceny petite )
 
 while getopts s:e:l: opt
 do
@@ -15,17 +14,11 @@ do
 		s)
 			if [ -z ${selected_system+x} ]
 			then
-				if [[ " ${known_systems[@]} " =~ " ${OPTARG} " ]]
+				"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
+				if [ $? -eq 0 ]
 				then
-					if which "${OPTARG}" > /dev/null
-					then
-						selected_system="$OPTARG"
-					else
-						echo " !!! ERROR: Scheme system [$OPTARG] not installed !!!" >&2
-						exit 2
-					fi
+					selected_system="$OPTARG"
 				else
-					echo " !!! ERROR: Unknown [$OPTARG] Scheme system !!!" >&2
 					exit 2
 				fi
 			else
@@ -59,11 +52,11 @@ do
 				exit 2
 			fi;;
 		?)
-			echo "Usage: -s Scheme system (${known_systems[@]})." >&2
+			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
 			echo "       -e Scheme program to execute." >&2
 			echo "       -c RACR library to use (implicitly set if the program" >&2
 			echo "          to execute is in a RACR library directory)." >&2
-			exit 2
+			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
@@ -138,4 +131,7 @@ case $selected_system in
 			libs="--libdirs ${libs:1}"
 		fi
 		petite $libs --program "$to_execute" $*;;
+	iron-scheme)
+		echo " !!! ERROR: IronScheme execution not yet implemented !!!" >&2
+		exit 2;;
 esac
