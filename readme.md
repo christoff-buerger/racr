@@ -10,7 +10,7 @@ A short [synopsis](racr/documentation/synopsis.md) gives an overview what _RACR_
 
 To get started, [documented examples](examples/examples-overview.md) are in the `./examples` directory. The [_RACR-NET_ manual](racr-net/documentation/title.md) describes the application of _RACR_ in _.NET_ using _C#_; though, it assumes familiarity with _RACR's_ basic functionalities.
 
-We also maintain a list of [scientific publications and presentations](publications.md) regarding RAG-controlled rewriting, _RACR_ and its applications.
+There exists also a list of [scientific publications and presentations](publications.md) regarding RAG-controlled rewriting, _RACR_ and its applications.
 
 # License
 
