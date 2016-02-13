@@ -181,14 +181,14 @@ then
 			)
 			rm -rf "$library_bin"
 			mkdir -p "$library_bin/$library"
-			cp -p "$script_dir/racr-net/hashtable-iron-scheme-adapter.sls" "$library_bin"
+			cp -p "$script_dir/racr-net/ironscheme-hashtable-adapter.sls" "$library_bin/$library"
 			mv "$script_dir/racr-net/racr/"*.sls "$library_bin/$library"
 			rm -rf "$script_dir/racr-net/racr"
 			
-			rm -f "$script_dir/racr-net/ironscheme-bin/hashtable-iron-scheme-adapter.dll"
+			rm -f "$script_dir/racr-net/ironscheme-bin/racr.ironscheme-hashtable-adapter.dll"
 			rm -f "$script_dir/racr-net/ironscheme-bin/racr.core.dll"
 			rm -f "$script_dir/racr-net/ironscheme-bin/racr.testing.dll"
-			echo "(import (hashtable-iron-scheme-adapter) (racr core) (racr testing))" > \
+			echo "(import (racr ironscheme-hashtable-adapter) (racr core) (racr testing))" > \
 				"$library_bin/compile-script.sls"
 			echo "(library-path (list \"$library_bin\")) (compile \"$library_bin/compile-script.sls\")" | \
 				mono "$script_dir/racr-net/ironscheme-bin/IronScheme.Console-v4.exe"

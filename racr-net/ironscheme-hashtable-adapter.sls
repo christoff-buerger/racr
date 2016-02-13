@@ -4,7 +4,7 @@
 ; Author: D. Langner, C. Bürger
 
 (library
- (hashtable-iron-scheme-adapter)
+ (racr ironscheme-hashtable-adapter)
  (export
   hashtable-ref*
   hashtable-set!*

@@ -23,7 +23,7 @@ for f in ["core", "testing"]:
 		if not l: break
 
 		l = re.sub(r"(hashtable-(ref|set!|delete!|contains\?|entries))(\s)", r"\1*\3", l)
-		l = re.sub(r"(\(import .*)(\))", r"\1 (hashtable-iron-scheme-adapter)\2", l)
+		l = re.sub(r"(\(import .*)(\))", r"\1 (racr ironscheme-hashtable-adapter)\2", l)
 
 		if f == "core":
 			l = re.sub(r"(\s*)\(export\w*", r"\g<0>\n\1 node-dot-net-instance\n\1 node-dot-net-instance-set!\n", l)
