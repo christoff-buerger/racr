@@ -168,22 +168,17 @@ then
 	fi
 	for l in ${selected_libraries[@]}
 	do
-
 		library=`basename "$l"`
 		library_bin="$l/ironscheme-bin"
 		if [ "$library" == "racr" ] # Work around for the ``empty list is null and thus invalid key for hashtable'' bug.
 		then
-			mkdir "$script_dir/racr-net/racr"
-			# Use subshell for local directory changes via cd:
-			(
-			cd "$script_dir/racr-net"
-			"$script_dir/racr-net/transcribe.py"
-			)
 			rm -rf "$library_bin"
 			mkdir -p "$library_bin/$library"
 			cp -p "$script_dir/racr-net/ironscheme-hashtable-adapter.sls" "$library_bin/$library"
-			mv "$script_dir/racr-net/racr/"*.sls "$library_bin/$library"
-			rm -rf "$script_dir/racr-net/racr"
+			cp -p "$script_dir/racr/core.scm" "$library_bin/$library"
+			cp -p "$script_dir/racr/testing.scm" "$library_bin/$library/testing.sls"
+			"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
+			rm "$library_bin/$library/core.scm"
 			
 			rm -f "$script_dir/racr-net/ironscheme-bin/racr.ironscheme-hashtable-adapter.dll"
 			rm -f "$script_dir/racr-net/ironscheme-bin/racr.core.dll"
