@@ -158,7 +158,7 @@ then
 	)
 fi
 
-if [[ " ${selected_systems[@]} " =~ "iron-scheme" ]]
+if [[ " ${selected_systems[@]} " =~ "ironscheme" ]]
 then
 	echo "=========================================>>> Compile for IronScheme:"
 	if [ ! -d "$script_dir/racr-net/ironscheme-bin" ] # One time setup: copy IronScheme distribution.
@@ -192,7 +192,7 @@ then
 		fi
 		configuration_to_parse="$l/dependencies.txt"
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
-		if [[ " ${supported_systems[@]} " =~ "iron-scheme" ]]
+		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
 		then
 			rm -rf "$library_bin"
 			mkdir -p "$library_bin/$library"

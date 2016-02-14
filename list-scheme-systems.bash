@@ -12,7 +12,7 @@ while getopts kis: opt
 do
 	case $opt in
 		k)
-			echo racket guile larceny petite iron-scheme;;
+			echo racket guile larceny petite ironscheme;;
 		i)
 			for s in racket guile larceny petite
 			do
@@ -23,7 +23,7 @@ do
 			done
 			if which IronScheme.Console-v4.exe > /dev/null
 			then
-				known_systems+=( iron-scheme )
+				known_systems+=( ironscheme )
 			fi
 			if [ -z ${known_systems+x} ]
 			then

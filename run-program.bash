@@ -131,6 +131,6 @@ case $selected_system in
 			libs="--libdirs ${libs:1}"
 		fi
 		petite $libs --program "$to_execute" $*;;
-	iron-scheme)
+	ironscheme)
 		mono "$script_dir/racr-net/ironscheme-bin/IronScheme.Console-v4.exe" "$to_execute" $*;;
 esac
