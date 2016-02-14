@@ -22,7 +22,7 @@ The `run-program.bash` scrip can be used to execute _RACR_-based programs with a
 
 Some of the [provided examples](../../examples/examples-overview.md) require a proper setup by the caller like input file arguments. These examples ship with a `run.bash` script that parses command line arguments, tests their validity, provides proper error messages, properly configures the environment and, if everything is fine, finally executes the example. Such execution scripts are found in the directory containing the source code of the respective example (for example `examples/questionnaires/run.bash`).
 
-## _.NET_ Installation and Tests
+## _.NET_ Installation and Usage
 
 _RACR_ provides a _.NET_ integration called [_RACR-NET_](../../racr-net/documentation/title.md), which is based on _C#_ and [_IronScheme_](http://ironscheme.codeplex.com). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, the implementation of _RACR-NET_ itself is in the `racr-net` directory etc. As known from the _Microsoft Build Tools_ and _C#_, `csproj` files are used for building _RACR-NET_, its examples and tests.
 
