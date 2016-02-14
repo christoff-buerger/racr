@@ -132,6 +132,5 @@ case $selected_system in
 		fi
 		petite $libs --program "$to_execute" $*;;
 	iron-scheme)
-		echo " !!! ERROR: IronScheme execution not yet implemented !!!" >&2
-		exit 2;;
+		mono "$script_dir/racr-net/ironscheme-bin/IronScheme.Console-v4.exe" "$to_execute" $*;;
 esac
