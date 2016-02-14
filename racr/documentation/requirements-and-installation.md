@@ -4,11 +4,11 @@ ___
 # Requirements
 
 _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work with any _R6RS_ conformant _Scheme_ system. No additional _SRFI_ or _Scheme_ libraries are required. _RACR_ has been tested with the following _Scheme_ systems:
-  * [Racket 6.3](http://www.racket-lang.org/) ([GitHub repository](https://github.com/plt/racket))
-  * [Larceny 0.98](http://www.larcenists.org) ([GitHub repository](https://github.com/larcenists/larceny))
-  * [GNU Guile 2.0.11](http://www.gnu.org/software/guile/)
-  * [IronScheme 115672, 20th November 2015](http://ironscheme.codeplex.com) ([GitHub repository](https://github.com/leppie/IronScheme))
-  * [Chez Scheme 8.4](http://www.scheme.com/)
+  * [_Racket_ 6.3](http://www.racket-lang.org/) ([GitHub repository](https://github.com/plt/racket))
+  * [_Larceny_ 0.98](http://www.larcenists.org) ([GitHub repository](https://github.com/larcenists/larceny))
+  * [_GNU Guile_ 2.0.11](http://www.gnu.org/software/guile/)
+  * [_IronScheme_ 115672, 20th November 2015](http://ironscheme.codeplex.com) ([GitHub repository](https://github.com/leppie/IronScheme))
+  * [_Chez Scheme_ 8.4](http://www.scheme.com/)
 
 _RACR_ and some of its examples are provided as _Scheme_ libraries. The instantiation of libraries differs between different _Scheme_ systems. Consult the documentation of your _Scheme_ system in case of any instantiation issues. Besides proper instantiation as _Scheme_ library, no further configurations are required to use _RACR_.
 
@@ -24,6 +24,6 @@ Some of the [provided examples](../../examples/examples-overview.md) require a p
 
 ## _.NET_ Installation and Tests
 
-_RACR_ provides a _.NET_ integration called [RACR-NET](../../racr-net/documentation/title.md), which is based on _C#_ and [IronScheme](http://ironscheme.codeplex.com). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, the implementation of _RACR-NET_ itself is in the `racr-net` directory etc. As known from the _Microsoft Build Tools_ and _C#_, `csproj` files are used for building _RACR-NET_, its examples and tests.
+_RACR_ provides a _.NET_ integration called [_RACR-NET_](../../racr-net/documentation/title.md), which is based on _C#_ and [_IronScheme_](http://ironscheme.codeplex.com). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, the implementation of _RACR-NET_ itself is in the `racr-net` directory etc. As known from the _Microsoft Build Tools_ and _C#_, `csproj` files are used for building _RACR-NET_, its examples and tests.
 
-_RACR-NET_ is based on _RACR_. It requires _RACR's_ _Scheme_ libraries as _IronScheme_ _.NET_ assemblies (dynamic linked libraries compiled by _IronScheme_ and depending on it). The `install-libraries.bash` script generates the respective `dll` assemblies in the `racr-net/ironscheme-bin` directory (the `racr.`_*_`.dll` files), if used to install _RACR_ for _IronScheme_. A local _IronScheme_ distribution must be available however; its root directory must be part of the `PATH` environment variable. Building _RACR-NET_ via `racr-net/Racr.csproj` yields the _Racr.dll_ _IronScheme_ _.NET_ assembly in `racr-net/ironscheme-bin`. The _IronScheme_ assembly, _RACR_ assemblies and _RACR-NET_ assembly are the minimal set of assemblies required to use _RACR_ in _C#_ via the [_RACR-NET_ API](../../racr-net/documentation/title.md).
+_RACR-NET_ is based on _RACR_. It requires _RACR's_ _Scheme_ libraries as _IronScheme_ _.NET_ assemblies (dynamic linked libraries compiled by _IronScheme_ and depending on it). The `install-libraries.bash` script generates the respective `dll` assemblies in the `racr-net/ironscheme-bin` directory (the `racr.*.dll` files), if used to install _RACR_ for _IronScheme_. A local _IronScheme_ distribution must be available however; its root directory must be part of the `PATH` environment variable. Building _RACR-NET_ via `racr-net/Racr.csproj` yields the _Racr.dll_ _IronScheme_ _.NET_ assembly in `racr-net/ironscheme-bin`. The _IronScheme_ assembly, _RACR_ assemblies and _RACR-NET_ assembly are the minimal set of assemblies required to use _RACR_ in _C#_ via the [_RACR-NET_ API](../../racr-net/documentation/title.md).
