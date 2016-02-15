@@ -38,7 +38,7 @@
          (((kv vv) (hashtable-entries h)))
        (values
         (vector-map
-         (lambda (e)
-           (if (null? e) nil e))
+         (lambda (k)
+           (if (eq? k nil) (list) k))
          kv)
         vv)))))
