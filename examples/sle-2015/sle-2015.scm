@@ -7,50 +7,50 @@
 
 (import (rnrs) (racr core) (racr testing))
 
-(define language              (create-specification))
+(define language               (create-specification))
 
 ; AST Accessors:
-(define (->DErr n)            (ast-child 'DErr n))
-(define (->Stmt* n)           (ast-child 'Stmt* n))
-(define (->Op1 n)             (ast-child 'Op1 n))
-(define (->Op2 n)             (ast-child 'Op2 n))
-(define (->name n)            (ast-child 'name n))
-(define (->type n)            (ast-child 'type n))
-(define (<- n)                (ast-parent n))
-(define (->* n)               (ast-children n))
-(define (index n)             (ast-child-index n))
+(define (->DErr n)             (ast-child 'DErr n))
+(define (->Stmt* n)            (ast-child 'Stmt* n))
+(define (->Op1 n)              (ast-child 'Op1 n))
+(define (->Op2 n)              (ast-child 'Op2 n))
+(define (->name n)             (ast-child 'name n))
+(define (->type n)             (ast-child 'type n))
+(define (<- n)                 (ast-parent n))
+(define (->* n)                (ast-children n))
+(define (index n)              (ast-child-index n))
 
 ; Attribute Accessors:
-(define (L-Decl n name)       (att-value 'L-Decl n name))
-(define (G-Decl n name)       (att-value 'G-Decl n name))
-(define (Type n)              (att-value 'Type n))
-(define (Well-formed? n)      (att-value 'Well-formed? n))
-(define (Needs-coercion? n)   (att-value 'Needs-coercion? n))
-(define (Superfluous-cast? n) (att-value 'Superfluous-cast? n))
+(define (=l-decl n name)       (att-value 'l-decl n name))
+(define (=g-decl n name)       (att-value 'g-decl n name))
+(define (=type n)              (att-value 'type n))
+(define (=well-formed? n)      (att-value 'well-formed? n))
+(define (=needs-coercion? n)   (att-value 'needs-coercion? n))
+(define (=superfluous-cast? n) (att-value 'superfluous-cast? n))
 
 ; AST Constructors:
-(define (Prog . s)
-  (create-ast language 'Prog (list (create-ast-list s) (DErr))))
-(define (DErr)
+(define (:Prog . s)
+  (create-ast language 'Prog (list (create-ast-list s) (:DErr))))
+(define (:DErr)
   (create-ast language 'DErr (list)))
-(define (Block . s)
+(define (:Block . s)
   (create-ast language 'Block (list (create-ast-list s))))
-(define (Decl type name)
+(define (:Decl type name)
   (create-ast language 'Decl (list (valid-type! type) name)))
-(define (Use name)
+(define (:Use name)
   (create-ast language 'Use (list name)))
-(define (Cast type op1)
+(define (:Cast type op1)
   (create-ast language 'Cast (list (valid-type! type) op1)))
-(define (BiOp op1 op2)
+(define (:BiOp op1 op2)
   (create-ast language 'BiOp (list op1 op2)))
 (define (Use? n)
   (and (not (ast-list-node? n)) (=? (ast-node-type n) 'Use)))
 
 ; Type Support & Support Functions:
-(define (=? e1 e2)            (equal? e1 e2))
-(define Integer               (list 'Integer))
-(define Real                  (list 'Real))
-(define Error-Type            (list 'Error-Type))
+(define (=? e1 e2)             (equal? e1 e2))
+(define Integer                (list 'Integer))
+(define Real                   (list 'Real))
+(define Error-Type             (list 'Error-Type))
 (define (valid-type! t)
   (if (memq t (list Integer Real)) t (raise "Unknown type.")))
 
@@ -77,44 +77,44 @@
  language
  
  ; Semantics of (find-L-Decl name l i): First element e of
- ;  list l with index <= i and (L-Decl e name), otherwise #f.
+ ;  list l with index <= i and (=l-decl e name), otherwise #f.
  (define (find-L-Decl name l i)
    (ast-find-child
-    (lambda (i e) (L-Decl e name))
+    (lambda (i e) (=l-decl e name))
     l
     (cons 1 i)))
  
  (ag-rule
-  G-Decl ; Inherited attribute
+  g-decl ; Inherited attribute
   ((Block Stmt*) ; Equation for the statements of blocks
    (lambda (n name)
      (or (find-L-Decl name (<- n) (index n))
-         (G-Decl (<- (<- n)) name))))
+         (=g-decl (<- (<- n)) name))))
   ((Prog Stmt*) ; Equation for the statements of programs
    (lambda (n name)
      (or (find-L-Decl name (<- n) (index n))
          (->DErr (<- (<- n)))))))
  
  (ag-rule
-  L-Decl ; Synthesised attribute
+  l-decl ; Synthesised attribute
   (Stmt (lambda (n name) #f))
   (Decl (lambda (n name) (if (=? (->name n) name) n #f))))
  
  (ag-rule
-  Type ; Synthesised attribute
-  (Use  (lambda (n) (Type (G-Decl n (->name n)))))
+  type ; Synthesised attribute
+  (Use  (lambda (n) (=type (=g-decl n (->name n)))))
   (Decl (lambda (n) (->type n)))
   (DErr (lambda (n) Error-Type)))
  
  (ag-rule
-  Well-formed? ; Synthesised attribute
-  (Use  (lambda (n) (not (=? (Type n) Error-Type))))
-  (Decl (lambda (n) (=? (G-Decl n (->name n)) n))))
+  well-formed? ; Synthesised attribute
+  (Use  (lambda (n) (not (=? (=type n) Error-Type))))
+  (Decl (lambda (n) (=? (=g-decl n (->name n)) n))))
  
  (ag-rule
-  Type
+  type
   (Cast (lambda (n) (->type n)))
-  (BiOp (lambda (n) (Type (->Op1 n))))))
+  (BiOp (lambda (n) (=type (->Op1 n))))))
 
 ;;; Type Coercion:
 
@@ -122,22 +122,22 @@
  language
  
  (ag-rule
-  Needs-coercion? ; Inherited attribute
+  needs-coercion? ; Inherited attribute
   (Prog (lambda (n) #f)) ; Default...
   ((Cast Op1) (lambda (n) #f)) ; ...equations
   ((BiOp Op1) ; Equation for first operand
    (lambda (n)
-     (and (=? (Type n) Integer)
-          (=? (Type (->Op2 (<- n))) Real))))
+     (and (=? (=type n) Integer)
+          (=? (=type (->Op2 (<- n))) Real))))
   ((BiOp Op2) ; Equation for second operand
    (lambda (n)
-     (and (=? (Type n) Integer)
-          (=? (Type (->Op1 (<- n))) Real))))))
+     (and (=? (=type n) Integer)
+          (=? (=type (->Op1 (<- n))) Real))))))
 
 (define (cast-to-real n)
   (let ((dummy-node (create-ast-bud)))
     (rewrite-subtree n dummy-node)
-    (rewrite-subtree dummy-node (Cast Real n))))
+    (rewrite-subtree dummy-node (:Cast Real n))))
 
 ;;; Superfluous Type Casts Optimisation:
 
@@ -145,10 +145,10 @@
  language
  
  (ag-rule
-  Superfluous-cast? ; Synthesised attribute
+  superfluous-cast? ; Synthesised attribute
   (Prog (lambda (n) #f))
   (Stmt (lambda (n) #f))
-  (Cast (lambda (n) (=? (Type n) (Type (->Op1 n)))))))
+  (Cast (lambda (n) (=? (=type n) (=type (->Op1 n)))))))
 
 (define (delete-cast n)
   (let ((op1 (->Op1 n)))
@@ -160,20 +160,20 @@
 (define (normalise-program n)
   (let ((trans1 ; Transformer function...
          (lambda (n) ; ...for type coercion
-           (and (Needs-coercion? n)
+           (and (=needs-coercion? n)
                 (cast-to-real n))))
         (trans2 ; Transformer function...
          (lambda (n) ; ...for cast optimisation
-           (and (Superfluous-cast? n)
+           (and (=superfluous-cast? n)
                 (delete-cast n)))))
     (perform-rewrites n 'top-down trans1 trans2)))
 
 ;;; Type Refactoring:
 
 (define (change-type n type)
-  (when (Well-formed? n)
+  (when (=well-formed? n)
     (rewrite-terminal
-     'type (G-Decl n (->name n)) type)))
+     'type (=g-decl n (->name n)) type)))
 
 (define (change-types n type)
   (define (process-subtree n)
@@ -190,6 +190,6 @@
 (define (display-ast ast)
   (define (print name) (cons name (lambda (v) v)))
   (define printer
-    (list (print 'Needs-coercion?) (print 'Well-formed?)
-          (print 'Superfluous-cast?) (print 'Type)))
+    (list (print 'needs-coercion?) (print 'well-formed?)
+          (print 'superfluous-cast?) (print 'type)))
   (print-ast ast printer (current-output-port)))
