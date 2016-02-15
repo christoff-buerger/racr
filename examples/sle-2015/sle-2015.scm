@@ -76,9 +76,9 @@
 (with-specification
  language
  
- ; Semantics of (find-L-Decl name l i): First element e of
+ ; Semantics of (find-l-decl name l i): First element e of
  ;  list l with index <= i and (=l-decl e name), otherwise #f.
- (define (find-L-Decl name l i)
+ (define (find-l-decl name l i)
    (ast-find-child
     (lambda (i e) (=l-decl e name))
     l
@@ -88,11 +88,11 @@
   g-decl ; Inherited attribute
   ((Block Stmt*) ; Equation for the statements of blocks
    (lambda (n name)
-     (or (find-L-Decl name (<- n) (index n))
+     (or (find-l-decl name (<- n) (index n))
          (=g-decl (<- (<- n)) name))))
   ((Prog Stmt*) ; Equation for the statements of programs
    (lambda (n name)
-     (or (find-L-Decl name (<- n) (index n))
+     (or (find-l-decl name (<- n) (index n))
          (->DErr (<- (<- n)))))))
  
  (ag-rule
@@ -124,12 +124,12 @@
  (ag-rule
   needs-coercion? ; Inherited attribute
   (Prog (lambda (n) #f)) ; Default...
-  ((Cast Op1) (lambda (n) #f)) ; ...equations
-  ((BiOp Op1) ; Equation for first operand
+  ((Cast Op1) (lambda (n) #f)) ; ...equations.
+  ((BiOp Op1) ; Equation for first operand.
    (lambda (n)
      (and (=? (=type n) Integer)
           (=? (=type (->Op2 (<- n))) Real))))
-  ((BiOp Op2) ; Equation for second operand
+  ((BiOp Op2) ; Equation for second operand.
    (lambda (n)
      (and (=? (=type n) Integer)
           (=? (=type (->Op1 (<- n))) Real))))))
@@ -159,11 +159,11 @@
 
 (define (normalise-program n)
   (let ((trans1 ; Transformer function...
-         (lambda (n) ; ...for type coercion
+         (lambda (n) ; ...for type coercion.
            (and (=needs-coercion? n)
                 (cast-to-real n))))
         (trans2 ; Transformer function...
-         (lambda (n) ; ...for cast optimisation
+         (lambda (n) ; ...for cast optimisation.
            (and (=superfluous-cast? n)
                 (delete-cast n)))))
     (perform-rewrites n 'top-down trans1 trans2)))
