@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr core) (racr testing))
+(import (rnrs) (racr-meta core) (racr-meta testing))
 
 (define spec)
 (define create-ast-scheme

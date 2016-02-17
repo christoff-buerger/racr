@@ -9,7 +9,12 @@
 # such that the ``empty list is null and thus invalid key for hashtable'' bug of
 # IronScheme is fixed.
 
-sed	-e 's/(import/(import (racr ironscheme-hashtable-adapter)/g' \
+library=`basename "$1"`
+
+sed	-e "s/(racr ironscheme-hashtable-adapter)/($library ironscheme-hashtable-adapter)/g" \
+	"$1/ironscheme-hashtable-adapter.scm" > "$1/ironscheme-hashtable-adapter.sls"
+
+sed	-e "s/(import/(import ($library ironscheme-hashtable-adapter)/g" \
 	-e 's/(hashtable-ref/(hashtable-ref*/g' \
 	-e 's/(hashtable-set!/(hashtable-set!*/g' \
 	-e 's/(hashtable-delete!/(hashtable-delete!*/g' \

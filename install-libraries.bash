@@ -170,17 +170,18 @@ then
 	do
 		library=`basename "$l"`
 		library_bin="$l/ironscheme-bin"
-		if [ "$library" == "racr" ] # Work around for the ``empty list is null and thus invalid key for hashtable'' bug.
+		# Work around for the ``empty list is null and thus invalid key for hashtable'' bug:
+		if [ "$library" == "racr" -o "$library" == "racr-meta" ]
 		then
 			rm -rf "$library_bin"
 			mkdir -p "$library_bin/$library"
-			cp -p "$script_dir/racr-net/ironscheme-hashtable-adapter.sls" "$library_bin/$library"
-			cp -p "$script_dir/racr/core.scm" "$library_bin/$library"
-			cp -p "$script_dir/racr/testing.scm" "$library_bin/$library/testing.sls"
+			cp -p "$script_dir/racr-net/ironscheme-hashtable-adapter.scm" "$library_bin/$library"
+			cp -p "$script_dir/$library/core.scm" "$library_bin/$library"
+			cp -p "$script_dir/$library/testing.scm" "$library_bin/$library/testing.sls"
 			cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$library_bin"
 			"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
 			
-			echo "(import (racr ironscheme-hashtable-adapter) (racr core) (racr testing))" > \
+			echo "(import ($library ironscheme-hashtable-adapter) ($library core) ($library testing))" > \
 				"$library_bin/compile-script.sls"
 			# Use subshell for local directory changes via cd:
 			(

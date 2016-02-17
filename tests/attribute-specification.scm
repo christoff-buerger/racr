@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr core) (racr testing))
+(import (rnrs) (racr-meta core) (racr-meta testing))
 
 (define dummy-equation (lambda (n) #t))
 

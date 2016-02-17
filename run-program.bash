@@ -76,6 +76,7 @@ fi
 if [ -z ${library_to_use+x} ]
 then
 	required_libraries=( "$script_dir/racr" )
+	required_libraries+=( "$script_dir/racr-meta" )
 else
 	configuration_to_parse="$library_to_use/dependencies.txt"
 	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
