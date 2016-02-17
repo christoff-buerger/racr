@@ -161,11 +161,11 @@ fi
 if [[ " ${selected_systems[@]} " =~ "ironscheme" ]]
 then
 	echo "=========================================>>> Compile for IronScheme:"
-	if [ ! -d "$script_dir/racr-net/ironscheme-bin" ] # One time setup: copy IronScheme distribution.
-	then
-		console=`which IronScheme.Console-v4.exe`
-		cp -r "`dirname "$console"`" "$script_dir/racr-net/ironscheme-bin/"
-	fi
+	#if [ ! -d "$script_dir/racr-net/ironscheme-bin" ] # One time setup: copy IronScheme distribution.
+	#then
+	#	console=`which IronScheme.Console-v4.exe`
+	#	cp -r "`dirname "$console"`" "$script_dir/racr-net/ironscheme-bin/"
+	#fi
 	for l in ${selected_libraries[@]}
 	do
 		library=`basename "$l"`
@@ -177,16 +177,19 @@ then
 			cp -p "$script_dir/racr-net/ironscheme-hashtable-adapter.sls" "$library_bin/$library"
 			cp -p "$script_dir/racr/core.scm" "$library_bin/$library"
 			cp -p "$script_dir/racr/testing.scm" "$library_bin/$library/testing.sls"
+			cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$library_bin"
 			"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
-			rm "$library_bin/$library/core.scm"
 			
-			rm -f "$script_dir/racr-net/ironscheme-bin/racr.ironscheme-hashtable-adapter.dll"
-			rm -f "$script_dir/racr-net/ironscheme-bin/racr.core.dll"
-			rm -f "$script_dir/racr-net/ironscheme-bin/racr.testing.dll"
 			echo "(import (racr ironscheme-hashtable-adapter) (racr core) (racr testing))" > \
 				"$library_bin/compile-script.sls"
-			echo "(library-path (list \"$library_bin\")) (compile \"$library_bin/compile-script.sls\")" | \
-				mono "$script_dir/racr-net/ironscheme-bin/IronScheme.Console-v4.exe"
+			# Use subshell for local directory changes via cd:
+			(
+			cd "$library_bin"
+			echo "(compile \"$library_bin/compile-script.sls\")" | \
+				mono `which IronScheme.Console-v4.exe` -I "$library_bin"
+			)
+			rm -rf "$library_bin/$library" # Force usage of compiled IronScheme dll assemblies.
+			rm "$library_bin/compile-script.sls"
 			
 			continue
 		fi
@@ -196,23 +199,27 @@ then
 		then
 			rm -rf "$library_bin"
 			mkdir -p "$library_bin/$library"
-			lib_path="(list)"
+			lib_path=()
 			for x in ${required_libraries[@]}
 			do
-				lib_path="(cons \"$x/ironscheme-bin\" $lib_path)"
+				lib_path+=( -I "$x/ironscheme-bin" )
 			done
-			lib_path="(library-path (cons \"$script_dir/racr-net/ironscheme-bin\" $lib_path))"
-			to_compile="(import "
+			to_compile="(import"
 			for x in ${required_sources[@]}
 			do
 				source_file=`basename "$x"`
 				cp -p "$x.scm" "$library_bin/$library/$source_file.sls"
 				to_compile="$to_compile ($library $source_file)"
-				rm -f "$script_dir/racr-net/ironscheme-bin/$library.$source_file.dll"
 			done
 			echo "$to_compile)" > "$library_bin/compile-script.sls"
-			echo "$lib_path (compile \"$library_bin/compile-script.sls\")" | \
-				mono "$script_dir/racr-net/ironscheme-bin/IronScheme.Console-v4.exe"
+			# Use subshell for local directory changes via cd:
+			(
+			cd "$library_bin"
+			echo "(compile \"$library_bin/compile-script.sls\")" | \
+				mono `which IronScheme.Console-v4.exe` ${lib_path[@]}
+			)
+			rm -rf "$library_bin/$library" # Force usage of compiled IronScheme dll assemblies.
+			rm "$library_bin/compile-script.sls"
 		fi
 	done
 fi

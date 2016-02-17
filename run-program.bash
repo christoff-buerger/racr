@@ -132,5 +132,10 @@ case $selected_system in
 		fi
 		petite $libs --program "$to_execute" $*;;
 	ironscheme)
-		mono "$script_dir/racr-net/ironscheme-bin/IronScheme.Console-v4.exe" "$to_execute" $*;;
+		libs=()
+		for l in ${required_libraries[@]}
+		do
+			libs+=( -I "$l/ironscheme-bin" )
+		done
+		mono `which IronScheme.Console-v4.exe` ${libs[@]} "$to_execute" $*;;
 esac

@@ -41,20 +41,20 @@
 		<Reference Include="System" />
 		<Compile Include="Racr.cs" />
 		<Reference Include="IronScheme">
-			<HintPath>ironscheme-bin\IronScheme.dll</HintPath>
+			<HintPath>..\racr\ironscheme-bin\IronScheme.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.ironscheme-hashtable-adapter">
-			<HintPath>ironscheme-bin\racr.ironscheme-hashtable-adapter.dll</HintPath>
+			<HintPath>..\racr\ironscheme-bin\racr.ironscheme-hashtable-adapter.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.core">
-			<HintPath>ironscheme-bin\racr.core.dll</HintPath>
+			<HintPath>..\racr\ironscheme-bin\racr.core.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.testing">
-			<HintPath>ironscheme-bin\racr.testing.dll</HintPath>
+			<HintPath>..\racr\ironscheme-bin\racr.testing.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 	<Target Name="AfterBuild">
-		<Copy SourceFiles="$(OutputPath)\Racr.dll" DestinationFolder="ironscheme-bin" />
+		<Copy SourceFiles="$(OutputPath)\Racr.dll" DestinationFolder="..\racr\ironscheme-bin" />
 	</Target>
 </Project>
