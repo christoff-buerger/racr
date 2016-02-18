@@ -182,14 +182,15 @@
    (ActivityEdge   (lambda (n) (=n-lookup n (->target n)))))
   
   (ag-rule
-   incoming ; List of incoming edges of a node.
+   incoming ; Clustering of nodes w.r.t. target / List of incoming edges of a node.
    (Activity       (lambda (n) (make-connection-table ->target (=edges n))))
-   (ActivityNode   (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n) (list)))))
-  
+   (ActivityNode   (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n)
+                                              (list)))))
   (ag-rule
-   outgoing ; List of outgoing edges of a node.
+   outgoing ; Clustering of nodes w.r.t. source / List of outgoing edges of a node.
    (Activity       (lambda (n) (make-connection-table ->source (=edges n))))
-   (ActivityNode   (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n) (list)))))
+   (ActivityNode   (lambda (n) (hashtable-ref (=outgoing (<- n)) (->name n)
+                                              (list)))))
   
   (ag-rule
    initial ; The diagram's initial node.
@@ -201,7 +202,7 @@
   spec
   
   (ag-rule
-   well-typed? ; Have variables proper initialisation values and are expressions type correct?
+   well-typed? ; Are variables initialised and expressions type correct?
    
    (Variable
     (lambda (n)
@@ -251,8 +252,8 @@
    (FinalNode      (lambda (n) (and (in n >= 1) (out n = 0) (guarded n #f))))
    (ForkNode       (lambda (n) (and (in n = 1) (out n > 1) (guarded n #f))))
    (JoinNode       (lambda (n) (and (in n > 1) (out n = 1) (guarded n #f))))
-   (DecisionNode   (lambda (n) (and (in n = 1) (out n >= 1) (guarded n #t))))
    (MergeNode      (lambda (n) (and (in n >= 1) (out n = 1) (guarded n #f))))
+   (DecisionNode   (lambda (n) (and (in n = 1) (out n >= 1) (guarded n #t))))
    (ExecutableNode (lambda (n) (and (in n = 1) (out n = 1) (guarded n #f)
                                     (for-all =well-typed? (=expressions n)))))
    (Activity
@@ -312,7 +313,8 @@
   
   (ag-rule
    v-accessor ; Function returning the runtime value of the variable.
-   (Variable       (lambda (n) (define token (=v-token n)) (lambda x (pn:->value token)))))
+   (Variable       (lambda (n) (let ((token (=v-token n)))
+                                 (lambda x (pn:->value token))))))
   
   (ag-rule
    petrinet ; The Petri net simulating the activity diagram's execution.
@@ -350,6 +352,15 @@
        (list)
        (=incoming n))))
    
+   (JoinNode
+    (lambda (n)
+      (define incoming (=incoming n))
+      (list
+       (pn::Transition
+        (->name (car incoming))
+        (map >>? incoming)
+        (list (n>> (car incoming)))))))
+   
    (ForkNode
     (lambda (n)
       (define incoming (car (=incoming n)))
@@ -362,30 +373,26 @@
        (pn::Transition
         (->name (car outgoing))
         (list (>>? (car outgoing)))
-        (map n>> outgoing)))))
-   
-   (JoinNode
-    (lambda (n)
-      (define incoming (=incoming n))
-      (list
-       (pn::Transition
-        (->name (car incoming))
-        (map >>? incoming)
-        (list (n>> (car incoming))))))))
+        (map n>> outgoing))))))
   
   (ag-rule
-   computation ; Function encoding the execution semantics of nodes (including their expressions).
+   computation ; Function encoding the execution semantics of expressions and nodes.
    
    (ActivityNode
     (lambda (n)
       (define executed (->name n))
-      (lambda x (trace executed) (list #t))))
+      (lambda x
+        (trace executed)
+        (list #t))))
    
    (ExecutableNode
     (lambda (n)
       (define executed (->name n))
       (define computations (map =computation (=expressions n)))
-      (lambda x (trace executed) (for-each (lambda (f) (f)) computations) (list #t))))
+      (lambda x
+        (trace executed)
+        (for-each (lambda (f) (f)) computations)
+        (list #t))))
    
    (UnaryExpression
     (lambda (n)
