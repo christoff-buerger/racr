@@ -2,6 +2,7 @@
 racket
 larceny
 petite
+ironscheme
 @libraries:
 ../../racr
 ../atomic-petrinets
