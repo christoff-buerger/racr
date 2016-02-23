@@ -186,6 +186,7 @@
    (Activity       (lambda (n) (make-connection-table ->target (=edges n))))
    (ActivityNode   (lambda (n) (hashtable-ref (=incoming (<- n)) (->name n)
                                               (list)))))
+  
   (ag-rule
    outgoing ; Clustering of nodes w.r.t. source / List of outgoing edges of a node.
    (Activity       (lambda (n) (make-connection-table ->source (=edges n))))
