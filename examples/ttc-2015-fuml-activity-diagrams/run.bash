@@ -49,9 +49,10 @@ do
 			echo "Usage: -s Scheme system (by default larceny)." >&2
 			echo "       -d Activity diagram." >&2
 			echo "       -i Activity diagram input." >&2
-			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness" >&2
-			echo "                5=PN-execution (no enabled passes), 6=PN-execution (use enabled passes))." >&2
-			echo "          The default is 5: Petri net execution, one transition each step." >&2
+			echo "       -m Mode (1=parsing, 2=AD-well-formedness, 3=PN-generation, 4=PN-well-formedness," >&2
+			echo "                5=PN-enabled, 6=PN-execution (no enabled passes)," >&2
+			echo "                7=PN-execution (use enabled passes))." >&2
+			echo "          The default is 6: Petri net execution, one transition each step." >&2
 			echo "       -x Deactivates printing the execution trace on stdout." >&2
 			echo "          By default the execution trace is printed." >&2
 			exit 2
@@ -82,8 +83,8 @@ fi
 
 if [ -z ${mode+x} ]
 then
-	mode=5
-else if (( "$mode" < 1 || "$mode" > 6 ))
+	mode=6
+else if (( "$mode" < 1 || "$mode" > 7 ))
 then
 	echo " !!! ERROR: No valid mode selected !!!" >&2
 	exit 2
