@@ -9,7 +9,7 @@
 	NUnit tests to validate the proper execution of RACR's test cases in IronScheme and the
 	graph rewriting adaptation of RACR in RACR-NET. The coverage of all other RACR
 	functionalities in RACR-NET is validated by the C# implementation of the questionnaires
-	example (cf .examples-net/questionnaires).
+	example (cf. examples-net/questionnaires).
 	
 	To run the tests from command line type `nunit-console Test.dll`.
 */
