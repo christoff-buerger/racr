@@ -39,21 +39,24 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Compile Include="App.cs" />
-    <Compile Include="Generated.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="IronScheme">
-      <HintPath>..\..\racr-net\IronScheme.dll</HintPath>
+      <HintPath>..\..\..\racr\ironscheme-bin\IronScheme.dll</HintPath>
+    </Reference>
+    <Reference Include="racr.ironscheme-hashtable-adapter">
+      <HintPath>..\..\..\racr\ironscheme-bin\ironscheme-hashtable-adapter.dll</HintPath>
     </Reference>
     <Reference Include="racr.core">
-      <HintPath>..\..\racr-net\racr.core.dll</HintPath>
+      <HintPath>..\..\..\racr\ironscheme-bin\racr.core.dll</HintPath>
     </Reference>
-    <Reference Include="hashtable-iron-scheme-adapter">
-      <HintPath>..\..\racr-net\hashtable-iron-scheme-adapter.dll</HintPath>
+    <Reference Include="racr.testing">
+      <HintPath>..\..\..\racr\ironscheme-bin\racr.testing.dll</HintPath>
+    </Reference>
+    <Reference Include="Racr">
+      <HintPath>..\..\..\racr\ironscheme-bin\Racr.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="Racr">
-      <HintPath>..\..\racr-net\Racr.dll</HintPath>
+    <Reference Include="calculator-scheme.main.dll">
+      <HintPath>..\calculator-scheme\ironscheme-bin\calculator-scheme.main.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

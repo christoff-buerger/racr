@@ -7,7 +7,7 @@
 
 (library
  (calculator-scheme main)
- (export make-profiling-ast)
+ (export random random-integer number->const make-profiling-ast)
  (import (rnrs) (racr core) (racr testing))
  
  ;;; Support functions:
@@ -37,13 +37,12 @@
  (define (:MulExp op1 op2) (create-ast spec 'AddExp (list op1 op2)))
  (define (:Number value)   (create-ast spec 'Number (list value)))
  (define (:Const name)     (create-ast spec 'Const (list name)))
+ (define (number->const i) (string-append "d" (number->string i)))
  
  (define (make-profiling-ast nodes constants)
-   (define (cname i)
-     (string-append "d" (number->string i)))
    (define (make-definitions)
      (do ((i 0 (+ i 1))
-          (defs (list) (cons (:Def (cname i) (/ i 10.0)) defs)))
+          (defs (list) (cons (:Def (number->const i) (/ i 10.0)) defs)))
        ((= i constants) (create-ast-list defs))))
    (define (new-node)
      (define type (if (< (random) (/ 1 2)) :AddExp :MulExp))
@@ -59,7 +58,7 @@
          ((> (random) (/ 1 2))
           (rewrite-subtree n (:Number (random-integer 1 10))))
          (else
-          (rewrite-subtree n (:Const (cname (random-integer 0 constants)))))))
+          (rewrite-subtree n (:Const (number->const (random-integer 0 constants)))))))
      (initialise-leaf (ast-child 'A n))
      (initialise-leaf (ast-child 'B n)))
    (let ((ast (new-node)))
@@ -116,60 +115,3 @@
        (ast-child 'Def* n))))))
  
  (compile-ag-specifications spec))
-#|
-(define defs
-  (create-ast-list
-   (list
-    (create-ast spec 'Def (list "a" 0.0))
-    (create-ast spec 'Def (list "b" 0.1))
-    (create-ast spec 'Def (list "c" 0.2))
-    (create-ast spec 'Def (list "d" 0.3))
-    (create-ast spec 'Def (list "e" 0.4))
-    (create-ast spec 'Def (list "f" 0.5))
-    (create-ast spec 'Def (list "g" 0.6))
-    (create-ast spec 'Def (list "h" 0.7))
-    (create-ast spec 'Def (list "i" 0.8))
-    (create-ast spec 'Def (list "j" 0.9))
-    (create-ast spec 'Def (list "k" 1.0))
-    (create-ast spec 'Def (list "l" 1.1))
-    (create-ast spec 'Def (list "m" 1.2))
-    (create-ast spec 'Def (list "n" 1.3))
-    (create-ast spec 'Def (list "o" 1.4))
-    (create-ast spec 'Def (list "p" 1.5))
-    (create-ast spec 'Def (list "q" 1.6))
-    (create-ast spec 'Def (list "r" 1.7))
-    (create-ast spec 'Def (list "s" 1.8))
-    (create-ast spec 'Def (list "t" 1.9))
-    (create-ast spec 'Def (list "u" 2.0))
-    (create-ast spec 'Def (list "v" 2.1))
-    (create-ast spec 'Def (list "w" 2.2))
-    (create-ast spec 'Def (list "x" 2.3))
-    (create-ast spec 'Def (list "y" 2.4))
-    (create-ast spec 'Def (list "z" 2.5)))))
-
-(define e
-  (tree spec))
-
-(define root
-  (create-ast spec 'Root (list defs e)))
-
-(display "Start\n")
-(define t (current-time))
-
-
-(let loop ((i 0))
-  (let
-      ((def (ast-child (+ (mod i 26) 1) defs)))
-    (display i)
-    (display ": ")
-    (display (att-value 'Eval root))
-    (newline)
-    (rewrite-terminal 'value def (mod (+ (ast-child 'value def) 0.1) 3.0))
-    (when (< i 1000) (loop (+ i 1)))))
-
-(define dif (time-difference (current-time) t))
-
-(display "Time: ")
-(display (+ (time-second dif) (* (time-nanosecond dif) 0.000000001)))
-(newline)
-|#

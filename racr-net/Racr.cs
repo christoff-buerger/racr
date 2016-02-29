@@ -203,7 +203,7 @@ static public class Racr {
 			return new AstNode(this, nonTerminal, children);
 		}
 
-		public AstNode CreateAstList(params AstNode[] children) {
+		public AstList CreateAstList(params AstNode[] children) {
 			return new AstList(children);
 		}
 

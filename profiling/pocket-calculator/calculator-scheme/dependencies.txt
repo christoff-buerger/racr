@@ -1,0 +1,4 @@
+@libraries:
+../../../racr
+@sources:
+main

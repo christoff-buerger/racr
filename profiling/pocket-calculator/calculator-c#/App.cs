@@ -1,8 +1,18 @@
+/*
+	This program and the accompanying materials are made available under the
+	terms of the MIT license (X11 license) which accompanies this distribution.
+
+	Author: D. Langner, C. Bürger
+*/
+
 using System;
 using System.Diagnostics;
 
+using IronScheme;
+using IronScheme.Runtime;
+using IronScheme.Scripting;
 
-static class Accessors {
+public static class Accessors {
 	public static double GetValue(this Racr.AstNode n) {
 		return n.Child<double>("value");
 	}
@@ -29,69 +39,95 @@ static class Accessors {
 	}
 }
 
-class App {
-	public static void Main() {
+public static class App {
+	private static Racr.Specification CL;
 
-
-		var spec = new Racr.Specification();
-
-		spec.AstRule("Root->Def*<Defs-Exp");
-		spec.AstRule("Def->name-value");
-		spec.AstRule("Exp->");
-		spec.AstRule("BinExp:Exp->Exp<A-Exp<B");
-		spec.AstRule("AddExp:BinExp->");
-		spec.AstRule("MulExp:BinExp->");
-		spec.AstRule("Number:Exp->value");
-		spec.AstRule("Const:Exp->name");
-		spec.CompileAstSpecifications("Root");
+	static App() {
+		CL = new Racr.Specification();
+		CL.AstRule("Root->Def*<Defs-Exp");
+		CL.AstRule("Def->name-value");
+		CL.AstRule("Exp->");
+		CL.AstRule("BinExp:Exp->Exp<A-Exp<B");
+		CL.AstRule("AddExp:BinExp->");
+		CL.AstRule("MulExp:BinExp->");
+		CL.AstRule("Number:Exp->value");
+		CL.AstRule("Const:Exp->name");
+		CL.CompileAstSpecifications("Root");
+		CL.RegisterAgRules(typeof(App));
+		CL.CompileAgSpecifications();
 		
-		spec.RegisterAgRules(typeof(App));
-		spec.CompileAgSpecifications();
+		"(import (calculator-scheme main))".Eval();
+	}
 
-		var defs = spec.CreateAstList(
-				spec.CreateAst("Def", "a", 0.0),
-				spec.CreateAst("Def", "b", 0.1),
-				spec.CreateAst("Def", "c", 0.2),
-				spec.CreateAst("Def", "d", 0.3),
-				spec.CreateAst("Def", "e", 0.4),
-				spec.CreateAst("Def", "f", 0.5),
-				spec.CreateAst("Def", "g", 0.6),
-				spec.CreateAst("Def", "h", 0.7),
-				spec.CreateAst("Def", "i", 0.8),
-				spec.CreateAst("Def", "j", 0.9),
-				spec.CreateAst("Def", "k", 1.0),
-				spec.CreateAst("Def", "l", 1.1),
-				spec.CreateAst("Def", "m", 1.2),
-				spec.CreateAst("Def", "n", 1.3),
-				spec.CreateAst("Def", "o", 1.4),
-				spec.CreateAst("Def", "p", 1.5),
-				spec.CreateAst("Def", "q", 1.6),
-				spec.CreateAst("Def", "r", 1.7),
-				spec.CreateAst("Def", "s", 1.8),
-				spec.CreateAst("Def", "t", 1.9),
-				spec.CreateAst("Def", "u", 2.0),
-				spec.CreateAst("Def", "v", 2.1),
-				spec.CreateAst("Def", "w", 2.2),
-				spec.CreateAst("Def", "x", 2.3),
-				spec.CreateAst("Def", "y", 2.4),
-				spec.CreateAst("Def", "z", 2.5));
+	private static bool FlipCoin() {
+		return (bool)"(< (random) (/ 1 2))".Eval();
+	}
 
-		var exp = Generated.Tree(spec);
+	private static int RandomInteger(int lb, int ub) {
+		return (int)"(random-integer {0} {1})".Eval(lb, ub);
+	}
 
-		var root = spec.CreateAst("Root", defs, exp);
+	private static Racr.AstList MakeDefinitions(int constants) {
+		Racr.AstNode[] defs = new Racr.AstNode[constants];
+		for (var i = 0; i < constants; i++) defs[i] = CL.CreateAst("Def", "d" + i, i / 10.0);
+		return CL.CreateAstList(defs);
+	}
 
-		Console.WriteLine("Start");
-		var watch = new Stopwatch();
-		watch.Start();
+	private static Racr.AstNode NewNode() {
+		return CL.CreateAst(FlipCoin() ? "AddExp" : "MulExp", new Racr.AstBud(), new Racr.AstBud());
+	}
 
-		for (int i = 0; i < 1000; i++) {
-			var def = defs.Child(i % 26 + 1);
-			Console.WriteLine("{0}: {1}", i, root.Eval());
-			def.RewriteTerminal("value", (def.Child<double>("value") + 0.1) % 3.0);
+	private static void AddNode(Racr.AstNode n) {
+		Racr.AstNode c = FlipCoin() ? n.GetA() : n.GetB();
+		if (c.IsBudNode()) c.RewriteSubtree(NewNode());
+		else AddNode(c);
+	}
+
+	private static void InitialiseLeafes(Racr.AstNode n, int constants) {
+		foreach (var c in new Racr.AstNode[] {n.GetA(), n.GetB()}) {
+			if (!c.IsBudNode()) InitialiseLeafes(c, constants);
+			else if (FlipCoin()) c.RewriteSubtree(CL.CreateAst("Number", (double)RandomInteger(1, 10)));
+			else c.RewriteSubtree(CL.CreateAst("Const", "d" + RandomInteger(0, constants)));
 		}
+	}
 
-		watch.Stop();
-		Console.WriteLine("Time: {0}", watch.ElapsedMilliseconds * 0.001);
+	private static Racr.AstNode MakeProfilingAst(int nodes, int constants) {
+		var expr = NewNode();
+		for (var i = 1; i < nodes; i++) AddNode(expr);
+		InitialiseLeafes(expr, constants);
+		return CL.CreateAst("Root", MakeDefinitions(constants), expr);
+	}
+
+	public static void Main(string[] args) {
+		var nodes = args.Length > 0 ? int.Parse(args[0]) : 1000;
+		var constants = args.Length > 1 ? int.Parse(args[1]) : 26;
+		var rewrites = args.Length > 2 ? int.Parse(args[2]) : 1000;
+		var UseRacrNet = args.Length > 3 ? bool.Parse(args[3]) : true;
+		
+		if (UseRacrNet) {
+			var ast = MakeProfilingAst(nodes, constants);
+			var watch = new Stopwatch();
+			watch.Start();
+			for (var i = 0; i < rewrites; i++) {
+				ast.Eval();
+				var def = ast.Lookup("d" + i % constants);
+				def.RewriteTerminal("value", (def.Child<double>("value") + 0.1) % 3.0);
+			}
+			watch.Stop();
+			Console.WriteLine("{0}", watch.ElapsedMilliseconds * 0.001);
+		} else {
+			"(define profiling-ast (make-profiling-ast {0} {1}))".Eval(nodes, constants);
+			var watch = new Stopwatch();
+			watch.Start();
+			@"(do ((i 0 (+ i 1))) ((= i {0}))
+				(att-value 'Eval profiling-ast)
+				(let ((def (att-value 'Lookup profiling-ast (number->const (mod i {1})))))
+					(rewrite-terminal 'value def
+						(mod (+ (ast-child 'value def) 0.1) 3.0))))"
+				.Eval(rewrites, constants);
+			watch.Stop();
+			Console.WriteLine("{0}", watch.ElapsedMilliseconds * 0.001);
+		}
 	}
 
 	[Racr.AgRule("Lookup", "Root", Cached = true, Context = "*")]
@@ -124,4 +160,3 @@ class App {
 		return node.GetExp().Eval();
 	}
 }
-
