@@ -1,3 +1,0 @@
-The Tiny C++ example is the successor of, and based on, the CJava example of M. Tasić:
-https://code.google.com/p/racr/wiki/Publications
-https://github.com/christoff-buerger/racr-jastadd-isc-case-study
