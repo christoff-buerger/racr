@@ -31,7 +31,7 @@ using IronScheme.Runtime;
 			"examples/composed-petrinets",
 			"examples/ttc-2015-fuml-activity-diagrams",
 			"examples/siple",
-		}) { ("(library-path (cons \"../../../" + libpath + "/ironscheme-bin\" (library-path)))").Eval(); }
+		}) { ("(library-path (cons \"../../" + libpath + "/ironscheme-bin\" (library-path)))").Eval(); }
 	}
 
 	[Test] public void SchemeAvailable() {
@@ -49,22 +49,22 @@ using IronScheme.Runtime;
 			"rewrite-lists",
 			"rewrite-refine-abstract",
 			"rewrite-strategies",
-		}) { File.ReadAllText("../../../tests/" + test + ".scm").Eval(); }
+		}) { File.ReadAllText("../../tests/" + test + ".scm").Eval(); }
 	}
 
 	[Test] public void BinaryNumbers() {
-		File.ReadAllText("../../../examples/binary-numbers/binary-numbers.scm").Eval();
+		File.ReadAllText("../../examples/binary-numbers/binary-numbers.scm").Eval();
 	}
 
 	[Test] public void StateMachines() {
-		File.ReadAllText("../../../examples/state-machines/state-machines.scm").Eval();
+		File.ReadAllText("../../examples/state-machines/state-machines.scm").Eval();
 	}
 
 	[Test] public void AtomicPetrinets() {
 		foreach (var test in new String[] {
 			"cookie-automaton",
 			"syntax-tests",
-		}) { File.ReadAllText("../../../examples/atomic-petrinets/examples/" + test + ".scm").Eval(); }
+		}) { File.ReadAllText("../../examples/atomic-petrinets/examples/" + test + ".scm").Eval(); }
 	}
 
 	[Test] public void ComposedPetrinets() {
@@ -72,11 +72,11 @@ using IronScheme.Runtime;
 			"purchase-processing",
 			"runtime-structure-example-slide",
 			"syntax-tests",
-		}) { File.ReadAllText("../../../examples/composed-petrinets/examples/" + test + ".scm").Eval(); }
+		}) { File.ReadAllText("../../examples/composed-petrinets/examples/" + test + ".scm").Eval(); }
 	}
 
 	[Test] public void ActivityDiagrams() {
-		const String path = "../../../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/";
+		const String path = "../../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/";
 		"(import (rnrs) (ttc-2015-fuml-activity-diagrams user-interface))".Eval();
 		Callable interpretWithoutInput = "(lambda (d) (run-activity-diagram d #f 6 #f))".Eval<Callable>();
 		Callable interpretWithInput = "(lambda (d i) (run-activity-diagram d i 6 #f))".Eval<Callable>();
@@ -97,7 +97,7 @@ using IronScheme.Runtime;
 	}
 
 	[Test] public void Siple() {
-		const String path = "../../../examples/siple/examples/";
+		const String path = "../../examples/siple/examples/";
 		"(import (rnrs) (racr testing) (siple main) (siple exception-api))".Eval();
 		Callable interpretCorrect = "siple-interpret".Eval<Callable>();
 		Callable interpretIncorrect = "(lambda (p) (assert-exception siple-exception? (siple-interpret p)))".Eval<Callable>();
