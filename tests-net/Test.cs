@@ -16,9 +16,11 @@
 
 using System;
 using System.IO;
+
+using NUnit.Framework;
+
 using IronScheme;
 using IronScheme.Runtime;
-using NUnit.Framework;
 
 [TestFixture] public class RacrTests {
 	public RacrTests() {

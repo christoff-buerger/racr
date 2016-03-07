@@ -8,6 +8,8 @@
 using System;
 using System.Diagnostics;
 
+using NUnit.Framework;
+
 using IronScheme;
 using IronScheme.Runtime;
 using IronScheme.Scripting;
@@ -110,31 +112,43 @@ public static class CalculatorProfiler {
 		var constants = args.Length > 1 ? int.Parse(args[1]) : 26;
 		var rewrites = args.Length > 2 ? int.Parse(args[2]) : 1000;
 		var UseRacrNet = args.Length > 3 ? bool.Parse(args[3]) : true;
-		
-		if (UseRacrNet) {
-			var ast = MakeProfilingAst(nodes, constants);
-			var watch = new Stopwatch();
-			watch.Start();
-			for (var i = 0; i < rewrites; i++) {
-				ast.Eval();
-				var def = ast.Lookup("d" + i % constants);
-				def.RewriteTerminal("value", (def.Child<double>("value") + 0.1) % 3.0);
-			}
-			watch.Stop();
-			Console.WriteLine("{0}", watch.ElapsedMilliseconds * 0.001);
-		} else {
-			"(define profiling-ast (make-profiling-ast {0} {1}))".Eval(nodes, constants);
-			var watch = new Stopwatch();
-			watch.Start();
-			@"(do ((i 0 (+ i 1))) ((= i {0}))
-				(=eval profiling-ast)
-				(let ((def (=lookup profiling-ast (number->const (mod i {1})))))
-					(rewrite-terminal 'value def
-						(mod (+ (->value def) 0.1) 3.0))))"
-				.Eval(rewrites, constants);
-			watch.Stop();
-			Console.WriteLine("{0}", watch.ElapsedMilliseconds * 0.001);
+
+		InitialiseRandom();
+		if (UseRacrNet) ProfileRacrNet(nodes, constants, rewrites, true);
+		else ProfileRacrScheme(nodes, constants, rewrites, true);
+	}
+
+	public static Racr.AstNode ProfileRacrNet(int nodes, int constants, int rewrites, bool printTime) {
+		var ast = MakeProfilingAst(nodes, constants);
+		var watch = new Stopwatch();
+		watch.Start();
+		for (var i = 0; i < rewrites; i++) {
+			ast.Eval();
+			var def = ast.Lookup("d" + i % constants);
+			def.RewriteTerminal("value", (def.Child<double>("value") + 0.1) % 3.0);
 		}
+		watch.Stop();
+		if (printTime) Console.WriteLine("{0}", watch.ElapsedMilliseconds * 0.001);
+		return ast;
+	}
+
+	public static Object ProfileRacrScheme(int nodes, int constants, int rewrites, bool printTime) {
+		"(define profiling-ast (make-profiling-ast {0} {1}))".Eval(nodes, constants);
+		var watch = new Stopwatch();
+		watch.Start();
+		@"(do ((i 0 (+ i 1))) ((= i {0}))
+			(=eval profiling-ast)
+			(let ((def (=lookup profiling-ast (number->const (mod i {1})))))
+				(rewrite-terminal 'value def
+					(mod (+ (->value def) 0.1) 3.0))))"
+			.Eval(rewrites, constants);
+		watch.Stop();
+		if (printTime) Console.WriteLine("{0}", watch.ElapsedMilliseconds * 0.001);
+		return "profiling-ast".Eval();
+	}
+
+	public static void InitialiseRandom(int seed = 19380110) {
+		"(random {0})".Eval(seed);
 	}
 
 	private static bool FlipCoin() {
@@ -175,4 +189,29 @@ public static class CalculatorProfiler {
 		InitialiseLeafes(expr, constants);
 		return CL.CreateAst("Calculator", MakeDefinitions(constants), expr);
 	}
+}
+
+[TestFixture] public class CalculatorTests {
+	private void test(int nodes, int constants, int rewrites) {
+		CalculatorProfiler.InitialiseRandom();
+		Racr.AstNode c1 = CalculatorProfiler.ProfileRacrNet(nodes, constants, rewrites, false);
+		CalculatorProfiler.InitialiseRandom();
+		Object c2 = CalculatorProfiler.ProfileRacrScheme(nodes, constants, rewrites, false);
+		Assert.AreEqual(
+			c1.PrintAst(),
+			@"(call-with-string-output-port
+				(lambda (port)
+					(print-ast {0} (list) port)))".Eval(c2));
+		Assert.AreEqual(c1.Eval(), (double)"(=eval {0})".Eval(c2));
+	}
+
+	[Test] public void n1c1r0()		{ test(1,	1,	0);}
+	[Test] public void n1c1r10()		{ test(1,	1,	10);}
+	[Test] public void n10c1r0()		{ test(10,	1,	0);}
+	[Test] public void n10c1r10()		{ test(10,	1,	10);}
+	[Test] public void n10c10r10()		{ test(10,	10,	10);}
+	[Test] public void n99c26r0()		{ test(99,	26,	0);}
+	[Test] public void n99c26r100()		{ test(99,	26,	100);}
+	[Test] public void n99c26r1000()	{ test(99,	26,	1000);}
+	[Test] public void n256c26r1024()	{ test(256,	26,	1024);}
 }

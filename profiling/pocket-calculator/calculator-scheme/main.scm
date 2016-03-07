@@ -33,7 +33,7 @@
  (define (number->const i)         (string-append "d" (number->string i)))
  
  ; Random expression generation:
-
+ 
  (define random
    (let ((a 69069)
          (c 1)
@@ -44,16 +44,15 @@
        (()         (set! seed (mod (+ (* seed a) c) m)) (/ seed m)))))
  
  (define random-integer
-   (let ((a 69069) (c 1) (m (expt 2 32)) (seed 19380110))
-     (case-lambda
-       ((hi)       (floor (* (random) hi)))
-       ((lo hi)    (+ lo (floor (* (random) (- hi lo))))))))
+   (case-lambda
+     ((hi)       (floor (* (random) hi)))
+     ((lo hi)    (+ lo (floor (* (random) (- hi lo)))))))
  
  (define (make-profiling-ast nodes constants)
    (define (make-definitions)
-     (do ((i 0 (+ i 1))
+     (do ((i (- constants 1) (- i 1))
           (defs (list) (cons (:Definition (number->const i) (/ i 10.0)) defs)))
-       ((= i constants) (create-ast-list defs))))
+       ((< i 0) (create-ast-list defs))))
    (define (new-node)
      (define type (if (< (random) (/ 1 2)) :Addition :Multiplication))
      (type (create-ast-bud) (create-ast-bud)))
@@ -65,8 +64,8 @@
        (cond
          ((not (ast-bud-node? n))
           (initialise-leafes n))
-         ((> (random) (/ 1 2))
-          (rewrite-subtree n (:Number (random-integer 1 10))))
+         ((< (random) (/ 1 2))
+          (rewrite-subtree n (:Number (+ (random-integer 1 10) 0.0))))
          (else
           (rewrite-subtree n (:Constant (number->const (random-integer 0 constants)))))))
      (initialise-leaf (ast-child 'Op1 n))
