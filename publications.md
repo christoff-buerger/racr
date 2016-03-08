@@ -11,7 +11,7 @@
 > "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
 > In: _MRT 2015: Proceedings of the 10th International Workshop on Models@run.time_.
 > Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31– 40.
-> [paper](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
+> [Paper](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
 
 > Christoff Bürger.
 > "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
