@@ -161,39 +161,10 @@ fi
 if [[ " ${selected_systems[@]} " =~ "ironscheme" ]]
 then
 	echo "=========================================>>> Compile for IronScheme:"
-	#if [ ! -d "$script_dir/racr-net/ironscheme-bin" ] # One time setup: copy IronScheme distribution.
-	#then
-	#	console=`which IronScheme.Console-v4.exe`
-	#	cp -r "`dirname "$console"`" "$script_dir/racr-net/ironscheme-bin/"
-	#fi
 	for l in ${selected_libraries[@]}
 	do
 		library=`basename "$l"`
 		library_bin="$l/ironscheme-bin"
-		# Work around for the ``empty list is null and thus invalid key for hashtable'' bug:
-		if [ "$library" == "racr" -o "$library" == "racr-meta" ]
-		then
-			rm -rf "$library_bin"
-			mkdir -p "$library_bin/$library"
-			cp -p "$script_dir/racr-net/ironscheme-hashtable-adapter.scm" "$library_bin/$library"
-			cp -p "$script_dir/$library/core.scm" "$library_bin/$library"
-			cp -p "$script_dir/$library/testing.scm" "$library_bin/$library/testing.sls"
-			cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$library_bin"
-			"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
-			
-			echo "(import ($library ironscheme-hashtable-adapter) ($library core) ($library testing))" > \
-				"$library_bin/compile-script.sls"
-			# Use subshell for local directory changes via cd:
-			(
-			cd "$library_bin"
-			echo "(compile \"$library_bin/compile-script.sls\")" | \
-				mono `which IronScheme.Console-v4.exe` -I "$library_bin"
-			)
-			rm -rf "$library_bin/$library" # Force usage of compiled IronScheme dll assemblies.
-			rm "$library_bin/compile-script.sls"
-			
-			continue
-		fi
 		configuration_to_parse="$l/dependencies.txt"
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
@@ -213,6 +184,13 @@ then
 				to_compile="$to_compile ($library $source_file)"
 			done
 			echo "$to_compile)" > "$library_bin/compile-script.sls"
+			if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll
+			then
+				mv "$library_bin/$library/core.sls" "$library_bin/$library/core.scm"
+				"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
+				rm "$library_bin/$library/core.scm"
+				cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$library_bin"
+			fi
 			# Use subshell for local directory changes via cd:
 			(
 			cd "$library_bin"

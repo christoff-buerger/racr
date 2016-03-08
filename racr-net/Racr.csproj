@@ -33,9 +33,6 @@
 		<Reference Include="IronScheme">
 			<HintPath>..\racr\ironscheme-bin\IronScheme.dll</HintPath>
 		</Reference>
-		<Reference Include="racr.ironscheme-hashtable-adapter">
-			<HintPath>..\racr\ironscheme-bin\racr.ironscheme-hashtable-adapter.dll</HintPath>
-		</Reference>
 		<Reference Include="racr.core">
 			<HintPath>..\racr\ironscheme-bin\racr.core.dll</HintPath>
 		</Reference>
@@ -44,7 +41,6 @@
 		</Reference>
 	</ItemGroup>
 	<Target Name="AfterBuild">
-		<Copy SourceFiles="$(OutputPath)\Racr.dll" DestinationFolder="..\racr\ironscheme-bin" />
 		<RemoveDir Directories="obj" />
 	</Target>
 </Project>

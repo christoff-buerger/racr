@@ -33,19 +33,16 @@
 			<HintPath>packages\NUnit.3.0.0\lib\net45\nunit.framework.dll</HintPath>
 		</Reference>
 		<Reference Include="IronScheme">
-			<HintPath>..\..\..\racr\ironscheme-bin\IronScheme.dll</HintPath>
-		</Reference>
-		<Reference Include="racr.ironscheme-hashtable-adapter">
-			<HintPath>..\..\..\racr\ironscheme-bin\ironscheme-hashtable-adapter.dll</HintPath>
+			<HintPath>..\..\..\racr-net\bin\IronScheme.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.core">
-			<HintPath>..\..\..\racr\ironscheme-bin\racr.core.dll</HintPath>
+			<HintPath>..\..\..\racr-net\bin\racr.core.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.testing">
-			<HintPath>..\..\..\racr\ironscheme-bin\racr.testing.dll</HintPath>
+			<HintPath>..\..\..\racr-net\bin\racr.testing.dll</HintPath>
 		</Reference>
 		<Reference Include="Racr">
-			<HintPath>..\..\..\racr\ironscheme-bin\Racr.dll</HintPath>
+			<HintPath>..\..\..\racr-net\bin\Racr.dll</HintPath>
 		</Reference>
 		<Reference Include="calculator-scheme.main.dll">
 			<HintPath>..\calculator-scheme\ironscheme-bin\calculator-scheme.main.dll</HintPath>
