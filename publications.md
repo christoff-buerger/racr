@@ -35,6 +35,7 @@
 > Johannes Mey. _Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning_.
 > Presentation at the 10th International Workshop on Models@run.time.
 > Ottawa, Canada, 29th September 2015.
+> [Presentation](https://github.com/christoff-buerger/reat/raw/master/documentation/presentation-mrt-2015.pdf).
 
 > Christoff Bürger. _fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case_.
 > Presentation at the 8th Transformation Tool Contest.
