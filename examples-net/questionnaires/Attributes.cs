@@ -10,7 +10,6 @@ using System.IO;
 using System.Windows.Forms;
 
 static class WidgetAttributeMethods {
-
 	static void FormClosed(object sender, EventArgs e) { Application.Exit(); }
 
 	[Racr.AgRule("Widget", "Form")]
@@ -57,6 +56,7 @@ static class WidgetAttributeMethods {
 		form.Show();
 		return panel;
 	}
+
 	[Racr.AgRule("Widget", "Group")]
 	static Control GroupWidget(Racr.AstNode n) {
 		var panel = new FlowLayoutPanel();
@@ -68,6 +68,7 @@ static class WidgetAttributeMethods {
 		n.Parent().Widget().Controls.Add(panel);
 		return panel;
 	}
+
 	[Racr.AgRule("Widget", "OrdinaryQuestion")]
 	static Control OrdinaryQuestionWidget(Racr.AstNode n) {
 		Widget w;
@@ -96,6 +97,7 @@ static class WidgetAttributeMethods {
 		n.Parent().Widget().Controls.Add(w);
 		return w;
 	}
+
 	[Racr.AgRule("Widget", "ComputedQuestion")]
 	static Control ComputedQuestionWidget(Racr.AstNode n) {
 		Widget w;
@@ -107,7 +109,6 @@ static class WidgetAttributeMethods {
 }
 
 static class RenderAttributeMethods {
-
 	[Racr.AgRule("Render", "Form")]
 	static bool FormRender(Racr.AstNode n) {
 		n.Widget();
@@ -120,6 +121,7 @@ static class RenderAttributeMethods {
 		}
 		return true;
 	}
+
 	[Racr.AgRule("Render", "Group")]
 	static bool GroupRender(Racr.AstNode n) {
 		foreach (var c in n.GetBody().Children()) {
@@ -131,8 +133,10 @@ static class RenderAttributeMethods {
 		}
 		return true;
 	}
+
 	[Racr.AgRule("Render", "OrdinaryQuestion")]
 	static bool OrdinaryQuestionRender(Racr.AstNode n) { return false; }
+
 	[Racr.AgRule("Render", "ComputedQuestion")]
 	static bool ComputedQuestionRender(Racr.AstNode n) {
 		(n.Widget() as Widget).Set(n.Value());
