@@ -184,7 +184,7 @@ then
 				to_compile="$to_compile ($library $source_file)"
 			done
 			echo "$to_compile)" > "$library_bin/compile-script.sls"
-			if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll
+			if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
 			then
 				mv "$library_bin/$library/core.sls" "$library_bin/$library/core.scm"
 				"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
