@@ -51,8 +51,7 @@ static class GUI {
 
 	// Rendering (GUI):
 
-	[AgRule("Widget", "Form")]
-	static Control FormWidget(Ast n) {
+	[AgRule("Widget", "Form")] static Control FormWidget(Ast n) {
 		var form = new System.Windows.Forms.Form();
 		form.Text = "Questionnaire";
 		var file = new MenuItem("&File");
@@ -93,11 +92,8 @@ static class GUI {
 		panel.WrapContents = false;
 		form.Controls.Add(panel);
 		form.Show();
-		return panel;
-	}
-
-	[AgRule("Widget", "Group")]
-	static Control GroupWidget(Ast n) {
+		return panel; }
+	[AgRule("Widget", "Group")] static Control GroupWidget(Ast n) {
 		var panel = new FlowLayoutPanel();
 		panel.AutoSize = true;
 		panel.BorderStyle = BorderStyle.Fixed3D;
@@ -105,11 +101,14 @@ static class GUI {
 		panel.FlowDirection = FlowDirection.TopDown;
 		panel.WrapContents = false;
 		n.Parent().Widget().Controls.Add(panel);
-		return panel;
-	}
-
-	[AgRule("Widget", "OrdinaryQuestion")]
-	static Control OrdinaryQuestionWidget(Ast n) {
+		return panel; }
+	[AgRule("Widget", "ComputedQuestion")] static Control ComputedQuestionWidget(Ast n) {
+		QWidget w;
+		if (n.Type() == Types.Boolean) w = new QCheckWidget(n.GetLabel(), false);
+		else w = new QTextWidget(n.GetLabel(), false);
+		n.Parent().Widget().Controls.Add(w);
+		return w; }
+	[AgRule("Widget", "OrdinaryQuestion")] static Control OrdinaryQuestionWidget(Ast n) {
 		QWidget w;
 		if (n.Type() == Types.Boolean) {
 			w = new QCheckWidget(n.GetLabel());
@@ -132,53 +131,33 @@ static class GUI {
 			};
 		}
 		n.Parent().Widget().Controls.Add(w);
-		return w;
-	}
+		return w; }
 
-	[AgRule("Widget", "ComputedQuestion")]
-	static Control ComputedQuestionWidget(Ast n) {
-		QWidget w;
-		if (n.Type() == Types.Boolean) w = new QCheckWidget(n.GetLabel(), false);
-		else w = new QTextWidget(n.GetLabel(), false);
-		n.Parent().Widget().Controls.Add(w);
-		return w;
-	}
-
-	[AgRule("Render", "Form")]
-	static bool FormRender(Ast n) {
+	[AgRule("Render", "OrdinaryQuestion")] static bool OrdinaryQuestionRender(Ast n) {
+		return false; }
+	[AgRule("Render", "Form")] static bool FormRender(Ast n) {
 		n.Widget();
-		foreach (var c in n.GetBody().Children()) {
-			var child = c as Ast;
-			var w = child.Widget();
-			child.Render();
-			if (child.IsShown()) w.Show();
-			else w.Hide();
+		foreach (Ast c in n.GetBody().Children()) {
+			if (c.IsShown()) {
+				c.Render();
+				c.Widget().Show();
+			} else c.Widget().Hide();
 		}
-		return true;
-	}
-
-	[AgRule("Render", "Group")]
-	static bool GroupRender(Ast n) {
-		foreach (var c in n.GetBody().Children()) {
-			var child = c as Ast;
-			var w = child.Widget();
-			child.Render();
-			if (child.IsShown()) w.Show();
-			else child.Widget().Hide();
+		return true; }
+	[AgRule("Render", "Group")] static bool GroupRender(Ast n) {
+		foreach (Ast c in n.GetBody().Children()) {
+			if (c.IsShown()) {
+				c.Render();
+				c.Widget().Show();
+			} else c.Widget().Hide();
 		}
-		return true;
-	}
-
-	[AgRule("Render", "OrdinaryQuestion")]
-	static bool OrdinaryQuestionRender(Ast n) { return false; }
-
-	[AgRule("Render", "ComputedQuestion")]
-	static bool ComputedQuestionRender(Ast n) {
+		return true; }
+	[AgRule("Render", "ComputedQuestion")] static bool ComputedQuestionRender(Ast n) {
 		(n.Widget() as QWidget).Set(n.Value());
-		return true;
-	}
+		return true; }
 
 	private abstract class QWidget : FlowLayoutPanel {
+		private System.Windows.Forms.Label label;
 		public QWidget(string label) {
 			AutoSize = true;
 			WrapContents = false;
@@ -190,36 +169,35 @@ static class GUI {
 			Controls.Add(this.label);
 		}
 		public abstract void Set(object v);
-		private System.Windows.Forms.Label label;
 		public virtual TextBox GetTextBox() { return null; }
 		public virtual CheckBox GetCheckBox() { return null; }
 	}
 
 	private class QTextWidget : QWidget {
+		private TextBox tb;
 		public QTextWidget(string label, bool enabled=true) : base(label) {
 			tb = new TextBox();
 			tb.Enabled = enabled;
 			Controls.Add(tb);
 		}
+		public override TextBox GetTextBox() { return tb; }
 		public override void Set(object v) {
 			if (v == null) tb.Text = "";
 			else if (v is string) tb.Text = (string) v;
 			else tb.Text = Convert.ToString(v);
 		}
-		public override TextBox GetTextBox() { return tb; }
-		private TextBox tb;
 	}
 
 	private class QCheckWidget : QWidget {
+		private CheckBox cb;
 		public QCheckWidget(string label, bool enabled=true) : base(label) {
 			cb = new CheckBox();
 			cb.Enabled = enabled;
 			Controls.Add(cb);
 		}
+		public override CheckBox GetCheckBox() { return cb; }
 		public override void Set(object v) {
 			cb.Checked = (v == null) ? false : (bool) v;
 		}
-		public override CheckBox GetCheckBox() { return cb; }
-		private CheckBox cb;
 	}
 }
