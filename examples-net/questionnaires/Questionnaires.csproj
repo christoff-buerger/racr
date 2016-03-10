@@ -41,9 +41,7 @@
 	<ItemGroup>
 		<Compile Include="Language.cs" />
 		<Compile Include="Parser.cs" />
-		<Compile Include="Accessors.cs" />
-		<Compile Include="Attributes.cs" />
-		<Compile Include="Widget.cs" />
+		<Compile Include="GUI.cs" />
 		<Reference Include="System" />
 		<Reference Include="System.Drawing" />
 		<Reference Include="System.Windows.Forms" />
