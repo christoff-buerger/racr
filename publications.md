@@ -5,7 +5,7 @@
 > Christoff Bürger.
 > "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
 > In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
-> ACM, October 2015, pages 89-100. [Paper at the ACM Digital Library](http://dl.acm.org/citation.cfm?id=2814257&CFID=590073990&CFTOKEN=93788097)
+> ACM, October 2015, pages 89-100. [Paper at the ACM Digital Library](http://dl.acm.org/citation.cfm?id=2814257)
 
 > Christoff Bürger, Johannes Mey, René Schöne, Sven Karol and Daniel Langner.
 > "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
