@@ -18,7 +18,7 @@ Lehrstuhl Softwaretechnologie, Technische Universität Dresden, December 2012.
 "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
 In: _MRT 2015: Proceedings of the 10th International Workshop on Models@run.time_.
 Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31– 40.
-[paper](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
+[Paper](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
 
 **[Buerger2015a]** Christoff Bürger.
 "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
@@ -30,11 +30,12 @@ Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
 "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
 In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
 ACM, October 2015, pages 89-100.
+[Paper at the _ACM Digital Library_](http://dl.acm.org/citation.cfm?id=2814257)
 
 **[Clinger2009]** Will Clinger, Marc Feeley, Chris Hanson, Jonathan Rees and Olin Shivers.
 Scheme Steering Committee Position Statement (Draft).
 August 2009.
-[web](http://scheme-reports.org/2009/position-statement.html)
+[Web](http://scheme-reports.org/2009/position-statement.html)
 
 **[Demers1981]** Alan Demers, Thomas Reps and Tim Teitelbaum.
 “Incremental evaluation for attribute grammars with application to syntax-directed editors”.
@@ -44,7 +45,7 @@ ACM, January 1981, pages 105–116.
 **[ECMA2012]** ECMA.
 ECMA-335: Common Language Infrastructure (CLI).
 Microsoft, June 2012.
-[paper](http://www.ecma-international.org/publications/standards/Ecma-335.htm)
+[Paper](http://www.ecma-international.org/publications/standards/Ecma-335.htm)
 
 **[Ehrig1999]** Hartmut Ehrig, Gregor Engels, and Hans-Jörg Kreowski.
 Handbook of Graph Grammars and Computing by Graph Transformation: Applications, Languages and Tools.
@@ -101,7 +102,7 @@ University of California at Berkeley, May 1997.
 “The TTC 2015 Model Execution Case”.
 In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
 Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 2–18.
-[paper](http://ceur-ws.org/Vol-1524/paper5.pdf)
+[Paper](http://ceur-ws.org/Vol-1524/paper5.pdf)
 
 **[Paakki1995]** Jukka Paakki.
 “Attribute grammar paradigms: a high-level methodology in language implementation”.
@@ -121,13 +122,13 @@ Technical report, ISO/IEC 14977.
 _Revised 7 Report on the Algorithmic Language Scheme_.
 Technical report.
 July 2013.
-[paper](http://trac.sacrideo.us/wg/raw-attachment/wiki/WikiStart/r7rs.pdf)
+[Paper](http://trac.sacrideo.us/wg/raw-attachment/wiki/WikiStart/r7rs.pdf)
 
 **[Soederberg2012]** Emma Söderberg und Görel Hedin.
 _Incremental evaluation of reference attribute grammars using dynamic dependency tracking_.
 Technical report, LU-CS-TR:2012-249.
 Department of Computer Science, Lund University, May 2012.
-[paper](https://lup.lub.lu.se/record/2543170)
+[Paper at _Lund University Publications_](https://lup.lub.lu.se/record/2543170)
 
 **[Sperber2009]** Michael Sperber, R. Kent Dybvig, Matthew Flatt, Anton van Straaten, Robby Findler and Jacob Matthews.
 “Revised 6 Report on the Algorithmic Language Scheme”.
