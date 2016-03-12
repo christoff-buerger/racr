@@ -21,7 +21,7 @@ bool c = "(< 3 4)".Eval<bool>();	// generische Methode
 bool d = (bool) "(* 2 3)".Eval();	// Laufzeitfehler!
 bool e = "(* 2 3)".Eval<bool>();	// Laufzeitfehler!
 ```
-**Lsiting 3.1:** Auswerten von _Scheme_-Ausdrücken
+**Listing 3.1:** Auswerten von _Scheme_-Ausdrücken
 
 Alle _Scheme_-Prozeduren implementieren das `Callable`-Interface, mittels welchem man eine Prozedur ohne mehrfaches Parsen oder Kompilieren wiederholt aufrufen kann. Diese abstrakte Klasse stellt `Call`-Methoden in verschiedenen Ausführungen bereit – variierend über die Anzahl von Parametern, welche wie auch der Rückgabewert stets vom Typ `object` sind. Auf diese Weise wird die dynamische Typisierung von _Scheme_ in _C#_ abgebildet. Beim Aufruf eines `Callable`-Objektes kann der Compiler für die korrekte Stelligkeit sowie die Typisierung der Parameter einer Prozedur nicht garantieren. Typfehler äußern sich erst während der Laufzeit eines Programms. Quelltext 3.2 zeigt das Interface in Aktion.
 
@@ -35,33 +35,15 @@ int c = (int) sum.Call(0, false);	// Laufzeitfehler!
 
 ## _RACR_ in _C#_
 
-### Importieren der _Scheme_-Bibliothek
+### Importieren von _Scheme_-Bibliotheken in _IronScheme_ und _R6RS_-Konformitätsprüfung
 
 Der nächste Schritt besteht darin, _RACR_ dem _Scheme_-Environment bekannt zu machen. _RACR_ laden wir mittels `"(import (racr core))".Eval()`. Dieser Aufruf veranlasst _IronScheme_ dazu, den Quellcode _RACRs_, der in der Datei `racr/core.sls` residiert, zu kompilieren und alle darin als Export deklarierten Symbole zu registrieren. Dies geschieht mit jedem Neustart des _C#_-Programms, was dessen Anlaufzeit verlängert.
 
-Ein weniger dokumentiertes Feature _IronSchemes_ erlaubt es, _Scheme_-Bibliotheken vorzukompilieren und in Assemblies zu speichern. Auf diese Weise kann das Laden von _RACR_ stark beschleunigt werden. Zum Beispiel lege man eine Datei namens `tmp.scm` mit dem Inhalt `(import (racr core))` an. Der Aufruf von `(compile "tmp.scm")` in der interaktiven _IronScheme_-Konsole generiert die Datei `racr.core.dll`. Wenn diese Assembly bei der Kompilierung eines _C#_-Programms referenziert wird, so kompiliert _IronScheme_ _RACR_ mit dem Aufruf von `import` nicht neu, sondern lädt den kompilierten Code aus der DLL-Datei.
+Ein weniger dokumentiertes Feature _IronSchemes_ erlaubt es, _Scheme_-Bibliotheken vorzukompilieren und in Assemblies zu speichern. Auf diese Weise kann das Laden von _RACR_ stark beschleunigt werden. Zum Beispiel lege man eine Datei namens `tmp.scm` mit dem Inhalt `(import (racr core))` an. Der Aufruf von `(compile "tmp.scm")` in der interaktiven _IronScheme_-Konsole generiert die Datei `racr.core.dll`. Wenn diese Assembly bei der Kompilierung eines _C#_-Programms referenziert wird, so kompiliert _IronScheme_ _RACR_ mit dem Aufruf von `import` nicht neu, sondern lädt den kompilierten Code aus der DLL-Datei. Um für alle _RACR_-Bibliotheken solche, von _IronScheme_ kompilierte und nutzbare, dynamic linked libraries zu generieren kann ein mit _RACR_ ausgelieferter [Installationsskript](../../racr/documentation/requirements-and-installation.md) genutzt werden.
 
-### Konformitätsprüfung von IronScheme
+Wie im vorhergehenden Kapitel beschrieben, unterscheiden sich _Scheme_-Interpreter bezüglich ihrer _R6RS_-Konformität. Um die korrekte Funktion von _RACR_ unter Verwendung verschiedener Interpreter zu gewährleisten, beinhaltet _RACR_ eine reihe von Tests, die dessen wesentlichen Funktionsumfang abdecken. Diese Tests wurden mit _IronScheme_ ausgeführt und erfolgreich absolviert. Somit ist sichergestellt, dass _RACR_ unter _IronScheme_ korrekt ausgeführt wird.
 
-Wie im vorhergehenden Kapitel beschrieben, unterscheiden sich _Scheme_-Interpreter bezüglich ihrer _R6RS_-Konformität. Um die korrekte Funktion von _RACR_ unter Verwendung verschiedener Interpreter zu gewährleisten, beinhaltet _RACR_ eine Test-Umgebung, die dessen wesentlichen Funktionsumfang abdeckt. Diese Tests wurden mit _IronScheme_ ausgeführt. Dabei terminierten vorerst alle Tests mit dem gleichen Fehler: Der Aufruf von `hashtable-set!` mit dem Schlüssel `'()` löst eine `System.ArgumentNullException` aus. Der Fehler wird durch eine _R6RS_-Unkonformität _IronSchemes_ verursacht: _RACR_ benutzt häufig die leere Liste als Schlüssel, um Daten in einer `hashtable`-Datenstruktur abzulegen. Wie Tabelle 2.3 zu entnehmen, bildet _IronScheme_ `hashtable` auf den CLI-internen Typ `System.Collections.Hashtable` ab. Des Weiteren wird die leere Liste `'()` auf `null` abgebildet. Laut [_Microsoft Developer Network_](https://msdn.microsoft.com/library/system.collections.hashtable.aspx) darf der Schlüssel eines `Hashtable`-Objektes jedoch nicht `null` sein.
-
-Ein Workaround in Form einer _Scheme_-Bibliothek soll bijektiv die leere Liste auf einen internen Record abbilden. Quelltext 3.3 zeigt die Definition dieses Records und dessen Verwendung in den Prozeduren `hashtable-ref*` und `hashtable-set!*`, welche das Interface von `hashtable-ref` beziehungsweise `hashtable-set!` reimplementieren.
-
-```
-(define-record-type nil-record (sealed #t) (opaque #t))
-(define nil (make-nil-record))
-
-(define hashtable-ref*
-  (lambda (h key default-value)
-    (hashtable-ref h (if (null? key) nil key) default-value)))
-
-(define hashtable-set!*
-  (lambda (h key value)
-    (hashtable-set! h (if (null? key) nil key) value)))
-```
-**Listing 3.3:** `hashtable`-Workaround
-
-Auf Zeile 1 wird ein neuer Record-Typ angelegt und anschließend auf Zeile 2 instanziiert. In den Definitionen der `hashtable`-Prozeduren wird mittels einer `if`-Anweisung geprüft, ob es sich bei dem Schlüssel um das `null`-Objekt handelt, in welchem Falle der `nil`-Record als Schlüssel benutzt werden soll (Zeilen 6 und 10). Auf ähnliche Weise wurde das Interface folgender weiterer _Scheme_-Prozeduren reimplementiert: `hashtable-delete!`, `hashtable-contains?` und `hashtable-entries`. Diese Bibliothek wurde in _RACR_ eingebunden und alle Aufrufe der genannten Prozeduren auf die entsprechenden Reimplementierungen umgelenkt. Alle Tests der _RACR_-Test-Umgebung liefen nun fehlerlos. Somit ist sichergestellt, dass _RACR_ unter _IronScheme_ korrekt ausgeführt wird.
+**Anmerkung:** _In früheren _IronScheme_ Versionen unterstützte `equal-hashtable` nicht die leere Liste `'()` als Schlüssel. Diese _R6RS_-Inkompatibilität ist seit commit leppie/IronScheme@54e877f1d8f01691ecab95204bb7532e2a0d559a vom _IronScheme_-Entwickler Llewellyn Pritchard behoben._
 
 ## Anforderungsanalyse
 
@@ -86,7 +68,7 @@ Die prozedurale Schnittstelle soll vollständig sein und die Funktionsweise _RAC
 
 Um Anforderung **A3** zu befriedigen, müssen die Methodennamen denen der zugehörigen Prozeduren gleichen. _RACR_ hält sich bei der Benennung von Variablen beziehungsweise Prozeduren an die für _Lisp_-Sprachen typischen Konventionen und verwendet in Bezeichnern einige Sonderzeichen. Beispielsweise werden innerhalb eines Bezeichners Worte durch Bindestriche getrennt. Bezeichner von Prozeduren, die einen booleschen Wert liefern, enden für gewöhnlich mit einem Fragezeichen. _C#_ hat seine eigenen Namenskonventionen. Sonderzeichen in Bezeichnern sind nicht gestattet. Alle Namen öffentlicher Member, Typen und Namespaces beginnen mit einem Großbuchstaben, Parameternamen jedoch mit einem Kleinbuchstaben. Beiderseits werden innerhalb eines Bezeichners verkettete Wörter durch Binnenmajuskel hervorgehoben.
 
-Bei der Benennung der Methoden der _.NET_-Schnittstelle für _RACR_ soll die _C#_-übliche Namenskonvention eingehalten werden ohne den Prozedurnamen zu entfremden. Aus `create-ast` wird `CreateAst`. Alle anderen Benennungen geschehen analog. Somit wird die Realisierung von Anforderung **A3** gewährleistet. Quelltext 3.4 skizziert diesen Ansatz.
+Bei der Benennung der Methoden der _.NET_-Schnittstelle für _RACR_ soll die _C#_-übliche Namenskonvention eingehalten werden ohne den Prozedurnamen zu entfremden. Aus `create-ast` wird `CreateAst`. Alle anderen Benennungen geschehen analog. Somit wird die Realisierung von Anforderung **A3** gewährleistet. Quelltext 3.3 skizziert diesen Ansatz.
 
 ```
 public static class Racr {
@@ -107,7 +89,7 @@ public static class Racr {
 	}
 // ...
 ```
-**Listing 3.4:** Prozedurale _C#_-Schnittstelle für _RACR_
+**Listing 3.3:** Prozedurale _C#_-Schnittstelle für _RACR_
 
 Die statische Klasse `Racr` umfasst private `Callable`-Felder, die Referenzen auf die entsprechenden _Scheme_-Prozeduren _RACRs_ speichern sollen. Im statischen Konstruktor wird zuerst die _RACR_-Bibliothek geladen (Zeile 6), woraufhin alle `Callable`-Objekte initialisiert werden. Zusätzlich enthält die Klasse für jedes `Callable` eine statisch Methode, die als Adapter fungiert, indem sie ihre Argumente an die `Call`-Methode des entsprechenden `Callable`-Objekt durchreicht und dessen Rückgabewert zurückliefert. Ein triviales Beispiel hierfür ist die parameterlose Methode `CreateSpecification` (Zeile 11).
 
@@ -117,7 +99,7 @@ Um die Anforderung **A4** zu erfüllen, werden gegebenenfalls Umwandlungen _Sche
 
 #### Symbole
 
-_Scheme_-Symbole tauchen in _RACRs_ Schnittstelle an vielen Stellen auf. Aufseiten von _C#_ sollen stattdessen _.NET_-Strings zum Einsatz kommen. Symbole werden unter anderem als Zeichenketten für Nichtterminale, ganze AST-Regeln und Attributsnamen verwendet. _IronScheme_ implementiert Symbole mittels der Struktur `SymbolId`, deren `ToString` Methode die String-Repräsentation der jeweiligen Symbol-Instanz liefert. Analog bildet die statische Methode `SymbolTable.StringToObject` Strings auf Symbole ab. Quelltext 3.4 zeigt die Verwendung von `SymbolTable.StringToObject` in der Methode `AstRule` (Zeile 15).
+_Scheme_-Symbole tauchen in _RACRs_ Schnittstelle an vielen Stellen auf. Aufseiten von _C#_ sollen stattdessen _.NET_-Strings zum Einsatz kommen. Symbole werden unter anderem als Zeichenketten für Nichtterminale, ganze AST-Regeln und Attributsnamen verwendet. _IronScheme_ implementiert Symbole mittels der Struktur `SymbolId`, deren `ToString` Methode die String-Repräsentation der jeweiligen Symbol-Instanz liefert. Analog bildet die statische Methode `SymbolTable.StringToObject` Strings auf Symbole ab. Quelltext 3.3 zeigt die Verwendung von `SymbolTable.StringToObject` in der Methode `AstRule` (Zeile 15).
 
 #### Paare
 
@@ -136,7 +118,7 @@ public struct Range {
 	}
 }
 ```
-**Listing 3.5:** Definition der `Range`-Struktur
+**Listing 3.4:** Definition der `Range`-Struktur
 
 Zweckmäßig hält die Struktur zwei Felder für die beiden Grenzen, wobei eine obere Grenze mit dem Wert 0 als offen interpretiert wird (in _RACR_ werden Indices stets von 1 an gezählt). Die interne Methode `ToCons` dient dazu, aus dem `Range`- ein `Cons`-Objekt zu konstruieren, das von _IronScheme_ aus weiterverarbeitet werden kann. Sie kommt in den Methoden des Interfaces, welche die oben genannten Prozeduren abbilden sollen, zum Einsatz.
 
@@ -154,15 +136,15 @@ public static object CreateAst(object spec, string nonTerm, params object[] chil
 	return createAst.Call(spec, SymbolTable.StringToObject(nonTerm), list);
 }
 ```
-**Listing 3.6:** Listenkonstruktion in `CreateAst`
+**Listing 3.5:** Listenkonstruktion in `CreateAst`
 
-Quelltext 3.6 zeigt die Implementierung der Methode `CreateAst` der Klasse `Racr` gemäß den oben genannten Vorgaben. Man beachte, dass dem Parameter `children` das Schlüsselwort `params` vorangestellt ist. Es bewirkt, dass beim Aufruf der Methode eine variable Anzahl von Methodenargumenten automatisch zu einem Array zusammengefasst wird, sodass der Nutzer das Array nicht selbst anzulegen braucht. Will man beispielsweise einen Knoten mit drei Kind-Knoten erzeugen, gestaltet sich der Aufruf von `CreateAst` wie folgt:
+Quelltext 3.5 zeigt die Implementierung der Methode `CreateAst` der Klasse `Racr` gemäß den oben genannten Vorgaben. Man beachte, dass dem Parameter `children` das Schlüsselwort `params` vorangestellt ist. Es bewirkt, dass beim Aufruf der Methode eine variable Anzahl von Methodenargumenten automatisch zu einem Array zusammengefasst wird, sodass der Nutzer das Array nicht selbst anzulegen braucht. Will man beispielsweise einen Knoten mit drei Kind-Knoten erzeugen, gestaltet sich der Aufruf von `CreateAst` wie folgt:
 
 ```
 object node = Racr.CreateAst(spec, "A", childA, childB, childC);
 ```
 
-Auch als Rückgabewert sollen in der _C#_-Schnittstelle _Scheme_-Listen durch Arrays ersetzt werden. Die in Quelltext 3.7 abgebildete Implementierung von `RewriteAbstract` nutzt eine `while`-Schleife, um die Kette von `Cons`-Objekten zu durchwandern und die in der Liste gespeicherten Kind-Knoten einer `List<object>` anzuhängen. Die Klasse `List` ist Teil der _.NET_-Klassenbibliothek. Im Gegensatz zum Array bietet sie Methoden, um die Anzahl ihrer Elemente dynamisch zu ändern.
+Auch als Rückgabewert sollen in der _C#_-Schnittstelle _Scheme_-Listen durch Arrays ersetzt werden. Die in Quelltext 3.6 abgebildete Implementierung von `RewriteAbstract` nutzt eine `while`-Schleife, um die Kette von `Cons`-Objekten zu durchwandern und die in der Liste gespeicherten Kind-Knoten einer `List<object>` anzuhängen. Die Klasse `List` ist Teil der _.NET_-Klassenbibliothek. Im Gegensatz zum Array bietet sie Methoden, um die Anzahl ihrer Elemente dynamisch zu ändern.
 
 ```
 public object[] RewriteAbstract(string supertype) {
@@ -175,7 +157,7 @@ public object[] RewriteAbstract(string supertype) {
 	return children.ToArray();
 }
 ```
-**Listing 3.7:** Arraykonstruktion in `RewriteAbstract`
+**Listing 3.6:** Arraykonstruktion in `RewriteAbstract`
 
 #### Prozeduren
 
@@ -193,9 +175,9 @@ public static object AstFindChild(object node, Func<int,object,bool> f, params R
 	return res;
 }
 ```
-**Listing 3.8:** Delegat-Parameter in `AstFindChild`
+**Listing 3.7:** Delegat-Parameter in `AstFindChild`
 
-Quelltext 3.8 zeigt die Implementierung von `AstFindChild`. Die Methode ist variadisch, genau wie die _Scheme_-Prozedur, an die sie ihre Argumente weiterleiten muss. Um eine unbestimmte Anzahl von Argumenten an den Aufruf eines `Callable`-Objekts weiterzugeben, müssen diese in ein Objekt-Array geschrieben werden, welches als einziger Parameter an `Call` übergeben werden muss. Zeile 3 deklariert dieses Array und die drei darauffolgenden Zeilen befüllen es. Dem Delegat-Typen `Func<int,object,bool>` zufolge muss die zu übergebende Funktion zwei Parameter mit den Typen `int` und `object` für den Index des Knoten beziehungsweise den Knoten selbst habe, nebst dem Rückgabetypen `bool`. `ToSchemeProcedure` nutzt die durch Introspektion zugänglichen Typinformationen, um ein `Callable`-Objekt zu generieren, in welchem der Delegat gekapselt wird. Die Methode `AstFindChild` weicht in ihrem Verhalten von `ast-find-child` ab, indem sie bei einer missglückten Suche statt `false` `null` zurückgibt (Zeile 8). Dies entspricht der in _C#_ üblichen Weise, das Fehlen eines Objektes zu kennzeichnen.
+Quelltext 3.7 zeigt die Implementierung von `AstFindChild`. Die Methode ist variadisch, genau wie die _Scheme_-Prozedur, an die sie ihre Argumente weiterleiten muss. Um eine unbestimmte Anzahl von Argumenten an den Aufruf eines `Callable`-Objekts weiterzugeben, müssen diese in ein Objekt-Array geschrieben werden, welches als einziger Parameter an `Call` übergeben werden muss. Zeile 3 deklariert dieses Array und die drei darauffolgenden Zeilen befüllen es. Dem Delegat-Typen `Func<int,object,bool>` zufolge muss die zu übergebende Funktion zwei Parameter mit den Typen `int` und `object` für den Index des Knoten beziehungsweise den Knoten selbst habe, nebst dem Rückgabetypen `bool`. `ToSchemeProcedure` nutzt die durch Introspektion zugänglichen Typinformationen, um ein `Callable`-Objekt zu generieren, in welchem der Delegat gekapselt wird. Die Methode `AstFindChild` weicht in ihrem Verhalten von `ast-find-child` ab, indem sie bei einer missglückten Suche statt `false` `null` zurückgibt (Zeile 8). Dies entspricht der in _C#_ üblichen Weise, das Fehlen eines Objektes zu kennzeichnen.
 
 Der Aufruf von `AstFindChild` gestaltet sich unter Benutzung von _C#_'s Lambda-Ausdrücken elegant. Hier ein Beispiel:
 
@@ -234,7 +216,7 @@ public static void SpecifyAttribute<T,R>(object spec, string name,
 	SpecifyAttribute(spec, name, nonTerm, context, cached, (Delegate) eq);
 }
 ```
-**Listing 3.9:** Methodengruppe `SpecifyAttribute`
+**Listing 3.8:** Methodengruppe `SpecifyAttribute`
 
 Um den Einsatz von `SpecifyAttribute` vorzuführen, definiert folgender _C#_-Code das parameterlose Attribut `value` für den Knotentypen `Addition`:
 
