@@ -43,7 +43,7 @@ Ein weniger dokumentiertes Feature _IronSchemes_ erlaubt es, _Scheme_-Bibliothek
 
 Wie im vorhergehenden Kapitel beschrieben, unterscheiden sich _Scheme_-Interpreter bezüglich ihrer _R6RS_-Konformität. Um die korrekte Funktion von _RACR_ unter Verwendung verschiedener Interpreter zu gewährleisten, beinhaltet _RACR_ eine reihe von Tests, die dessen wesentlichen Funktionsumfang abdecken. Diese Tests wurden mit _IronScheme_ ausgeführt und erfolgreich absolviert. Somit ist sichergestellt, dass _RACR_ unter _IronScheme_ korrekt ausgeführt wird.
 
-**Anmerkung:** _In früheren IronScheme Versionen unterstützte `equal-hashtable` nicht die leere Liste `'()` als Schlüssel. Diese R6RS-Inkompatibilität ist seit commit [leppie/IronScheme@54e877f1d8f01691ecab95204bb7532e2a0d559a](leppie/IronScheme@54e877f1d8f01691ecab95204bb7532e2a0d559a) vom IronScheme-Entwickler Llewellyn Pritchard behoben._
+**Anmerkung:** _In früheren IronScheme Versionen unterstützte_ `equal-hashtable` _nicht die leere Liste_ `'()` _als Schlüssel. Diese_ R6RS_-Inkompatibilität ist seit commit_ leppie/IronScheme@54e877f1d8f01691ecab95204bb7532e2a0d559a _vom _IronScheme_-Entwickler Llewellyn Pritchard behoben._
 
 ## Anforderungsanalyse
 
