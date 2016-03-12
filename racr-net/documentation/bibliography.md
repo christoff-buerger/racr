@@ -30,7 +30,7 @@ Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
 "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
 In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
 ACM, October 2015, pages 89-100.
-[Paper at the _ACM Digital Library_](http://dl.acm.org/citation.cfm?id=2814257)
+[Paper at the ACM Digital Library](http://dl.acm.org/citation.cfm?id=2814257)
 
 **[Clinger2009]** Will Clinger, Marc Feeley, Chris Hanson, Jonathan Rees and Olin Shivers.
 Scheme Steering Committee Position Statement (Draft).
@@ -128,7 +128,7 @@ July 2013.
 _Incremental evaluation of reference attribute grammars using dynamic dependency tracking_.
 Technical report, LU-CS-TR:2012-249.
 Department of Computer Science, Lund University, May 2012.
-[Paper at _Lund University Publications_](https://lup.lub.lu.se/record/2543170)
+[Paper at Lund University Publications](https://lup.lub.lu.se/record/2543170)
 
 **[Sperber2009]** Michael Sperber, R. Kent Dybvig, Matthew Flatt, Anton van Straaten, Robby Findler and Jacob Matthews.
 “Revised 6 Report on the Algorithmic Language Scheme”.
