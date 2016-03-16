@@ -12,7 +12,8 @@
          ->Body ->Expression ->Operands
          ->name ->label ->type ->value ->operator ->* <- index count
          =root =error-question =error-question? =g-Lookup =l-Lookup =type =valid? =l-valid?
-         =s-expr =find-active =active? =shown? =value =widget =render
+         =s-expr =find-active =active? =shown? =value
+         =dialog-type =dialog-printer =value-printer =widget =render
          Boolean Number String ErrorType && // !=
          load-questionnaire save-questionnaire)
  (import (rnrs) (rnrs eval) (compatibility mlist) (racr core)
@@ -49,20 +50,23 @@
  (define (=active? n)          (att-value 'active? n))
  (define (=shown? n)           (att-value 'shown? n))
  (define (=value n)            (att-value 'value n))
+ (define (=dialog-type n)      (att-value 'dialog-type n))
+ (define (=dialog-printer n)   (att-value 'dialog-printer n))
+ (define (=value-printer n)    (att-value 'value-printer n))
  (define (=widget n)           (att-value 'widget n))
  (define (=render n)           (att-value 'render n))
  
  ; AST Constructors:
  (define (Form . e)
-   (create-ast ql 'Form (list (create-ast-list (cons (~? ErrorType "" (~! #f)) e)))))
+   (create-ast ql 'Form (list (create-ast-list (cons (~? ErrorType "" (~! ErrorValue)) e)))))
  (define (If c . e)
    (create-ast ql 'Group (list c (create-ast-list e))))
  (define ??
    (case-lambda
      ((n l t)
-      (create-ast ql 'OrdinaryQuestion (list n l (valid-type! t) #f)))
+      (create-ast ql 'OrdinaryQuestion (list n l t ErrorValue)))
      ((n l t v)
-      (create-ast ql 'OrdinaryQuestion (list n l (valid-type! t) v)))))
+      (create-ast ql 'OrdinaryQuestion (list n l t v)))))
  (define (~? n l e)
    (create-ast ql 'ComputedQuestion (list n l e)))
  (define (~> n)
@@ -76,9 +80,11 @@
  (define (Boolean)             (list 'Boolean))
  (define (Number)              (list 'Number))
  (define (String)              (list 'String))
+ (define valid-types           (list (cons Boolean boolean?)
+                                     (cons Number number?)
+                                     (cons String string?)))
  (define (ErrorType)           (list 'ErrorType))
- (define (valid-type! t)       (if (memq t (list Boolean Number String))
-                                   t (raise "Unknown type.")))
+ (define (ErrorValue)          (list 'ErrorValue))
  (define (&& . a)              (for-all (lambda (x) x) a))
  (define (// . a)              (find (lambda (x) x) a))
  (define (!= . a)
@@ -91,7 +97,7 @@
      (case (ast-node-type n)
        ((Form Group) (for-each update-questions (->* (->Body n))))
        ((ComputedQuestion) #f)
-       (else (send (=widget n) set-value (if (eq? (=type n) Boolean) (=value n) (~a (=value n)))))))
+       (else (send (=widget n) set-value ((=dialog-printer n) (=value n))))))
    (define file? (get-file "Select questionnaire" #f #f #f #f (list) (list)))
    (and file?
         (let ((form (eval (with-input-from-file file? (lambda () (read))) ql-env)))
@@ -163,17 +169,14 @@
   
   (ag-rule
    type ; Type of questions & expressions.
-   (OrdinaryQuestion (lambda (n) (->type n)))
+   (OrdinaryQuestion (lambda (n) (if (assq (->type n) valid-types) (->type n) ErrorType)))
    (ComputedQuestion (lambda (n) (=type (->Expression n))))
    (Use              (lambda (n) (=type (=g-Lookup n (->name n)))))
    
    (Constant
     (lambda (n)
-      (cond
-        ((boolean? (->value n)) Boolean)
-        ((number? (->value n))  Number)
-        ((string? (->value n))  String)
-        (else ErrorType))))
+      (define type/is-a? (find (lambda (t) ((cdr t) (->value n))) valid-types))
+      (if type/is-a? (car type/is-a?) ErrorType)))
    
    (Computation
     (lambda (n)
@@ -221,11 +224,14 @@
    s-expr ; Symbolic expression representing form.
    (Form             (lambda (n) `(Form ,@(map =s-expr (cdr (->* (->Body n)))))))
    (Group            (lambda (n) `(If ,(=s-expr (->Expression n)) ,@(map =s-expr (->* (->Body n))))))
-   (OrdinaryQuestion (lambda (n) `(?? ',(->name n) ,(->label n) ,(: (->type n)) ,(->value n))))
    (ComputedQuestion (lambda (n) `(~? ',(->name n) ,(->label n) ,(=s-expr (->Expression n)))))
    (Use              (lambda (n) `(~> ',(->name n))))
    (Constant         (lambda (n) `(~! ,(->value n))))
-   (Computation      (lambda (n) `(~~ ,(: (->operator n)) ,@(map =s-expr (->* (->Operands n)))))))
+   (Computation      (lambda (n) `(~~ ,(: (->operator n)) ,@(map =s-expr (->* (->Operands n))))))
+   (OrdinaryQuestion
+    (lambda (n)
+      `(?? ',(->name n) ,(->label n) ,(: (->type n))
+           ,@(if (eq? (->value n) ErrorValue) (list) (list (->value n)))))))
   
   ;;; Interpretation:
   
@@ -241,7 +247,7 @@
   (ag-rule
    active? ; Is a form part active (the error question is active)?
    (Form             (lambda (n) #t))
-   (Group            (lambda (n) (=value (->Expression n))))
+   (Group            (lambda (n) (let ((v (=value (->Expression n)))) (and (boolean? v) v))))
    (Question
     (lambda (n)
       (or (=error-question? n)
@@ -252,22 +258,63 @@
    shown? ; Is a form part shown (the error question is not shown)?
    (Element          (lambda (n) (and (not (=error-question? n)) (=active? n)))))
   
-  (define-syntax lift(syntax-rules () ((_ f) (guard (x (error? #f)) f))))
   (ag-rule
    value ; Value of questions & expressions.
-   (OrdinaryQuestion (lambda (n) (->value n)))
    (ComputedQuestion (lambda (n) (=value (->Expression n))))
-   (Constant         (lambda (n) (->value n)))
    (Use              (lambda (n) (=value (=find-active n (->name n)))))
-   (Computation      (lambda (n) (lift (apply (->operator n) (map =value (->* (->Operands n))))))))
+   (Constant         (lambda (n) (if (eq? (=type n) ErrorType) ErrorValue (->value n))))
+   
+   (Computation
+    (lambda (n)
+      (or (and (eq? (=type n) ErrorType) ErrorValue)
+          (let ((args (map =value (->* (->Operands n)))))
+            (find (lambda (value) (eq? value ErrorValue)) args)
+            (guard (x (error? ErrorValue)) (apply (->operator n) args))))))
+   
+   (OrdinaryQuestion
+    (lambda (n)
+      (define type/is-a? (assq (=type n) valid-types))
+      (if (and type/is-a? ((cdr type/is-a?) (->value n))) (->value n) ErrorValue))))
   
   ;;; Rendering (GUI):
   
   (ag-rule
-   widget ; Widget representing form elements.
+   dialog-type ; Widget type used to represent question.
+   (Question
+    (lambda (n)
+      (cond
+        ((eq? (=type n) Boolean) check-box%)
+        ((eq? (=type n) Number) text-field%)
+        ((eq? (=type n) String) text-field%)
+        ((eq? (=type n) ErrorType) text-field%)
+        (else (raise " !!! IMPLEMENTATION ERROR: No dialog for value type implemented !!!"))))))
+  
+  (ag-rule
+   dialog-printer ; Function pretty printing AST values for the question's dialog.
+   (Question
+    (lambda (n)
+      (cond
+        ((eq? (=dialog-type n) check-box%) (lambda (v) (and (boolean? v) v)))
+        ((eq? (=dialog-type n) text-field%) (lambda (v) (if (eq? v ErrorValue) "" (~a v))))
+        (else (raise " !!! IMPLEMENTATION ERROR: No printer for dialog type implemented !!!"))))))
+  
+  (ag-rule
+   value-printer ; Function pretty printing dialog values for the question's ast.
+   (OrdinaryQuestion
+    (lambda (n)
+      (cond
+        ((eq? (=dialog-type n) check-box%) (lambda (v) v))
+        ((eq? (=dialog-type n) text-field%)
+         (if (eq? (=type n) Number)
+             (lambda (v) (let ((number? (r:string->number v))) (if number? number? v)))
+             (lambda (v) v)))
+        (else (raise " !!! IMPLEMENTATION ERROR: No printer for dialog type implemented !!!"))))))
+  
+  (ag-rule
+   widget ; Widget representing form element.
    (Form
     (lambda (n)
-      (define frame (new frame% [label "Questionnaire"]))
+      (define frame (new frame% [label "Questionnaire"] [border 5]))
       (define menu-bar (new menu-bar% [parent frame]))
       (define menu (new menu% [parent menu-bar] [label "File"]))
       (new menu-item% [parent menu] [label "Save"] [callback (lambda x (save-questionnaire n))])
@@ -278,26 +325,26 @@
    
    (Group
     (lambda (n)
-      (new vertical-panel% [parent (=widget (<- n))] [style (r:list 'border)])))
+      (new vertical-panel% [parent (=widget (<- n))] [border 5] [style (r:list 'border)])))
    
    (ComputedQuestion
     (lambda (n)
-      (define widget-class (if (eq? (=type n) Boolean) check-box% text-field%))
-      (new widget-class [parent (=widget (<- n))] [label (->label n)] [enabled #f])))
+      (new (=dialog-type n) [parent (=widget (<- n))] [label (->label n)] [enabled #f])))
    
    (OrdinaryQuestion
     (lambda (n)
-      (define widget-class (if (eq? (=type n) Boolean) check-box% text-field%))
       (define (callback widget event)
-        (define (prepare-value v)
-          (if (eq? (=type n) Number) (r:string->number v) v))
-        (rewrite-terminal 'value n (prepare-value (send widget get-value)))
+        (rewrite-terminal 'value n ((=value-printer n) (send widget get-value)))
         (=render (=root n)))
-      (new widget-class [parent (=widget (<- n))] [label (->label n)] [callback callback]))))
+      (new (=dialog-type n) [parent (=widget (<- n))] [label (->label n)] [callback callback]))))
   
   (ag-rule
-   render ; Incrementally render form elements.
+   render ; Incrementally render form.
    (OrdinaryQuestion (lambda (n) #f))
+   
+   (ComputedQuestion
+    (lambda (n)
+      (send (=widget n) set-value ((=dialog-printer n) (=value n)))))
    
    (Form
     (lambda (n)
@@ -312,10 +359,6 @@
     (lambda (n)
       (let ((shown (filter =shown? (->* (->Body n)))))
         (send (=widget n) change-children (lambda x (mlist->list (map =widget shown))))
-        (map =render shown))))
-   
-   (ComputedQuestion
-    (lambda (n)
-      (send (=widget n) set-value (if (eq? (=type n) Boolean) (=value n) (~a (=value n)))))))
+        (map =render shown)))))
   
   (compile-ag-specifications)))
