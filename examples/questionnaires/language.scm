@@ -1,4 +1,4 @@
-; This program and the accompanying materials are made available under the
+q; This program and the accompanying materials are made available under the
 ; terms of the MIT license (X11 license) which accompanies this distribution.
 
 ; Author: C. Bürger
@@ -22,7 +22,8 @@
  (define ql                    (create-specification))
  (define ql-env                (environment '(rnrs) '(questionnaires language)))
  
- ; AST Accessors:
+ ;;; AST accessors:
+ 
  (define (->Body n)            (ast-child 'Body n))
  (define (->Expression n)      (ast-child 'Expression n))
  (define (->name n)            (ast-child 'name n))
@@ -36,7 +37,8 @@
  (define (index n)             (ast-child-index n))
  (define (count n)             (ast-num-children n))
  
- ; Attribute Accessors:
+ ;;; Attribute accessors:
+ 
  (define (=root n)             (att-value 'root n))
  (define (=error-question n)   (att-value 'error-question n))
  (define (=error-question? n)  (att-value 'error-question? n))
@@ -56,9 +58,10 @@
  (define (=widget n)           (att-value 'widget n))
  (define (=render n)           (att-value 'render n))
  
- ; AST Constructors:
+ ;;; AST constructors:
+ 
  (define (Form . e)
-   (create-ast ql 'Form (list (create-ast-list (cons (~? ErrorType "" (~! ErrorValue)) e)))))
+   (create-ast ql 'Form (list (create-ast-list (cons (~? (list #f) "" (~! ErrorValue)) e)))))
  (define (If c . e)
    (create-ast ql 'Group (list c (create-ast-list e))))
  (define ??
@@ -76,13 +79,14 @@
  (define (~~ o . a)
    (create-ast ql 'Computation (list o (create-ast-list a))))
  
- ; Type & Operator Support:
- (define (Boolean)             (list 'Boolean))
- (define (Number)              (list 'Number))
- (define (String)              (list 'String))
- (define valid-types           (list (cons Boolean boolean?)
-                                     (cons Number number?)
-                                     (cons String string?)))
+ ;;; Type & operator support:
+ 
+ (define (Boolean v)           (boolean? v))
+ (define (Number v)            (number? v))
+ (define (String v)            (string? v))
+ (define valid-types           (list Boolean Number String))
+ (define (type->acceptor t)    (find (lambda (e) (eq? e t)) valid-types))
+ (define (value->type v)       (find (lambda (e) (e v)) valid-types))
  (define (ErrorType)           (list 'ErrorType))
  (define (ErrorValue)          (list 'ErrorValue))
  (define (&& . a)              (for-all (lambda (x) x) a))
@@ -90,7 +94,21 @@
  (define (!= . a)
    (or (null? a) (and (not (memq (car a) (cdr a))) (apply != (cdr a)))))
  
- ; Loading & saving:
+ ;;; Exceptions:
+ 
+ (define-condition-type ql-error &non-continuable make-ql-error ql-error?)
+ 
+ (define (ql-error: . messages)
+   (define (object->string o)
+     (call-with-string-output-port (lambda (port) (display o port))))
+   (define message
+     (fold-left
+      (lambda (result m)
+        (string-append result (if (string? m) m (string-append " [" (object->string m) "] "))))
+      "IMPLEMENTATION ERROR: " messages))
+   (raise (condition (make-ql-error) (make-message-condition message))))
+ 
+ ;;; Loading and saving:
  
  (define (load-questionnaire)
    (define (update-questions n) ; Set the initial value the widgets of ordinary questions show.
@@ -114,7 +132,7 @@
  (with-specification
   ql
   
-  ;;; AST Scheme:
+  ;;; AST scheme:
   
   (ast-rule 'Form->Element*<Body)
   (ast-rule 'Element->)
@@ -128,7 +146,7 @@
   (ast-rule 'Computation:Expression->operator-Expression*<Operands)
   (compile-ast-specifications 'Form)
   
-  ;;; Support Attributes:
+  ;;; Support attributes:
   
   (ag-rule
    root ; The root of a questionnaire.
@@ -142,7 +160,7 @@
    error-question? ; Is a question the error question?
    (Element          (lambda (n) (eq? n (=error-question n)))))
   
-  ;;; Name Analysis:
+  ;;; Name analysis:
   
   (define (find-L name l i)
     (ast-find-child*
@@ -165,19 +183,14 @@
    (Question         (lambda (n name) (if (eq? (->name n) name) n #f)))
    (Group            (lambda (n name) (find-L name (->Body n) (count (->Body n))))))
   
-  ;;; Type Analysis:
+  ;;; Type analysis:
   
   (ag-rule
    type ; Type of questions & expressions.
-   (OrdinaryQuestion (lambda (n) (if (assq (->type n) valid-types) (->type n) ErrorType)))
+   (OrdinaryQuestion (lambda (n) (if (type->acceptor (->type n)) (->type n) ErrorType)))
    (ComputedQuestion (lambda (n) (=type (->Expression n))))
    (Use              (lambda (n) (=type (=g-Lookup n (->name n)))))
-   
-   (Constant
-    (lambda (n)
-      (define type/is-a? (find (lambda (t) ((cdr t) (->value n))) valid-types))
-      (if type/is-a? (car type/is-a?) ErrorType)))
-   
+   (Constant         (lambda (n) (or (value->type (->value n)) ErrorType)))
    (Computation
     (lambda (n)
       (let ((ops (->* (->Operands n))))
@@ -261,22 +274,26 @@
   (ag-rule
    value ; Value of questions & expressions.
    (ComputedQuestion (lambda (n) (=value (->Expression n))))
-   (Use              (lambda (n) (=value (=find-active n (->name n)))))
    (Constant         (lambda (n) (if (eq? (=type n) ErrorType) ErrorValue (->value n))))
+   
+   (Use
+    (lambda (n)
+      (if (or (eq? (=type n) ErrorType) (not (eq? (=type (=find-active n (->name n))) (=type n))))
+          ErrorValue (=value (=find-active n (->name n))))))
+   
+   (OrdinaryQuestion
+    (lambda (n)
+      (if (or (eq? (=type n) ErrorType) (not ((type->acceptor (=type n)) (->value n))))
+          ErrorValue (->value n))))
    
    (Computation
     (lambda (n)
       (or (and (eq? (=type n) ErrorType) ErrorValue)
           (let ((args (map =value (->* (->Operands n)))))
             (find (lambda (value) (eq? value ErrorValue)) args)
-            (guard (x (error? ErrorValue)) (apply (->operator n) args))))))
-   
-   (OrdinaryQuestion
-    (lambda (n)
-      (define type/is-a? (assq (=type n) valid-types))
-      (if (and type/is-a? ((cdr type/is-a?) (->value n))) (->value n) ErrorValue))))
+            (guard (x (error? ErrorValue)) (apply (->operator n) args)))))))
   
-  ;;; Rendering (GUI):
+  ;;; Graphical user interface:
   
   (ag-rule
    dialog-type ; Widget type used to represent question.
@@ -284,10 +301,10 @@
     (lambda (n)
       (cond
         ((eq? (=type n) Boolean) check-box%)
-        ((eq? (=type n) Number) text-field%)
         ((eq? (=type n) String) text-field%)
+        ((eq? (=type n) Number) text-field%)
         ((eq? (=type n) ErrorType) text-field%)
-        (else (raise " !!! IMPLEMENTATION ERROR: No dialog for value type implemented !!!"))))))
+        (else (ql-error: "no dialog for" (=type n) "implemented"))))))
   
   (ag-rule
    dialog-printer ; Function pretty printing AST values for the question's dialog.
@@ -295,8 +312,14 @@
     (lambda (n)
       (cond
         ((eq? (=dialog-type n) check-box%) (lambda (v) (and (boolean? v) v)))
-        ((eq? (=dialog-type n) text-field%) (lambda (v) (if (eq? v ErrorValue) "" (~a v))))
-        (else (raise " !!! IMPLEMENTATION ERROR: No printer for dialog type implemented !!!"))))))
+        ((eq? (=dialog-type n) text-field%) ; (lambda (v) (if (eq? v ErrorValue) "" (~a v)))
+         (let ((fits? (type->acceptor (=type n))))
+           (cond
+             ((eq? (=type n) Number) (lambda (v) (if (fits? v) (number->string v) "")))
+             ((eq? (=type n) String) (lambda (v) (if (fits? v) v "")))
+             ((eq? (=type n) ErrorType) (lambda (v) ""))
+             (else (ql-error: "no" (=type n)  "printer for" (=dialog-type n) "implemented")))))
+        (else (ql-error: "no dialog-printer for" (=dialog-type n) "implemented"))))))
   
   (ag-rule
    value-printer ; Function pretty printing dialog values for the question's ast.
@@ -308,7 +331,7 @@
          (if (eq? (=type n) Number)
              (lambda (v) (let ((number? (r:string->number v))) (if number? number? v)))
              (lambda (v) v)))
-        (else (raise " !!! IMPLEMENTATION ERROR: No printer for dialog type implemented !!!"))))))
+        (else (ql-error: "no value-printer for" (=dialog-type n) "implemented"))))))
   
   (ag-rule
    widget ; Widget representing form element.
