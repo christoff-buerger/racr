@@ -1,8 +1,0 @@
-; This program and the accompanying materials are made available under the
-; terms of the MIT license (X11 license) which accompanies this distribution.
-
-; Author: C. Bürger
-
-(Form (?? 'q1 "1: Booelan" Boolean)
-      (?? 'q2 "2: Number" Number)
-      (~? 'q3 "3= $1 - $2: ERROR" (~~ - (~> 'q2) (~> 'q1))))

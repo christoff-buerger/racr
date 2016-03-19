@@ -10,6 +10,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Ast = Racr.AstNode;
+using Types = QuestionnairesLanguage.Types;
 
 public class Lexer {
 	private Lexemes lexeme;
@@ -51,8 +52,8 @@ public class Lexer {
 
 	public static string EscapeValue(object v) {
 		if (v == null) return "";
-		if (v is string) return EscapeString((string) v);
 		if (v is bool) return (bool) v ? "#t" : "#f";
+		if (v is string) return EscapeString((string) v);
 		return Convert.ToString(v);
 	}
 
@@ -196,7 +197,7 @@ public class Parser : Lexer {
 			n = ParseSymbol();
 			l = ParseString();
 			t = (Types) Enum.Parse(typeof(Types), ParseIdentifier());
-			if (Lexeme == Lexemes.RightParenthesis) v = null;
+			if (Lexeme == Lexemes.RightParenthesis) v = QuestionnairesLanguage.ErrorValue;
 			else v = ParseValue();
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("OrdinaryQuestion", n, l, t, v);

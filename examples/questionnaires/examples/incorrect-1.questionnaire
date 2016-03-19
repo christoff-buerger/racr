@@ -3,5 +3,12 @@
 
 ; Author: C. Bürger
 
-(Form (?? 'q1 "1 Booelan: first" Boolean)
-      (?? 'q1 "1 Number : ERROR" Number))
+(Form
+	(?? 'q1 "1: Boolean" Boolean)
+	(?? 'q2 "2: Boolean" Boolean)
+	(~? 'q3 "3= $1 - $2" (~~ + (~> 'q1) (~> 'q2)))
+	(If (~> 'q1)
+		(?? 'q4 "4: Booelan" Boolean))
+	(If (~> 'q2)
+		(?? 'q4 "4 again: Number" Number))
+	(If (~> 'q3)))

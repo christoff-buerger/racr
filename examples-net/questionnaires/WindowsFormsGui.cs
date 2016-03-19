@@ -12,7 +12,7 @@ using System.Windows.Forms;
 using Ast = Racr.AstNode;
 using AgRule = Racr.AgRuleAttribute;
 
-static class GUI {
+static class QuestionnairesGui {
 	private static Racr.Specification QL = QuestionnairesLanguage.QL;
 
 	[STAThread] public static void Main(string[] args) {
@@ -44,12 +44,10 @@ static class GUI {
 
 	// Attribute Accessors:
 
-	public static Control Widget(this Ast n) {
-		return n.AttValue<Control>("Widget"); }
-	public static bool Render(this Ast n) {
-		return n.AttValue<bool>("Render"); }
+	public static Control Widget(this Ast n)	{return n.AttValue<Control>("Widget"); }
+	public static bool Render(this Ast n)		{return n.AttValue<bool>("Render"); }
 
-	// Rendering (GUI):
+	// Widgets:
 
 	[AgRule("Widget", "Form")] static Control FormWidget(Ast n) {
 		var form = new System.Windows.Forms.Form();
@@ -92,7 +90,9 @@ static class GUI {
 		panel.WrapContents = false;
 		form.Controls.Add(panel);
 		form.Show();
-		return panel; }
+		return panel;
+	}
+
 	[AgRule("Widget", "Group")] static Control GroupWidget(Ast n) {
 		var panel = new FlowLayoutPanel();
 		panel.AutoSize = true;
@@ -101,13 +101,17 @@ static class GUI {
 		panel.FlowDirection = FlowDirection.TopDown;
 		panel.WrapContents = false;
 		n.Parent().Widget().Controls.Add(panel);
-		return panel; }
+		return panel;
+	}
+
 	[AgRule("Widget", "ComputedQuestion")] static Control ComputedQuestionWidget(Ast n) {
 		QWidget w;
 		if (n.Type() == Types.Boolean) w = new QCheckWidget(n.GetLabel(), false);
 		else w = new QTextWidget(n.GetLabel(), false);
 		n.Parent().Widget().Controls.Add(w);
-		return w; }
+		return w;
+	}
+
 	[AgRule("Widget", "OrdinaryQuestion")] static Control OrdinaryQuestionWidget(Ast n) {
 		QWidget w;
 		if (n.Type() == Types.Boolean) {
@@ -131,10 +135,20 @@ static class GUI {
 			};
 		}
 		n.Parent().Widget().Controls.Add(w);
-		return w; }
+		return w;
+	}
+
+	// Rendering:
 
 	[AgRule("Render", "OrdinaryQuestion")] static bool OrdinaryQuestionRender(Ast n) {
-		return false; }
+		return false;
+	}
+
+	[AgRule("Render", "ComputedQuestion")] static bool ComputedQuestionRender(Ast n) {
+		(n.Widget() as QWidget).Set(n.Value());
+		return true;
+	}
+
 	[AgRule("Render", "Form")] static bool FormRender(Ast n) {
 		n.Widget();
 		foreach (Ast c in n.GetBody().Children()) {
@@ -143,7 +157,9 @@ static class GUI {
 				c.Widget().Show();
 			} else c.Widget().Hide();
 		}
-		return true; }
+		return true;
+	}
+
 	[AgRule("Render", "Group")] static bool GroupRender(Ast n) {
 		foreach (Ast c in n.GetBody().Children()) {
 			if (c.IsShown()) {
@@ -151,10 +167,10 @@ static class GUI {
 				c.Widget().Show();
 			} else c.Widget().Hide();
 		}
-		return true; }
-	[AgRule("Render", "ComputedQuestion")] static bool ComputedQuestionRender(Ast n) {
-		(n.Widget() as QWidget).Set(n.Value());
-		return true; }
+		return true;
+	}
+
+	// Question dialogs:
 
 	private abstract class QWidget : FlowLayoutPanel {
 		private System.Windows.Forms.Label label;
