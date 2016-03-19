@@ -42,7 +42,6 @@
 		<Compile Include="Language.cs" />
 		<Compile Include="Parser.cs" />
 		<!--<Compile Include="WindowsFormsGui.cs" />-->
-		<!--<Compile Include="wxWidgetsGui.cs" />-->
 		<Compile Include="GtkSharpGui.cs" />
 		<Reference Include="System" />
 		<Reference Include="System.Drawing" />

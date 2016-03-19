@@ -56,7 +56,7 @@ static class QuestionnairesGui {
 			UpdateQuestions(next);
 			next.Render();
 			return true;
-		} else return current != null;
+		} else return false;
 	}
 
 	private static void SaveQuestionnaire(Ast current) {
