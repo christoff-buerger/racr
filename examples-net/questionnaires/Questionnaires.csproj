@@ -41,8 +41,8 @@
 	<ItemGroup>
 		<Compile Include="Language.cs" />
 		<Compile Include="Parser.cs" />
-		<!--<Compile Include="WindowsFormsGui.cs" />-->
-		<Compile Include="GtkSharpGui.cs" />
+		<Compile Include="WindowsFormsGui.cs" Condition=" '$(OS)' == 'Windows_NT' " />
+		<Compile Include="GtkSharpGui.cs" Condition=" '$(OS)' == 'Unix' " />
 		<Reference Include="System" />
 		<Reference Include="System.Drawing" />
 		<Reference Include="System.Windows.Forms" />
