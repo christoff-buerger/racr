@@ -2,6 +2,7 @@
 racket
 larceny
 petite
+sagittarius
 ironscheme
 @libraries:
 ../../racr

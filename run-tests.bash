@@ -65,7 +65,7 @@ run(){
 				echo "* !!! ERROR: Test failed; testing aborted !!! *" >&2
 				echo "*                                             *" >&2
 				echo "***********************************************" >&2
-				exit 2
+				#exit 2
 			fi
 		fi
 	done

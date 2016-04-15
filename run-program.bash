@@ -54,7 +54,7 @@ do
 		?)
 			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
 			echo "       -e Scheme program to execute." >&2
-			echo "       -c RACR library to use (implicitly set if the program" >&2
+			echo "       -l RACR library to use (implicitly set if the program" >&2
 			echo "          to execute is in a RACR library directory)." >&2
 			exit 2;;
 	esac
@@ -132,6 +132,13 @@ case $selected_system in
 			libs="--libdirs ${libs:1}"
 		fi
 		petite $libs --program "$to_execute" $*;;
+	sagittarius)
+		libs=()
+		for l in ${required_libraries[@]}
+		do
+			libs+=( --loadpath="$l/.." )
+		done
+		sagittarius ${libs[@]} "$to_execute" $*;;
 	ironscheme)
 		libs=()
 		for l in ${required_libraries[@]}

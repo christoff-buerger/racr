@@ -12,9 +12,9 @@ while getopts kis: opt
 do
 	case $opt in
 		k)
-			echo racket guile larceny petite ironscheme;;
+			echo racket guile larceny petite sagittarius ironscheme;;
 		i)
-			for s in racket guile larceny petite
+			for s in racket guile larceny petite sagittarius
 			do
 				if which "$s" > /dev/null
 				then
