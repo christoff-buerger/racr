@@ -9,6 +9,7 @@ _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work wit
   * [_GNU Guile_ 2.0.11](http://www.gnu.org/software/guile/)
   * [_IronScheme_ 1.0.99-54e877f, 8th March 2016](http://ironscheme.codeplex.com) ([_GitHub_ repository](https://github.com/leppie/IronScheme))
   * [_Chez Scheme_ 8.4](http://www.scheme.com/)
+  * [_Sagittarius Scheme_ 0.7](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository)](https://github.com/ktakashi/sagittarius-scheme))
 
 _RACR_ and some of its examples are provided as _Scheme_ libraries. The instantiation of libraries differs between different _Scheme_ systems. Consult the documentation of your _Scheme_ system in case of any instantiation issues. Besides proper instantiation as _Scheme_ library, no further configurations are required to use _RACR_.
 
