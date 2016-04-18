@@ -54,8 +54,8 @@ do
 		?)
 			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
 			echo "       -e Scheme program to execute." >&2
-			echo "       -l RACR library to use (implicitly set if the program" >&2
-			echo "          to execute is in a RACR library directory)." >&2
+			echo "       -l RACR library to use (`"$script_dir/list-libraries.bash" -k`)." >&2
+			echo "          Implicitly set if the program to execute is in a RACR library directory." >&2
 			exit 2;;
 	esac
 done

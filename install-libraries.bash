@@ -38,10 +38,10 @@ do
 			fi;;
 		?)
 			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
-			echo "          Several Scheme systems can be set. If no system is selected," >&2
-			echo "          the libraries are installed for all available systems." >&2
-			echo "       -i RACR libraries to install." >&2
-			echo "          Several libraries can be set. If no library is selected," >&2
+			echo "          Several Scheme systems can be selected. If no system is selected," >&2
+			echo "          the selected RACR libraries are installed for all available systems." >&2
+			echo "       -i RACR library to install (`"$script_dir/list-libraries.bash" -k`)." >&2
+			echo "          Several libraries can be selected. If no library is selected," >&2
 			echo "          all libraries are installed." >&2
 			exit 2;;
 	esac
@@ -58,7 +58,7 @@ then
 fi
 
 if [ -z ${selected_libraries+x} ]
-then	
+then
 	selected_libraries=${known_libraries[@]}
 fi
 
