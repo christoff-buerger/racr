@@ -8,7 +8,12 @@
 ################################################################################################################ Parse arguments:
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-while getopts s:e:l: opt
+if [ $# -eq 0 ]
+then
+	"$script_dir/run-program.bash" -h
+	exit $?
+fi
+while getopts s:e:l:h opt
 do
 	case $opt in
 		s)
@@ -51,15 +56,22 @@ do
 				echo "            because the program to execute is in a RACR library directory !!!" >&2
 				exit 2
 			fi;;
-		?)
-			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
-			echo "       -e Scheme program to execute." >&2
-			echo "       -l RACR library to use (`"$script_dir/list-libraries.bash" -k`)." >&2
+		h|?)
+			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
+			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "       -e Scheme program to execute (mandatory parameter)." >&2
+			echo "       -l RACR library to use (optional parameter). Permitted values:" >&2
+			echo "`"$script_dir/list-libraries.bash" -k | sed 's/^/             /'`" >&2
 			echo "          Implicitly set if the program to execute is in a RACR library directory." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+if [ ! $# -eq 0 ]
+then
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	exit 2
+fi
 
 if [ -z ${to_execute+x} ]
 then

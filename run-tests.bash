@@ -8,7 +8,7 @@
 ################################################################################################################ Parse arguments:
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-while getopts s: opt
+while getopts s:h opt
 do
 	case $opt in
 		s)
@@ -19,14 +19,19 @@ do
 			else
 				exit 2
 			fi;;
-		?)
-			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
-			echo "          Several systems can be set. If no system is selected, all" >&2
-			echo "          installed systems, RACR officially supports, are tested." >&2
+		h|?)
+			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
+			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+if [ ! $# -eq 0 ]
+then
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	exit 2
+fi
 
 if [ -z ${selected_systems+x} ]
 then

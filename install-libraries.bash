@@ -7,10 +7,8 @@
 
 ################################################################################################################ Parse arguments:
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-known_libraries=( "$script_dir"/racr )
-known_libraries+=( $(find "$script_dir" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
 
-while getopts s:i: opt
+while getopts s:i:h opt
 do
 	case $opt in
 		s)
@@ -22,31 +20,28 @@ do
 				exit 2
 			fi;;
 		i)
-			found=""
-			for l in ${known_libraries[@]}
-			do
-				if `echo "$l" | grep -q "/${OPTARG}"$`
-				then
-					selected_libraries+=( "$l" )
-					found=true
-				fi
-			done
-			if [ -z "$found" ]
+			selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$OPTARG"` )
+			if [ ! $? -eq 0 ]
 			then
-				echo " !!! ERROR: Unknown [$OPTARG] library !!!" >&2
 				exit 2
 			fi;;
-		?)
-			echo "Usage: -s Scheme system (`"$script_dir/list-scheme-systems.bash" -i`)." >&2
-			echo "          Several Scheme systems can be selected. If no system is selected," >&2
-			echo "          the selected RACR libraries are installed for all available systems." >&2
-			echo "       -i RACR library to install (`"$script_dir/list-libraries.bash" -k`)." >&2
-			echo "          Several libraries can be selected. If no library is selected," >&2
-			echo "          all libraries are installed." >&2
+		h|?)
+			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
+			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "          If no Scheme system is selected, the selected RACR libraries" >&2
+			echo "          are installed for all available systems." >&2
+			echo "       -i RACR library to install (optional multi-parameter). Permitted values:" >&2
+			echo "`"$script_dir/list-libraries.bash" -k | sed 's/^/             /'`" >&2
+			echo "          If no library is selected, all libraries are installed." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+if [ ! $# -eq 0 ]
+then
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	exit 2
+fi
 
 if [ -z ${selected_systems+x} ]
 then
@@ -59,7 +54,10 @@ fi
 
 if [ -z ${selected_libraries+x} ]
 then
-	selected_libraries=${known_libraries[@]}
+	for l in `"$script_dir/list-libraries.bash" -k`
+	do
+		selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$l"` )
+	done
 fi
 
 ############################################################################################################## Install libraries:
@@ -68,7 +66,7 @@ then
 	echo "=========================================>>> Compile for Racket:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse="$l/dependencies.txt"
+		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "racket" ]]
 		then
@@ -92,7 +90,7 @@ then
 	echo "==========================================>>> Compile for Guile:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse="$l/dependencies.txt"
+		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "guile" ]]
 		then
@@ -129,7 +127,7 @@ then
 	# Compile libraries:
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse="$l/dependencies.txt"
+		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "larceny" ]]
 		then
@@ -165,7 +163,7 @@ then
 	do
 		library=`basename "$l"`
 		library_bin="$l/ironscheme-bin"
-		configuration_to_parse="$l/dependencies.txt"
+		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
 		then

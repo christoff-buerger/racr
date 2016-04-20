@@ -10,35 +10,42 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 libraries=( "$script_dir"/racr )
 libraries+=( $(find "$script_dir" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
 
-while getopts kl:c: opt
+if [ $# -eq 0 ]
+then
+	"$script_dir/list-libraries.bash" -h
+	exit $?
+fi
+while getopts kl:c:h opt
 do
 	case $opt in
 		k)
+			known_libraries=()
 			for l in ${libraries[@]}
 			do
 				l=`basename "$l"`
 				if [[ ! " ${known_libraries[@]} " =~ "$l" ]]
 				then
 					known_libraries+=( "$l" )
+					echo "$l"
 				fi
-			done
-			echo ${known_libraries[@]};;
+			done;;
 		l)
+			found=""
 			for l in ${libraries[@]}
 			do
 				if [ "$OPTARG" == `basename "$l"` ]
 				then
-					install_paths+=( "$l" )
+					echo "$l"
+					found=true
 				fi
 			done
-			if [ -z ${install_paths+x} ]
+			if [ -z "$found" ]
 			then
-				echo " !!! ERROR: Unknown [$OPTARG] RACR-library !!!" >&2
+				echo " !!! ERROR: Unknown [$OPTARG] RACR library !!!" >&2
 				exit 2
-			else
-				echo ${install_paths[@]}
 			fi;;
 		c)
+			found=""
 			absolute_path=$(
 				if [ -d "$OPTARG" ]
 				then
@@ -52,24 +59,28 @@ do
 			do
 				if [ "$absolute_path" == "$l" ]
 				then
+					echo "$l/dependencies.txt"
 					found=true
 					break
 				fi
 			done
-			if [ -z ${found+x} ]
+			if [ -z "$found" ]
 			then
-				echo " !!! ERROR: Unknown [$OPTARG] RACR-library directory !!!" >&2
+				echo " !!! ERROR: Unknown [$OPTARG] RACR library directory !!!" >&2
 				exit 2
-			else
-				echo "$absolute_path/dependencies.txt"
 			fi;;
-		?)
-			echo "Usage: -k List all known RACR libraries." >&2
-			echo "       -l List absolut paths of the installation directories of a RACR library." >&2
+		h|?)
+			echo "Usage: -k List all known RACR libraries (multi-flag)." >&2
+			echo "       -l List absolut installation directory paths of a RACR library (multi-parameter)." >&2
 			echo "          Abort with an error if the library is unknown." >&2
-			echo "       -c List absolut path to the configuraton file of a RACR library directory." >&2
+			echo "       -c List absolut configuraton file path of a RACR library directory (multi-parameter)." >&2
 			echo "          Abort with an error if the library directory is unknown." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+if [ ! $# -eq 0 ]
+then
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	exit 2
+fi
