@@ -15,12 +15,6 @@
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ ! $# -eq 0 ]
-then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
-fi
-
 if [ -z ${configuration_to_parse+x} ]
 then
 	echo " !!! ERROR: Configuration to parse not set !!!" >&2

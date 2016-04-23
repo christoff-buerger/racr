@@ -5,8 +5,13 @@
 
 # author: C. Bürger
 
-################################################################################################################ Parse arguments:
+set -e
+set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+################################################################################################################ Parse arguments:
+arguments="$* --"
+arguments="${arguments#*--}"
 
 if [ $# -eq 0 ]
 then
@@ -20,12 +25,7 @@ do
 			if [ -z ${selected_system+x} ]
 			then
 				"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
-				if [ $? -eq 0 ]
-				then
-					selected_system="$OPTARG"
-				else
-					exit 2
-				fi
+				selected_system="$OPTARG"
 			else
 				echo " !!! ERROR: Several Scheme systems for execution selected via -s flag !!!" >&2
 				exit 2
@@ -34,23 +34,19 @@ do
 			if [ -z ${to_execute+x} ]
 			then
 				to_execute="$OPTARG"
-				if [ -f `dirname "$to_execute"`/dependencies.txt ]
+				to_execute_directory=`dirname "$to_execute"`
+				if [ `"$script_dir/list-libraries.bash" -c "$to_execute_directory" 2> /dev/null` ]
 				then
-					library_to_use=`dirname "$to_execute"`
+					configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$to_execute_directory"`
 				fi
 			else
 				echo " !!! ERROR: Several programs to execute specified via -e flag !!!" >&2
 				exit 2
 			fi;;
 		l)
-			if [ -z ${library_to_use+x} ]
+			if [ -z ${configuration_to_parse+x} ]
 			then
-				library_to_use="$OPTARG"
-				if [ ! -f "$library_to_use/dependencies.txt" ]
-				then
-					echo " !!! ERROR: [$library_to_use] is not a RACR library directory !!!" >&2
-					exit 2
-				fi
+				configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$OPTARG"`
 			else
 				echo " !!! ERROR: Several libraries to use specified, either via -l flag or implicitly" >&2
 				echo "            because the program to execute is in a RACR library directory !!!" >&2
@@ -63,11 +59,14 @@ do
 			echo "       -l RACR library to use (optional parameter). Permitted values:" >&2
 			echo "`"$script_dir/list-libraries.bash" -k | sed 's/^/             /'`" >&2
 			echo "          Implicitly set if the program to execute is in a RACR library directory." >&2
+			echo "       -- Command line arguments for the Scheme program to execute (optional flag). " >&2
+			echo "          All following arguments are forwarded." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
-if [ ! $# -eq 0 ]
+
+if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
@@ -85,12 +84,11 @@ then
 	exit 2
 fi
 
-if [ -z ${library_to_use+x} ]
+if [ -z ${configuration_to_parse+x} ]
 then
 	required_libraries=( "$script_dir/racr" )
 	required_libraries+=( "$script_dir/racr-meta" )
 else
-	configuration_to_parse="$library_to_use/dependencies.txt"
 	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
 	then

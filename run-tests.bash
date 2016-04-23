@@ -48,7 +48,12 @@ run(){
 	library="$2"
 	shift
 	shift
-	args=`if [ -z "$library" ]; then echo $*; else echo -l "$library" $*; fi`
+	args=`if [ -z "$library" ]
+		then
+			echo -- $*
+		else
+			echo -l "$library" -- $*
+		fi`
 	echo "$program" $*
 	if [ -z "$library" ]
 	then

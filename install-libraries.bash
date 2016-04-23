@@ -5,26 +5,19 @@
 
 # author: C. Bürger
 
-################################################################################################################ Parse arguments:
+set -e
+set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+################################################################################################################ Parse arguments:
 while getopts s:i:h opt
 do
 	case $opt in
 		s)
 			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
-			if [ $? -eq 0 ]
-			then
-				selected_systems+=( "$OPTARG" )
-			else
-				exit 2
-			fi;;
+			selected_systems+=( "$OPTARG" );;
 		i)
-			selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$OPTARG"` )
-			if [ ! $? -eq 0 ]
-			then
-				exit 2
-			fi;;
+			selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$OPTARG"` );;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
 			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
@@ -46,10 +39,6 @@ fi
 if [ -z ${selected_systems+x} ]
 then
 	selected_systems=`"$script_dir/list-scheme-systems.bash" -i`
-	if [ ! $? -eq 0 ]
-	then
-		exit 2
-	fi
 fi
 
 if [ -z ${selected_libraries+x} ]

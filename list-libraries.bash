@@ -5,11 +5,14 @@
 
 # author: C. Bürger
 
-############################################################################################################## Process arguments:
+set -e
+set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-libraries=( "$script_dir"/racr )
+
+libraries=( "$script_dir/racr" )
 libraries+=( $(find "$script_dir" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
 
+############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
 then
 	"$script_dir/list-libraries.bash" -h

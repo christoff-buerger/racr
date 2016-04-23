@@ -5,9 +5,11 @@
 
 # author: C. Bürger
 
-############################################################################################################## Process arguments:
+set -e
+set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
 then
 	"$script_dir/list-scheme-systems.bash" -h

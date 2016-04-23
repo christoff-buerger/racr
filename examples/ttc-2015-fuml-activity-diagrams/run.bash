@@ -91,4 +91,4 @@ then
 fi fi
 
 ####################################################################################################### Execute activity diagram:
-"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" "$diagram" "$input" "$mode" "$print_trace"
+"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- "$diagram" "$input" "$mode" "$print_trace"
