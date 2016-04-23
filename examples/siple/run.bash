@@ -5,20 +5,24 @@
 
 # author: C. Bürger
 
-################################################################################################################ Parse arguments:
+set -e
+set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-while getopts xs:e: opt
+################################################################################################################ Parse arguments:
+arguments="$* --"
+arguments="${arguments#*--}"
+
+if [ $# -eq 0 ]
+then
+	"$script_dir/run.bash" -h
+	exit $?
+fi
+while getopts xs:e:h opt
 do
 	case $opt in
 		x)
-			if [ -z ${execute_incorrect+x} ]
-			then
-				execute_incorrect=":true:"
-			else
-				echo " !!! ERROR: Incorrect execution several times set via -x flag !!!" >&2
-				exit 2
-			fi;;
+			execute_incorrect=":true:";;
 		s)
 			selected_system=`echo $selected_system -s "$OPTARG"`;;
 		e)
@@ -29,17 +33,24 @@ do
 				echo " !!! ERROR: Several SiPLE programs for execution selected via -e flag !!!" >&2
 				exit 2
 			fi;;
-		?)
-			echo "Usage: -s Scheme system (by default larceny)." >&2
-			echo "       -e SiPLE program to interpret." >&2
-			echo "       -x Specifies, that the executed program is not a valid SiPLE program and runtime" >&2
-			echo "          errors are expected. If no runtime error is encountered throughout interpretation," >&2
-			echo "          an error message is printed on stderr." >&2
+		h|?)
+			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
+			echo "`"$script_dir/../../list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "          By default, GNU Guile is used." >&2
+			echo "       -e SiPLE program to interpret (mandatory parameter)." >&2
+			echo "       -x Expect interpretation error (optional flag.)" >&2
+			echo "          Abort with an error if no runtime error is encountered throughout interpretation." >&2
 			echo "          By default, a correct SiPLE program is expected." >&2
 			exit 2
 	esac
 done
 shift $(( OPTIND - 1 ))
+
+if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+then
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	exit 2
+fi
 
 if [ -z ${execute_incorrect+x} ]
 then
@@ -48,7 +59,7 @@ fi
 
 if [ -z ${selected_system+x} ]
 then
-	selected_system=`echo -s "larceny"`
+	selected_system=`echo -s "guile"`
 fi
 
 if [ -z ${program+x} ]
@@ -58,4 +69,4 @@ then
 fi
 
 ########################################################################################################## Execute SiPLE program:
-"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" "$program" "$execute_incorrect"
+"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- "$program" "$execute_incorrect" "$@"

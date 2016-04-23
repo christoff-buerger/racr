@@ -20,7 +20,7 @@ do
 			selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$OPTARG"` );;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
 			echo "          If no Scheme system is selected, the selected RACR libraries" >&2
 			echo "          are installed for all available systems." >&2
 			echo "       -i RACR library to install (optional multi-parameter). Permitted values:" >&2

@@ -54,7 +54,7 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
 			echo "       -e Scheme program to execute (mandatory parameter)." >&2
 			echo "       -l RACR library to use (optional parameter). Permitted values:" >&2
 			echo "`"$script_dir/list-libraries.bash" -k | sed 's/^/             /'`" >&2

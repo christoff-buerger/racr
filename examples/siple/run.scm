@@ -5,11 +5,14 @@
 
 #!r6rs
 
-(import (rnrs) (racr testing) (siple main) (siple exception-api))
+(import (rnrs) (rnrs mutable-pairs) (racr testing) (siple main) (siple exception-api))
 
 (define program (cadr (command-line)))
 (define incorrect? (string=? (caddr (command-line)) ":true:"))
 
+(set-car! (command-line) program) ; Command line arguments imutable in Larceny and Racket!
+(set-cdr! (command-line) (cdddr (command-line)))
+
 (if incorrect?
-    (assert-exception siple-exception? (siple-interpret (cadr (command-line))))
-    (siple-interpret (cadr (command-line))))
+    (assert-exception siple-exception? (siple-interpret program))
+    (siple-interpret program))
