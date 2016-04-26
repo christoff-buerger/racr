@@ -73,11 +73,3 @@ do
 		required_sources+=( "$configuration_directory/$line" );;
 	esac
 done < "$configuration_to_parse"
-
-for s in `"$script_dir/list-scheme-systems.bash" -k`
-do
-	if [[ ! " ${supported_systems[@]} " =~ "$s"  ]]
-	then
-		unsupported_systems+=( "$s" )
-	fi
-done

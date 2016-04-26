@@ -76,7 +76,7 @@ fi
 
 if [[ " ${selected_systems[@]} " =~ "guile" ]]
 then
-	echo "==========================================>>> Compile for Guile:"
+	echo "=========================================>>> Compile for Guile:"
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`

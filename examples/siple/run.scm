@@ -10,7 +10,7 @@
 (define program (cadr (command-line)))
 (define incorrect? (string=? (caddr (command-line)) ":true:"))
 
-(set-car! (command-line) program) ; Command line arguments imutable in Larceny and Racket!
+(set-car! (command-line) program) ; BUG: Command line arguments immutable in Larceny and Racket!
 (set-cdr! (command-line) (cdddr (command-line)))
 
 (if incorrect?

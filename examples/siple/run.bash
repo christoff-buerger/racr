@@ -41,6 +41,8 @@ do
 			echo "       -x Expect interpretation error (optional flag.)" >&2
 			echo "          Abort with an error if no runtime error is encountered throughout interpretation." >&2
 			echo "          By default, a correct SiPLE program is expected." >&2
+			echo "       -- Command line arguments for the SiPLE program to interpret (optional flag). " >&2
+			echo "          All following arguments are forwarded." >&2
 			exit 2
 	esac
 done

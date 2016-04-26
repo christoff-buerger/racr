@@ -5,28 +5,26 @@
 
 # author: C. Bürger
 
-################################################################################################################ Parse arguments:
+set -e
+set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+################################################################################################################ Parse arguments:
 while getopts s:h opt
 do
 	case $opt in
 		s)
 			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
-			if [ $? -eq 0 ]
-			then
-				selected_systems+=( "$OPTARG" )
-			else
-				exit 2
-			fi;;
+			selected_systems+=( "$OPTARG" );;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
 			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+
 if [ ! $# -eq 0 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
@@ -36,10 +34,6 @@ fi
 if [ -z ${selected_systems+x} ]
 then
 	selected_systems=`"$script_dir/list-scheme-systems.bash" -i`
-	if [ ! $? -eq 0 ]
-	then
-		exit 2
-	fi
 fi
 
 ###################################################################################################### Define execution function:
@@ -48,42 +42,32 @@ run(){
 	library="$2"
 	shift
 	shift
-	args=`if [ -z "$library" ]
-		then
-			echo -- $*
-		else
-			echo -l "$library" -- $*
-		fi`
-	echo "$program" $*
 	if [ -z "$library" ]
 	then
-		unsupported_systems=()
+		args=`echo -- $*`
 	else
-		configuration_to_parse="$library/dependencies.txt"
-		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		args=`echo -l "$library" -- $*`
 	fi
+	echo "$program" $*
 	for s in ${selected_systems[@]}
 	do
-		if [[ ! " ${unsupported_systems[@]} " =~ "$s" ]]
-		then
-			printf " $s"
-			"$script_dir/run-program.bash" -s "$s" -e "$program" $args
-			if [ ! $? -eq 0 ]
-			then
-				echo "***********************************************" >&2
-				echo "*                                             *" >&2
-				echo "* !!! ERROR: Test failed; testing aborted !!! *" >&2
-				echo "*                                             *" >&2
-				echo "***********************************************" >&2
-				#exit 2
-			fi
-		fi
+		set +e
+		error_message=`"$script_dir/run-program.bash" -s "$s" -e "$program" $args 2>&1`
+		error_status=$?
+		case $error_status in
+			0) printf " $s";;	# all correct
+			2) printf " -$s-";;	# configuration error for Scheme system => test skipped
+			*)
+				echo " !$s!"	# test failed (execution error) => print error and abort testing
+				echo "$error_message"
+				exit $error_status;;
+		esac
+		set -e
 	done
 	echo ""
 }
 
 ################################################################################################################## Execute tests:
-echo "=========================================>>> Run Tests:"
 
 # Test basic API:
 for f in "$script_dir"/tests/*.scm
