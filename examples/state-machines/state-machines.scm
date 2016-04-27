@@ -129,14 +129,10 @@
      (and
       (or ; From every state, except finals, a final must be reachable.
        (=final? n)
-       (find
-        (lambda (n) (=final? n))
-        (=reachable n)))
+       (find =final? (=reachable n)))
       (or ; All states, except the initial, must be reachable from the initial.
        (eq? n (=initial-state n))
-       (find
-        (lambda (r) (eq? n r))
-        (=reachable (=initial-state n))))))))
+       (memq n (=reachable (=initial-state n))))))))
  
  (compile-ag-specifications))
 
@@ -174,7 +170,7 @@
             (list 'final ...)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;                            Examples and Tests                           ;;;
+;;;                            Examples and tests                           ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (run-tests)
@@ -209,6 +205,7 @@
      (s5 -> s7)
      (s7 -> s4)
      (s4 -> s1)))
+  
   (define sm-2
     ; Incorrect machine (s4 not reachable from the initial state s1):
     ; *s1 -- s2 -- s3*
@@ -220,6 +217,7 @@
      (s1 -> s2)
      (s2 -> s3)
      (s4 -> s2)))
+  
   (define sm-3
     ; Incorrect machine (s2 and s4 cannot reach the final state s5):
     ; *s1
@@ -234,6 +232,7 @@
      (s1 -> s3)
      (s2 -> s4)
      (s3 -> s5)))
+  
   (define sm-4
     ; Correct state machine:
     ;    *s1---s9---s10*

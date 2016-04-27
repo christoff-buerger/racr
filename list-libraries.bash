@@ -10,7 +10,7 @@ set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 libraries=( "$script_dir/racr" )
-libraries+=( $(find "$script_dir" -type f -name dependencies.txt | sed s/\\/dependencies.txt$// | grep -v /racr$) )
+libraries+=( $(find "$script_dir" -type f -name racr-library-configuration | sed s/\\/racr-library-configuration$// | grep -v /racr$) )
 
 ############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
@@ -62,7 +62,7 @@ do
 			do
 				if [ "$absolute_path" == "$l" ]
 				then
-					echo "$l/dependencies.txt"
+					echo "$l/racr-library-configuration"
 					found=true
 					break
 				fi
