@@ -101,7 +101,7 @@ do
 	then
 		input=":false:"
 	fi
-	run "$script_dir/examples/ttc-2015-fuml-activity-diagrams/run.scm" "" "$f" "$input" 5 ":false:"
+	run "$script_dir/examples/ttc-2015-fuml-activity-diagrams/run.scm" "" "$f" "$input" 6 ":false:"
 done
 
 # Test SiPLE example:

@@ -98,11 +98,11 @@ fi
 if [ -z ${mode+x} ]
 then
 	mode=6
-else if (( "$mode" < 1 || "$mode" > 7 ))
+elif (( "$mode" < 1 || "$mode" > 7 ))
 then
 	echo " !!! ERROR: No valid execution mode selected !!!" >&2
 	exit 2
-fi fi
+fi
 
 ####################################################################################################### Execute activity diagram:
 "$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- "$diagram" "$input" "$mode" "$print_trace"
