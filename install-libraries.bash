@@ -182,7 +182,7 @@ then
 			(
 			cd "$library_bin"
 			echo "(compile \"$library_bin/compile-script.sls\")" | \
-				mono `which IronScheme.Console-v4.exe` ${lib_path[@]}
+				mono `which IronScheme.Console-v4.exe` -nologo ${lib_path[@]}
 			)
 			rm -rf "$library_bin/$library" # Force usage of compiled IronScheme dll assemblies.
 			rm "$library_bin/compile-script.sls"

@@ -155,5 +155,5 @@ case $selected_system in
 		do
 			libs+=( -I "$l/ironscheme-bin" )
 		done
-		mono `which IronScheme.Console-v4.exe` ${libs[@]} "$to_execute" $*;;
+		mono `which IronScheme.Console-v4.exe` -nologo ${libs[@]} "$to_execute" $*;;
 esac
