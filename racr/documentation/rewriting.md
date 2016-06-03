@@ -20,10 +20,10 @@ Figure 5.1 summarises the conditions under which _RACR's_ rewrite functions thro
 ### `rewrite-terminal`
 
 ```
-(rewrite-terminal i n new-value)
+(rewrite-terminal c/i n new-value)
 ```
 
-Given a node `n`, a child index `i` and an arbitrary value `new-value`, change the value of `n`'s `i`'th child, which must be a terminal, to `new-value`. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `n` has no `i`'th child, `n`'s `i`'th child is no terminal or any attributes of the AST `n` is part of are in evaluation. If rewriting succeeds, the old/rewritten value of the terminal is returned.
+Given a node `n`, a child name or index `c/i` and an arbitrary value `new-value`, change the value of `n`'s `c/i` child (in case `c/i` is an index, `n`'s `c/i`'th child), which must be a terminal, to `new-value`. Thereby, the caches of any influenced attributes are flushed and dependencies are maintained. An exception is thrown, if `n` has no `c/i` child (no `c/i`'th child in case `c/i` is an index), the child is no terminal or any attributes of the AST `n` is part of are in evaluation. If rewriting succeeds, the old/rewritten value of the terminal is returned.
 
 **Note:** _`rewrite-terminal` does not compare the old and new value for equivalence. If they are equal, the rewrite is still performed such that the caches of depending attributes are flushed. Developers are responsible to avoid such unnecessary rewrites._
 

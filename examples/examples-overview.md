@@ -83,7 +83,7 @@ The example demonstrates the reuse of attribute-based analyses to ease and contr
 
  * Attribute-based analyses: name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
  * Rewrite-based transformations: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed and add produced tokens of fired transitions)
- * Mutual-dependent, incremental evaluation of analyses and transformations: attributes are only re-evaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only re-evaluated if the last fired transition influenced it) and transformations are derived by attributes (firing semantics defined in terms of enabled analysis)
+ * Mutual-dependent, incremental evaluation of analyses and transformations: attributes are only re-evaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only re-evaluated if the last fired transition influenced it) and transformations are derived by attributes (firing semantics defined by means of enabled analysis)
 
 ## _Language Workbench Challenges 2013 & 2014_: Questionnaires
 
