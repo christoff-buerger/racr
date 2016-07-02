@@ -12,90 +12,97 @@
   with-bindings
   create-transformer-for-pattern)
  (import (rnrs) (racr-meta core))
-
+ 
  (define pattern-language (create-specification))
+ 
+ ; ******************************************************************************************************** ;
+ ;                                                W A R N I N G                                             ;
+ ; THE PATTERN LIBRARY IS BROKEN AT THE MOMENT. IT MUST BE PROPERLY REFACTORED FOR THE RACR-META-EDITION.   ;
+ ; THE INTERNAL DEPENDENCIES TO FIX ARE:                                                                    ;
+ ; ******************************************************************************************************** ;
+ (define (ast-rule-subtype? ast-rule1 ast-rule2) #f)
+ (define (ast-rule-subtypes ast-rule) #f)
+ (define (ast-rule-find-child-context ast-rule context-name) #f)
+ ; ******************************************************************************************************** ;
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pattern Specification ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- (define specify-pattern
-   (lambda (spec att-name distinguished-node fragments references condition?)
-     (define process-fragment
-       (lambda (context type binding children)
-         (unless (and
-                  (or (symbol? context) (integer? context))
-                  (or (not type) (symbol? type))
-                  (or (not binding) (symbol? binding)))
-           (throw-exception
-            "Invalid pattern definition; "
-            "Wrong argument type (context, type or binding of fragment)."))
-         (create-ast
-          pattern-language
-          'Node
-          (list
-           context
-           type
-           binding
-           (create-ast-list
-            (map
-             (lambda (child)
-               (apply process-fragment child))
-             children))))))
-     (define process-reference
-       (lambda (name source target)
-         (unless (and (symbol? name) (symbol? source) (symbol? target))
-           (throw-exception
-            "Invalid pattern definition; "
-            "Wrong argument type (name, source and target of references must be symbols)."))
-         (create-ast pattern-language 'Ref (list name source target))))
-     (let ((ast
-            (create-ast
-             pattern-language
-             'Pattern
-             (list
-              (create-ast-list (map (lambda (frag) (apply process-fragment (cons 'racr-nil frag))) fragments))
-              (create-ast-list (map (lambda (ref) (apply process-reference ref)) references))
-              #f
-              spec))))
-       ; Resolve symbolic node references (i.e., perform name analysis):
-       (rewrite-terminal 'dnode ast (att-value 'lookup-node ast distinguished-node))
-       (for-each
-        (lambda (ref)
-          (let ((source? (att-value 'lookup-node ast (ast-child 'source ref)))
-                (target? (att-value 'lookup-node ast (ast-child 'target ref))))
-            (if source?
-                (rewrite-terminal 'source ref source?)
-                (throw-exception
-                 "Invalid pattern definition; "
-                 "Undefined reference source " (ast-child 'source ref) "."))
-            (if target?
-                (rewrite-terminal 'target ref target?)
-                (throw-exception
-                 "Invalid pattern definition; "
-                 "Undefined reference target " (ast-child 'target ref) "."))))
-        (ast-children (ast-child 'Ref* ast)))
-       ; Ensure well-formedness of the pattern (valid distinguished node, reachability, typing, unique node naming):
-       (unless (att-value 'well-formed? ast)
-         (throw-exception
-          "Invalid pattern definition; "
-          "The pattern is not well-formed."))
-       ; Every thing is fine. Thus, add a respective matching attribute to the given specification: 
-       (specify-attribute
-        spec
-        att-name
-        (ast-child 'type (ast-child 'dnode ast))
-        '*
-        #t
-        (let ((pmm (att-value 'pmm-code ast))) ; Precompute the PMM => The pattern AST is not in the equation's closure
-          (if condition?
-              (lambda (n . args)
-                (let ((bindings (pmm n)))
-                  (if (and bindings (apply condition? bindings args))
-                      bindings
-                      #f)))
-              pmm))
-        #f))))
+ (define (specify-pattern spec att-name distinguished-node fragments references condition?)
+   (define (process-fragment context type binding children)
+     (unless (and
+              (or (symbol? context) (integer? context))
+              (or (not type) (symbol? type))
+              (or (not binding) (symbol? binding)))
+       (throw-exception
+        "Invalid pattern definition; "
+        "Wrong argument type (context, type or binding of fragment)."))
+     (create-ast
+      pattern-language
+      'Node
+      (list
+       context
+       type
+       binding
+       (create-ast-list
+        (map
+         (lambda (child)
+           (apply process-fragment child))
+         children)))))
+   (define (process-reference name source target)
+     (unless (and (symbol? name) (symbol? source) (symbol? target))
+       (throw-exception
+        "Invalid pattern definition; "
+        "Wrong argument type (name, source and target of references must be symbols)."))
+     (create-ast pattern-language 'Ref (list name source target)))
+   (define ast
+     (create-ast
+      pattern-language
+      'Pattern
+      (list
+       (create-ast-list (map (lambda (frag) (apply process-fragment (cons 'racr-nil frag))) fragments))
+       (create-ast-list (map (lambda (ref) (apply process-reference ref)) references))
+       #f
+       spec)))
+   ; Resolve symbolic node references (i.e., perform name analysis):
+   (rewrite-terminal 'dnode ast (att-value 'lookup-node ast distinguished-node))
+   (for-each
+    (lambda (ref)
+      (let ((source? (att-value 'lookup-node ast (ast-child 'source ref)))
+            (target? (att-value 'lookup-node ast (ast-child 'target ref))))
+        (if source?
+            (rewrite-terminal 'source ref source?)
+            (throw-exception
+             "Invalid pattern definition; "
+             "Undefined reference source " (ast-child 'source ref) "."))
+        (if target?
+            (rewrite-terminal 'target ref target?)
+            (throw-exception
+             "Invalid pattern definition; "
+             "Undefined reference target " (ast-child 'target ref) "."))))
+    (ast-children (ast-child 'Ref* ast)))
+   ; Ensure well-formedness of the pattern (valid distinguished node, reachability, typing, unique node naming):
+   (unless (att-value 'well-formed? ast)
+     (throw-exception
+      "Invalid pattern definition; "
+      "The pattern is not well-formed."))
+   ; Every thing is fine. Thus, add a respective matching attribute to the given specification: 
+   (specify-attribute
+    spec
+    att-name
+    (ast-child 'type (ast-child 'dnode ast))
+    '*
+    #t
+    (let ((pmm (att-value 'pmm-code ast))) ; Precompute the PMM => The pattern AST is not in the equation's closure
+      (if condition?
+          (lambda (n . args)
+            (let ((bindings (pmm n)))
+              (if (and bindings (apply condition? bindings args))
+                  bindings
+                  #f)))
+          pmm))
+    #f))
  
  (define-syntax with-bindings
    (syntax-rules ()
@@ -129,7 +136,7 @@
                 (apply rewrite-function match? pattern-arguments)
                 #t)
                #f))))))
-
+ 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pattern Matching Machine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -223,7 +230,7 @@
    (lambda (next-instruction node-memory-size)
      (lambda (current-node)
        (next-instruction current-node (make-vector node-memory-size)))))
-
+ 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pattern Language ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -714,7 +721,7 @@
             (ast-children (ast-child 'Ref* n)))))))
       
       (compile-ag-specifications))))
-
+ 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Initialisation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
