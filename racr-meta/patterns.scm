@@ -23,6 +23,22 @@
  (define (ast-rule-subtype? ast-rule1 ast-rule2) #f)
  (define (ast-rule-subtypes ast-rule) #f)
  (define (ast-rule-find-child-context ast-rule context-name) #f)
+ (define-syntax with-specification-patterns
+   (lambda (x)
+     (syntax-case x ()
+       ((k spec body ...)
+        #`(let* ((spec* spec)
+                 (#,(datum->syntax #'k 'specify-pattern)
+                  (lambda (att-name distinguished-node fragments references condition)
+                    (specify-pattern spec* att-name distinguished-node fragments references condition)))
+                 (#,(datum->syntax #'k 'create-transformer-for-pattern)
+                  (lambda (node-type pattern-attribute rewrite-function . pattern-arguments)
+                    (apply create-transformer-for-pattern spec* node-type pattern-attribute rewrite-function pattern-arguments))))
+            (let-syntax ((#,(datum->syntax #'k 'ag-rule)
+                          (syntax-rules ()
+                            ((_ attribute-name definition (... ...))
+                             (ag-rule spec* attribute-name definition (... ...))))))
+              body ...))))))
  ; ******************************************************************************************************** ;
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
