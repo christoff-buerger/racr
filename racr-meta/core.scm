@@ -909,11 +909,18 @@
  (define (=context-rule n) (att-value 'context-rule n))
  (define (=context n) (att-value 'context n))
  (define (=attributes-for-rule/symbol n) (att-value 'attributes-for-rule/symbol n))
- (define (=attributes . n) (apply att-value 'attributes n))
- (define (=attributes-for-context n parent-type? context-name? child-type) (att-value 'attributes-for-context n parent-type? context-name? child-type))
+ (define =attributes
+   (case-lambda
+     ((n) (att-value 'attributes n))
+     ((n context-name) (att-value 'attributes n context-name))))
+ (define (=attributes-for-context n parent-type? context-name? child-type)
+   (att-value 'attributes-for-context n parent-type? context-name? child-type))
  (define (=well-formed? n) (att-value 'well-formed? n))
  (define (=local-correct? n) (att-value 'local-correct? n))
- (define (=ast-node-factory n . x) (apply att-value 'ast-node-factory n x))
+ (define =ast-node-factory
+   (case-lambda
+     ((n) (att-value 'ast-node-factory n))
+     ((n name) (att-value 'ast-node-factory n name))))
  (define (=context-checker n) (att-value 'context-checker n))
  (define (=context-factory n) (att-value 'context-factory n))
  (define (=attribution-factory n oc nc) (att-value 'attribution-factory n oc nc))
