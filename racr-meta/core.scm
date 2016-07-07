@@ -467,79 +467,62 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- (define ast-weave-annotations
-   (lambda (node type name value)
-     (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception
-        "Cannot weave " name " annotation; "
-        "There are attributes in evaluation."))
-     (when (not (ast-annotation? node name))
-       (cond
-         ((and (not (ast-list-node? node)) (not (ast-bud-node? node)) (ast-subtype? node type))
-          (ast-annotation-set! node name value))
-         ((and (ast-list-node? node) (eq? type 'list-node))
-          (ast-annotation-set! node name value))
-         ((and (ast-bud-node? node) (eq? type 'bud-node))
-          (ast-annotation-set! node name value))))
-     (for-each
-      (lambda (child)
-        (unless (node-terminal? child)
-          (ast-weave-annotations child type name value)))
-      (node-children node))))
+ (define (ast-weave-annotations node type name value)
+   (when (not (ast-annotation? node name))
+     (cond
+       ((eq? type 'list-node)
+        (when (ast-list-node? node)
+          (ast-annotation-set! node name value)))
+       ((eq? type 'bud-node)
+        (when (ast-bud-node? node)
+          (ast-annotation-set! node name value)))
+       ((and (not (ast-list-node? node)) (not (ast-bud-node? node)) (ast-subtype? node type))
+        (ast-annotation-set! node name value))))
+   (for-each
+    (lambda (child)
+      (unless (node-terminal? child)
+        (ast-weave-annotations child type name value)))
+    (node-children node)))
  
- (define ast-annotation?
-   (lambda (node name)
-     (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception
-        "Cannot check for " name " annotation; "
-        "There are attributes in evaluation."))
-     (assq name (node-annotations node))))
+ (define (ast-annotation? node name)
+   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
+     (throw-exception
+      "Cannot access " name " annotation; "
+      "There are attributes in evaluation."))
+   (assq name (node-annotations node)))
  
- (define ast-annotation
-   (lambda (node name)
-     (when (evaluator-state-in-evaluation? (node-evaluator-state node))
+ (define (ast-annotation node name)
+   (define annotation (ast-annotation? node name))
+   (if annotation
+       (cdr annotation)
        (throw-exception
         "Cannot access " name " annotation; "
-        "There are attributes in evaluation."))
-     (let ((annotation (ast-annotation? node name)))
-       (if annotation
-           (cdr annotation)
-           (throw-exception
-            "Cannot access " name " annotation; "
-            "The given node has no such annotation.")))))
+        "The given node has no such annotation.")))
  
- (define ast-annotation-set!
-   (lambda (node name value)
-     (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception
-        "Cannot set " name " annotation; "
-        "There are attributes in evaluation."))
-     (when (not (symbol? name))
-       (throw-exception
-        "Cannot set " name " annotation; "
-        "Annotation names must be Scheme symbols."))
-     (let ((annotation (ast-annotation? node name))
-           (value
-            (if (procedure? value)
-                (lambda args
-                  (apply value node args))
-                value)))
-       (if annotation
-           (set-cdr! annotation value)
-           (node-annotations-set! node (cons (cons name value) (node-annotations node)))))))
+ (define (ast-annotation-set! node name value)
+   (define annotation (ast-annotation? node name))
+   (define value
+     (if (procedure? value)
+         (lambda args (apply value node args))
+         value))
+   (when (not (symbol? name))
+     (throw-exception
+      "Cannot set " name " annotation; "
+      "Annotation names must be Scheme symbols."))
+   (if annotation
+       (set-cdr! annotation value)
+       (node-annotations-set! node (cons (cons name value) (node-annotations node)))))
  
- (define ast-annotation-remove!
-   (lambda (node name)
-     (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-       (throw-exception
-        "Cannot remove " name " annotation; "
-        "There are attributes in evaluation."))
-     (node-annotations-set!
-      node
-      (remp
-       (lambda (entry)
-         (eq? (car entry) name))
-       (node-annotations node)))))
+ (define (ast-annotation-remove! node name)
+   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
+     (throw-exception
+      "Cannot remove " name " annotation; "
+      "There are attributes in evaluation."))
+   (node-annotations-set!
+    node
+    (remp
+     (lambda (entry) (eq? (car entry) name))
+     (node-annotations node))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Specification ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
