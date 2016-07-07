@@ -751,6 +751,10 @@
              (string->symbol (apply string (reverse id)))))))
    
    ;;; Before adding the AST rule, ensure that...
+   (unless (symbol? rule) ; ...the given argument is of the expected type and...
+     (throw-exception
+      "Invalid AST rule definition;"
+      "Wrong argument type (expected symbol encoding rule, but the argument was " rule "."))
    (when (> (racr-specification-2-specification-phase spec) 1) ; ...the language is in the correct specification phase.
      (throw-exception
       "Unexpected AST rule " rule ";"
@@ -765,7 +769,7 @@
    (unless (symbol? start-symbol) ; ...the given argument is of the expected type and...
      (throw-exception
       "Invalid start symbol definition;"
-      "Wrong argument type (" start-symbol ")."))
+      "Wrong argument type (expected symbol encoding non-terminal, but the argument was " start-symbol ")."))
    (when (> (racr-specification-2-specification-phase spec) 1) ; ...the language is in the correct specification phase.
      (throw-exception
       "Unexpected " start-symbol " start symbol definition;"
@@ -778,22 +782,22 @@
    (define wrong-argument-type ; ...the given arguments are of the expected type and...
      (or
       (and (not (symbol? name))
-           "Attribute name: symbol")
+           (cons "symbol encoding attribute name" name))
       (and (not (symbol? rule))
-           "AST rule: non-terminal symbol")
+           (cons "symbol denoting AST rule" rule))
       (and (not (symbol? position))
-           "Production context: right hand symbol or '*")
+           (cons "symbol denoting AST rule context" position))
       (and (not (procedure? equation))
-           "Attribute equation: function")
+           (cons "function encoding attribute equation" equation))
       (and circularity-definition
            (or
             (not (pair? circularity-definition))
             (not (procedure? (cdr circularity-definition))))
-           "Circularity definition: #f or (bottom-value equivalence-function) pair")))
+           (cons "#f or (bottom-value equivalence-function) pair encoding circularity definition" circularity-definition))))
    (when wrong-argument-type
      (throw-exception
       "Invalid attribute definition; "
-      "Wrong argument type (" wrong-argument-type ")."))
+      "Wrong argument type (expected " (car wrong-argument-type) ", but the argument was " (cdr wrong-argument-type) ")."))
    (when (> (racr-specification-2-specification-phase spec) 1) ; ...the language is in the correct specification phase.
      (throw-exception
       "Unexpected " name " attribute definition; "
@@ -809,7 +813,7 @@
  
  (define (compile-specification-2 spec)
    (define ast-scheme (racr-specification-2-ast-scheme spec))
-   ;;; Before comiling the specification, ensure that...
+   ;;; Before compiling the specification, ensure that...
    (when (> (racr-specification-2-specification-phase spec) 1) ; ...it is in the correct specification phase and...
      (throw-exception
       "Unexpected RACR specification compilation;"
@@ -820,18 +824,30 @@
       "The specification is not well-formed."))
    ;;; Compile the specification, i.e.,...
    (racr-specification-2-specification-phase-set! spec 2) ; ...proceed to the next specifcation phase and...
-   (for-each ; ...precompute the attribution of all possible contexts.
+   (for-each ; ...precompute the attribution factories of all possible context switches. The attribution for...
     (lambda (rule)
-      (=attributes-for-context ast-scheme #f #f (->name rule))
-      (for-each
+      (define abstracted-context (list #f #f (->name rule)))
+      (=attribution-factory ast-scheme #f abstracted-context) ; ...new nodes and...
+      (for-each ; ...all their...
+       (lambda (sub)
+         (define refined-context (list #f #f (->name sub)))
+         (=attribution-factory ast-scheme abstracted-context refined-context) ; ...refinements and...
+         (=attribution-factory ast-scheme refined-context abstracted-context)) ; ...abstractions and...
+       (=subtypes rule))
+      (for-each ; ...all their children,...
        (lambda (symbol)
-         (for-each
+         (for-each ; ...of all permitted kind, whether...
           (lambda (child-rule)
-            (=attributes-for-context
-             ast-scheme
-             (->name rule)
-             (=contextname symbol)
-             (->name child-rule)))
+            (define without-parent-context (list #f #f (->name child-rule)))
+            (define with-parent-context (list (->name rule) (=contextname symbol) (->name child-rule)))
+            (=attribution-factory ast-scheme without-parent-context with-parent-context) ; ...added,...
+            (=attribution-factory ast-scheme with-parent-context without-parent-context) ; ...removed,...
+            (for-each
+             (lambda (child-sub)
+               (define refined-child-context (list (->name rule) (=contextname symbol) (->name child-sub)))
+               (=attribution-factory ast-scheme with-parent-context refined-child-context); ...refined or...
+               (=attribution-factory ast-scheme refined-child-context with-parent-context)); ...abstracted.
+             (=subtypes child-rule)))
           (let ((child-rule (=non-terminal? symbol)))
             (cons child-rule (=subtypes child-rule)))))
        (=rhand-non-terminal-symbols rule)))
@@ -923,7 +939,8 @@
      ((n name) (att-value 'ast-node-factory n name))))
  (define (=context-checker n) (att-value 'context-checker n))
  (define (=context-factory n) (att-value 'context-factory n))
- (define (=attribution-factory n oc nc) (att-value 'attribution-factory n oc nc))
+ (define (=attribution-factory n old-context new-context)
+   (att-value 'attribution-factory n old-context new-context))
  
  (define (load-ast-language)
    (define set-union
@@ -1593,7 +1610,7 @@
                  (equal? (=bottom-value a1) (=bottom-value a2))
                  (eq? (=equality-function a1) (=equality-function a2)))
                 (not (=circular? a2))))))
-        (let loop ((old-attribution (apply =attributes-for-context n old-context))
+        (let loop ((old-attribution (if old-context (apply =attributes-for-context n old-context) (list)))
                    (new-attribution (apply =attributes-for-context n new-context)))
           (cond
             ((and (null? old-attribution) (null? new-attribution)) ; No attributes to process left:
