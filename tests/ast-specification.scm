@@ -11,9 +11,8 @@
 
 (define (create-ast-scheme startsymbol)
   (set! spec (create-specification-2))
-  (let ((ast-scheme (racr-specification-2-ast-scheme spec)))
-    (rewrite-terminal 'startsymbol ast-scheme startsymbol)
-    ast-scheme))
+  (specify-start-symbol-2 spec startsymbol)
+  (racr-specification-2-ast-scheme spec))
 
 (define (run-error-cases)
   (let ((spec (create-specification-2))) ; Test AST rule parser.
@@ -113,6 +112,14 @@
     (ast-rule-2 spec 'C:B->D<D2)
     (ast-rule-2 spec 'D:E->)
     (ast-rule-2 spec 'E->)
+    (assert (att-value 'well-formed? ast-scheme)))
+  
+  (let ((ast-scheme (create-ast-scheme 'A))) ; Test well-formedness analysis.
+    (ast-rule-2 spec 'F->)
+    (ast-rule-2 spec 'E:A->)
+    (ast-rule-2 spec 'C:A->A*-t2)
+    (ast-rule-2 spec 'B:A->A-t2)
+    (ast-rule-2 spec 'A->t1-F)
     (assert (att-value 'well-formed? ast-scheme))))
 
 (define (run-tests)

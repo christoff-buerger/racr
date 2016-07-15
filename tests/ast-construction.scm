@@ -8,7 +8,6 @@
 (import (rnrs) (racr-meta core) (racr-meta testing))
 
 (define (create-test-language)
-  (define dummy-equation (lambda (n) #t))
   (define spec (create-specification-2))
   (ast-rule-2 spec 'A->B)
   (ast-rule-2 spec 'B->A*-t1-D-t2)

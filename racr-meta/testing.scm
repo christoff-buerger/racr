@@ -20,77 +20,73 @@
  ; printed when the AST node it is associated with is printed. Thereby, the given pretty printing function
  ; is applied to the attribute's value before printing it. Beware: The output port is never closed by this
  ; function - neither in case of an io-exception nor after finishing printing the AST.
- (define print-ast
-   (lambda (ast attribute-pretty-printer-list output-port)
-     (define print-indentation
-       (lambda (i)
-         (if (> i 0)
-             (begin
-               (print-indentation (- i 1))
-               (my-display " |"))
-             (my-display #\newline))))
-     (define my-display
-       (lambda (to-display)
-         (display to-display output-port)))
-     (unless (ast-node? ast)
-       (assertion-violation 'print-ast "Wrong ast argument; Expected AST node." ast))
-     (let loop ((n ast)
-                (ast-depth 0)
-                (context? #f))
-       (cond
-         ((and context? (not (symbol->non-terminal? context?))) ; Print terminal
-          (print-indentation ast-depth)
-          (my-display "- ")
-          (my-display n))
-         ((ast-list-node? n) ; Print list nodes
-          (print-indentation ast-depth)
-          (print-indentation ast-depth)
-          (my-display "-* ")
-          (when context?
-            (my-display (symbol->string (symbol->name context?))))
-          (ast-for-each-child
-           (lambda (i n)
-             (loop n (+ ast-depth 1) context?))
-           n))
-         ((ast-bud-node? n) ; Print bud nodes
-          (print-indentation ast-depth)
-          (print-indentation ast-depth)
-          (my-display "-@ bud-node"))
-         (else ; Print non-terminal
-          (print-indentation ast-depth)
-          (print-indentation ast-depth)
-          (my-display "-\\ ")
-          (my-display (symbol->string (ast-node-type n)))
-          (for-each
-           (lambda (att-def)
-             (let* ((name (attribute->name att-def))
-                    (pretty-printer-entry (assq name attribute-pretty-printer-list)))
-               (when pretty-printer-entry
-                 (print-indentation (+ ast-depth 1))
-                 (my-display " <")
-                 (my-display (symbol->string name))
-                 (my-display "> ")
-                 (my-display ((cdr pretty-printer-entry) (att-value name n))))))
-           (append
-            (if context? (symbol->attributes context?) (list))
-            (symbol->attributes (car (ast-rule->production (ast-node-rule n))))))
-          (for-each
-           (lambda (symb n)
-             (loop n (+ ast-depth 1) symb))
-           (cdr (ast-rule->production (ast-node-rule n)))
-           (ast-children n)))))
-     (my-display #\newline)))
+ (define (print-ast ast attribute-pretty-printer-list output-port)
+   (define (print-indentation i)
+     (if (> i 0)
+         (begin
+           (print-indentation (- i 1))
+           (my-display " |"))
+         (my-display #\newline)))
+   (define (my-display to-display)
+     (display to-display output-port))
+   (unless (ast-node? ast)
+     (throw-exception "Wrong ast argument; Expected AST node."))
+   (let loop ((n ast)
+              (ast-depth 0)
+              (context? #f))
+     (cond
+       ((and context? (not (symbol->non-terminal? context?))) ; Print terminal
+        (print-indentation ast-depth)
+        (my-display "- ")
+        (my-display n))
+       ((ast-list-node? n) ; Print list nodes
+        (print-indentation ast-depth)
+        (print-indentation ast-depth)
+        (my-display "-* ")
+        (when context?
+          (my-display (symbol->string (symbol->name context?))))
+        (ast-for-each-child
+         (lambda (i n)
+           (loop n (+ ast-depth 1) context?))
+         n))
+       ((ast-bud-node? n) ; Print bud nodes
+        (print-indentation ast-depth)
+        (print-indentation ast-depth)
+        (my-display "-@ bud-node"))
+       (else ; Print non-terminal
+        (print-indentation ast-depth)
+        (print-indentation ast-depth)
+        (my-display "-\\ ")
+        (my-display (symbol->string (ast-node-type n)))
+        (for-each
+         (lambda (att-def)
+           (define name (attribute->name att-def))
+           (define pretty-printer-entry (assq name attribute-pretty-printer-list))
+           (when pretty-printer-entry
+             (print-indentation (+ ast-depth 1))
+             (my-display " <")
+             (my-display (symbol->string name))
+             (my-display "> ")
+             (my-display ((cdr pretty-printer-entry) (att-value name n)))))
+         (append
+          (if context? (symbol->attributes context?) (list))
+          (symbol->attributes (car (ast-rule->production (ast-node-rule n))))))
+        (for-each
+         (lambda (symb n)
+           (loop n (+ ast-depth 1) symb))
+         (cdr (ast-rule->production (ast-node-rule n)))
+         (ast-children n)))))
+   (my-display #\newline))
  
  ; Syntax form expanding to a begin expression containing the forms of a given source code file.
  (define-syntax include
    (lambda (x)
-     (define read-file
-       (lambda (fn k)
-         (let ((p (open-input-file fn)))
-           (let f ((x (read p)))
-             (if (eof-object? x)
-                 (begin (close-port p) '())
-                 (cons (datum->syntax k x) (f (read p))))))))
+     (define (read-file fn k)
+       (define p (open-input-file fn))
+       (let loop ((x (read p)))
+         (if (eof-object? x)
+             (begin (close-port p) '())
+             (cons (datum->syntax k x) (loop (read p))))))
      (syntax-case x ()
        ((_ filename default)
         (let ((fn (syntax->datum #'filename)))

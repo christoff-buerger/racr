@@ -467,22 +467,20 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- (define (ast-weave-annotations node type name value)
-   (when (not (ast-annotation? node name))
-     (cond
-       ((eq? type 'list-node)
-        (when (ast-list-node? node)
-          (ast-annotation-set! node name value)))
-       ((eq? type 'bud-node)
-        (when (ast-bud-node? node)
-          (ast-annotation-set! node name value)))
-       ((and (not (ast-list-node? node)) (not (ast-bud-node? node)) (ast-subtype? node type))
-        (ast-annotation-set! node name value))))
-   (for-each
-    (lambda (child)
-      (unless (node-terminal? child)
-        (ast-weave-annotations child type name value)))
-    (node-children node)))
+ (define (ast-weave-annotations node type name value . constraints)
+   (define type-checker
+     (case type
+       ((list-node) ast-list-node?)
+       ((bud-node) ast-bud-node?)
+       (else (lambda (n) (and (not (ast-list-node? n)) (not (ast-bud-node? n)) (ast-subtype? n type))))))
+   (let loop ((n node))
+     (when (and (type-checker n) (for-all (lambda (f) (f n)) constraints))
+       (ast-annotation-set! n name value))
+     (for-each
+      (lambda (child)
+        (unless (node-terminal? child)
+          (loop child)))
+      (node-children n))))
  
  (define (ast-annotation? node name)
    (when (evaluator-state-in-evaluation? (node-evaluator-state node))
@@ -501,10 +499,6 @@
  
  (define (ast-annotation-set! node name value)
    (define annotation (ast-annotation? node name))
-   (define value
-     (if (procedure? value)
-         (lambda args (apply value node args))
-         value))
    (when (not (symbol? name))
      (throw-exception
       "Cannot set " name " annotation; "
@@ -1442,12 +1436,14 @@
         (or ; Either,...
          (=error-node? n) ; ...the rule is the error rule or...
          (and
-          (eq? (=lookup-rule n (->name n)) n) ; ...its name is unique,...
-          (let ((supertype? (=supertype? n))) ; ...if it has a supertype it exists,...
+          (eq? (=lookup-rule n (->name n)) n) ; ...(1) its name is unique,...
+          (let ((supertype? (=supertype? n))) ; ...(2) if it has a supertype it exists,...
             (or (not supertype?) (not (=error-node? supertype?))))
-          (not (memq n (=subtypes n))) ; ...if it inherits inheritance is cycle free,...
-          (=productive? n) ; ...it is productive and...
-          (memq n (=derivable (=startsymbol n))))))) ; ...reachable from the startsymbol.
+          (not (memq n (=subtypes n))) ; ...(3) if it inherits inheritance is cycle free,...
+          (=productive? n) ; ...(4) it is productive and...
+          (let ((s (=startsymbol n))) ; ...(4) either,...
+            (or (memq n (cons s (=subtypes s))) ; ...the startsymbol, a subtype of the startsymbol or...
+                (memq n (=derivable s)))))))) ; ...reachable from the startsymbol.
      
      (Symbol
       (lambda (n)

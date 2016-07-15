@@ -7,19 +7,19 @@
 
 (import (rnrs) (racr-meta core) (racr-meta testing))
 
-(define dummy-equation (lambda (n) #t))
+(define (dummy-equation n) #t)
 
 (define spec)
 
 (define (create-ast-scheme)
   (set! spec (create-specification-2))
+  (specify-start-symbol-2 spec 'A)
   (ast-rule-2 spec 'A->B)
   (ast-rule-2 spec 'B->A*-t1-D-t2)
   (ast-rule-2 spec 'C:B->D<D2)
   (ast-rule-2 spec 'D:E->)
   (ast-rule-2 spec 'E->)
   (let ((ast-scheme (racr-specification-2-ast-scheme spec)))
-    (rewrite-terminal 'startsymbol ast-scheme 'A)
     (assert (att-value 'well-formed? ast-scheme)) ; Ensure, that the base grammar without attributes is correct!
     ast-scheme))
 
