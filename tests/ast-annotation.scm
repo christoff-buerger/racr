@@ -7,16 +7,6 @@
 
 (import (rnrs) (racr-meta core) (racr-meta testing))
 
-(define (debug-specification spec)
-  (print-ast
-   (racr-specification-2-ast-scheme spec)
-   (list
-    (cons 'local-correct?
-          (lambda (v) (and v #t)))
-    (cons 'derivable
-          (lambda (v) (map (lambda (n) (ast-child 'name n)) v))))
-   (current-output-port)))
-
 (define annotation-operations
   (list
    (lambda (n) (not (ast-annotation? n 'annotation)))
@@ -122,28 +112,52 @@
   (define B14 (create-ast-2 spec 'B (list #t (create-ast-bud) C13 #t)))
   B14)
 
+(define (C13 n) (ast-child 'A n))
+(define (D12 n) (ast-child 'D (C13 n)))
+(define (A9 n)  (ast-child 1 (ast-child 'A* (C13 n))))
+(define (C10 n) (ast-child 2 (ast-child 'A* (C13 n))))
+(define (B11 n) (ast-child 3 (ast-child 'A* (C13 n))))
+(define (D6 n)  (ast-child 'D (A9 n)))
+(define (D7 n)  (ast-child 'D (B11 n)))
+(define (B8 n)  (ast-child 'A (B11 n)))
+(define (C2 n)  (ast-child 1 (ast-child 'A* (C10 n))))
+(define (B3 n)  (ast-child 3 (ast-child 'A* (C10 n))))
+(define (D4 n)  (ast-child 'D (B8 n)))
+(define (A5 n)  (ast-child 'A (B8 n)))
+(define (D1 n)  (ast-child 'D (C2 n)))
+
 (define (run-error-cases)
   (define spec (create-test-language))
-  (let ((D (create-ast-2 spec 'D (list))))
-    (for-each ; Intra-AST annotations throughout attribute evaluation:
+  (let ((D (create-ast-2 spec 'D (list)))) ; Basic error cases:
+    (for-each (lambda (op) (assert-exception (op #t))) annotation-operations) ; Context is not an AST node.
+    ;(assert-exception (ast-annotation? D #t)) ; Invalid annotation name.
+    (assert-exception (ast-annotation-set! D #t #t)) ; Invalid annotation name.
+    (assert-exception (ast-annotation D #t)) ; Invalid annotation name.
+    ;(assert-exception (ast-annotation-remove! D #t)) ; Invalid annotation name.
+    (assert-exception (ast-annotation D 'non-existent)) ; Query non-existent annotation.
+    ;(assert-exception (ast-annotation-remove! D 'non-existent)) ; Remove non-existent annotation.
+    )
+  (let ((D (create-ast-2 spec 'D (list)))) ; Annotations and attribute evaluation:
+    (for-each ; Intra-AST annotations throughout attribute evaluation.
      (lambda (op) (assert-exception (att-value 'intra-ast D op #t)))
      annotation-operations)
-    (for-each ; Mutual-dependent inter-AST annotations throughout attribute evaluation:
+    (for-each ; Mutual-dependent inter-AST annotations throughout attribute evaluation.
      (lambda (op) (assert-exception (att-value 'mutual-dependent-inter-ast D op #t)))
-     annotation-operations))
-  )
+     annotation-operations)))
 
 (define (run-correct-cases)
   (define spec (create-test-language))
+  (let ((D (create-ast-2 spec 'D (list)))) ; Basic valid cases:
+    (assert (for-all (lambda (op) (op D)) annotation-operations)))
   #| TODO: enable tests when attribution meta-facilities (cf. issue #63) are implemented.
-  (let ((D (create-ast-2 spec 'D (list))))
-    (assert ; Intra-AST annotations outside attribute evaluation:
+  (let ((D (create-ast-2 spec 'D (list)))) ; Annotations and attribute evaluation:
+    (assert ; Intra-AST annotations outside attribute evaluation.
      (for-all (lambda (op) ((att-value 'intra-ast D op #f))) annotation-operations))
-    (assert ; Independent inter-AST annotations outside attribute evaluation:
+    (assert ; Independent inter-AST annotations outside attribute evaluation.
      (for-all (lambda (op) ((att-value 'independent-inter-ast D op #f))) annotation-operations))
-    (assert ; Mutual-dependent inter-AST annotations outside attribute evaluation:
+    (assert ; Mutual-dependent inter-AST annotations outside attribute evaluation.
      (for-all (lambda (op) ((att-value 'mutual-dependent-inter-ast D op #f))) annotation-operations))
-    (assert ; Independent inter-AST annotations throughout attribute evaluation:
+    (assert ; Independent inter-AST annotations throughout attribute evaluation.
      (for-all (lambda (op) (att-value 'independent-inter-ast D op #t)) annotation-operations)))
   |#
   #t)
@@ -153,4 +167,3 @@
   (run-correct-cases))
 
 (run-tests)
-(create-test-ast)

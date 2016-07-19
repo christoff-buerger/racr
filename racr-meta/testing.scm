@@ -9,6 +9,7 @@
  (racr-meta testing)
  (export
   print-ast
+  print-specification
   include
   assert-exception
   construct-reevaluation-tests)
@@ -77,6 +78,17 @@
          (cdr (ast-rule->production (ast-node-rule n)))
          (ast-children n)))))
    (my-display #\newline))
+ 
+ ; Version of print-ast specialised to pretty print RACR specifications on the current output port.
+ (define (print-specification spec)
+   (print-ast
+    (racr-specification-2-ast-scheme spec)
+    (list
+     (cons 'derivable
+           (lambda (v) (map (lambda (n) (ast-child 'name n)) v)))
+     (cons 'local-correct?
+           (lambda (v) (and v #t))))
+    (current-output-port)))
  
  ; Syntax form expanding to a begin expression containing the forms of a given source code file.
  (define-syntax include
