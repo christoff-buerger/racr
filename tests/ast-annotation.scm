@@ -85,6 +85,43 @@
   (compile-specification-2 spec)
   spec)
 
+; Construct AST containing all combinations of child/parent contexts (including bud nodes):
+;
+;  B14
+;  / \
+; _  C13  
+;    / \
+;  D12  *
+;     / | \
+;   A9 C10 B11
+;  /  / |  | \
+; D6 _  *  D7 B8
+;     / | \   | \
+;   C2  _  B3 D4 A5
+;  / |     |\     |
+; D1 _     _ _    _
+(define (create-test-ast)
+  (define spec (create-test-language))
+  (define D1 (create-ast-2 spec 'D (list)))
+  (define C2 (create-ast-2 spec 'C (list #t D1 (create-ast-bud) #t)))
+  (define B3 (create-ast-2 spec 'B (list #t (create-ast-bud) (create-ast-bud) #t)))
+  (define D4 (create-ast-2 spec 'D (list)))
+  (define A5 (create-ast-2 spec 'A (list #t (create-ast-bud))))
+  (define D6 (create-ast-2 spec 'D (list)))
+  (define D7 (create-ast-2 spec 'D (list)))
+  (define B8 (create-ast-2 spec 'B (list #t D4 A5 #t)))
+  (define A9 (create-ast-2 spec 'A (list #t D6)))
+  (define C10
+    (create-ast-2
+     spec
+     'C
+     (list #t (create-ast-bud) (create-ast-list-2 (list C2 (create-ast-bud) B3)) #t)))
+  (define B11 (create-ast-2 spec 'B (list #t D7 B8 #t)))
+  (define D12 (create-ast-2 spec 'D (list)))
+  (define C13 (create-ast-2 spec 'C (list #t D12 (create-ast-list-2 (list A9 C10 B11)) #t)))
+  (define B14 (create-ast-2 spec 'B (list #t (create-ast-bud) C13 #t)))
+  B14)
+
 (define (run-error-cases)
   (define spec (create-test-language))
   (let ((D (create-ast-2 spec 'D (list))))
@@ -116,3 +153,4 @@
   (run-correct-cases))
 
 (run-tests)
+(create-test-ast)
