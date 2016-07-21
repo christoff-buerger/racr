@@ -9,6 +9,10 @@
 
 (define annotation-operations
   (list
+   (lambda (n) (ast-annotation-set! n 'permanent #t)) ; Execute the following operations on annotated node.
+   (lambda (n) (not (ast-annotation? n #t)))
+   (lambda (n) (not (ast-annotation-remove! n #t)))
+   (lambda (n) (not (ast-annotation-remove! n 'unknown-annotation)))
    (lambda (n) (not (ast-annotation? n 'annotation)))
    (lambda (n) (ast-annotation-set! n 'annotation #t))
    (lambda (n) (ast-annotation? n 'annotation))
@@ -128,15 +132,13 @@
 
 (define (run-error-cases)
   (define spec (create-test-language))
+  
   (let ((D (create-ast-2 spec 'D (list)))) ; Basic error cases:
     (for-each (lambda (op) (assert-exception (op #t))) annotation-operations) ; Context is not an AST node.
-    ;(assert-exception (ast-annotation? D #t)) ; Invalid annotation name.
     (assert-exception (ast-annotation-set! D #t #t)) ; Invalid annotation name.
-    (assert-exception (ast-annotation D #t)) ; Invalid annotation name.
-    ;(assert-exception (ast-annotation-remove! D #t)) ; Invalid annotation name.
-    (assert-exception (ast-annotation D 'non-existent)) ; Query non-existent annotation.
-    ;(assert-exception (ast-annotation-remove! D 'non-existent)) ; Remove non-existent annotation.
-    )
+    (assert-exception (ast-annotation D #t)) ; Query non-existent annotation (invalid name).
+    (assert-exception (ast-annotation D 'non-existent))) ; Query non-existent annotation.
+  
   (let ((D (create-ast-2 spec 'D (list)))) ; Annotations and attribute evaluation:
     (for-each ; Intra-AST annotations throughout attribute evaluation.
      (lambda (op) (assert-exception (att-value 'intra-ast D op #t)))
@@ -147,8 +149,10 @@
 
 (define (run-correct-cases)
   (define spec (create-test-language))
+  
   (let ((D (create-ast-2 spec 'D (list)))) ; Basic valid cases:
     (assert (for-all (lambda (op) (op D)) annotation-operations)))
+  
   #| TODO: enable tests when attribution meta-facilities (cf. issue #63) are implemented.
   (let ((D (create-ast-2 spec 'D (list)))) ; Annotations and attribute evaluation:
     (assert ; Intra-AST annotations outside attribute evaluation.

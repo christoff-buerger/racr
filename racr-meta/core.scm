@@ -73,13 +73,12 @@
   rewrite-delete
   ; Rewriting: Rewrite Strategies
   perform-rewrites
-  ; Annotations: Attachment
+  ; Annotations:
+  undefined-annotation?
   ast-annotation-set!
-  ast-weave-annotations
   ast-annotation-remove!
-  ; Annotations: Querying
-  ast-annotation?
   ast-annotation
+  ast-weave-annotations
   ; Support
   with-specification
   ; RACR Exceptions:
@@ -102,8 +101,7 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; Constructor for unique entities internally used by the RACR system
- (define-record-type racr-nil-record
-   (sealed #t)(opaque #t))
+ (define-record-type racr-nil-record (sealed #t)(opaque #t))
  (define racr-nil (make-racr-nil-record)) ; Unique value indicating undefined RACR entities
  
  ; Record type representing RACR compiler specifications. A compiler specification consists of arbitrary
@@ -467,6 +465,9 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
+ (define-record-type undefined-annotation (fields) (opaque #t)(sealed #t))
+ (define undefined-annotation-instance (make-undefined-annotation))
+ 
  (define (ast-weave-annotations node type name value . constraints)
    (define type-checker
      (case type
@@ -482,30 +483,31 @@
           (loop child)))
       (node-children n))))
  
- (define (ast-annotation? node name)
-   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-     (throw-exception
-      "Cannot access " name " annotation; "
-      "There are attributes in evaluation."))
-   (assq name (node-annotations node)))
- 
- (define (ast-annotation node name)
-   (define annotation (ast-annotation? node name))
-   (if annotation
-       (cdr annotation)
-       (throw-exception
-        "Cannot access " name " annotation; "
-        "The given node has no such annotation.")))
- 
  (define (ast-annotation-set! node name value)
-   (define annotation (ast-annotation? node name))
    (when (not (symbol? name))
      (throw-exception
       "Cannot set " name " annotation; "
       "Annotation names must be Scheme symbols."))
-   (if annotation
-       (set-cdr! annotation value)
-       (node-annotations-set! node (cons (cons name value) (node-annotations node)))))
+   (when (undefined-annotation? value)
+     (throw-exception
+      "Cannot set " name " annotation; "
+      "'undefined-annotation' as value is prohibited."))
+   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
+     (throw-exception
+      "Cannot set " name " annotation; "
+      "There are attributes in evaluation."))
+   (let ((entry? (assq name (node-annotations node))))
+     (if entry?
+         (set-cdr! entry? value)
+         (node-annotations-set! node (cons (cons name value) (node-annotations node))))))
+
+ (define (ast-annotation node name)
+   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
+     (throw-exception
+      "Cannot access " name " annotation; "
+      "There are attributes in evaluation."))
+   (let ((entry? (assq name (node-annotations node))))
+     (if entry? (cdr entry?) undefined-annotation-instance)))
  
  (define (ast-annotation-remove! node name)
    (when (evaluator-state-in-evaluation? (node-evaluator-state node))
