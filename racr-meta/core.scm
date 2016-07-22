@@ -465,8 +465,11 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- (define-record-type undefined-annotation (fields) (opaque #t)(sealed #t))
- (define undefined-annotation-instance (make-undefined-annotation))
+ (define-record-type undefined-annotation-record (fields) (opaque #t)(sealed #t))
+ (define undefined-annotation (make-undefined-annotation-record))
+ 
+ (define (undefined-annotation? n)
+   (eq? n undefined-annotation))
  
  (define (ast-weave-annotations node type name value . constraints)
    (define type-checker
@@ -500,14 +503,14 @@
      (if entry?
          (set-cdr! entry? value)
          (node-annotations-set! node (cons (cons name value) (node-annotations node))))))
-
+ 
  (define (ast-annotation node name)
    (when (evaluator-state-in-evaluation? (node-evaluator-state node))
      (throw-exception
       "Cannot access " name " annotation; "
       "There are attributes in evaluation."))
    (let ((entry? (assq name (node-annotations node))))
-     (if entry? (cdr entry?) undefined-annotation-instance)))
+     (if entry? (cdr entry?) undefined-annotation)))
  
  (define (ast-annotation-remove! node name)
    (when (evaluator-state-in-evaluation? (node-evaluator-state node))

@@ -10,15 +10,14 @@
 (define annotation-operations
   (list
    (lambda (n) (ast-annotation-set! n 'permanent #t)) ; Execute the following operations on annotated node.
-   (lambda (n) (not (ast-annotation? n #t)))
-   (lambda (n) (not (ast-annotation-remove! n #t)))
-   (lambda (n) (not (ast-annotation-remove! n 'unknown-annotation)))
-   (lambda (n) (not (ast-annotation? n 'annotation)))
+   (lambda (n) (undefined-annotation? (ast-annotation n #t)))
+   ;(lambda (n) (undefined-annotation? (ast-annotation-remove! n #t)))
+   ;(lambda (n) (undefined-annotation? (ast-annotation-remove! n 'undefined)))
+   (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))
    (lambda (n) (ast-annotation-set! n 'annotation #t))
-   (lambda (n) (ast-annotation? n 'annotation))
-   (lambda (n) (ast-annotation n 'annotation))
-   (lambda (n) (ast-annotation-remove! n 'annotation))
-   (lambda (n) (not (ast-annotation? n 'annotation)))))
+   (lambda (n) (define v (ast-annotation n 'annotation)) (and (not (undefined-annotation? v)) v))
+   (lambda (n) (define v (ast-annotation-remove! n 'annotation)) (and (not (undefined-annotation? v)) v))
+   (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))))
 
 (define (create-test-language)
   (define spec (create-specification-2))
@@ -136,8 +135,7 @@
   (let ((D (create-ast-2 spec 'D (list)))) ; Basic error cases:
     (for-each (lambda (op) (assert-exception (op #t))) annotation-operations) ; Context is not an AST node.
     (assert-exception (ast-annotation-set! D #t #t)) ; Invalid annotation name.
-    (assert-exception (ast-annotation D #t)) ; Query non-existent annotation (invalid name).
-    (assert-exception (ast-annotation D 'non-existent))) ; Query non-existent annotation.
+    (assert-exception (ast-annotation-set! D 'prohibited (ast-annotation D 'undefined)))) ; Prohibited value.
   
   (let ((D (create-ast-2 spec 'D (list)))) ; Annotations and attribute evaluation:
     (for-each ; Intra-AST annotations throughout attribute evaluation.
