@@ -13,7 +13,7 @@ Often, additional information or functionalities, which can arbitrarily change o
 (ast-annotation n a)
 ```
 
-Given an AST node `n` and an annotation name `a`, return the value of the respective annotation of `n` (i.e., the value of the annotation with name `a` that is associated with node `n`). If the annotation is not present at `n`, a special undefined annotation entity is returned. To check if the annotation was defined, the `undefined-annotation?` function can be used. An exception is thrown, if any attributes of the AST `n` is part of are in evaluation.
+Given an AST node `n` and an annotation name `a`, return the value of the respective annotation of `n` (i.e., the value of the annotation with name `a` that is associated with node `n`). If the annotation is not present at `n`, a special undefined annotation entity is returned. To check if the annotation was defined, the `undefined-annotation?` function can be applied on the returned value. An exception is thrown, if any attributes of the AST `n` is part of are in evaluation.
 
 ### `undefined-annotation?`
 
@@ -43,7 +43,7 @@ Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and
 (ast-annotation-remove! n a)
 ```
 
-Given an AST node `n` and an annotation name `a`, remove any equally named annotation associated with `n` and return its value. If no respective annotation was removed, the undefined annotation entity is returned. To check if the annotation was defined, the `undefined-annotation?` function can be used. An exception is thrown, if any attributes of the AST `n` is part of are in evaluation.
+Given an AST node `n` and an annotation name `a`, remove any equally named annotation associated with `n` and return its value. If no respective annotation was removed, the undefined annotation entity is returned. To check if the annotation was defined, the `undefined-annotation?` function can be applied on the returned value. An exception is thrown, if any attributes of the AST `n` is part of are in evaluation.
 
 ### `ast-weave-annotations`
 
