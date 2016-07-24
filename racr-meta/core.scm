@@ -499,10 +499,11 @@
      (throw-exception
       "Cannot set " name " annotation; "
       "There are attributes in evaluation."))
-   (let ((entry? (assq name (node-annotations node))))
+   (let* ((annotations (node-annotations node))
+          (entry? (assq name annotations)))
      (if entry?
          (set-cdr! entry? value)
-         (node-annotations-set! node (cons (cons name value) (node-annotations node))))))
+         (node-annotations-set! node (cons (cons name value) annotations)))))
  
  (define (ast-annotation node name)
    (when (evaluator-state-in-evaluation? (node-evaluator-state node))
@@ -517,11 +518,18 @@
      (throw-exception
       "Cannot remove " name " annotation; "
       "There are attributes in evaluation."))
-   (node-annotations-set!
-    node
-    (remp
-     (lambda (entry) (eq? (car entry) name))
-     (node-annotations node))))
+   (let loop ((current (node-annotations node))
+              (previous? #f))
+     (cond
+       ((null? current)
+        undefined-annotation)
+       ((eq? (caar current) name)
+        (let ((value (cdar current)))
+          (if previous?
+              (set-cdr! previous? (cdr current))
+              (node-annotations-set! node (list)))
+          value))
+       (else (loop (cdr current) current)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Specification ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -8,16 +8,21 @@
 (import (rnrs) (racr-meta core) (racr-meta testing))
 
 (define annotation-operations
-  (list
-   (lambda (n) (ast-annotation-set! n 'permanent #t)) ; Execute the following operations on annotated node.
-   (lambda (n) (undefined-annotation? (ast-annotation n #t)))
-   ;(lambda (n) (undefined-annotation? (ast-annotation-remove! n #t)))
-   ;(lambda (n) (undefined-annotation? (ast-annotation-remove! n 'undefined)))
-   (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))
-   (lambda (n) (ast-annotation-set! n 'annotation #t))
-   (lambda (n) (define v (ast-annotation n 'annotation)) (and (not (undefined-annotation? v)) v))
-   (lambda (n) (define v (ast-annotation-remove! n 'annotation)) (and (not (undefined-annotation? v)) v))
-   (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))))
+  (let ((v (lambda x x)))
+    (list
+     (lambda (n) (ast-annotation-set! n 'permanent v) #t) ; Execute following operations on annotated node.
+     (lambda (n) (undefined-annotation? (ast-annotation n #t)))
+     (lambda (n) (undefined-annotation? (ast-annotation-remove! n #t)))
+     (lambda (n) (undefined-annotation? (ast-annotation-remove! n 'undefined)))
+     (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))
+     (lambda (n) (ast-annotation-set! n 'annotation v) #t)
+     (lambda (n)
+       (define value (ast-annotation n 'annotation))
+       (and (not (undefined-annotation? value)) (eq? value v)))
+     (lambda (n)
+       (define value (ast-annotation-remove! n 'annotation))
+       (and (not (undefined-annotation? value)) (eq? value v)))
+     (lambda (n) (undefined-annotation? (ast-annotation n 'annotation))))))
 
 (define (create-test-language)
   (define spec (create-specification-2))
