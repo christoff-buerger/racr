@@ -21,6 +21,6 @@ ___
     * [Primitive Rewrite Functions](rewriting.md#primitive-rewrite-functions)
     * [Rewrite Strategies](rewriting.md#rewrite-strategies)
   * [AST Annotations](ast-annotations.md)
-    * [Attachment](ast-annotations.md#attachment)
     * [Querying](ast-annotations.md#querying)
+    * [Attachment](ast-annotations.md#attachment)
   * [Support API](support-api.md)

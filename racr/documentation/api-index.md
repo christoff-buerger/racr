@@ -64,16 +64,16 @@ ___
 * [perform-rewrites](rewriting.md#perform-rewrites)
 * [create-transfomer-for-patter](rewriting.md#create-transformer-for-pattern)
 
+## Annotations: Querying
+
+* [ast-annotation](ast-annotations.md#ast-annotation)
+* [undefined-annotation?](ast-annotations.md#undefined-annotation)
+
 ## Annotations: Attachment
 
 * [ast-annotation-set!](ast-annotations.md#ast-annotation-set)
-* [ast-weave-annotations](ast-annotations.md#ast-weave-annotations)
 * [ast-annotation-remove!](ast-annotations.md#ast-annotation-remove)
-
-## Annotations: Querying
-
-* [ast-annotation?](ast-annotations.md#ast-annotation)
-* [ast-annotation](ast-annotations.md#ast-annotation-1)
+* [ast-weave-annotations](ast-annotations.md#ast-weave-annotations)
 
 ## Support
 
