@@ -21,7 +21,7 @@ Given an AST node `n` and an annotation name `a`, return the value of the respec
 (undefined-annotation? v)
 ```
 
-Check if an arbitrary _Scheme_ entity `v` is the undefined annotations entity; return `#t` if it is, otherwise `#f`.
+Check if an arbitrary _Scheme_ entity `v` is the undefined annotation entity; return `#t` if it is, otherwise `#f`.
 
 **Note:** `undefined-annotation?` _can be used to decide if an annotation is/was present and therefore its value was returned by_ `ast-annotation` _or_ `ast-annotation-remove!`_._
 
@@ -36,25 +36,6 @@ Check if an arbitrary _Scheme_ entity `v` is the undefined annotations entity; r
 Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and an arbitrary value `v`, add an annotation with name `a` and value `v` to `n`. If `n` already has an annotation named `a`, set its value to `v`. An exception is thrown if any attributes of the AST `n` is part of are in evaluation or `v` is the undefined annotations entity.
 
 **Note:** _Since terminal nodes as such cannot be retrieved (cf. `ast-child`), but only their value, the annotation of terminal nodes is not possible._
-
-```
-(let ((n (function-returning-an-ast)))
-  ; Attach annotations:
-  (ast-annotation-set! n 'integer-value 3)
-  (ast-annotation-set!
-   n
-   'function-value
-   (lambda (associated-node integer-argument)
-     integer-argument))
-  ; Query annotations:
-  (assert
-   (=
-    (ast-annotation n 'integer-value)
-    ; Apply the value of the 'function-value annotation. Note, that
-    ; the returned function has one parameter (integer-argument). The
-    ; associated-node parameter is automatically bound to n:
-    ((ast-annotation n 'function-value) 3))))
-```
 
 ### `ast-annotation-remove!`
 
