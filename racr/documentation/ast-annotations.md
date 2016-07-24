@@ -33,7 +33,7 @@ Check if an arbitrary _Scheme_ entity `v` is the undefined annotation entity; re
 (ast-annotation-set! n a v)
 ```
 
-Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and an arbitrary value `v`, add an annotation with name `a` and value `v` to `n`. If `n` already has an annotation named `a`, set its value to `v`. An exception is thrown if any attributes of the AST `n` is part of are in evaluation or `v` is the undefined annotations entity.
+Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and an arbitrary value `v`, add an annotation with name `a` and value `v` to `n`. If `n` already has an annotation named `a`, set its value to `v`. An exception is thrown if any attributes of the AST `n` is part of are in evaluation or `v` is the undefined annotation entity.
 
 **Note:** _Since terminal nodes as such cannot be retrieved (cf. `ast-child`), but only their value, the annotation of terminal nodes is not possible._
 
@@ -43,7 +43,7 @@ Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and
 (ast-annotation-remove! n a)
 ```
 
-Given an AST node `n` and an annotation name `a`, remove any equally named annotation associated with `n` and return its value. If no respective annotation was removed, the undefined annotations entity is returned. An exception is thrown, if any attributes of the AST `n` is part of are in evaluation.
+Given an AST node `n` and an annotation name `a`, remove any equally named annotation associated with `n` and return its value. If no respective annotation was removed, the undefined annotation entity is returned. To check if the annotation was defined, the `undefined-annotation?` function can be used. An exception is thrown, if any attributes of the AST `n` is part of are in evaluation.
 
 ### `ast-weave-annotations`
 
