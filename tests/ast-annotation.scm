@@ -10,6 +10,7 @@
 (define annotation-operations
   (let ((v (lambda x x)))
     (list
+     (lambda (n) (undefined-annotation? (ast-annotation n 'permanent)))
      (lambda (n) (ast-annotation-set! n 'permanent v) #t) ; Execute following operations on annotated node.
      (lambda (n) (undefined-annotation? (ast-annotation n #t)))
      (lambda (n) (undefined-annotation? (ast-annotation-remove! n #t)))
@@ -19,10 +20,26 @@
      (lambda (n)
        (define value (ast-annotation n 'annotation))
        (and (not (undefined-annotation? value)) (eq? value v)))
+     (lambda (n) (ast-annotation-set! n 'annotation 1) #t)
+     (lambda (n)
+       (define value (ast-annotation n 'annotation))
+       (and (not (undefined-annotation? value)) (= value 1)))
+     (lambda (n)
+       (define value (ast-annotation-remove! n 'annotation))
+       (and (not (undefined-annotation? value)) (= value 1)))
+     (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))
+     (lambda (n) (ast-annotation-set! n 'annotation (ast-annotation n 'permanent)) #t)
      (lambda (n)
        (define value (ast-annotation-remove! n 'annotation))
        (and (not (undefined-annotation? value)) (eq? value v)))
-     (lambda (n) (undefined-annotation? (ast-annotation n 'annotation))))))
+     (lambda (n) (undefined-annotation? (ast-annotation n 'annotation)))
+     (lambda (n)
+       (define value (ast-annotation n 'permanent))
+       (and (not (undefined-annotation? value)) (eq? value v)))
+     (lambda (n)
+       (define value (ast-annotation-remove! n 'permanent))
+       (and (not (undefined-annotation? value)) (eq? value v)))
+     (lambda (n) (undefined-annotation? (ast-annotation n 'permanent))))))
 
 (define (create-test-language)
   (define spec (create-specification-2))
@@ -167,7 +184,7 @@
     (assert ; Independent inter-AST annotations throughout attribute evaluation.
      (for-all (lambda (op) (att-value 'independent-inter-ast D op #t)) annotation-operations)))
   |#
-  #t)
+  )
 
 (define (run-tests)
   (run-error-cases)

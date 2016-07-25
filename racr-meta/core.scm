@@ -527,7 +527,7 @@
         (let ((value (cdar current)))
           (if previous?
               (set-cdr! previous? (cdr current))
-              (node-annotations-set! node (list)))
+              (node-annotations-set! node (cdr current)))
           value))
        (else (loop (cdr current) current)))))
  

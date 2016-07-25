@@ -33,7 +33,7 @@ Check if an arbitrary _Scheme_ entity `v` is the undefined annotation entity; re
 (ast-annotation-set! n a v)
 ```
 
-Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and an arbitrary value `v`, add an annotation with name `a` and value `v` to `n`. If `n` already has an annotation named `a`, set its value to `v`. An exception is thrown if any attributes of the AST `n` is part of are in evaluation or `v` is the undefined annotation entity.
+Given an AST node `n`, a _Scheme_ symbol `a` representing an annotation name and an arbitrary value `v`, add an annotation with name `a` and value `v` to `n`. If `n` already has an annotation named `a`, set its value to `v`. An exception is thrown if any attributes of the AST `n` is part of are in evaluation, `v` is the undefined annotation entity or `a` is not a _Scheme_ symbol.
 
 **Note:** _Since terminal nodes as such cannot be retrieved (cf. `ast-child`), but only their value, the annotation of terminal nodes is not possible._
 
