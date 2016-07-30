@@ -62,6 +62,7 @@
   (rename (specify-ag-rule ag-rule))
   compile-ag-specifications
   ; Attribution: Querying
+  att-in-evaluation?
   att-value
   ; Rewriting: Primitive Rewrite Functions
   rewrite-terminal
@@ -73,12 +74,6 @@
   rewrite-delete
   ; Rewriting: Rewrite Strategies
   perform-rewrites
-  ; Annotations:
-  undefined-annotation?
-  ast-annotation-set!
-  ast-annotation-remove!
-  ast-annotation
-  ast-weave-annotations
   ; Support
   with-specification
   ; RACR Exceptions:
@@ -214,7 +209,7 @@
  
  ; Record type for AST nodes. AST nodes have a reference to the evaluator state used for evaluating their
  ; attributes and rewrites, the AST rule they represent a context of, their parent, children, attribute
- ; instances, attribute cache entries they influence and annotations.
+ ; instances and the attribute cache entries they influence.
  (define-record-type node
    (fields
     (mutable evaluator-state)
@@ -222,8 +217,7 @@
     (mutable parent)
     (mutable children)
     (mutable attributes)
-    (mutable cache-influences)
-    (mutable annotations))
+    (mutable cache-influences))
    (opaque #t)(sealed #t)
    (protocol
     (lambda (new)
@@ -233,7 +227,6 @@
          ast-rule
          parent
          children
-         (list)
          (list)
          (list))))))
  
@@ -372,7 +365,7 @@
         (new #f #f (list))))))
  
  ; INTERNAL FUNCTION: Given an evaluator state, return whether it represents an evaluation in progress or
- ; not; If it represents an evaluation in progress return the current attribute in evaluation, otherwise #f.
+ ; not. If it represents an evaluation in progress return the current attribute in evaluation, otherwise #f.
  (define evaluator-state-in-evaluation?
    (lambda (state)
      (and (not (null? (evaluator-state-evaluation-stack state))) (car (evaluator-state-evaluation-stack state)))))
@@ -460,76 +453,6 @@
                             ((_ attribute-name definition (... ...))
                              (specify-ag-rule spec* attribute-name definition (... ...))))))
               body ...))))))
- 
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Annotations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 
- (define-record-type undefined-annotation-record (fields) (opaque #t)(sealed #t))
- (define undefined-annotation (make-undefined-annotation-record))
- 
- (define (undefined-annotation? n)
-   (eq? n undefined-annotation))
- 
- (define (ast-weave-annotations node type name value . constraints)
-   (define type-checker
-     (case type
-       ((list-node) ast-list-node?)
-       ((bud-node) ast-bud-node?)
-       (else (lambda (n) (and (not (ast-list-node? n)) (not (ast-bud-node? n)) (ast-subtype? n type))))))
-   (let loop ((n node))
-     (when (and (type-checker n) (for-all (lambda (f) (f n)) constraints))
-       (ast-annotation-set! n name value))
-     (for-each
-      (lambda (child)
-        (unless (node-terminal? child)
-          (loop child)))
-      (node-children n))))
- 
- (define (ast-annotation-set! node name value)
-   (when (not (symbol? name))
-     (throw-exception
-      "Cannot set " name " annotation; "
-      "Annotation names must be Scheme symbols."))
-   (when (undefined-annotation? value)
-     (throw-exception
-      "Cannot set " name " annotation; "
-      "'undefined-annotation' as value is prohibited."))
-   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-     (throw-exception
-      "Cannot set " name " annotation; "
-      "There are attributes in evaluation."))
-   (let* ((annotations (node-annotations node))
-          (entry? (assq name annotations)))
-     (if entry?
-         (set-cdr! entry? value)
-         (node-annotations-set! node (cons (cons name value) annotations)))))
- 
- (define (ast-annotation node name)
-   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-     (throw-exception
-      "Cannot access " name " annotation; "
-      "There are attributes in evaluation."))
-   (let ((entry? (assq name (node-annotations node))))
-     (if entry? (cdr entry?) undefined-annotation)))
- 
- (define (ast-annotation-remove! node name)
-   (when (evaluator-state-in-evaluation? (node-evaluator-state node))
-     (throw-exception
-      "Cannot remove " name " annotation; "
-      "There are attributes in evaluation."))
-   (let loop ((current (node-annotations node))
-              (previous? #f))
-     (cond
-       ((null? current)
-        undefined-annotation)
-       ((eq? (caar current) name)
-        (let ((value (cdar current)))
-          (if previous?
-              (set-cdr! previous? (cdr current))
-              (node-annotations-set! node (cdr current)))
-          value))
-       (else (loop (cdr current) current)))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Specification ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1932,6 +1855,9 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Attribute Evaluation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (define (att-in-evaluation? n)
+   (evaluator-state-in-evaluation? (node-evaluator-state n)))
  
  ; INTERNAL FUNCTION: Given a node n find a certain attribute associated with it, whereas in case no proper
  ; attribute is associated with n itself the search is extended to find a broadcast solution. If the

@@ -47,6 +47,8 @@ Given an AST node `n` and an annotation name `a`, remove any equally named annot
 
 ### `ast-weave-annotations`
 
+**Warning:** _Deprecated functionality; will be removed in future versions!_
+
 ```
 (ast-weave-annotations n t a v)
 ```

@@ -5,7 +5,7 @@
 
 #!r6rs
 
-(import (rnrs) (racr-meta core) (racr-meta testing))
+(import (rnrs) (racr-meta core) (racr-meta ast-annotation) (racr-meta testing))
 
 (define annotation-operations
   (let ((v (lambda x x)))
