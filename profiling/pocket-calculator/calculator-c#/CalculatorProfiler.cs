@@ -205,13 +205,13 @@ public static class CalculatorProfiler {
 		Assert.AreEqual(c1.Eval(), (double)"(=eval {0})".Eval(c2));
 	}
 
-	[Test] public void n1c1r0()		{ test(1,	1,	0);}
-	[Test] public void n1c1r10()		{ test(1,	1,	10);}
-	[Test] public void n10c1r0()		{ test(10,	1,	0);}
-	[Test] public void n10c1r10()		{ test(10,	1,	10);}
-	[Test] public void n10c10r10()		{ test(10,	10,	10);}
-	[Test] public void n99c26r0()		{ test(99,	26,	0);}
-	[Test] public void n99c26r100()		{ test(99,	26,	100);}
-	[Test] public void n99c26r1000()	{ test(99,	26,	1000);}
-	[Test] public void n256c26r1024()	{ test(256,	26,	1024);}
+	[Test] public void n1c1r0()		{ test(1,	1,	0);	}
+	[Test] public void n1c1r10()		{ test(1,	1,	10)	}
+	[Test] public void n10c1r0()		{ test(10,	1,	0);	}
+	[Test] public void n10c1r10()		{ test(10,	1,	10);	}
+	[Test] public void n10c10r10()		{ test(10,	10,	10);	}
+	[Test] public void n99c26r0()		{ test(99,	26,	0);	}
+	[Test] public void n99c26r100()		{ test(99,	26,	100);	}
+	[Test] public void n99c26r1000()	{ test(99,	26,	1000);	}
+	[Test] public void n256c26r1024()	{ test(256,	26,	1024);	}
 }

@@ -15,9 +15,9 @@
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ -z ${configuration_to_parse+x} ]
+if [ -z ${configuration_to_parse+x} ] || [ ! -f "$configuration_to_parse" ]
 then
-	echo " !!! ERROR: Configuration to parse not set !!!" >&2
+	echo " !!! ERROR: Non-existent or no configuration to parse set !!!" >&2
 	exit 2
 fi
 
