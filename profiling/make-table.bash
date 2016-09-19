@@ -15,38 +15,38 @@ then
 	"$script_dir/make-table.bash" -h
 	exit $?
 fi
-while getopts c:t:p: opt
+while getopts c:p:t:h opt
 do
 	case $opt in
 		c)
-			if [ -z ${configuration+x} ]
+			if [ -z ${profiling_configuration+x} ]
 			then
-				configuration="$OPTARG"
+				profiling_configuration="$OPTARG"
 			else
-				echo " !!! ERROR: Several measurement configurations selected via -c flag !!!" >&2
-				exit 2
-			fi;;
-		t)
-			if [ -z ${table_file+x} ]
-			then
-				table_file="$OPTARG"
-			else
-				echo " !!! ERROR: Several table files selected via -t flag !!!" >&2
+				echo " !!! ERROR: Several profiling configurations selected via -c flag !!!" >&2
 				exit 2
 			fi;;
 		p)
-			if [ -z ${input_pipe+x} ]
+			if [ -z ${measurements_pipe+x} ]
 			then
-				input_pipe="$OPTARG"
+				measurements_pipe="$OPTARG"
 			else
 				echo " !!! ERROR: Several input pipes selected via -p flag !!!" >&2
 				exit 2
 			fi;;
+		t)
+			if [ -z ${measurements_table+x} ]
+			then
+				measurements_table="$OPTARG"
+			else
+				echo " !!! ERROR: Several measurement tables selected via -t flag !!!" >&2
+				exit 2
+			fi;;
 		h|?)
-			echo "Usage: -c Measurement configuration (mandatory parameter)." >&2
-			echo "       -t Table file logging inputs (mandatory parameter)." >&2
-			echo "          Created if not existent, otherwise inputs are appended." >&2
-			echo "       -p Named input pipe (mandatory parameter)." >&2
+			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
+			echo "       -p Named input pipe providing measurement results to log (mandatory parameter)." >&2
+			echo "       -t Measurements table used for logging (mandatory parameter)." >&2
+			echo "          Created if not existent. New measurements are appended." >&2
 			exit 2;;
 	esac
 done
@@ -57,62 +57,68 @@ then
 	exit 2
 fi
 
-if [ -z ${configuration+x} ] || [ ! -f "$configuration" ]
+if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
 then
-	echo " !!! ERROR: Non-existing or no measurement configuration specified via -c flag !!!" >&2
+	echo " !!! ERROR: Non-existing or no profiling configuration specified via -c flag !!!" >&2
 	exit 2
 fi
 
-if [ -z ${table_file+x} ]
+if [ -z ${measurements_table+x} ]
 then
-	echo " !!! ERROR: No table file for logging specified via -t flag !!!" >&2
+	echo " !!! ERROR: No measurements table for logging specified via -t flag !!!" >&2
 	exit 2
 fi
 
-if [ -z ${input_pipe+x} ] || [ ! -p "$input_pipe" ]
+if [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
 then
 	echo " !!! ERROR: Non-existing or no input pipe specified via -p flag !!!" >&2
 	exit 2
 fi
+
+measurements_dir="`dirname "$measurements_table"`"
 
 ############################################################################################################# Read configuration:
 while read -r line
 do
 	IFS='/' read -ra config_line <<< "$line"
 	column_names+=( "${config_line[0]}" )
-done < "$configuration"
+done < "$profiling_configuration"
 num_columns=${#column_names[@]}
 
 ############################################################################################################# Print table header:
-if [ ! -e "$table_file" ]
+if [ ! -e "$measurements_dir" ]
+then
+	mkdir -p "$measurements_dir"
+fi
+if [ ! -e "$measurements_table" ]
 then
 	for (( i = 0; i < num_columns; i++ ))
 	do
-		printf " %-18s |" "${column_names[$i]}" >> "$table_file"
+		printf " %-18s |" "${column_names[$i]}" >> "$measurements_table"
 	done
-	printf " %-18s \n" "Time in s" >> "$table_file"
+	printf " %-18s \n" "Time in s" >> "$measurements_table"
 	for (( i = 0; i < num_columns; i++ ))
 	do
-		printf "%s" "--------------------+" >> "$table_file"
+		printf "%s" "--------------------+" >> "$measurements_table"
 	done
-	echo "--------------------" >> "$table_file"
+	echo "--------------------" >> "$measurements_table"
 fi
 
 ############################################################################################################ Print table content:
 column_count=0
-while true #lsof "$input_pipe"
+while true #lsof "$measurements_pipe"
 do
 	if read -r line
 	then
 		if (( column_count < num_columns ))
 		then
-			printf " %-18s |" "$line" >> "$table_file"
+			printf " %-18s |" "$line" >> "$measurements_table"
 			column_count=$(( column_count + 1 ))
 		else
-			printf " %-18s \n" "$line" >> "$table_file"
+			printf " %-18s \n" "$line" >> "$measurements_table"
 			column_count=0
 		fi
 	else
 		break
 	fi
-done < "$input_pipe"
+done < "$measurements_pipe"
