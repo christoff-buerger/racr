@@ -8,6 +8,7 @@
 set -e
 set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+call_dir=`pwd`
 
 ################################################################################################################ Parse arguments:
 if [ $# -eq 0 ]
@@ -38,7 +39,7 @@ do
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
-			echo "          Generated in the 'measurements' directory of the used configuration." >&2
+			echo "          Generated in the 'measurements' directory of the used profiling configuration." >&2
 			exit 2;;
 	esac
 done
@@ -57,14 +58,15 @@ fi
 
 measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
 measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
-measurements_dir="$script_dir/`dirname "$profiling_configuration"`/measurements"
+measurements_dir="`dirname "$profiling_configuration"`/measurements"
 measurements_table="$measurements_dir/measurements-table.txt"
 valid_parameters=0
 
 if [ -z ${rerun_script+x} ]
 then
 	rerun_script="/dev/null"
-else
+elif [ ! "$rerun_script" -ef "/dev/null" ]
+then
 	rerun_script_basename="`basename "$rerun_script"`"
 	if [ "$rerun_script_basename" != "$rerun_script" ]
 	then
@@ -84,7 +86,7 @@ fi
 
 my_exit(){
 	exit_status=$?
-	if [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ -t 0 ] && [ "$rerun_script" != "/dev/null" ]
+	if [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ -t 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
 	then
 		rm "$rerun_script"
 	fi
@@ -95,14 +97,29 @@ trap 'my_exit' 1 2 3 9 15
 
 mkfifo "$measurements_pipe"
 "$script_dir/make-table.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
+if [ ! "$rerun_script" -ef "/dev/null" ]
+then
+	echo -n "" > "$rerun_script"
+	chmod +x "$rerun_script"
+fi
 
-
+echo "#!/bin/bash" >> "$rerun_script"
+echo "set -e" >> "$rerun_script"
+echo "set -o pipefail" >> "$rerun_script"
+#echo "script_dir=\"\$( cd \"\$( dirname \"\${BASH_SOURCE[0]}\" )\" && pwd )\"" >> "$rerun_script"
+#echo "my_exit(){" >> "$rerun_script"
+#echo "	exit_status=\$?" >> "$rerun_script"
+#echo "	cd \"\$script_dir\"" >> "$rerun_script"
+#echo "	exit \$exit_status" >> "$rerun_script"
+#echo "}" >> "$rerun_script"
+#echo "trap 'my_exit' 1 2 3 9 15" >> "$rerun_script"
+echo "cd \"$call_dir\"" >> "$rerun_script"
+echo "\"$script_dir/make-measurements.bash\" -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
+echo "EOF" >> "$rerun_script"
 
 sleep 1
 echo " !!! ABORT: Not implemented yet !!!"
 my_exit
-
-
 
 ################################################################################################################ Read parameters:
 declare -a parameter_names
@@ -111,7 +128,6 @@ declare -a parameter_iterations
 declare -a parameter_adjustments
 
 echo "************************************************** Configure Parameters **************************************************"
-echo "$script_dir/make-measurements.bash << EOF" > "$rerun_script"
 exec 3< measurements.configuration
 while read -r line <&3
 do

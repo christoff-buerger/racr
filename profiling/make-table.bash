@@ -44,7 +44,7 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
-			echo "       -p Named input pipe providing measurement results to log (mandatory parameter)." >&2
+			echo "       -p Input pipe providing measurement results to log (mandatory parameter)." >&2
 			echo "       -t Measurements table used for logging (mandatory parameter)." >&2
 			echo "          Created if not existent. New measurements are appended." >&2
 			exit 2;;
