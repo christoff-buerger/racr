@@ -2,28 +2,35 @@
 
 ## Peer-reviewed Publications
 
+> Johannes Mey, René Schöne, Daniel Langner and Christoff Bürger.
+> "Using Reference Attribute Grammar-Controlled Rewriting for Runtime Resource Management".
+> In: _RES4ANT 2016: Proceedings of the 1st International Workshop on RESource Awareness and Application Auto-tuning in Adaptive and heterogeNeous compuTing_.
+> Volume 1643. CEUR Workshop Proceedings. CEUR-WS.org, March 2016, pp. 13-17.
+> [Paper at CEUR-WS.org](http://ceur-ws.org/Vol-1643/paper-03.pdf)
+
 > Christoff Bürger.
 > "Reference Attribute Grammar Controlled Graph Rewriting: Motivation and Overview".
 > In: _Proceedings of the 2015 ACM SIGPLAN International Conference on Software Language Engineering_.
-> ACM, October 2015, pages 89-100. [Paper at the ACM Digital Library](http://dl.acm.org/citation.cfm?id=2814257)
+> ACM, October 2015, pages 89-100.
+> [Paper at the ACM Digital Library](http://dl.acm.org/citation.cfm?id=2814257)
 
 > Christoff Bürger, Johannes Mey, René Schöne, Sven Karol and Daniel Langner.
 > "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
 > In: _MRT 2015: Proceedings of the 10th International Workshop on Models@run.time_.
 > Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31– 40.
-> [Paper](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
+> [Paper at CEUR-WS.org](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
 
 > Christoff Bürger.
 > "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
 > In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
 > Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
-> [Original version](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](examples/ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
+> [Original version at CEUR-WS.org](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](examples/ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
 
 ## Non-reviewed Publications
 
 > Christoff Bürger. _RACR: A Scheme Library for Reference Attribute Grammar Controlled Rewriting_.
 > Technical report, TUD-FI12-09. Lehrstuhl Softwaretechnologie, Technische Universität Dresden, December 2012.
-> [Original version](http://nbn-resolving.de/urn:nbn:de:bsz:14-qucosa-104623), [up-to-date version](racr/documentation/title.md).
+> [Original version at Qucosa](http://nbn-resolving.de/urn:nbn:de:bsz:14-qucosa-104623), [up-to-date version](racr/documentation/title.md).
 
 # Presentations
 
