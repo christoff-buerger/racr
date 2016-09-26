@@ -86,40 +86,32 @@ fi
 
 my_exit(){
 	exit_status=$?
-	if [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ -t 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
-	then
+	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
+	then # user specified invalid measurement-parameters while generating rerun script
 		rm "$rerun_script"
 	fi
 	rm -f "$measurements_pipe"
 	exit $exit_status
 }
-trap 'my_exit' 1 2 3 9 15
+trap 'my_exit' 0 1 2 3 9 15
 
 mkfifo "$measurements_pipe"
+if [ ! -e "$measurements_dir" ]
+then
+	mkdir -p "$measurements_dir"
+fi
 "$script_dir/make-table.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
-	echo -n "" > "$rerun_script"
+	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
 
 echo "#!/bin/bash" >> "$rerun_script"
 echo "set -e" >> "$rerun_script"
 echo "set -o pipefail" >> "$rerun_script"
-#echo "script_dir=\"\$( cd \"\$( dirname \"\${BASH_SOURCE[0]}\" )\" && pwd )\"" >> "$rerun_script"
-#echo "my_exit(){" >> "$rerun_script"
-#echo "	exit_status=\$?" >> "$rerun_script"
-#echo "	cd \"\$script_dir\"" >> "$rerun_script"
-#echo "	exit \$exit_status" >> "$rerun_script"
-#echo "}" >> "$rerun_script"
-#echo "trap 'my_exit' 1 2 3 9 15" >> "$rerun_script"
 echo "cd \"$call_dir\"" >> "$rerun_script"
 echo "\"$script_dir/make-measurements.bash\" -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
-echo "EOF" >> "$rerun_script"
-
-sleep 1
-echo " !!! ABORT: Not implemented yet !!!"
-my_exit
 
 ################################################################################################################ Read parameters:
 declare -a parameter_names
@@ -127,47 +119,82 @@ declare -a parameter_values
 declare -a parameter_iterations
 declare -a parameter_adjustments
 
-echo "************************************************** Configure Parameters **************************************************"
-exec 3< measurements.configuration
+echo "************************************************** configuration **************************************************"
+exec 3< "$profiling_configuration"
 while read -r line <&3
 do
-	IFS='/' read -ra config_line <<< "$line"
+	IFS='|' read -ra config_line <<< "$line"
 	
 	parameter_names+=( "${config_line[0]}" )
 	
 	read -r -p "${config_line[1]} [${config_line[0]}]: " choice
-	if [ ! -t 0 ]; then echo "${config_line[1]} [${config_line[0]}]: $choice"; fi
-	echo $choice >> $script_dir/rerun-measurements.bash
+	if [ ! -t 0 ]
+	then
+		echo "${config_line[1]} [${config_line[0]}]: $choice"
+	fi
+	echo "$choice" >> "$rerun_script"
 	parameter_values+=( "$choice" )
 	
-	read -r -n1 -p "	Iterate? (y/n): " choice
-	if [ ! -t 0 ]; then printf "	Iterate? (y/n): $choice"; fi
-	echo ""
-	printf $choice >> $script_dir/rerun-measurements.bash
-	case $choice in
-		[y]* )	read -r -p "	Number of iterations: " choice
-				if [ ! -t 0 ]; then echo "	Number of iterations: $choice"; fi
-				echo $choice >> $script_dir/rerun-measurements.bash
-				parameter_iterations+=( "$choice" )
-				read -r -p "	Adjustment each iteration: " choice
-				if [ ! -t 0 ]; then echo "	Adjustment each iteration: $choice"; fi
-				echo $choice >> $script_dir/rerun-measurements.bash
-				parameter_adjustments+=( "$choice" );;
-		[n]* )	parameter_iterations+=( 1 )
-				parameter_adjustments+=( 0 );;
-		* ) echo "	!!! ERROR: No valid choice entered !!! "; my_exit;;
+	case "$choice" in
+		''|*[0-9]*)
+			read -r -n1 -p "	Iterate? (y/n): " choice
+			if [ ! -t 0 ]
+				then printf "	Iterate? (y/n): $choice"
+			fi
+			echo ""
+			printf "$choice" >> "$rerun_script";;
+		*)
+			choice="n";;
+	esac
+	case "$choice" in
+		[y]*)
+			read -r -p "	Number of iterations: " choice
+			if [ ! -t 0 ]
+			then
+				echo "	Number of iterations: $choice"
+			fi
+			echo "$choice" >> "$rerun_script"
+			case "$choice" in
+				''|*[0-9]*)
+					if [ "$choice" -lt 1 ]
+					then
+						echo " !!! ERROR: No valid choice entered !!!" >&2
+						exit 2
+					fi;;
+				*)
+					echo " !!! ERROR: No valid choice entered !!!" >&2
+					exit 2;;
+			esac
+			parameter_iterations+=( "$choice" )
+			read -r -p "	Adjustment each iteration: " choice
+			if [ ! -t 0 ]
+			then
+				echo "	Adjustment each iteration: $choice"
+			fi
+			echo "$choice" >> "$rerun_script"
+			case "$choice" in
+				''|*[0-9]*)
+					;;
+				*)
+					echo " !!! ERROR: No valid choice entered !!!" >&2
+					exit 2;;
+			esac
+			parameter_adjustments+=( "$choice" );;
+		[n]*)
+			parameter_iterations+=( 1 )
+			parameter_adjustments+=( 0 );;
+		*)
+			echo "	!!! ERROR: No valid choice entered !!!" >&2
+			exit 2;;
 	esac
 done
 exec 3<&-
+echo "EOF" >> "$rerun_script"
 valid_parameters=1
 
-################################################################################### Create directories & finish the rerun script:
-measurement_dir=$script_dir/measurements/`date "+%Y-%m-%d_%H-%M-%S"`
-mkdir -p $measurement_dir
-
-echo "EOF" >> rerun-measurements.bash
-chmod +x rerun-measurements.bash
-cp -p rerun-measurements.bash $measurement_dir
+sleep 1
+echo " !!! ABORT: Not implemented yet !!!"
+my_exit
 
 ########################################################################################################### Perform measurements:
 num_parameters=${#parameter_names[@]}
@@ -176,7 +203,7 @@ current_values[0]=$(( parameter_values[0] - parameter_adjustments[0] ))
 run=true
 undo=false
 
-echo "*************************************************** Start Measurements ***************************************************"
+echo "************************************************** measurements **************************************************"
 exec 3> "$table_pipe"
 while [ "$run" = true ]
 do
@@ -213,7 +240,6 @@ do
 	fi
 done
 exec 3>&-
-echo "**************************************************** End Measurements ****************************************************"
 
 ################################################################################# Finish execution & cleanup temporary resources:
 my_exit

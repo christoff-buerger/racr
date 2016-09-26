@@ -67,6 +67,10 @@ if [ -z ${measurements_table+x} ]
 then
 	echo " !!! ERROR: No measurements table for logging specified via -t flag !!!" >&2
 	exit 2
+elif [ ! -d "`dirname "$measurements_table"`" ]
+then
+	echo " !!! ERROR: Measurements table for logging specified via -t flag has invalid directory !!!" >&2
+	exit 2
 fi
 
 if [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
@@ -75,21 +79,15 @@ then
 	exit 2
 fi
 
-measurements_dir="`dirname "$measurements_table"`"
-
 ############################################################################################################# Read configuration:
 while read -r line
 do
-	IFS='/' read -ra config_line <<< "$line"
+	IFS='|' read -ra config_line <<< "$line"
 	column_names+=( "${config_line[0]}" )
 done < "$profiling_configuration"
 num_columns=${#column_names[@]}
 
 ############################################################################################################# Print table header:
-if [ ! -e "$measurements_dir" ]
-then
-	mkdir -p "$measurements_dir"
-fi
 if [ ! -e "$measurements_table" ]
 then
 	for (( i = 0; i < num_columns; i++ ))
