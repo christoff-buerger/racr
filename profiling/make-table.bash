@@ -63,13 +63,11 @@ then
 	exit 2
 fi
 
-if [ -z ${measurements_table+x} ]
+if [ -z ${measurements_table+x} ] ||
+   [ ! -d "`dirname "$measurements_table"`" ] ||
+   [ -e "$measurements_table" -a ! -f "$measurements_table" ]
 then
-	echo " !!! ERROR: No measurements table for logging specified via -t flag !!!" >&2
-	exit 2
-elif [ ! -d "`dirname "$measurements_table"`" ]
-then
-	echo " !!! ERROR: Measurements table for logging specified via -t flag has invalid directory !!!" >&2
+	echo " !!! ERROR: Invalid or no measurements table specified via -t flag !!!" >&2
 	exit 2
 fi
 
@@ -80,26 +78,29 @@ then
 fi
 
 ############################################################################################################# Read configuration:
-while read -r line
-do
-	IFS='|' read -ra config_line <<< "$line"
-	column_names+=( "${config_line[0]}" )
-done < "$profiling_configuration"
-num_columns=${#column_names[@]}
+. "$script_dir/parse-profiling-configuration.bash" # Sourced script sets configuration!
 
 ############################################################################################################# Print table header:
 if [ ! -e "$measurements_table" ]
 then
-	for (( i = 0; i < num_columns; i++ ))
+	for (( i = 0; i < number_of_parameters; i++ ))
 	do
-		printf " %-18s |" "${column_names[$i]}" >> "$measurements_table"
+		printf " %-18s |" "${parameter_names[$i]}" >> "$measurements_table"
 	done
-	printf " %-18s \n" "Time in s" >> "$measurements_table"
-	for (( i = 0; i < num_columns; i++ ))
+	for (( i = 0; i < number_of_results; i++ ))
+	do
+		printf "| %-18s" "${result_names[$i]}" >> "$measurements_table"
+	done
+	printf "\n" >> "$measurements_table"
+	for (( i = 0; i < number_of_parameters; i++ ))
 	do
 		printf "%s" "--------------------+" >> "$measurements_table"
 	done
-	echo "--------------------" >> "$measurements_table"
+	for (( i = 0; i < number_of_results; i++ ))
+	do
+		printf "%s" "+--------------------" >> "$measurements_table"
+	done
+	printf "\n" >> "$measurements_table"
 fi
 
 ############################################################################################################ Print table content:
@@ -108,12 +109,17 @@ while true #lsof "$measurements_pipe"
 do
 	if read -r line
 	then
-		if (( column_count < num_columns ))
+		if (( column_count < number_of_parameters ))
 		then
 			printf " %-18s |" "$line" >> "$measurements_table"
-			column_count=$(( column_count + 1 ))
-		else
-			printf " %-18s \n" "$line" >> "$measurements_table"
+		elif (( column_count < number_of_parameters + number_of_results ))
+		then
+			printf "| %-18s" "$line" >> "$measurements_table"
+		fi
+		column_count=$(( column_count + 1 ))
+		if (( column_count >= number_of_parameters + number_of_results ))
+		then
+			print "\n" >> "$measurements_table"
 			column_count=0
 		fi
 	else

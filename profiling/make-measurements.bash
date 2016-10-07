@@ -113,24 +113,23 @@ echo "set -o pipefail" >> "$rerun_script"
 echo "cd \"$call_dir\"" >> "$rerun_script"
 echo "\"$script_dir/make-measurements.bash\" -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
 
+############################################################################################################# Read configuration:
+. "$script_dir/parse-profiling-configuration.bash" # Sourced script sets configuration!
+
 ################################################################################################################ Read parameters:
-declare -a parameter_names
 declare -a parameter_values
 declare -a parameter_iterations
 declare -a parameter_adjustments
 
 echo "************************************************** configuration **************************************************"
-exec 3< "$profiling_configuration"
-while read -r line <&3
+#exec 3< "$profiling_configuration"
+#while read -r line <&3
+for (( i = 0; i < number_of_parameters; i++ ))
 do
-	IFS='|' read -ra config_line <<< "$line"
-	
-	parameter_names+=( "${config_line[0]}" )
-	
-	read -r -p "${config_line[1]} [${config_line[0]}]: " choice
+	read -r -p "${parameter_descriptions[$i]} [${parameter_names[$i]}]: " choice
 	if [ ! -t 0 ]
 	then
-		echo "${config_line[1]} [${config_line[0]}]: $choice"
+		echo "${parameter_descriptions[$i]} [${parameter_names[$i]}]: $choice"
 	fi
 	echo "$choice" >> "$rerun_script"
 	parameter_values+=( "$choice" )
@@ -158,11 +157,11 @@ do
 				''|*[0-9]*)
 					if [ "$choice" -lt 1 ]
 					then
-						echo " !!! ERROR: No valid choice entered !!!" >&2
+						echo " !!! ERROR: Invalid choice !!!" >&2
 						exit 2
 					fi;;
 				*)
-					echo " !!! ERROR: No valid choice entered !!!" >&2
+					echo " !!! ERROR: Invalid choice !!!" >&2
 					exit 2;;
 			esac
 			parameter_iterations+=( "$choice" )
@@ -176,7 +175,7 @@ do
 				''|*[0-9]*)
 					;;
 				*)
-					echo " !!! ERROR: No valid choice entered !!!" >&2
+					echo " !!! ERROR: Invalid choice !!!" >&2
 					exit 2;;
 			esac
 			parameter_adjustments+=( "$choice" );;
@@ -184,11 +183,11 @@ do
 			parameter_iterations+=( 1 )
 			parameter_adjustments+=( 0 );;
 		*)
-			echo "	!!! ERROR: No valid choice entered !!!" >&2
+			echo "	!!! ERROR: Invalid choice !!!" >&2
 			exit 2;;
 	esac
 done
-exec 3<&-
+#exec 3<&-
 echo "EOF" >> "$rerun_script"
 valid_parameters=1
 
