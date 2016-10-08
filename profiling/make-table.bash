@@ -119,7 +119,7 @@ do
 		column_count=$(( column_count + 1 ))
 		if (( column_count >= number_of_parameters + number_of_results ))
 		then
-			print "\n" >> "$measurements_table"
+			printf "\n" >> "$measurements_table"
 			column_count=0
 		fi
 	else

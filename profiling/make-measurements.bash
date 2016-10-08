@@ -121,7 +121,6 @@ declare -a parameter_values
 declare -a parameter_iterations
 declare -a parameter_adjustments
 
-echo "************************************************** configuration **************************************************"
 #exec 3< "$profiling_configuration"
 #while read -r line <&3
 for (( i = 0; i < number_of_parameters; i++ ))
@@ -147,10 +146,10 @@ do
 	esac
 	case "$choice" in
 		[y]*)
-			read -r -p "	Number of iterations: " choice
+			read -r -p "	Number of iterations (altogether): " choice
 			if [ ! -t 0 ]
 			then
-				echo "	Number of iterations: $choice"
+				echo "	Number of iterations (altogether): $choice"
 			fi
 			echo "$choice" >> "$rerun_script"
 			case "$choice" in
@@ -165,10 +164,10 @@ do
 					exit 2;;
 			esac
 			parameter_iterations+=( "$choice" )
-			read -r -p "	Adjustment each iteration: " choice
+			read -r -p "	Adjustment each iteration (excluding first): " choice
 			if [ ! -t 0 ]
 			then
-				echo "	Adjustment each iteration: $choice"
+				echo "	Adjustment each iteration (excluding first): $choice"
 			fi
 			echo "$choice" >> "$rerun_script"
 			case "$choice" in
@@ -191,51 +190,44 @@ done
 echo "EOF" >> "$rerun_script"
 valid_parameters=1
 
-sleep 1
-echo " !!! ABORT: Not implemented yet !!!"
-my_exit
-
 ########################################################################################################### Perform measurements:
-num_parameters=${#parameter_names[@]}
-current_parameter=0
-current_values[0]=$(( parameter_values[0] - parameter_adjustments[0] ))
-run=true
-undo=false
+echo ""
 
-echo "************************************************** measurements **************************************************"
-exec 3> "$table_pipe"
-while [ "$run" = true ]
+current_parameter=0
+undo=false
+declare -a current_parameter_values
+declare -a current_parameter_iterations
+
+exec 3> "$measurements_pipe"
+while [ $current_parameter -ge 0 ]
 do
-	if (( current_parameter >= num_parameters ))
-	then
+	if (( current_parameter >= number_of_parameters ))
+	then # perform measurement
+		current_parameter=$(( current_parameter - 1 ))
 		printf "Measurement ["
 		undo=true
-		run=false
-		for (( i = 0; i < num_parameters; i++ ))
+		for (( i = 0; i < number_of_parameters; i++ ))
 		do
-			printf " ${parameter_names[$i]}=${current_values[$i]} "
-			echo "${current_values[$i]}" >&3
-			if (( current_iterations[i] < parameter_iterations[i] ))
-			then
-				run=true
-			fi
+			printf " ${parameter_names[$i]}=${current_parameter_values[$i]} "
+			echo "${current_parameter_values[$i]}" >&3
 		done
 		echo "]"
 		echo "12445" >&3
-	fi
-	if [ "$undo" = true ]
-	then
-		current_parameter=$current_parameter-1
-		if (( current_iterations[current_parameter] < parameter_iterations[current_parameter] ))
-		then
-			undo=false
-		fi
-	else
-		current_values[$current_parameter]=$(( current_values[current_parameter] + parameter_adjustments[current_parameter] ))
-		current_iterations[$current_parameter]=$(( current_iterations[current_parameter] + 1 ))
+	elif [ "$undo" = true ] && (( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
+	then # redo with adjusted parameters
+		undo=false
+		current_parameter_values[$current_parameter]=$(( current_parameter_values[current_parameter] + parameter_adjustments[current_parameter] ))
+		current_parameter_iterations[$current_parameter]=$(( current_parameter_iterations[current_parameter] + 1 ))
 		current_parameter=$(( current_parameter + 1 ))
-		current_values[$current_parameter]=$(( parameter_values[current_parameter] - parameter_adjustments[current_parameter]))
-		current_iterations[$current_parameter]=0
+	elif [ "$undo" = true ]
+	then # reinitialise and further backtrack
+		current_parameter_values[$current_parameter]=${parameter_values[$current_parameter]}
+		current_parameter_iterations[$current_parameter]=1
+		current_parameter=$(( current_parameter - 1 ))
+	else # initialise
+		current_parameter_values[$current_parameter]=${parameter_values[$current_parameter]}
+		current_parameter_iterations[$current_parameter]=1
+		current_parameter=$(( current_parameter + 1 ))
 	fi
 done
 exec 3>&-
