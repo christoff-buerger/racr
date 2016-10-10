@@ -121,8 +121,6 @@ declare -a parameter_values
 declare -a parameter_iterations
 declare -a parameter_adjustments
 
-#exec 3< "$profiling_configuration"
-#while read -r line <&3
 for (( i = 0; i < number_of_parameters; i++ ))
 do
 	read -r -p "${parameter_descriptions[$i]} [${parameter_names[$i]}]: " choice
@@ -186,7 +184,6 @@ do
 			exit 2;;
 	esac
 done
-#exec 3<&-
 echo "EOF" >> "$rerun_script"
 valid_parameters=1
 
@@ -204,15 +201,27 @@ do
 	if (( current_parameter >= number_of_parameters ))
 	then # perform measurement
 		current_parameter=$(( current_parameter - 1 ))
-		printf "Measurement ["
 		undo=true
+		printf "Measurement ["
 		for (( i = 0; i < number_of_parameters; i++ ))
 		do
 			printf " ${parameter_names[$i]}=${current_parameter_values[$i]} "
 			echo "${current_parameter_values[$i]}" >&3
 		done
 		echo "]"
-		echo "12445" >&3
+		measurement_date=`date "+%Y-%m-%d %H:%M:%S"`
+		measurement_results=`"$execution_script" ${current_parameter_values[@]}`
+		if [ ${#measurement_results[@]} -ne $number_of_results ]
+		then
+			echo " !!! ERROR: Unexpected number of measurement results !!!" >&2
+			exit 2
+		fi
+		for (( i = 0; i < number_of_results; i++ ))
+		do
+			echo "	${result_names[$i]}=${measurement_results[$i]}"
+			echo "${measurement_results[$i]}" >&3
+		done
+		echo "$measurement_date" >&3
 	elif [ "$undo" = true ] && (( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
 	then # redo with adjusted parameters
 		undo=false

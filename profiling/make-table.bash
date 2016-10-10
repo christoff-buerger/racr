@@ -89,14 +89,14 @@ then
 	done
 	for (( i = 0; i < number_of_results; i++ ))
 	do
-		printf "| %-18s" "${result_names[$i]}" >> "$measurements_table"
+		printf "| %-18s " "${result_names[$i]}" >> "$measurements_table"
 	done
-	printf "\n" >> "$measurements_table"
+	printf "| %-18s\n" "measurement date" >> "$measurements_table"
 	for (( i = 0; i < number_of_parameters; i++ ))
 	do
 		printf "%s" "--------------------+" >> "$measurements_table"
 	done
-	for (( i = 0; i < number_of_results; i++ ))
+	for (( i = 0; i < number_of_results + 1; i++ ))
 	do
 		printf "%s" "+--------------------" >> "$measurements_table"
 	done
@@ -112,12 +112,12 @@ do
 		if (( column_count < number_of_parameters ))
 		then
 			printf " %-18s |" "$line" >> "$measurements_table"
-		elif (( column_count < number_of_parameters + number_of_results ))
+		elif (( column_count < number_of_parameters + number_of_results + 1 ))
 		then
-			printf "| %-18s" "$line" >> "$measurements_table"
+			printf "| %-18s " "$line" >> "$measurements_table"
 		fi
 		column_count=$(( column_count + 1 ))
-		if (( column_count >= number_of_parameters + number_of_results ))
+		if (( column_count >= number_of_parameters + number_of_results + 1 ))
 		then
 			printf "\n" >> "$measurements_table"
 			column_count=0

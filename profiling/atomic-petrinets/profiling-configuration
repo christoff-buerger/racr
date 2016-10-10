@@ -1,3 +1,4 @@
+run.bash
 #Transitions|Number of transitions
 #Influenced|Number of transitions influenced including the one fired
 #L-Places|Number of local places per transition
