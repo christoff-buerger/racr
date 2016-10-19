@@ -147,7 +147,7 @@ A highlight of the example is the automatically optimised enabled analysis thank
 **New application:** RAG-controlled rewriting for metamodel semantics and model transformation
 **Size:** Medium
 **Scheme library:** Yes
-**Peer-reviewed:** Published at the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/) as a solution of [_The TTC 2015 Model Execution Case_](http://www.transformation-tool-contest.eu/2015/solutions_execution.html)
+**Peer-reviewed:** Published at the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/)
 
 Implementation of an _[fUML](http://www.omg.org/spec/FUML/) Activity Diagram_ interpreter, the competition scenario of [_The TTC 2015 Model Execution Case_](http://www.transformation-tool-contest.eu/2015/solutions_execution.html) of the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/). For a description of the scenario consult `./ttc-2015-fuml-activity-diagrams/documentation/the-ttc-2015-model-execution-case.pdf`.
 
