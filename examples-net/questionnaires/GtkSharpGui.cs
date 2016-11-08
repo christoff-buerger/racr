@@ -205,7 +205,9 @@ static class QuestionnairesGui {
 			return new QCheckBoxDialog();
 		case Types.Number: case Types.String: case Types.ErrorType:
 			return new QTextFieldDialog(n);
-		default: throw new NotImplementedException("no dialog for [" + n.Type() + "] implemented");
+		default:
+			throw new NotImplementedException(
+				"No dialog for [" + n.Type() + "] implemented.");
 		}
 	}
 
@@ -233,11 +235,14 @@ static class QuestionnairesGui {
 			var acceptor = QuestionnairesLanguage.TypeToAcceptor(n.Type());
 			switch (n.Type()) {
 			case Types.String: case Types.Number:
-				Text = acceptor(v) ? Convert.ToString(v) : ""; break;
+				Text = acceptor(v) ? Convert.ToString(v) : "";
+				break;
 			case Types.ErrorType:
-				Text = ""; break;
-			default: throw new NotImplementedException(
-				"no [" + n.Type() + "] printer for [QTextDialog] implemented");
+				Text = "";
+				break;
+			default:
+				throw new NotImplementedException(
+					"No [" + n.Type() + "] printer for [QTextDialog] implemented.");
 			}
 		}
 

@@ -87,14 +87,19 @@ public class Lexer {
 		token = "";
 
 		switch (character) {
-			case '(': NextChar(); return Lexemes.LeftParenthesis;
-			case ')': NextChar(); return Lexemes.RightParenthesis;
-			case '\0': return Lexemes.EOF;
-			case '\'':
+		case '(':
+			NextChar();
+			return Lexemes.LeftParenthesis;
+		case ')':
+			NextChar();
+			return Lexemes.RightParenthesis;
+		case '\0':
+			return Lexemes.EOF;
+		case '\'':
 			NextChar();
 			while (Char.IsLetterOrDigit(character)) token += NextChar();
 			return Lexemes.Symbol;
-			case '"':
+		case '"':
 			NextChar();
 			while (character != '"') {
 				if (character == '\0') {
@@ -108,7 +113,8 @@ public class Lexer {
 			}
 			NextChar();
 			return Lexemes.String;
-			default: break;
+		default:
+			break;
 		}
 
 		if (Char.IsDigit(character)) {
@@ -162,13 +168,16 @@ public class Parser : Lexer {
 	private object ParseValue() {
 		var t = Token;
 		switch (NextLexeme()) {
-			case Lexemes.Identifier:
+		case Lexemes.Identifier:
 			if (t == "#t") return true;
 			if (t == "#f") return false;
 			throw new Exception("Parse Error");
-			case Lexemes.Number: return Convert.ToDouble(t);
-			case Lexemes.String: return t;
-			default: throw new Exception("Parse Error");
+		case Lexemes.Number:
+			return Convert.ToDouble(t);
+		case Lexemes.String:
+			return t;
+		default:
+			throw new Exception("Parse Error");
 		}
 	}
 
@@ -181,19 +190,19 @@ public class Parser : Lexer {
 
 		Consume(Lexemes.LeftParenthesis);
 		switch (ParseIdentifier()) {
-			case "Form":
+		case "Form":
 			e = new List<Ast>();
 			e.Add(spec.CreateAst("ComputedQuestion", "ErrorType", "", spec.CreateAst("Constant", false)));
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("Form", spec.CreateAstList(e.ToArray()));
-			case "If":
+		case "If":
 			c = ParseExpression();
 			e = new List<Ast>();
 			while (Lexeme == Lexemes.LeftParenthesis) e.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("Group", c, spec.CreateAstList(e.ToArray()));
-			case "??":
+		case "??":
 			n = ParseSymbol();
 			l = ParseString();
 			t = (Types) Enum.Parse(typeof(Types), ParseIdentifier());
@@ -201,25 +210,26 @@ public class Parser : Lexer {
 			else v = ParseValue();
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("OrdinaryQuestion", n, l, t, v);
-			case "~?":
+		case "~?":
 			c = spec.CreateAst("ComputedQuestion", ParseSymbol(), ParseString(), ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return c;
-			case "~>":
+		case "~>":
 			n = ParseSymbol();
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("Use", n);
-			case "~!":
+		case "~!":
 			v = ParseValue();
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("Constant", v);
-			case "~~":
+		case "~~":
 			o = ParseIdentifier();
 			a = new List<Ast>();
 			while (Lexeme == Lexemes.LeftParenthesis) a.Add(ParseExpression());
 			Consume(Lexemes.RightParenthesis);
 			return spec.CreateAst("Computation", o, spec.CreateAstList(a.ToArray()));
-			default: throw new Exception("Parse Exception");
+		default:
+			throw new Exception("Parse Exception");
 		}
 	}
 
