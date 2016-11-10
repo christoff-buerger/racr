@@ -60,6 +60,7 @@ measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
 measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
 measurements_dir="`dirname "$profiling_configuration"`/measurements"
 measurements_table="$measurements_dir/measurements-table.txt"
+measurement_stderr="$script_dir/$measurements_date.stderr"
 valid_parameters=0
 
 if [ -z ${rerun_script+x} ]
@@ -91,6 +92,7 @@ my_exit(){
 		rm "$rerun_script"
 	fi
 	rm -f "$measurements_pipe"
+	rm -f "$measurement_stderr"
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
@@ -210,18 +212,47 @@ do
 		done
 		echo "]"
 		measurement_date=`date "+%Y-%m-%d %H:%M:%S"`
-		measurement_results=`"$execution_script" ${current_parameter_values[@]}`
-		if [ ${#measurement_results[@]} -ne $number_of_results ]
+		echo "$measurement_date" >&3
+		old_IFS="$IFS"
+		IFS=$'\n'
+		set +e
+		set +o pipefail
+		measurement_results=( `"$execution_script" ${current_parameter_values[@]} 2> "$measurement_stderr"` )
+		measurement_error=$?
+		set -e
+		set -o pipefail
+		IFS="$old_IFS"
+		if [ ${#measurement_results[@]} -ne $number_of_results -a $measurement_error -eq 0 ]
 		then
 			echo " !!! ERROR: Unexpected number of measurement results !!!" >&2
+			measurement_error=1
+		fi
+		if [ $measurement_error -ne 0 -o -s "$measurement_stderr" ]
+		then
+			echo "X" >&3
+			for (( i = 0; i < number_of_results; i++ ))
+			do
+				echo "" >&3
+			done
+			echo " !!! ERROR: Measurement failed !!!" >&2
+			if [ $measurement_error -ne 0 ]
+			then
+				echo "	The error code was: $measurement_error" >&2
+			fi
+			if [ -s "$measurement_stderr" ]
+			then
+				echo "	The error message was:" >&2
+				cat "$measurement_stderr" >&2
+			fi
+			echo " !!! ERROR: Measurements aborted !!!" >&2
 			exit 2
 		fi
+		echo " " >&3
 		for (( i = 0; i < number_of_results; i++ ))
 		do
 			echo "	${result_names[$i]}=${measurement_results[$i]}"
 			echo "${measurement_results[$i]}" >&3
 		done
-		echo "$measurement_date" >&3
 	elif [ "$undo" = true ] && (( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
 	then # redo with adjusted parameters
 		undo=false
