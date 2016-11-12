@@ -16,7 +16,7 @@ then
 	"$script_dir/make-measurements.bash" -h
 	exit $?
 fi
-while getopts c:s:h opt
+while getopts c:s:x:h opt
 do
 	case $opt in
 		c)
@@ -35,11 +35,14 @@ do
 				echo " !!! ERROR: Several rerun script names selected via -s flag !!!" >&2
 				exit 2
 			fi;;
+		x)
+			failsave="-x";;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
 			echo "          Generated in the 'measurements' directory of the used profiling configuration." >&2
+			echo "       -x Abort in case of measurement failures (optional multi-flag)." >&2
 			exit 2;;
 	esac
 done
@@ -83,8 +86,12 @@ then
 	fi
 fi
 
-##################################################################################### Configure temporary and external resources:
+if [ -z ${failsave+x} ]
+then
+	failsave=""
+fi
 
+##################################################################################### Configure temporary and external resources:
 my_exit(){
 	exit_status=$?
 	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
@@ -113,7 +120,7 @@ echo "#!/bin/bash" >> "$rerun_script"
 echo "set -e" >> "$rerun_script"
 echo "set -o pipefail" >> "$rerun_script"
 echo "cd \"$call_dir\"" >> "$rerun_script"
-echo "\"$script_dir/make-measurements.bash\" -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
+echo "\"$script_dir/make-measurements.bash\" $failsave -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
 
 ############################################################################################################# Read configuration:
 . "$script_dir/parse-profiling-configuration.bash" # Sourced script sets configuration!
@@ -232,27 +239,32 @@ do
 			echo "X" >&3
 			for (( i = 0; i < number_of_results; i++ ))
 			do
-				echo "" >&3
+				echo "-------------------" >&3
 			done
-			echo " !!! ERROR: Measurement failed !!!" >&2
+			echo "	Measurement failed."
 			if [ $measurement_error -ne 0 ]
 			then
-				echo "	The error code was: $measurement_error" >&2
+				echo "	The error code was: $measurement_error"
 			fi
 			if [ -s "$measurement_stderr" ]
 			then
-				echo "	The error message was:" >&2
+				echo "	The error message was:"
 				cat "$measurement_stderr" >&2
+				echo ""
 			fi
-			echo " !!! ERROR: Measurements aborted !!!" >&2
-			exit 2
+			if [ ! -z "$failsave" ]
+			then
+				echo " !!! ERROR: Measurements aborted because of failed measurement !!!" >&2
+				exit 2
+			fi
+		else
+			echo "-" >&3
+			for (( i = 0; i < number_of_results; i++ ))
+			do
+				echo "	${result_names[$i]}=${measurement_results[$i]}"
+				echo "${measurement_results[$i]}" >&3
+			done
 		fi
-		echo " " >&3
-		for (( i = 0; i < number_of_results; i++ ))
-		do
-			echo "	${result_names[$i]}=${measurement_results[$i]}"
-			echo "${measurement_results[$i]}" >&3
-		done
 	elif [ "$undo" = true ] && (( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
 	then # redo with adjusted parameters
 		undo=false
