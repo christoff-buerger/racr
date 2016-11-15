@@ -16,7 +16,7 @@ then
 	"$script_dir/make-measurements.bash" -h
 	exit $?
 fi
-while getopts c:s:x:h opt
+while getopts c:s:xh opt
 do
 	case $opt in
 		c)
@@ -231,7 +231,7 @@ do
 		IFS="$old_IFS"
 		if [ ${#measurement_results[@]} -ne $number_of_results -a $measurement_error -eq 0 ]
 		then
-			echo " !!! ERROR: Unexpected number of measurement results !!!" >&2
+			echo "	!!! ERROR: Unexpected number of measurement results !!!" >&2
 			measurement_error=1
 		fi
 		if [ $measurement_error -ne 0 -o -s "$measurement_stderr" ]
@@ -268,7 +268,8 @@ do
 	elif [ "$undo" = true ] && (( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
 	then # redo with adjusted parameters
 		undo=false
-		current_parameter_values[$current_parameter]=$(( current_parameter_values[current_parameter] + parameter_adjustments[current_parameter] ))
+		current_parameter_values[$current_parameter]=$((
+			current_parameter_values[current_parameter] + parameter_adjustments[current_parameter] ))
 		current_parameter_iterations[$current_parameter]=$(( current_parameter_iterations[current_parameter] + 1 ))
 		current_parameter=$(( current_parameter + 1 ))
 	elif [ "$undo" = true ]

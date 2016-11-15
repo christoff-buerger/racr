@@ -3,4 +3,3 @@
 ../../examples/atomic-petrinets
 @sources:
 profiling
-static-profiling
