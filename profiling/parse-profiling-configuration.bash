@@ -19,7 +19,7 @@
 
 set -e
 set -o pipefail
-script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+parse_script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
 then
