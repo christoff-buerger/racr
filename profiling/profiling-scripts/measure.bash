@@ -13,7 +13,7 @@ call_dir=`pwd`
 ################################################################################################################ Parse arguments:
 if [ $# -eq 0 ]
 then
-	"$script_dir/make-measurements.bash" -h
+	"$script_dir/measure.bash" -h
 	exit $?
 fi
 while getopts c:s:xh opt
@@ -109,7 +109,7 @@ if [ ! -e "$measurements_dir" ]
 then
 	mkdir -p "$measurements_dir"
 fi
-"$script_dir/make-table.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
+"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
 	touch "$rerun_script"
@@ -120,10 +120,10 @@ echo "#!/bin/bash" >> "$rerun_script"
 echo "set -e" >> "$rerun_script"
 echo "set -o pipefail" >> "$rerun_script"
 echo "cd \"$call_dir\"" >> "$rerun_script"
-echo "\"$script_dir/make-measurements.bash\" $failsave -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
+echo "\"$script_dir/measure.bash\" $failsave -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
 
 ############################################################################################################# Read configuration:
-. "$script_dir/parse-profiling-configuration.bash" # Sourced script sets configuration!
+. "$script_dir/configure.bash" # Sourced script sets configuration!
 
 ################################################################################################################ Read parameters:
 declare -a parameter_values
@@ -229,18 +229,19 @@ do
 		set -e
 		set -o pipefail
 		IFS="$old_IFS"
-		if [ ${#measurement_results[@]} -ne $number_of_results -a $measurement_error -eq 0 ]
-		then
-			echo "	!!! ERROR: Unexpected number of measurement results !!!" >&2
-			measurement_error=1
-		fi
 		if [ $measurement_error -ne 0 -o -s "$measurement_stderr" ]
 		then
+			measurement_failed=1
+		elif [ ${#measurement_results[@]} -ne $number_of_results ]
+		then
+			echo "	!!! ERROR: Unexpected number of measurement results !!!" >&2
+			measurement_failed=1
+		else
+			measurement_failed=0
+		fi
+		if [ $measurement_failed -ne 0 ]
+		then
 			echo "X" >&3
-			for (( i = 0; i < number_of_results; i++ ))
-			do
-				echo "-------------------" >&3
-			done
 			echo "	Measurement failed."
 			if [ $measurement_error -ne 0 ]
 			then

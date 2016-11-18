@@ -11,7 +11,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 profiling_configuration="$script_dir/profiling-configuration"
 configuration_to_parse="$script_dir/racr-library-configuration"
-. "$script_dir/../parse-profiling-configuration.bash" # Sourced script sets configuration!
+. "$script_dir/../profiling-scripts/configure.bash" # Sourced script sets configuration!
 . "$script_dir/../../parse-configuration.bash" # Sourced script sets configuration!
 
 if [ $# -ne $number_of_parameters ]

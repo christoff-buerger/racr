@@ -5,7 +5,7 @@
 
 # author: C. Bürger
 
-# BEWARE: This script must be sourced. It expects one variables to be set and sets seven variables:
+# BEWARE: This script must be sourced. It expects one variable to be set and sets seven variables:
 #  in)  profiling_configuration:	Profiling configuration file to parse
 #  set) execution_script:		The script to execute for each measurement as defined by the parsed configuration
 #  set) parameter_names:		Array of the names of parameters as defined by the parsed configuration

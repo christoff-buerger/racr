@@ -12,7 +12,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ################################################################################################################ Parse arguments:
 if [ $# -eq 0 ]
 then
-	"$script_dir/make-table.bash" -h
+	"$script_dir/record.bash" -h
 	exit $?
 fi
 while getopts c:p:t:h opt
@@ -44,8 +44,8 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
-			echo "       -p Input pipe providing measurement results to log (mandatory parameter)." >&2
-			echo "       -t Measurements table used for logging (mandatory parameter)." >&2
+			echo "       -p Input pipe providing measurement results to record (mandatory parameter)." >&2
+			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
 			echo "          Created if not existent. New measurements are appended." >&2
 			exit 2;;
 	esac
@@ -78,7 +78,7 @@ then
 fi
 
 ############################################################################################################# Read configuration:
-. "$script_dir/parse-profiling-configuration.bash" # Sourced script sets configuration!
+. "$script_dir/configure.bash" # Sourced script sets configuration!
 
 ############################################################################################################# Print table header:
 if [ ! -e "$measurements_table" ]
@@ -132,6 +132,33 @@ do
 			column_count=0
 		fi
 	else
+		if [ $column_count -gt 0 ]
+		then # fix table if entries are missing
+			for (( i = column_count; i < number_of_parameters; i++ ))
+			do
+				printf " ------------------- |" >> "$measurements_table"
+			done
+			if (( column_count <= number_of_parameters ))
+			then
+				printf "| ------------------- " >> "$measurements_table"
+			elif (( column_count <= number_of_parameters + 1 ))
+			then
+				printf "|   A   |" >> "$measurements_table"
+			fi
+			if (( column_count >= number_of_parameters + 2 ))
+			then
+				for (( i = column_count - number_of_parameters - 2; i < number_of_results; i++ ))
+				do
+					printf "| ------------------- " >> "$measurements_table"
+				done
+			else
+				for (( i = 0; i < number_of_results; i++ ))
+				do
+					printf "| ------------------- " >> "$measurements_table"
+				done
+			fi
+			printf "\n" >> "$measurements_table"
+		fi
 		break
 	fi
 done < "$measurements_pipe"
