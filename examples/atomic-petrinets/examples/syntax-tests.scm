@@ -39,5 +39,5 @@
   (run-error-cases)
   (run-correct-cases))
 
-(initialise-petrinet-language)
+(initialise-petrinet-language #t)
 (run-tests)

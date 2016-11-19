@@ -47,4 +47,4 @@
                 (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
                 (=variables activity)))))))))
  
- (pn:initialise-petrinet-language))
+ (pn:initialise-petrinet-language #t))

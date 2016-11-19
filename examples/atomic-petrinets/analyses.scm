@@ -62,7 +62,7 @@
    (for-each (lambda (n) (hashtable-set! table (->key n) n)) decls)
    table)
  
- (define (specify-analyses)
+ (define (specify-analyses cache-enabled-analysis?)
    (with-specification
     pn
     
@@ -136,6 +136,7 @@
      enabled? ; Is an arc/transition enabled (if so, return list of tokens it consumes)?
      
      (Arc
+      cache-enabled-analysis?
       (lambda (n)
         (define consumers (map (lambda (f) (cons #t f)) (->consumers n)))
         (ast-find-child*
@@ -149,6 +150,7 @@
          (->Token* (=place n)))))
      
      (Transition
+      cache-enabled-analysis?
       (lambda (n)
         (call/cc
          (lambda (abort)
@@ -160,16 +162,19 @@
             (=in-arcs n)))))))
     
     (ag-rule
-     executor ; For each transition, function that maps consumed tokens to produced.
+     executor ; Function, firing transition if enabled; returns if transition was fired.
      (Transition
       (lambda (n)
-        (define producers (map ->consumers (=out-arcs n)))
-        (define destinations (map ->Token* (map =place (=out-arcs n))))
-        (lambda (consumed-tokens)
+        (define (fire! tokens-consumed)
+          (define token-values (map ->value tokens-consumed))
+          (for-each rewrite-delete tokens-consumed)
           (for-each
            (lambda (producer destination)
              (for-each
               (lambda (value) (rewrite-add destination (:Token value)))
-              (apply producer consumed-tokens)))
-           producers
-           destinations))))))))
+              (apply producer token-values)))
+           (map ->consumers (=out-arcs n))
+           (map ->Token* (map =place (=out-arcs n)))))
+        (lambda ()
+          (define enabled? (=enabled? n))
+          (and enabled? (begin (fire! enabled?) #t)))))))))

@@ -325,5 +325,5 @@
   
   (set! Box* 'Box*)) ; Undo test fixture.
 
-(initialise-petrinet-language)
+(initialise-petrinet-language #t)
 (run-tests)

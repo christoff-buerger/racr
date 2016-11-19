@@ -111,5 +111,5 @@
                   '(net2)
                   '(net3)))
 
-(initialise-petrinet-language)
+(initialise-petrinet-language #t)
 (run-tests)

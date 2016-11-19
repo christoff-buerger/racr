@@ -65,13 +65,11 @@
  
  ;;; Execution:
  
- (define (run-petrinet! petrinet) ; Refine!
-   (unless (=valid? petrinet)
+ (define (run-petrinet! net) ; Refine!
+   (unless (=valid? net)
      (ap:exception: "Cannot run Petri Net; The given net is not well-formed."))
-   (let ((enabled? ((=subnet-iter petrinet) (lambda (name n) (find =enabled? (=transitions n))))))
-     (when enabled?
-       (ap:fire-transition! enabled?)
-       (run-petrinet! petrinet))))
+   (when ((=subnet-iter net) (lambda (name n) (find (lambda (t) ((=executor t))) (=transitions n))))
+     (run-petrinet! net)))
  
  ;;; REPL Interpreter:
  
@@ -95,7 +93,7 @@
  
  ;;; Initialisation:
  
- (define (initialise-petrinet-language) ; Refine!
+ (define (initialise-petrinet-language cache-enabled-analysis?) ; Refine!
    (when (= (specification->phase pn) 1)
-     (specify-analyses)
+     (specify-analyses cache-enabled-analysis?)
      (compile-ag-specifications pn))))

@@ -148,5 +148,5 @@
                       '(seller (p4 token))
                       '(warehouse (p3 token))))))
 
-(initialise-petrinet-language)
+(initialise-petrinet-language #t)
 (run-tests)
