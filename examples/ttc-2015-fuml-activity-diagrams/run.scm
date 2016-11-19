@@ -7,12 +7,11 @@
 
 (import (rnrs) (ttc-2015-fuml-activity-diagrams user-interface))
 
-(define diagram (cadr (command-line)))
-(define input?
-  (let ((input (caddr (command-line))))
-    (if (string=? input ":false:") #f input)))
-(define mode (string->number (cadddr (command-line))))
-(define print-trace?
-  (not (string=? (cadddr (cdr (command-line))) ":false:")))
+(define arguments    (command-line))
+(define diagram      (list-ref arguments 1))
+(define input?       (let ((input (list-ref arguments 2)))
+                       (if (string=? input ":false:") #f input)))
+(define mode         (string->number (list-ref arguments 3)))
+(define print-trace? (not (string=? (list-ref arguments 4) ":false:")))
 
 (run-activity-diagram diagram input? mode print-trace?)

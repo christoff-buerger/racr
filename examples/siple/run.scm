@@ -7,8 +7,9 @@
 
 (import (rnrs) (rnrs mutable-pairs) (racr testing) (siple main) (siple exception-api))
 
-(define program (cadr (command-line)))
-(define incorrect? (string=? (caddr (command-line)) ":true:"))
+(define arguments  (command-line))
+(define program    (list-ref arguments 1))
+(define incorrect? (string=? (list-ref arguments 2) ":true:"))
 
 (set-car! (command-line) program) ; BUG: Command line arguments immutable in Larceny and Racket!
 (set-cdr! (command-line) (cdddr (command-line)))
