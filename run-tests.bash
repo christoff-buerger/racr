@@ -27,7 +27,7 @@ shift $(( OPTIND - 1 ))
 
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
 
@@ -44,16 +44,23 @@ run(){
 	shift
 	if [ -z "$library" ]
 	then
-		args=`echo -- $*`
+		args=`echo -- "$@"`
 	else
-		args=`echo -l "$library" -- $*`
+		args=`echo -l "$library" -- "$@"`
 	fi
-	echo "$program" $*
+	echo "$program" "$@"
 	for s in ${selected_systems[@]}
 	do
 		set +e
-		error_message=`"$script_dir/run-program.bash" -s "$s" -e "$program" $args 2>&1`
+		set +o pipefail
+		error_message=`"$script_dir/run-program.bash" -s "$s" -e "$program" $args 2>&1 1>/dev/null`
 		error_status=$?
+		set -e
+		set -o pipefail
+		if [ $error_status -eq 0 -a ! -z "$error_message" ]
+		then
+			error_status=1
+		fi
 		case $error_status in
 			0) printf " $s";;	# all correct
 			2) printf " -$s-";;	# configuration error for Scheme system => test skipped
@@ -62,7 +69,6 @@ run(){
 				echo "$error_message"
 				exit $error_status;;
 		esac
-		set -e
 	done
 	echo ""
 }
