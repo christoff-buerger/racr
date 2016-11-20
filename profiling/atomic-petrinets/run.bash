@@ -26,6 +26,7 @@ then
 	do
 		echo "             ${supported_systems[$i]}" >&2
 	done
+	echo "       The caching of the enabled analysis must be either, 'on' or 'off'." >&2
 	echo "       All other arguments must be natural numbers." >&2
 	echo "       For some combinations no respective profiling Petri net can be generated." >&2
 	echo "       The measurement will abort with an error for these cases." >&2

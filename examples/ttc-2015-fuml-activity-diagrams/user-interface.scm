@@ -7,7 +7,7 @@
 
 (library
  (ttc-2015-fuml-activity-diagrams user-interface)
- (export run-activity-diagram)
+ (export initialise-activity-diagram-language run-activity-diagram)
  (import (rnrs) (racr core) (racr testing)
          (prefix (atomic-petrinets analyses) pn:)
          (prefix (atomic-petrinets user-interface) pn:)
@@ -46,5 +46,6 @@
                (for-each
                 (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
                 (=variables activity)))))))))
- 
- (pn:initialise-petrinet-language #t))
+
+ (define (initialise-activity-diagram-language cache-enabled-analysis?)
+   (pn:initialise-petrinet-language cache-enabled-analysis?)))

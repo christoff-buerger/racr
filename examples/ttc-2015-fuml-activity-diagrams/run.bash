@@ -15,9 +15,11 @@ then
 	"$script_dir/run.bash" -h
 	exit $?
 fi
-while getopts xs:d:i:m:h opt
+while getopts cxs:d:i:m:h opt
 do
 	case $opt in
+		c)
+			cache_enabled_analysis=":false:";;
 		x)
 			print_trace=":false:";;
 		s)
@@ -61,6 +63,8 @@ do
 			echo "             6=PN-execution (no enabled passes)" >&2
 			echo "             7=PN-execution (use enabled passes)" >&2
 			echo "          The default is 6: Petri net execution, one transition each step." >&2
+			echo "       -c Deactivate caching of enabled analysis (optional multi-parameter)." >&2
+			echo "          By default, the enabled analysis of generated Petri nets is cached." >&2
 			echo "       -x Deactivate printing the execution trace on stdout (optional multi-parameter)." >&2
 			echo "          By default, the execution trace is printed." >&2
 			exit 2
@@ -72,6 +76,11 @@ if [ $# -ge 1 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
+fi
+
+if [ -z ${cache_enabled_analysis+x} ]
+then
+	cache_enabled_analysis=":true:"
 fi
 
 if [ -z ${print_trace+x} ]
@@ -105,4 +114,5 @@ then
 fi
 
 ####################################################################################################### Execute activity diagram:
-"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- "$diagram" "$input" "$mode" "$print_trace"
+"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- \
+	"$diagram" "$input" "$mode" "$cache_enabled_analysis" "$print_trace"

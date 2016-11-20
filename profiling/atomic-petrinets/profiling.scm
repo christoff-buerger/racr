@@ -7,7 +7,7 @@
 
 (library
  (atomic-petrinets profiling)
- (export make-profiling-net profile-net)
+ (export initialise-petrinet-language make-profiling-net profile-net)
  (import (rnrs) (racr core) (racr testing) (atomic-petrinets analyses) (atomic-petrinets user-interface))
  
  (define (make-profiling-net $transitions $influenced $local-places $local-tokens)
@@ -48,6 +48,4 @@
  
  (define (profile-net net $executions)
    (do ((i 0 (+ i 1))) ((>= i $executions))
-     (fire-transition! (find =enabled? (=transitions net)))))
- 
- (initialise-petrinet-language))
+     (assert (find (lambda (t) ((=executor t))) (=transitions net))))))
