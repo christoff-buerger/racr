@@ -10,10 +10,10 @@
  (export parse-diagram parse-diagram-input)
  (import (rnrs) (ttc-2015-fuml-activity-diagrams language))
  
- (define (parse-diagram file) ; Parse activity diagram of input file.
+ (define (parse-diagram file) ; Parse activity diagram of input file. Not thread save!
    (with-input-from-file file parse-activity))
  
- (define (parse-diagram-input file) ; Parse list of variables of input file. Not thread save!
+ (define (parse-diagram-input file) ; Parse list of variables of input file.
    (with-input-from-file file
      (lambda ()
        (define (parse-input)
