@@ -70,6 +70,6 @@ done
 shift $(( OPTIND - 1 ))
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi

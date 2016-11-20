@@ -56,9 +56,11 @@ do
 			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
 			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
 			echo "       -e Scheme program to execute (mandatory parameter)." >&2
-			echo "       -l RACR library to use (optional parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-libraries.bash" -k | sed 's/^/             /'`" >&2
-			echo "          Implicitly set if the program to execute is in a RACR library directory." >&2
+			echo "       -l Load a RACR library before execution (optional parameters)." >&2
+			echo "          The given argument must be a RACR library directory." >&2
+			echo "          Know RACR library directories are:" >&2
+			echo "`"$script_dir/list-libraries.bash" -i | sed 's/^/             /'`" >&2
+			echo "          Implicitly set if the program to execute already is in a RACR library directory." >&2
 			echo "       -- Command line arguments for the Scheme program to execute (optional flag). " >&2
 			echo "          All following arguments are forwarded." >&2
 			exit 2;;
@@ -68,7 +70,7 @@ shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
 

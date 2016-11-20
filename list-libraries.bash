@@ -18,7 +18,7 @@ then
 	"$script_dir/list-libraries.bash" -h
 	exit $?
 fi
-while getopts kl:c:h opt
+while getopts kl:ic:h opt
 do
 	case $opt in
 		k)
@@ -47,6 +47,11 @@ do
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library !!!" >&2
 				exit 2
 			fi;;
+		i)
+			for k in `"$script_dir/list-libraries.bash" -k`
+			do
+				"$script_dir/list-libraries.bash" -l "$k"
+			done;;
 		c)
 			found=""
 			absolute_path=$(
@@ -74,9 +79,13 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -k List all known RACR libraries (multi-flag)." >&2
-			echo "       -l List absolut installation directory paths of a RACR library (multi-parameter)." >&2
+			echo "       -l List all directories of a RACR library (multi-parameter)." >&2
+			echo "          The listed paths are absolut." >&2
 			echo "          Abort with an error if the library is unknown." >&2
-			echo "       -c List absolut configuraton file path of a RACR library directory (multi-parameter)." >&2
+			echo "       -i List all directories of all knwon RACR libraries (multi-parameter)." >&2
+			echo "          The listed paths are absolut." >&2
+			echo "       -c List configuraton file of a RACR library directory (multi-parameter)." >&2
+			echo "          The listed path is absolut." >&2
 			echo "          Abort with an error if the library directory is unknown." >&2
 			exit 2;;
 	esac
@@ -84,6 +93,6 @@ done
 shift $(( OPTIND - 1 ))
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
