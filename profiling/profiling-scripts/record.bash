@@ -15,7 +15,8 @@ then
 	"$script_dir/record.bash" -h
 	exit $?
 fi
-while getopts c:p:t:h opt
+
+while getopts c:p:t:xh opt
 do
 	case $opt in
 		c)
@@ -42,18 +43,23 @@ do
 				echo " !!! ERROR: Several measurement tables selected via -t flag !!!" >&2
 				exit 2
 			fi;;
+		x)
+			test_run=true;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -p Input pipe providing measurement results to record (mandatory parameter)." >&2
 			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
 			echo "          Created if not existent. New measurements are appended." >&2
+			echo "       -x Only test arguments (optional multi-flag)." >&2
+			echo "          No measurements are recorded. The measurements table is not updated." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
 
@@ -63,8 +69,7 @@ then
 	exit 2
 fi
 
-if [ -z ${measurements_table+x} ] ||
-   [ ! -d "`dirname "$measurements_table"`" ] ||
+if [ -z "$measurements_table" ] ||
    [ -e "$measurements_table" -a ! -f "$measurements_table" ]
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t flag !!!" >&2
@@ -79,8 +84,13 @@ fi
 
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
+if [ ! -z "$test_run" ]
+then
+	exit 0
+fi
 
 ############################################################################################################# Print table header:
+mkdir -p "`dirname "$measurements_table"`"
 if [ ! -e "$measurements_table" ]
 then
 	for (( i = 0; i < number_of_parameters; i++ ))

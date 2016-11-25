@@ -18,6 +18,7 @@ then
 	"$script_dir/run.bash" -h
 	exit $?
 fi
+
 while getopts xs:e:h opt
 do
 	case $opt in
@@ -50,7 +51,7 @@ shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
 

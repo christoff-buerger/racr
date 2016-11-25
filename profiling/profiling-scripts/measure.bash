@@ -16,7 +16,8 @@ then
 	"$script_dir/measure.bash" -h
 	exit $?
 fi
-while getopts c:s:xh opt
+
+while getopts c:t:s:xh opt
 do
 	case $opt in
 		c)
@@ -25,6 +26,14 @@ do
 				profiling_configuration="$OPTARG"
 			else
 				echo " !!! ERROR: Several profiling configurations selected via -c flag !!!" >&2
+				exit 2
+			fi;;
+		t)
+			if [ -z ${measurements_table+x} ]
+			then
+				measurements_table="$OPTARG"
+			else
+				echo " !!! ERROR: Several measurement tables selected via -t flag !!!" >&2
 				exit 2
 			fi;;
 		s)
@@ -39,59 +48,37 @@ do
 			failsave="-x";;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
+			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
+			echo "          Created if not existent. New measurements are appended." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
-			echo "          Generated in the 'measurements' directory of the used profiling configuration." >&2
 			echo "       -x Abort in case of measurement failures (optional multi-flag)." >&2
 			exit 2;;
 	esac
 done
 shift $(( OPTIND - 1 ))
+
 if [ -t 0 ] && [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
-
-if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
-then
-	echo " !!! ERROR: Non-existing or no profiling configuration specified via -c flag !!!" >&2
-	exit 2
-fi
-
-measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
-measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
-measurements_dir="`dirname "$profiling_configuration"`/measurements"
-measurements_table="$measurements_dir/measurements-table.txt"
-measurement_stderr="$script_dir/$measurements_date.stderr"
-valid_parameters=0
 
 if [ -z ${rerun_script+x} ]
 then
 	rerun_script="/dev/null"
-elif [ ! "$rerun_script" -ef "/dev/null" ]
+elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
 then
-	rerun_script_basename="`basename "$rerun_script"`"
-	if [ "$rerun_script_basename" != "$rerun_script" ]
-	then
-		echo " !!! ERROR: Invalid name for rerun script specified via -s flag !!!" >&2
-		exit 2
-	else
-		rerun_script="$measurements_dir/$rerun_script"
-	fi
-	if [ -e "$rerun_script" ]
-	then
-		echo " !!! ERROR: Rerun script specified via -s flag already exists !!!" >&2
-		exit 2
-	fi
-fi
-
-if [ -z ${failsave+x} ]
-then
-	failsave=""
+	echo " !!! ERROR: Invalid rerun script specified via -s flag !!!" >&2
+	exit 2
 fi
 
 ##################################################################################### Configure temporary and external resources:
+measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
+measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
+measurement_stderr="$script_dir/$measurements_date.stderr"
+valid_parameters=0
+
 my_exit(){
 	exit_status=$?
 	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
@@ -105,22 +92,27 @@ my_exit(){
 trap 'my_exit' 0 1 2 3 9 15
 
 mkfifo "$measurements_pipe"
-if [ ! -e "$measurements_dir" ]
-then
-	mkdir -p "$measurements_dir"
-fi
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
+
+"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" -x
+
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
+	mkdir -p "`dirname "$rerun_script"`"
 	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
-
 echo "#!/bin/bash" >> "$rerun_script"
 echo "set -e" >> "$rerun_script"
 echo "set -o pipefail" >> "$rerun_script"
 echo "cd \"$call_dir\"" >> "$rerun_script"
-echo "\"$script_dir/measure.bash\" $failsave -c \"$profiling_configuration\" -s /dev/null -- << EOF" >> "$rerun_script"
+echo "\"$script_dir/measure.bash\" \\" >> "$rerun_script"
+echo "	-c \"$profiling_configuration\" \\" >> "$rerun_script"
+echo "	-t \"$measurements_table\" \\" >> "$rerun_script"
+echo "	-s /dev/null \\" >> "$rerun_script"
+echo "	$failsave -- << \|EOF\|" >> "$rerun_script"
+
+"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
+sleep 1 # let the record script write the table header
 
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
@@ -193,7 +185,7 @@ do
 			exit 2;;
 	esac
 done
-echo "EOF" >> "$rerun_script"
+echo "\|EOF\|" >> "$rerun_script"
 valid_parameters=1
 
 ########################################################################################################### Perform measurements:
@@ -241,7 +233,7 @@ do
 		fi
 		if [ $measurement_failed -ne 0 ]
 		then
-			echo "X" >&3
+			echo "E" >&3
 			echo "	Measurement failed."
 			if [ $measurement_error -ne 0 ]
 			then

@@ -32,6 +32,7 @@ parameter_names=()
 parameter_descriptions=()
 result_names=()
 result_descriptions=()
+
 while read line
 do
 	case $parsing_mode in
@@ -71,10 +72,12 @@ do
 		result_descriptions+=( "${config_line[1]}" );;
 	esac
 done < "$profiling_configuration"
+
 if [ -z ${execution_script+x} ]
 then
 	echo " !!! ERROR: Malformed profiling configuration (missing execution script) !!!" >&2
 	exit 2
 fi
+
 number_of_parameters=${#parameter_names[@]}
 number_of_results=${#result_names[@]}

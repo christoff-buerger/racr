@@ -18,6 +18,7 @@ then
 	"$script_dir/run-program.bash" -h
 	exit $?
 fi
+
 while getopts s:e:l:h opt
 do
 	case $opt in
@@ -74,13 +75,13 @@ then
 	exit 2
 fi
 
-if [ -z ${to_execute+x} ]
+if [ -z "$to_execute" ]
 then
 	echo " !!! ERROR: No Scheme program to execute specified via -e flag !!!" >&2
 	exit 2
 fi
 
-if [ -z ${selected_system+x} ]
+if [ -z "$selected_system" ]
 then
 	echo " !!! ERROR: No Scheme system for execution selected via -s flag !!!" >&2
 	exit 2

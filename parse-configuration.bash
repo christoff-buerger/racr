@@ -25,6 +25,7 @@ configuration_directory=`dirname "$configuration_to_parse"`
 supported_systems=()
 required_libraries=( "$configuration_directory" )
 required_sources=()
+
 while read line
 do
 	case $parsing_mode in

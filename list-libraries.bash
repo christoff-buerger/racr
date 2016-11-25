@@ -18,6 +18,7 @@ then
 	"$script_dir/list-libraries.bash" -h
 	exit $?
 fi
+
 while getopts kl:ic:h opt
 do
 	case $opt in
@@ -91,6 +92,7 @@ do
 	esac
 done
 shift $(( OPTIND - 1 ))
+
 if [ ! $# -eq 0 ]
 then
 	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
