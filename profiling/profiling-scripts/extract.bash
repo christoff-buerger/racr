@@ -177,24 +177,31 @@ do
 		echo "${parameter_descriptions[$i]} [${parameter_names[$i]}]: $choice"
 	fi
 	echo "$choice" >> "$rerun_script"
-	extractors+=( "$choice" )
 	
 	case "$choice" in
 		\<|\>|\<=|\>=|==|!=)
+			comparators+=( "$choice" )
+			comparators_index+=( $i )
 			read -r -p "	value $choice " choice2
 			if [ ! -t 0 ]
 			then
 				echo "	value $choice $choice2"
 			fi
 			echo "$choice2" >> "$rerun_script"
-			comparator_constants+=( "$choice2" )
+			comparators_constant+=( "$choice2" )
 			if [ -z "$choice2" -o ${#choice2[@]} -ne 1 ]
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
 				exit 2
 			fi;;
-		\*|MIN|MAX|min|max)
-			comparator_constants+=( "" );;
+		min|max)
+			local_extrema+=( "$choice" )
+			local_extrema_index+=( $i );;
+		MIN|MAX)
+			global_extrema+=( "$choice" )
+			global_extrema_index+=( $i );;
+		\*)
+			;;
 		*)
 			echo " !!! ERROR: Invalid choice !!!" >&2
 			exit 2;;
@@ -202,6 +209,91 @@ do
 done
 echo "\|EOF\|" >> "$rerun_script"
 valid_parameters=1
+
+############################################################################################################# Generate extractor:
+column_count=$(( number_of_parameters + number_of_results + 2 ))
+column_count_including_separators=$(( column_count + 2 ))
+
+echo "#!r6rs"
+echo ""
+echo "(import (rnrs) (profiling-scripts extract))"
+echo ""
+echo "(initialise $column_count)"
+echo ""
+echo "(define (process-row v)"
+echo " (unless"
+echo "  (and"
+i=0
+for comperator in "${comparators[@]}"
+do
+	echo "   (ps:$comperator (vector-ref v ${comparators_index[$i]}) \"${comparators_constant[$i]}\")"
+	i=$(( i + 1 ))
+done
+if [ ${#local_extrema[@]} -gt 0 -o ${#global_extrema[@]} -gt 0 ]
+then
+	echo   "   (let ((v-extrema"
+	printf "          (+"
+	i=0
+	for operator in "${local_extrema[@]}"
+	do
+		printf "\n           (if (update-local-extremum v ${local_extrema_index[$i]} ps:$operator) 1 0)"
+		i=$(( i + 1 ))
+	done
+	i=0
+	for operator in "${global_extrema[@]}"
+	do
+		printf "\n           (if (update-global-extremum v ${global_extrema_index[$i]} ps:$operator) 1 0)"
+		i=$(( i + 1 ))
+	done
+	echo ")))"
+	echo "    (vector-set! v $column_count v-extrema)"
+	printf "    (> v-extrema 0))"
+fi
+echo ")"
+echo "  (discard-row v)))"
+echo ""
+echo "(define rows"
+echo " (vector-sort"
+echo "  (lambda (v1 v2)"
+echo "    (ps:<= (vector-ref v1 $number_of_parameters) (vector-ref v2 $number_of_parameters)))"
+printf "  (vector"
+for s in "${source_tables[@]}"
+do
+	tail -n +3 "$s" | while read line
+	do
+		printf "\n   (vector"
+		old_IFS="$IFS"
+		IFS='|' read -ra column <<< "$line"
+		IFS="$old_IFS"
+		if [ ${#column[@]} -ne $column_count_including_separators ]
+		then
+			echo " !!! ERROR: Invalid measurements table !!!" >&2
+			exit 2
+		fi
+		i=0
+		for c in "${column[@]}"
+		do
+			if (( i != number_of_parameters && i != number_of_parameters + 3 ))
+			then
+				c="${c#"${c%%[![:space:]]*}"}" # trim leading whitespace
+				c="${c%"${c##*[![:space:]]}"}" # trim trailing whitespace
+				printf " \"$c\""
+			fi
+			i=$(( i + 1 ))
+		done
+		printf " 0)"
+	done
+	printf ")"
+done
+echo ")))"
+echo ""
+echo "(vector-for-each process-row rows)"
+echo "(vector-for-each"
+echo " (lambda (r)"
+echo "  (when (vector-ref r $column_count)"
+echo "   (do ((i 0 (+ i 1))) ((< i $column_count))"
+echo "    (display (string-append \"\\\"\" (vector-ref r i) \"\\\"\\n\")))))"
+echo " rows)"
 
 ########################################################################################################### Extract measurements:
 
