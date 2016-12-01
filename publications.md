@@ -2,6 +2,12 @@
 
 ## Peer-reviewed Publications
 
+> René Schöne, Sebastian Götz, Uwe Aßmann and Christoff Bürger.
+> "Incremental Runtime-generation of Optimisation Problems using RAG-controlled Rewriting”.
+> In: _MRT 2016: Proceedings of the 11th International Workshop on Models@run.time_.
+> Volume 1742. CEUR Workshop Proceedings. CEUR-WS.org, October 2016, pp. 26–34.
+> [Paper at CEUR-WS.org](http://ceur-ws.org/Vol-1742/MRT16_paper_5.pdf)
+
 > Johannes Mey, René Schöne, Daniel Langner and Christoff Bürger.
 > "Using Reference Attribute Grammar-Controlled Rewriting for Runtime Resource Management".
 > In: _RES4ANT 2016: Proceedings of the 1st International Workshop on RESource Awareness and Application Auto-tuning in Adaptive and heterogeNeous compuTing_.
@@ -17,7 +23,7 @@
 > Christoff Bürger, Johannes Mey, René Schöne, Sven Karol and Daniel Langner.
 > "Using Reference Attribute Grammar-Controlled Rewriting for Energy Auto-Tuning”.
 > In: _MRT 2015: Proceedings of the 10th International Workshop on Models@run.time_.
-> Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31– 40.
+> Volume 1474. CEUR Workshop Proceedings. CEUR-WS.org, September 2015, pp. 31–40.
 > [Paper at CEUR-WS.org](http://ceur-ws.org/Vol-1474/MRT15_paper_1.pdf)
 
 > Christoff Bürger.
