@@ -73,14 +73,21 @@ do
 			echo "       Extraction operators (extract all rows whose columns satisfy their operators):" >&2
 			echo "          - Wild-card: *" >&2
 			echo "            No restriction on respective column values." >&2
+			echo "            Stops the querying of further extraction operators for a column." >&2
 			echo "          - Value comparator: <, >, <=, >=, ==, !=" >&2
-			echo "            Compare column values with constant. Extract the ones satisfying the comparator." >&2
-			echo "          - Row independet extrema: MIN, MAX" >&2
+			echo "            Compare column values with constant; extract the ones satisfying the comparator." >&2
+			echo "            All value comparators must be satisfied for a row to be extracted." >&2
+			echo "          - Row independent extrema: MIN, MAX" >&2
 			echo "            Extract extremum of column." >&2
 			echo "          - Row specific extrema: min, max" >&2
 			echo "            Extract extremum of column for each row combination." >&2
 			echo "       Row independent and specific extrema are non-exclusive." >&2
 			echo "       The row of a cell being an extremum is selected if it satisfies all value comparators." >&2
+			echo "       Each column can have several extraction operators:" >&2
+			echo "          - Value comparators are subtractive (logical conjunction: and)." >&2
+			echo "            Column cells must satisfy all their comparators." >&2
+			echo "          - Extrema are additive (logical disjunction: or)." >&2
+			echo "            It is sufficient if a column cell satisfies one of its extrema." >&2
 			exit 2;;
 	esac
 done
@@ -109,7 +116,8 @@ fi
 ##################################################################################### Configure temporary and external resources:
 measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
 measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
-recording_table="$script_dir/$measurements_date.measurements-table"
+recording_table="$script_dir/$measurements_date.recording-table"
+extraction_script="$script_dir/$measurements_date.extraction-script"
 valid_parameters=0
 
 my_exit(){
@@ -120,6 +128,7 @@ my_exit(){
 	fi
 	rm -f "$measurements_pipe"
 	rm -f "$recording_table"
+	rm -f "$extraction_script"
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
@@ -140,16 +149,18 @@ then
 	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
-echo "#!/bin/bash" >> "$rerun_script"
-echo "set -e" >> "$rerun_script"
-echo "set -o pipefail" >> "$rerun_script"
-echo "cd \"$call_dir\"" >> "$rerun_script"
-echo "\"$script_dir/extract.bash\" \\" >> "$rerun_script"
-echo "	-c \"$profiling_configuration\" \\" >> "$rerun_script"
-echo "	-t \"$measurements_table\" \\" >> "$rerun_script"
-echo "	-s /dev/null \\" >> "$rerun_script"
-echo "	$recording_mode \\" >> "$rerun_script"
-echo "-- ${source_tables[@]} << \|EOF\|" >> "$rerun_script"
+{
+echo "#!/bin/bash"
+echo "set -e"
+echo "set -o pipefail"
+echo "cd \"$call_dir\""
+echo "\"$script_dir/extract.bash\" \\"
+echo "	-c \"$profiling_configuration\" \\"
+echo "	-t \"$measurements_table\" \\"
+echo "	-s /dev/null \\"
+echo "	$recording_mode \\"
+echo "-- ${source_tables[@]} << \|EOF\|"
+} > "$rerun_script"
 
 if [ -f "$measurements_table" ]
 then
@@ -162,19 +173,35 @@ then
 	fi
 fi
 
+touch "$extraction_script"
+chmod +x "$extraction_script"
+
 "$script_dir/record.bash" -c "$profiling_configuration" -t "$recording_table" -p "$measurements_pipe" &
 sleep 1 # let the record script write the table header
 
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
-################################################################################################################ Read parameters:
-for (( i = 0; i < number_of_parameters; i++ ))
+####################################################################################################### Read extraction criteria:
+criterias=(
+	"${parameter_names[@]}"
+	"Date"
+	"Error"
+	"${result_names[@]}"
+)
+criteria_descriptions=(
+	"${parameter_descriptions[@]}"
+	"Measurement date (yyyy-mm-dd hh:mm:ss)"
+	"Error (F: failed, A: aborted, S: successful)"
+	"${result_descriptions[@]}"
+)
+
+for (( i = 0; i < ${#criterias[@]}; i++ ))
 do
-	read -r -p "${parameter_descriptions[$i]} [${parameter_names[$i]}]: " choice
+	read -r -p "${criteria_descriptions[$i]} [${criterias[$i]}]: " choice
 	if [ ! -t 0 ]
 	then
-		echo "${parameter_descriptions[$i]} [${parameter_names[$i]}]: $choice"
+		echo "${criteria_descriptions[$i]} [${criterias[$i]}]: $choice"
 	fi
 	echo "$choice" >> "$rerun_script"
 	
@@ -193,13 +220,16 @@ do
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
 				exit 2
-			fi;;
+			fi
+			i=$(( i - 1 ));;
 		min|max)
 			local_extrema+=( "$choice" )
-			local_extrema_index+=( $i );;
+			local_extrema_index+=( $i )
+			i=$(( i - 1 ));;
 		MIN|MAX)
 			global_extrema+=( "$choice" )
-			global_extrema_index+=( $i );;
+			global_extrema_index+=( $i )
+			i=$(( i - 1));;
 		\*)
 			;;
 		*)
@@ -211,14 +241,12 @@ echo "\|EOF\|" >> "$rerun_script"
 valid_parameters=1
 
 ############################################################################################################# Generate extractor:
-column_count=$(( number_of_parameters + number_of_results + 2 ))
-column_count_including_separators=$(( column_count + 2 ))
-
+{
 echo "#!r6rs"
 echo ""
 echo "(import (rnrs) (profiling-scripts extract))"
 echo ""
-echo "(initialise $column_count)"
+echo "(initialise ${#criterias[@]})"
 echo ""
 echo "(define (process-row v)"
 echo " (unless"
@@ -246,7 +274,7 @@ then
 		i=$(( i + 1 ))
 	done
 	echo ")))"
-	echo "    (vector-set! v $column_count v-extrema)"
+	echo "    (vector-set! v ${#criterias[@]} v-extrema)"
 	printf "    (> v-extrema 0))"
 fi
 echo ")"
@@ -265,7 +293,7 @@ do
 		old_IFS="$IFS"
 		IFS='|' read -ra column <<< "$line"
 		IFS="$old_IFS"
-		if [ ${#column[@]} -ne $column_count_including_separators ]
+		if (( ${#column[@]} != ${#criterias[@]} + 2 ))
 		then
 			echo " !!! ERROR: Invalid measurements table !!!" >&2
 			exit 2
@@ -275,8 +303,8 @@ do
 		do
 			if (( i != number_of_parameters && i != number_of_parameters + 3 ))
 			then
-				c="${c#"${c%%[![:space:]]*}"}" # trim leading whitespace
-				c="${c%"${c##*[![:space:]]}"}" # trim trailing whitespace
+				c="${c#"${c%%[![:space:]]*}"}" # trim leading white space
+				c="${c%"${c##*[![:space:]]}"}" # trim trailing white space
 				printf " \"$c\""
 			fi
 			i=$(( i + 1 ))
@@ -290,10 +318,13 @@ echo ""
 echo "(vector-for-each process-row rows)"
 echo "(vector-for-each"
 echo " (lambda (r)"
-echo "  (when (vector-ref r $column_count)"
-echo "   (do ((i 0 (+ i 1))) ((< i $column_count))"
+echo "  (when (vector-ref r ${#criterias[@]})"
+echo "   (do ((i 0 (+ i 1))) ((< i ${#criterias[@]}))"
 echo "    (display (string-append \"\\\"\" (vector-ref r i) \"\\\"\\n\")))))"
 echo " rows)"
+} > "$extraction_script"
+
+cat "$extraction_script"
 
 ########################################################################################################### Extract measurements:
 

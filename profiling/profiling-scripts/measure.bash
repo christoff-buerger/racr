@@ -101,15 +101,17 @@ then
 	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
-echo "#!/bin/bash" >> "$rerun_script"
-echo "set -e" >> "$rerun_script"
-echo "set -o pipefail" >> "$rerun_script"
-echo "cd \"$call_dir\"" >> "$rerun_script"
-echo "\"$script_dir/measure.bash\" \\" >> "$rerun_script"
-echo "	-c \"$profiling_configuration\" \\" >> "$rerun_script"
-echo "	-t \"$measurements_table\" \\" >> "$rerun_script"
-echo "	-s /dev/null \\" >> "$rerun_script"
-echo "	$failsave -- << \|EOF\|" >> "$rerun_script"
+{
+echo "#!/bin/bash"
+echo "set -e"
+echo "set -o pipefail"
+echo "cd \"$call_dir\""
+echo "\"$script_dir/measure.bash\" \\"
+echo "	-c \"$profiling_configuration\" \\"
+echo "	-t \"$measurements_table\" \\"
+echo "	-s /dev/null \\"
+echo "	$failsave -- << \|EOF\|"
+} > "$rerun_script"
 
 "$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
 sleep 1 # let the record script write the table header
@@ -233,7 +235,7 @@ do
 		fi
 		if [ $measurement_failed -ne 0 ]
 		then
-			echo "E" >&3
+			echo "F" >&3
 			echo "	Measurement failed."
 			if [ $measurement_error -ne 0 ]
 			then
@@ -251,7 +253,7 @@ do
 				exit 2
 			fi
 		else
-			echo "-" >&3
+			echo "S" >&3
 			for (( i = 0; i < number_of_results; i++ ))
 			do
 				echo "	${result_names[$i]}=${measurement_results[$i]}"
