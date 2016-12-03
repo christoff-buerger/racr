@@ -93,81 +93,49 @@ fi
 mkdir -p "`dirname "$measurements_table"`"
 if [ ! -e "$measurements_table" ]
 then
-	for (( i = 0; i < number_of_parameters; i++ ))
+	i=0
+	for (( ; i < number_of_criteria - 1; i++ ))
 	do
-		printf " %-19s |" "${parameter_names[$i]}" >> "$measurements_table"
+		printf " %-19s |" "${criteria_names[$i]}" >> "$measurements_table"
 	done
-	printf "| %-19s " "Measurement date" >> "$measurements_table"
-	printf "| %-5s |" "Error" >> "$measurements_table"
-	for (( i = 0; i < number_of_results; i++ ))
-	do
-		printf "| %-19s " "${result_names[$i]}" >> "$measurements_table"
-	done
-	printf "\n" >> "$measurements_table"
-	for (( i = 0; i < number_of_parameters; i++ ))
+	printf " %-19s \n" "${criteria_names[$i]}" >> "$measurements_table"
+	for (( i = 1; i < number_of_criteria; i++ ))
 	do
 		printf "%s" "---------------------+" >> "$measurements_table"
 	done
-	printf "%s" "+---------------------+-------+" >> "$measurements_table"
-	for (( i = 0; i < number_of_results; i++ ))
-	do
-		printf "%s" "+---------------------" >> "$measurements_table"
-	done
-	printf "\n" >> "$measurements_table"
+	echo "---------------------" >> "$measurements_table"
 fi
 
 ############################################################################################################ Print table content:
-column_count=0
+column_count=1
 while true #lsof "$measurements_pipe"
 do
 	if read -r line
 	then
-		if (( column_count < number_of_parameters ))
+		if (( column_count < number_of_criteria ))
 		then
 			printf " %19s |" "$line" >> "$measurements_table"
-		elif (( column_count == number_of_parameters ))
-		then
-			printf "| %19s " "$line" >> "$measurements_table"
-		elif (( column_count == number_of_parameters + 1 ))
-		then
-			printf "|   %1s   |" "$line" >> "$measurements_table"
-		elif (( column_count < number_of_parameters + number_of_results + 2 ))
-		then
-			printf "| %19s " "$line" >> "$measurements_table"
-		fi
-		column_count=$(( column_count + 1 ))
-		if (( column_count >= number_of_parameters + number_of_results + 2 ))
-		then
-			printf "\n" >> "$measurements_table"
-			column_count=0
+			column_count=$(( column_count + 1 ))
+		else
+			printf " %19s \n" "$line" >> "$measurements_table"
+			column_count=1
 		fi
 	else
-		if [ $column_count -gt 0 ]
+		if (( column_count > 1 ))
 		then # fix table if entries are missing
-			for (( i = column_count; i < number_of_parameters; i++ ))
+			for (( i = column_count; i < number_of_criteria; i++ ))
 			do
-				printf " ------------------- |" >> "$measurements_table"
+				if (( i == number_of_parameters + 2 ))
+				then
+					printf "                   A |" >> "$measurements_table"
+				else
+					printf " ------------------- |" >> "$measurements_table"
+				fi
 			done
-			if (( column_count <= number_of_parameters ))
+			if (( column_count < number_of_criteria ))
 			then
-				printf "| ------------------- " >> "$measurements_table"
-			elif (( column_count <= number_of_parameters + 1 ))
-			then
-				printf "|   A   |" >> "$measurements_table"
+				echo " ------------------- " >> "$measurements_table"
 			fi
-			if (( column_count >= number_of_parameters + 2 ))
-			then
-				for (( i = column_count - number_of_parameters - 2; i < number_of_results; i++ ))
-				do
-					printf "| ------------------- " >> "$measurements_table"
-				done
-			else
-				for (( i = 0; i < number_of_results; i++ ))
-				do
-					printf "| ------------------- " >> "$measurements_table"
-				done
-			fi
-			printf "\n" >> "$measurements_table"
 		fi
 		break
 	fi

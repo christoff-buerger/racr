@@ -183,25 +183,12 @@ sleep 1 # let the record script write the table header
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
 ####################################################################################################### Read extraction criteria:
-criterias=(
-	"${parameter_names[@]}"
-	"Date"
-	"Error"
-	"${result_names[@]}"
-)
-criteria_descriptions=(
-	"${parameter_descriptions[@]}"
-	"Measurement date (yyyy-mm-dd hh:mm:ss)"
-	"Error (F: failed, A: aborted, S: successful)"
-	"${result_descriptions[@]}"
-)
-
-for (( i = 0; i < ${#criterias[@]}; i++ ))
+for (( i = 0; i < number_of_criteria; i++ ))
 do
-	read -r -p "${criteria_descriptions[$i]} [${criterias[$i]}]: " choice
+	read -r -p "${criteria_descriptions[$i]} [${criteria_names[$i]}]: " choice
 	if [ ! -t 0 ]
 	then
-		echo "${criteria_descriptions[$i]} [${criterias[$i]}]: $choice"
+		echo "${criteria_descriptions[$i]} [${criteria_names[$i]}]: $choice"
 	fi
 	echo "$choice" >> "$rerun_script"
 	
@@ -246,7 +233,7 @@ echo "#!r6rs"
 echo ""
 echo "(import (rnrs) (profiling-scripts extract))"
 echo ""
-echo "(initialise ${#criterias[@]})"
+echo "(initialise $number_of_criteria)"
 echo ""
 echo "(define (process-row v)"
 echo " (unless"
@@ -274,7 +261,7 @@ then
 		i=$(( i + 1 ))
 	done
 	echo ")))"
-	echo "    (vector-set! v ${#criterias[@]} v-extrema)"
+	echo "    (vector-set! v $number_of_criteria v-extrema)"
 	printf "    (> v-extrema 0))"
 fi
 echo ")"
@@ -293,7 +280,7 @@ do
 		old_IFS="$IFS"
 		IFS='|' read -ra column <<< "$line"
 		IFS="$old_IFS"
-		if (( ${#column[@]} != ${#criterias[@]} + 2 ))
+		if [ ${#column[@]} -ne $number_of_criteria ]
 		then
 			echo " !!! ERROR: Invalid measurements table !!!" >&2
 			exit 2
@@ -301,12 +288,9 @@ do
 		i=0
 		for c in "${column[@]}"
 		do
-			if (( i != number_of_parameters && i != number_of_parameters + 3 ))
-			then
-				c="${c#"${c%%[![:space:]]*}"}" # trim leading white space
-				c="${c%"${c##*[![:space:]]}"}" # trim trailing white space
-				printf " \"$c\""
-			fi
+			c="${c#"${c%%[![:space:]]*}"}" # trim leading white space
+			c="${c%"${c##*[![:space:]]}"}" # trim trailing white space
+			printf " \"$c\""
 			i=$(( i + 1 ))
 		done
 		printf " 0)"
@@ -318,8 +302,8 @@ echo ""
 echo "(vector-for-each process-row rows)"
 echo "(vector-for-each"
 echo " (lambda (r)"
-echo "  (when (vector-ref r ${#criterias[@]})"
-echo "   (do ((i 0 (+ i 1))) ((< i ${#criterias[@]}))"
+echo "  (when (vector-ref r $number_of_criteria)"
+echo "   (do ((i 0 (+ i 1))) ((< i $number_of_criteria))"
 echo "    (display (string-append \"\\\"\" (vector-ref r i) \"\\\"\\n\")))))"
 echo " rows)"
 } > "$extraction_script"
