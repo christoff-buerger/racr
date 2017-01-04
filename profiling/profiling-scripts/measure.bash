@@ -235,7 +235,7 @@ do
 		fi
 		if [ $measurement_failed -ne 0 ]
 		then
-			echo "F" >&3
+			echo "failed" >&3
 			echo "	Measurement failed."
 			if [ $measurement_error -ne 0 ]
 			then
@@ -253,7 +253,7 @@ do
 				exit 2
 			fi
 		else
-			echo "S" >&3
+			echo "succeeded" >&3
 			for (( i = 0; i < number_of_results; i++ ))
 			do
 				echo "	${result_names[$i]}=${measurement_results[$i]}"

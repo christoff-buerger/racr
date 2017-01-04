@@ -7,12 +7,15 @@
 
 (library
  (profiling-scripts extract)
- (export ps:!= ps:== ps:< ps:> ps:<= ps:>= ps:min ps:max ps:MIN ps:MAX
-         initialise update-local-extremum update-global-extremum discard-row)
+ (export add-padding ps:!= ps:== ps:< ps:> ps:<= ps:>= ps:min ps:max ps:MIN ps:MAX
+         initialise unique-row? update-local-extremum update-global-extremum discard-row)
  (import (rnrs))
 
+ (define (add-padding s)
+   (string-append (make-string (- 19 (string-length s)) #\space) s))
+ 
  (define (ps:!= s1 s2)
-   (not (string=? s1 s2)))
+   (not (ps:== s1 s2)))
  (define ps:== string=?)
  (define ps:< string<?)
  (define ps:> string>?)
@@ -25,27 +28,45 @@
 
  (define local-extrema #f)
  (define global-extrema #f)
+ (define date-column #f)
+ (define last-row-processed #f)
 
- (define (initialise i)
-   (set! local-extrema (vector i))
+ (define (initialise i measurement-date-column)
+   (set! local-extrema (make-vector i))
    (do ((i (- i 1) (- i 1))) ((< i 0))
      (vector-set! local-extrema i (make-hashtable equal-hash equal?)))
-   (set! global-extrema (vector i #f)))
+   (set! global-extrema (make-vector i))
+   (do ((i (- i 1) (- i 1))) ((< i 0))
+     (vector-set! global-extrema i (make-eq-hashtable)))
+   (set! date-column measurement-date-column)
+   (set! last-row-processed (make-vector i "")))
 
+ (define (unique-row? v)
+   (define copy?
+     (let loop ((i (- (vector-length v) 2)))
+       (cond
+         ((< i 0) #t)
+         ((not (ps:== (vector-ref v i) (vector-ref last-row-processed i))) #f)
+         (else (loop (- i 1))))))
+   (set! last-row-processed v)
+   (not copy?))
+ 
  (define (update-local-extremum v i operator)
    (define updated? #f)
    (define new-value (vector-ref v i))
    (hashtable-update!
     (vector-ref local-extrema i)
     (let ((v-extremum-key (vector-map (lambda (e) e) v)))
-      (vector-set! v-extremum-key i #f)
+      (vector-set! v-extremum-key i operator)
+      (vector-set! v-extremum-key date-column operator)
       v-extremum-key)
     (lambda (hashed)
+      (define old-value? (and (not (eq? hashed v)) (vector-ref hashed i)))
       (cond
-        ((eq? hashed v)
+        ((not old-value?)
          (set! updated? #t)
          v)
-        ((operator new-value (vector-ref hashed i))
+        ((operator new-value old-value?)
          (set! updated? #t)
          (discard-extremum hashed)
          v)
@@ -54,21 +75,27 @@
    updated?)
 
  (define (update-global-extremum v i operator)
-   (define extrema (vector-ref global-extrema i))
-   (define old-value (and extrema (vector-ref (car extrema) i)))
+   (define updated? #f)
    (define new-value (vector-ref v i))
-   (cond
-     ((not extrema)
-      (vector-set! global-extrema i (list v))
-      #t)
-     ((ps:== new-value old-value)
-      (vector-set! global-extrema i (cons v extrema))
-      #t)
-     ((operator new-value old-value)
-      (for-each discard-extremum extrema)
-      (vector-set! global-extrema i (list v))
-      #t)
-     (else #f)))
+   (hashtable-update!
+    (vector-ref global-extrema i)
+    operator
+    (lambda (hashed)
+      (define old-value? (and (not (eq? hashed v)) (vector-ref (car hashed) i)))
+      (cond
+        ((not old-value?)
+         (set! updated? #t)
+         (list v))
+        ((ps:== new-value old-value?)
+         (set! updated? #t)
+         (cons v hashed))
+        ((operator new-value old-value?)
+         (set! updated? #t)
+         (for-each discard-extremum hashed)
+         (list v))
+        (else hashed)))
+    v)
+   updated?)
 
  (define (discard-extremum v)
    (define last-index (- (vector-length v) 1))

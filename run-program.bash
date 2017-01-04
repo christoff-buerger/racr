@@ -75,9 +75,9 @@ then
 	exit 2
 fi
 
-if [ -z "$to_execute" ]
+if [ -z "$to_execute" ] || [ ! -f "$to_execute" ]
 then
-	echo " !!! ERROR: No Scheme program to execute specified via -e flag !!!" >&2
+	echo " !!! ERROR: Non-existent or no Scheme program to execute specified via -e flag !!!" >&2
 	exit 2
 fi
 

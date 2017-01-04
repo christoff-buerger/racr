@@ -136,6 +136,7 @@ trap 'my_exit' 0 1 2 3 9 15
 mkfifo "$measurements_pipe"
 
 "$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" -x
+selected_system=( `"$script_dir/../../list-scheme-systems.bash" -i` )
 
 for a in "$@"
 do
@@ -233,21 +234,27 @@ echo "#!r6rs"
 echo ""
 echo "(import (rnrs) (profiling-scripts extract))"
 echo ""
-echo "(initialise $number_of_criteria)"
+i=0
+for constant in "${comparators_constant[@]}"
+do
+	echo "(define string-constant-$i (add-padding \"$constant\"))"
+	i=$(( i + 1))
+done
 echo ""
 echo "(define (process-row v)"
 echo " (unless"
 echo "  (and"
+printf "   (unique-row? v)"
 i=0
-for comperator in "${comparators[@]}"
+for comparator in "${comparators[@]}"
 do
-	echo "   (ps:$comperator (vector-ref v ${comparators_index[$i]}) \"${comparators_constant[$i]}\")"
+	printf "\n   (ps:$comparator (vector-ref v ${comparators_index[$i]}) string-constant-$i)"
 	i=$(( i + 1 ))
 done
 if [ ${#local_extrema[@]} -gt 0 -o ${#global_extrema[@]} -gt 0 ]
 then
-	echo   "   (let ((v-extrema"
-	printf "          (+"
+	printf "\n   (let ((v-extrema"
+	printf "\n          (+"
 	i=0
 	for operator in "${local_extrema[@]}"
 	do
@@ -270,7 +277,18 @@ echo ""
 echo "(define rows"
 echo " (vector-sort"
 echo "  (lambda (v1 v2)"
-echo "    (ps:<= (vector-ref v1 $number_of_parameters) (vector-ref v2 $number_of_parameters)))"
+echo "    (define date-1 (vector-ref v1 $number_of_parameters))"
+echo "    (define date-2 (vector-ref v2 $number_of_parameters))"
+echo "    (or"
+echo "     (ps:< date-1 date-2)"
+echo "     (and"
+echo "      (ps:== date-1 date-2)"
+echo "      (let loop ((i 0))"
+echo "       (cond"
+echo "        ((= i $number_of_criteria) #f)"
+echo "        ((ps:< (vector-ref v1 i) (vector-ref v2 i)) #t)"
+echo "        ((ps:> (vector-ref v1 i) (vector-ref v2 i)) #f)"
+echo "        (else (loop (+ i 1))))))))"
 printf "  (vector"
 for s in "${source_tables[@]}"
 do
@@ -290,27 +308,30 @@ do
 		do
 			c="${c#"${c%%[![:space:]]*}"}" # trim leading white space
 			c="${c%"${c##*[![:space:]]}"}" # trim trailing white space
-			printf " \"$c\""
+			printf " (add-padding \"$c\")"
 			i=$(( i + 1 ))
 		done
 		printf " 0)"
 	done
-	printf ")"
 done
 echo ")))"
 echo ""
+echo "(initialise $number_of_criteria $number_of_parameters)"
+echo ""
 echo "(vector-for-each process-row rows)"
 echo "(vector-for-each"
-echo " (lambda (r)"
-echo "  (when (vector-ref r $number_of_criteria)"
-echo "   (do ((i 0 (+ i 1))) ((< i $number_of_criteria))"
-echo "    (display (string-append \"\\\"\" (vector-ref r i) \"\\\"\\n\")))))"
+echo " (lambda (row)"
+echo "  (when (vector-ref row $number_of_criteria)"
+echo "   (do ((i 0 (+ i 1))) ((= i $number_of_criteria))"
+echo "    (display (string-append (vector-ref row i) \"\n\")))))"
 echo " rows)"
 } > "$extraction_script"
 
-cat "$extraction_script"
+nl -b a "$extraction_script"
 
 ########################################################################################################### Extract measurements:
+"$script_dir/../../run-program.bash" -s $selected_system -e "$extraction_script" > "$measurements_pipe"
+sleep 1 # let the record script write all extracted measurements
 
 ################################################################################# Finish execution & cleanup temporary resources:
 cp "$recording_table" "$measurements_table"

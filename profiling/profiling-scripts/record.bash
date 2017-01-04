@@ -127,7 +127,7 @@ do
 			do
 				if (( i == number_of_parameters + 2 ))
 				then
-					printf "                   A |" >> "$measurements_table"
+					printf "             aborted |" >> "$measurements_table"
 				else
 					printf " ------------------- |" >> "$measurements_table"
 				fi

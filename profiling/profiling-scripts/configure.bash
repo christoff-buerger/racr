@@ -44,7 +44,7 @@ status_names=(
 )
 status_descriptions=(
 	"Measurement date (yyyy-mm-dd hh:mm:ss)"
-	"Measurement status (F: failed, A: aborted, S: successful)"
+	"Measurement status (failed, aborted, succeeded)"
 )
 result_names=()
 result_descriptions=()
