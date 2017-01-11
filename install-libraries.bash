@@ -105,45 +105,35 @@ fi
 
 if [[ " ${selected_systems[@]} " =~ "larceny" ]]
 then
-	# Use subshell for local directory changes via cd:
-	(
 	echo "=========================================>>> Compile for Larceny:"
-	# Create compile script:
-	cd "$script_dir"
-	echo "#!r6rs" > compile-stale
-	echo "(import (rnrs) (larceny compiler))" >> compile-stale
-	echo "(compiler-switches (quote fast-safe))" >> compile-stale # Just for optimisation. Even more aggressive: fast-unsafe
-	echo "(compile-stale-libraries)" >> compile-stale
-	# Compile libraries:
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "larceny" ]]
 		then
-			ll=`echo "$l" | rev | cut -d/ -f1 | rev` # Extract last file part of string
-			cd "$l"
-			rm -rf larceny-bin
-			mkdir -p "larceny-bin/$ll"
-			lib_path=".."
+			l_bin="$l/larceny-bin"
+			l_lib="$l_bin/`basename "$l"`"
+			rm -rf "$l_bin"
+			mkdir -p "$l_lib"
+			lib_path="$l_bin"
 			for x in ${required_libraries[@]}
 			do
 				lib_path+=":$x/larceny-bin"
 			done
-			for x in ${required_sources[@]} 
+			for x in ${required_sources[@]}
 			do
-				cp -p "$x.scm" "larceny-bin/$ll/`basename "$x"`.sls"
+				x_sls="$l_lib/`basename "$x"`.sls"
+				cp -p "$x.scm" "$x_sls"
+				larceny --r6rs --path "$lib_path" << \
+EOF
+				(import (rnrs) (larceny compiler))
+				(compiler-switches (quote fast-safe)) ; optimisation (even more aggressive: fast-unsafe)
+				(compile-library "$x_sls")
+EOF
 			done
-			cd "larceny-bin/$ll"
-			cp -p "$script_dir/compile-stale" .
-			larceny --r6rs --path $lib_path --program compile-stale
-			rm compile-stale
 		fi
 	done
-	# Delete compile script:
-	cd "$script_dir"
-	rm compile-stale
-	)
 fi
 
 if [[ " ${selected_systems[@]} " =~ "ironscheme" ]]
