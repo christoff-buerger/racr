@@ -150,7 +150,7 @@
         (identifier-list? #'(final ...))
         (identifier-list? #'(source ...))
         (identifier-list? #'(target ...))
-        (not (null? #'(final ...))))
+        (not (null? (syntax->datum #'(final ...)))))
        (with-syntax
            (((state ...)
              (let loop ((input #'(initial final ... source ... target ...))
