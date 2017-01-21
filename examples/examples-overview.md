@@ -29,7 +29,6 @@ Introduction of _RACR_ basics based on Knuth's classical attribute grammar paper
 **New features:** Reference and circular attributes, attribute broadcasting
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
-**Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
 
 Simple language for the specification of finite state machines. The implementation provides attributes to search for certain states by name, to compute the direct successors of a state and the states reachable from it (transitive closure). Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if its states are unique, the initial state is defined, the source and target states of transitions are defined and all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
 
@@ -39,6 +38,8 @@ The example shows, how reference attributes declaratively induce edges on abstra
 
   * Reference attributes: graph analyses (like a name analyses to lookup the incoming and outgoing transitions of states)
   * Circular attributes: transitive closure analyses (like state reachability)
+
+**Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
 
 ## _SLE 2015_: RAG-controlled rewriting motivation and overview
 
@@ -163,13 +164,13 @@ The interpreter won the [_Overall Quality Award_](ttc-2015-fuml-activity-diagram
 > Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
 > [Original version at CEUR-WS.org](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
 
-A [poster](ttc-2015-fuml-activity-diagrams/documentation/solution-poster-a0.pdf) and [presentation](ttc-2015-fuml-activity-diagrams/documentation/solution-presentation.pdf) summarise the _RACR_-based solution.
-
 **Objective:** Application of RAG-controlled rewriting for metamodelling, using attributes and rewrites for non-transformational and transformational semantics respectively.
 
  * Abstract syntax tree scheme to model domain concepts, their intrinsic properties and structural containment relations
  * (Reference) attributes to model extrinsic, deduced properties and relations
  * Attribute-based, deduced rewrites to model transformations
+
+**Documentation:** A [poster](ttc-2015-fuml-activity-diagrams/documentation/solution-poster-a0.pdf) and [presentation](ttc-2015-fuml-activity-diagrams/documentation/solution-presentation.pdf) summarise the _RACR_-based solution. A [peer-reviewed paper](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf) explains and evaluates it in detail.
 
 ## _SiPLE_ (Simple imperative Programming Language Example)
 
