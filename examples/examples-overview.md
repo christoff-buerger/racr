@@ -161,7 +161,7 @@ The interpreter won the _Overall Quality Award_ of _The TTC 2015 Model Execution
 > "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
 > In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
 > Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
-> [Original version at CEUR-WS.org](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](examples/ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
+> [Original version at CEUR-WS.org](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
 
 **Objective:** Application of RAG-controlled rewriting for metamodelling, using attributes and rewrites for non-transformational and transformational semantics respectively.
 
