@@ -151,17 +151,19 @@ A highlight of the example is the automatically optimised enabled analysis thank
 **Scheme library:** Yes
 **Peer-reviewed:** Published at the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/)
 
-Implementation of an _[fUML](http://www.omg.org/spec/FUML/) Activity Diagram_ interpreter, the competition scenario of [_The TTC 2015 Model Execution Case_](http://www.transformation-tool-contest.eu/2015/solutions_execution.html) of the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/). For a description of the scenario consult the original [task](ttc-2015-fuml-activity-diagrams/documentation/the-ttc-2015-model-execution-case.pdf) (`ttc-2015-fuml-activity-diagrams/documentation/the-ttc-2015-model-execution-case.pdf`).
+Implementation of an _[fUML](http://www.omg.org/spec/FUML/) Activity Diagram_ interpreter, the competition scenario of [_The TTC 2015 Model Execution Case_](http://www.transformation-tool-contest.eu/2015/solutions_execution.html) of the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/). For a detailed description of the contest scenario consult the [original task](ttc-2015-fuml-activity-diagrams/documentation/the-ttc-2015-model-execution-case.pdf).
 
 The implemented activity diagram interpreter reuses the atomic Petri nets language. Attribute-based analyses map _fUML Activity Diagrams_ to Petri nets; their execution coincides with the respective diagram's execution. Since _fUML_ is a subset of the _Unified Modelling Language_, the example demonstrates the application of RAG-controlled rewriting for the specification of metamodel semantics and relates it to well-known metamodelling concepts. The task compromises the development of an executable domain model for _fUML Activity Diagrams_, including their domain concepts with intrinsic and (deduced) extrinsic properties, containment and (deduced) non-containment relations, well-formedness semantics and transformational execution semantics.
 
-The interpreter won the _Overall Quality Award_ of _The TTC 2015 Model Execution Case_ and is accompanied by a peer-reviewed paper explaining its implementation in detail:
+The interpreter won the [_Overall Quality Award_](ttc-2015-fuml-activity-diagrams/documentation/solution-award.pdf) of _The TTC 2015 Model Execution Case_ and is accompanied by a peer-reviewed paper explaining its implementation in detail:
 
 > Christoff Bürger.
 > "fUML Activity Diagrams with RAG-controlled Rewriting: A RACR Solution of The TTC 2015 Model Execution Case".
 > In: _TTC 2015: Proceedings of the 8th Transformation Tool Contest_.
 > Volume 1524. CEUR Workshop Proceedings. CEUR-WS.org, July 2015, pp. 27–36.
 > [Original version at CEUR-WS.org](http://ceur-ws.org/Vol-1524/paper10.pdf), [up-to-date version](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf)
+
+A [poster](ttc-2015-fuml-activity-diagrams/documentation/solution-poster-a0.pdf) and [presentation](ttc-2015-fuml-activity-diagrams/documentation/solution-presentation.pdf) summarise the _RACR_-based solution.
 
 **Objective:** Application of RAG-controlled rewriting for metamodelling, using attributes and rewrites for non-transformational and transformational semantics respectively.
 
