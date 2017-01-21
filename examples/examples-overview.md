@@ -170,7 +170,7 @@ The interpreter won the [_Overall Quality Award_](ttc-2015-fuml-activity-diagram
  * (Reference) attributes to model extrinsic, deduced properties and relations
  * Attribute-based, deduced rewrites to model transformations
 
-**Documentation:** A [poster](ttc-2015-fuml-activity-diagrams/documentation/solution-poster-a0.pdf) and [presentation](ttc-2015-fuml-activity-diagrams/documentation/solution-presentation.pdf) summarise the _RACR_-based solution. A [peer-reviewed paper](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf) explains and evaluates it in detail.
+**Documentation:** A [poster](ttc-2015-fuml-activity-diagrams/documentation/solution-poster-a0.pdf) and [presentation](ttc-2015-fuml-activity-diagrams/documentation/solution-presentation.pdf) summarise the _RACR_-based implementation of the _fUML Activity Diagram_ interpreter. A [peer-reviewed paper](ttc-2015-fuml-activity-diagrams/documentation/solution-description.pdf) explains and evaluates it in detail.
 
 ## _SiPLE_ (Simple imperative Programming Language Example)
 
