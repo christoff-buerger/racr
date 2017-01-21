@@ -11,27 +11,27 @@
 **Size:** Very small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 
-_RACR_ introduction based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example. For details cf.:
+Introduction of _RACR_ basics based on Knuth's classical attribute grammar paper and its "binary to decimal numbers" example:
 
 > Donald Ervin Knuth. "Semantics of Context-Free Languages".
 > In: _Theory of Computing Systems_.
 > Volume 2, Number 2. Springer, June 1968, pages 127-145.
 
-**Objective:** Introduction to _RACR's_ basic application programming interface.
+**Objective:** Introduction to attribute grammars in _RACR_. Presentation of _RACR's_ basic application programming interface.
 
- * Abstract syntax tree specifications: non-terminals, productions, inheritance
- * Attribute specifications: synthesised & inherited attributes
- * Abstract syntax tree & attribute query functions
+ * Abstract syntax tree schemes: non-terminals, productions, inheritance
+ * Abstract syntax tree attributions: synthesised and inherited attributes
+ * Abstract syntax tree and attribute query functions
 
 ## State Machines
 
 **Difficult level:** Reference attribute grammar novice, _RACR_ novice
-**New features:** Reference and circular attributes, attribute broadcasting, attribute inheritance
+**New features:** Reference and circular attributes, attribute broadcasting
 **Size:** Small
 **Scheme library:** No, ordinary _Scheme_ top-level program
 **Documentation:** [Implementation summary](state-machines/documentation/state-machines.md)
 
-Simple finite state machine language implementation providing attributes to search for certain states by name, to compute the direct successors of a state, the states reachable from it (transitive closure) and if it is a final state. Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if, and only if, all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
+Simple language for the specification of finite state machines. The implementation provides attributes to search for certain states by name, to compute the direct successors of a state and the states reachable from it (transitive closure). Also the well-formedness of state machines can be checked via attributes. A state machine is well-formed, if its states are unique, the initial state is defined, the source and target states of transitions are defined and all states (except the initial state) are reachable from the initial state and from every state (except final states) a final state is reachable.
 
 The example shows, how reference attributes declaratively induce edges on abstract syntax trees, extending them to abstract syntax graphs. Such reference attribute induced edges form semantic overlay graphs and are typical for name and type analyses. In the example, reference attributes are used to 'transform' the abstract syntax tree, which was constructed by parsing a textual state machine representation, to the respective, actual, state machine diagram. The graph resulting from this name analysis is well-suited for further analyses, like the implemented state reachability.
 
@@ -52,8 +52,8 @@ This example summarises and motivates the essential features of _RACR_ by implem
 
   * How reference attributes extend _abstract syntax trees_ to _abstract syntax graphs_
   * How _dynamic attribute dependencies_ extend abstract syntax graphs to _dynamic attribute dependency graphs_
-  * The importance and benefits of dynamic dependencies for _incremental attribute evaluation_
-  * How reference attribute grammar based analyses can be used to ease the development of _rewrite-based transformations_
+  * The benefits of dynamic dependencies for _incremental attribute evaluation_
+  * How reference attribute grammar based _analyses_ can be used to ease the development of rewrite-based _transformations_
 
 The example is accompanied by a peer-reviewed paper which motivates and explains these concepts:
 
@@ -65,7 +65,7 @@ The example is accompanied by a peer-reviewed paper which motivates and explains
 
 **Objective:** Self-contained, easy and fast to understand introduction to RAG-controlled rewriting; overview of essential _RACR_ features.
 
- * Specification, query and rewrite functions
+ * Abstract syntax graph schemes and respective query and rewrite functions
  * Abstract syntax graph memoization
  * Application of attribute-based analyses for rewrite-based transformations
  * Incremental evaluation
@@ -79,12 +79,12 @@ The example is accompanied by a peer-reviewed paper which motivates and explains
 
 Implementation of a coloured, weighted Petri net interpreter that supports arbitrary input arc conditions and output computations. Reference attribute grammar based analyses are used to perform name, enabled and well-formedness analyses of Petri nets; rewrites are used to implement their actual execution semantics, i.e., the firing of enabled transitions.
 
-The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. During this loop, enabled analysis is automatically optimised by incremental attribute evaluation.
+The example demonstrates the reuse of attribute-based analyses to ease and control rewriting. The presented enabled analysis deduces all enabled transitions and their respective consumed tokens. Given this information, execution via rewriting is straight forward: as long as there are enabled transitions, select one, delete its consumed tokens and add the produced ones. During this process, enabled analysis is automatically optimised by incremental attribute evaluation.
 
 **Objective:** Validation of the benefits of _RACR's_ incremental evaluation semantics in an intuitively comprehensible scenario with interactive, mutual-dependent analyses and transformations (execution semantics of Petri nets).
 
  * Attribute-based analyses: name, graph and well-formedness analyses (e.g., the enabled analysis of Petri net transitions)
- * Rewrite-based transformations: AST represents a state, rewrites are state changes (e.g., rewrites that delete consumed and add produced tokens of fired transitions)
+ * Rewrite-based transformations: Abstract syntax tree represents a state, rewrites are state changes (e.g., rewrites that delete consumed and add produced tokens of fired transitions)
  * Mutual-dependent, incremental evaluation of analyses and transformations: attributes are only re-evaluated if they depend on information changed by rewrite applications (e.g., the enabled status of transitions is only re-evaluated if the last fired transition influenced it) and transformations are derived by attributes (firing semantics defined by means of enabled analysis)
 
 ## _Language Workbench Challenges 2013 & 2014_: Questionnaires
@@ -94,7 +94,9 @@ The example demonstrates the reuse of attribute-based analyses to ease and contr
 **Size:** Small/Medium
 **Scheme library:** Yes
 
-Implementation of the Questionnaire Language, the competition scenario of the [_Language Workbench Challenges 2013 and 2014_](http://www.languageworkbenches.net). For a description of the scenario consult `./questionnaires/documentation/language-workbench-challenge-2013.pdf`. The questionnaires of the _RACR_ solution look as follows:
+Implementation of the Questionnaire Language, the competition scenario of the [_Language Workbench Challenges 2013 and 2014_](http://www.languageworkbenches.net). The Questionnaire Language provides means for the convenient specification of formulas, consisting of questions users interactively answer, and form fields, computed from respective answers. Given the description of a formula, an interactive runtime rendering is generated and automatically updated (for example, new questions are shown if certain fields are selected or within a certain range of answers etc). For a complete description of the scenario consult `./questionnaires/documentation/language-workbench-challenge-2013.pdf`.
+
+The questionnaires of the _RACR_ solution look as follows:
 
 ![correct-questionnaire-scenario](questionnaires/documentation/figures/correct-questionnaire-scenario.png)
 
@@ -151,7 +153,7 @@ A highlight of the example is the automatically optimised enabled analysis thank
 
 Implementation of an _[fUML](http://www.omg.org/spec/FUML/) Activity Diagram_ interpreter, the competition scenario of [_The TTC 2015 Model Execution Case_](http://www.transformation-tool-contest.eu/2015/solutions_execution.html) of the [_8th Transformation Tool Contest_](http://www.transformation-tool-contest.eu/2015/). For a description of the scenario consult `./ttc-2015-fuml-activity-diagrams/documentation/the-ttc-2015-model-execution-case.pdf`.
 
-The interpreter reuses the atomic Petri nets language. Attribute-based analyses map _fUML Activity Diagrams_ to Petri nets; their execution coincides with the respective diagram's execution. Since _fUML_ is a subset of the _Unified Modelling Language_, the example demonstrates the application of RAG-controlled rewriting for the specification of metamodel semantics and relates it to well-known metamodelling concepts. The task compromises the development of an executable domain model for activity diagrams, including their domain concepts with intrinsic and (deduced) extrinsic properties, containment and (deduced) non-containment relations, well-formedness semantics and transformational execution semantics.
+The implemented activity diagram interpreter reuses the atomic Petri nets language. Attribute-based analyses map _fUML Activity Diagrams_ to Petri nets; their execution coincides with the respective diagram's execution. Since _fUML_ is a subset of the _Unified Modelling Language_, the example demonstrates the application of RAG-controlled rewriting for the specification of metamodel semantics and relates it to well-known metamodelling concepts. The task compromises the development of an executable domain model for _fUML Activity Diagrams_, including their domain concepts with intrinsic and (deduced) extrinsic properties, containment and (deduced) non-containment relations, well-formedness semantics and transformational execution semantics.
 
 The interpreter won the _Overall Quality Award_ of _The TTC 2015 Model Execution Case_ and is accompanied by a peer-reviewed paper explaining its implementation in detail:
 
