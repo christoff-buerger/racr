@@ -28,13 +28,13 @@ do
 			found=""
 			for s in guile racket larceny petite sagittarius
 			do
-				if which "$s" > /dev/null
+				if which "$s" &> /dev/null
 				then
 					echo "$s"
 					found=true
 				fi
 			done
-			if which IronScheme.Console-v4.exe > /dev/null
+			if which IronScheme.Console-v4.exe &> /dev/null
 			then
 				echo ironscheme
 				found=true
