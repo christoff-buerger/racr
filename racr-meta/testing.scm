@@ -39,6 +39,8 @@
        ((and context? (not (symbol->non-terminal? context?))) ; Print terminal
         (print-indentation ast-depth)
         (my-display "- ")
+        (my-display (symbol->string (symbol->name context?)))
+        (my-display ": ")
         (my-display n))
        ((ast-list-node? n) ; Print list nodes
         (print-indentation ast-depth)

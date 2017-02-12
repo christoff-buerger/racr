@@ -206,7 +206,7 @@ public static class CalculatorProfiler {
 	}
 
 	[Test] public void n1c1r0()		{ test(1,	1,	0);	}
-	[Test] public void n1c1r10()		{ test(1,	1,	10)	}
+	[Test] public void n1c1r10()		{ test(1,	1,	10);	}
 	[Test] public void n10c1r0()		{ test(10,	1,	0);	}
 	[Test] public void n10c1r10()		{ test(10,	1,	10);	}
 	[Test] public void n10c10r10()		{ test(10,	10,	10);	}

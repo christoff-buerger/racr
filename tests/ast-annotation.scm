@@ -175,14 +175,14 @@
   
   #| TODO: enable tests when attribution meta-facilities (cf. issue #63) are implemented.
   (let ((D (create-ast-2 spec 'D (list)))) ; Annotations and attribute evaluation:
+    (assert ; Independent inter-AST annotations throughout attribute evaluation.
+     (for-all (lambda (op) (att-value 'independent-inter-ast D op #t)) annotation-operations))
     (assert ; Intra-AST annotations outside attribute evaluation.
      (for-all (lambda (op) ((att-value 'intra-ast D op #f))) annotation-operations))
     (assert ; Independent inter-AST annotations outside attribute evaluation.
      (for-all (lambda (op) ((att-value 'independent-inter-ast D op #f))) annotation-operations))
     (assert ; Mutual-dependent inter-AST annotations outside attribute evaluation.
-     (for-all (lambda (op) ((att-value 'mutual-dependent-inter-ast D op #f))) annotation-operations))
-    (assert ; Independent inter-AST annotations throughout attribute evaluation.
-     (for-all (lambda (op) (att-value 'independent-inter-ast D op #t)) annotation-operations)))
+     (for-all (lambda (op) ((att-value 'mutual-dependent-inter-ast D op #f))) annotation-operations)))
   |#
   )
 
