@@ -5,7 +5,7 @@
 
 # author: C. Bürger
 
-if which system_profiler > /dev/null
+if command -v system_profiler > /dev/null
 then
 	system_profiler SPHardwareDataType \
 		SPMemoryDataType \
