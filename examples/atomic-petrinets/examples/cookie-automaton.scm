@@ -55,7 +55,7 @@
    
    (transition: d
                 ((C (y #t)))                    ; Consume arbitrary token from C.
-                ())))                           ; d is cold-transition: produce nothing.									; d is cold-transition. It produces nothing.)
+                ())))                           ; d is cold-transition: produce nothing.
 
 (define (run-tests)
   ; Test fixture: Transition b nondeterministicly selects boxes from H!
