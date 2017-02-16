@@ -38,7 +38,7 @@
      (cond
        ((and context? (not (symbol->non-terminal? context?))) ; Print terminal
         (print-indentation ast-depth)
-        (my-display "- ")
+        (my-display "> ")
         (my-display (symbol->string (symbol->name context?)))
         (my-display ": ")
         (my-display n))
@@ -47,7 +47,13 @@
         (print-indentation ast-depth)
         (my-display "-* ")
         (when context?
-          (my-display (symbol->string (symbol->name context?))))
+          (let ((element-type (symbol->string (symbol->name context?)))
+                (context-name (symbol->string (symbol->context-name context?))))
+            (my-display element-type)
+            (unless (string=? (string-append element-type "*") context-name)
+              (my-display " (")
+              (my-display context-name)
+              (my-display ")"))))
         (ast-for-each-child
          (lambda (i n)
            (loop n (+ ast-depth 1) context?))
@@ -55,21 +61,31 @@
        ((ast-bud-node? n) ; Print bud nodes
         (print-indentation ast-depth)
         (print-indentation ast-depth)
-        (my-display "-@ bud-node"))
+        (my-display "-< bud-node >"))
        (else ; Print non-terminal
         (print-indentation ast-depth)
         (print-indentation ast-depth)
         (my-display "-\\ ")
         (my-display (symbol->string (ast-node-type n)))
+        (cond
+          ((not context?) #f)
+          ((symbol->kleene? context?)
+           (my-display " (")
+           (my-display (symbol->string (symbol->context-name context?)))
+           (my-display " element)"))
+          ((not (eq? (ast-node-type n) (symbol->context-name context?)))
+           (my-display " (")
+           (my-display (symbol->string (symbol->context-name context?)))
+           (my-display ")")))
         (for-each
          (lambda (att-def)
            (define name (attribute->name att-def))
            (define pretty-printer-entry (assq name attribute-pretty-printer-list))
            (when pretty-printer-entry
              (print-indentation (+ ast-depth 1))
-             (my-display " <")
+             (my-display "@ ")
              (my-display (symbol->string name))
-             (my-display "> ")
+             (my-display ": ")
              (my-display ((cdr pretty-printer-entry) (att-value name n)))))
          (append
           (if context? (symbol->attributes context?) (list))

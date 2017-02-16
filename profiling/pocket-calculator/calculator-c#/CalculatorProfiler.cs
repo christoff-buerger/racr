@@ -21,7 +21,7 @@ public static class CalculatorLanguage {
 		CL = new Racr.Specification();
 
 		// abstract syntax tree
-		CL.AstRule("Calculator->Definition*<Definitions-Expression");
+		CL.AstRule("Calculator->Definition*-Expression");
 		CL.AstRule("Definition->name-value");
 		CL.AstRule("Expression->");
 		CL.AstRule("BinaryExpression:Expression->Expression<Op1-Expression<Op2");
@@ -57,7 +57,7 @@ public static class CalculatorLanguage {
 	}
 
 	public static Racr.AstNode GetDefinitions(this Racr.AstNode n) {
-		return n.Child("Definitions");
+		return n.Child("Definition*");
 	}
 
 	public static double Eval(this Racr.AstNode n) {
