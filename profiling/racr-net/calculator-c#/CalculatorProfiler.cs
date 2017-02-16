@@ -15,7 +15,7 @@ using IronScheme.Runtime;
 using IronScheme.Scripting;
 
 public static class CalculatorLanguage {
-	public static Racr.Specification CL;
+	public static readonly Racr.Specification CL;
 
 	static CalculatorLanguage() {
 		CL = new Racr.Specification();
@@ -101,7 +101,7 @@ public static class CalculatorLanguage {
 }
 
 public static class CalculatorProfiler {
-	public static Racr.Specification CL = CalculatorLanguage.CL;
+	private static readonly Racr.Specification CL = CalculatorLanguage.CL;
 
 	static CalculatorProfiler() {
 		"(import (calculator-scheme main))".Eval();
