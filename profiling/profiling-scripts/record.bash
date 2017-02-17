@@ -125,14 +125,14 @@ do
 		then # fix table if entries are missing
 			for (( i = column_count; i < number_of_criteria; i++ ))
 			do
-				if (( i == number_of_parameters + 2 ))
+				if (( i == number_of_parameters + 1 ))
 				then
 					printf "             aborted |" >> "$measurements_table"
 				else
 					printf " ------------------- |" >> "$measurements_table"
 				fi
 			done
-			if (( column_count < number_of_criteria ))
+			if (( column_count <= number_of_criteria ))
 			then
 				echo " ------------------- " >> "$measurements_table"
 			fi

@@ -5,25 +5,20 @@
 
 # author: C. Bürger
 
-# BEWARE: This script must be sourced. It expects one variable to be set and sets thirteen variables:
-#  in)  profiling_configuration:	Profiling configuration file to parse
-#  set) execution_script:		The script to execute for each measurement as defined by the parsed configuration
-#  set) parameter_names:		Array of the names of parameters as defined by the parsed configuration
-#  set) parameter_descriptions:		Array of parameters descriptions as given by the parsed configuration
-#					(one description for each parameter)
-#  set) status_names:			Array of the names of measurement statuses
-#  set) status_descriptions:		Array of status descriptions
-#					(one description for each status)
-#  set) result_names:			Array of the names of measurement results as defined by the parsed configuration
-#  set) result_descriptions:		Array of measurement result descriptions as given by the parsed configuration
-#					(one description for each measurement result)
-#  set) criteria_names:			Array of all measurement criteria, i.e, parameter, status and result names
-#  set) criteria_descriptions:		Array of criteria descriptions
-#					(each description is the one of the respective parameter, status or result)
-#  set) number_of_parameters:		Number of parameters defined by the parsed configuration
-#  set) number_of_statuses:		Number of measurement statuses
-#  set) number_of_results:		Number of measurement results defined by the parsed configuration
-#  set) number_of_criteria:		Number of all measurement criteria, i.e., parameters, statuses and results
+# BEWARE: This script must be sourced. It expects one variable to be set and sets ten variables:
+#  in)  profiling_configuration:	Profiling configuration to parse.
+#  set) execution_script:		The script to execute for each measurement.
+#  set) parameter_names:		Array of the names of parameters.
+#					The measurement date is automatically added as first parameter.
+#  set) parameter_descriptions:		Array of parameter descriptions (one description for each parameter).
+#  set) result_names:			Array of the names of measurement results.
+#					The measurement status is automatically added as first result.
+#  set) result_descriptions:		Array of result descriptions (one description for each result).
+#  set) criteria_names:			Array of all measurement criteria (parameter names followed by result names).
+#  set) criteria_descriptions:		Array of criteria descriptions (one description for each criteria).
+#  set) number_of_parameters:		Number of parameters including the default measurement date.
+#  set) number_of_results:		Number of measurement results including the default measurement status.
+#  set) number_of_criteria:		Number of all measurement criteria (parameters and results).
 
 set -e
 set -o pipefail
@@ -36,18 +31,10 @@ then
 fi
 
 parsing_mode=execution-script
-parameter_names=()
-parameter_descriptions=()
-status_names=(
-	"Date"
-	"Status"
-)
-status_descriptions=(
-	"Measurement date (yyyy-mm-dd hh:mm:ss)"
-	"Measurement status (failed, aborted, succeeded)"
-)
-result_names=()
-result_descriptions=()
+parameter_names=( "Date" )
+parameter_descriptions=( "Measurement date (yyyy-mm-dd hh:mm:ss)" )
+result_names=( "Status" )
+result_descriptions=( "Measurement status (failed, aborted, succeeded)" )
 
 while read line
 do
@@ -91,12 +78,10 @@ done < "$profiling_configuration"
 
 criteria_names=(
 	"${parameter_names[@]}"
-	"${status_names[@]}"
 	"${result_names[@]}"
 )
 criteria_descriptions=(
 	"${parameter_descriptions[@]}"
-	"${status_descriptions[@]}"
 	"${result_descriptions[@]}"
 )
 
@@ -107,6 +92,5 @@ then
 fi
 
 number_of_parameters=${#parameter_names[@]}
-number_of_statuses=${#status_names[@]}
 number_of_results=${#result_names[@]}
-number_of_criteria=$(( number_of_parameters + number_of_statuses + number_of_results ))
+number_of_criteria=$(( number_of_parameters + number_of_results ))

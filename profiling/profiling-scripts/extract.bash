@@ -241,54 +241,41 @@ do
 	i=$(( i + 1))
 done
 echo ""
-echo "(define (process-row v)"
+echo "(define (process-row row)"
 echo " (unless"
 echo "  (and"
-printf "   (unique-row? v)"
+printf "   (unique-row? row)"
 i=0
 for comparator in "${comparators[@]}"
 do
-	printf "\n   (ps:$comparator (vector-ref v ${comparators_index[$i]}) string-constant-$i)"
+	printf "\n   (ps:$comparator (vector-ref row ${comparators_index[$i]}) string-constant-$i)"
 	i=$(( i + 1 ))
 done
 if [ ${#local_extrema[@]} -gt 0 -o ${#global_extrema[@]} -gt 0 ]
 then
-	printf "\n   (let ((v-extrema"
+	printf "\n   (let ((extrema-count"
 	printf "\n          (+"
 	i=0
 	for operator in "${local_extrema[@]}"
 	do
-		printf "\n           (if (update-local-extremum v ${local_extrema_index[$i]} ps:$operator) 1 0)"
+		printf "\n           (if (update-local-extremum row ${local_extrema_index[$i]} ps:$operator) 1 0)"
 		i=$(( i + 1 ))
 	done
 	i=0
 	for operator in "${global_extrema[@]}"
 	do
-		printf "\n           (if (update-global-extremum v ${global_extrema_index[$i]} ps:$operator) 1 0)"
+		printf "\n           (if (update-global-extremum row ${global_extrema_index[$i]} ps:$operator) 1 0)"
 		i=$(( i + 1 ))
 	done
 	echo ")))"
-	echo "    (vector-set! v $number_of_criteria v-extrema)"
-	printf "    (> v-extrema 0))"
+	echo "    (vector-set! row $number_of_criteria extrema-count)"
+	printf "    (> extrema-count 0))"
 fi
 echo ")"
-echo "  (discard-row v)))"
+echo "  (discard-row row)))"
 echo ""
 echo "(define rows"
-echo " (vector-sort"
-echo "  (lambda (v1 v2)"
-echo "    (define date-1 (vector-ref v1 $number_of_parameters))"
-echo "    (define date-2 (vector-ref v2 $number_of_parameters))"
-echo "    (or"
-echo "     (ps:< date-1 date-2)"
-echo "     (and"
-echo "      (ps:== date-1 date-2)"
-echo "      (let loop ((i 0))"
-echo "       (cond"
-echo "        ((= i $number_of_criteria) #f)"
-echo "        ((ps:< (vector-ref v1 i) (vector-ref v2 i)) #t)"
-echo "        ((ps:> (vector-ref v1 i) (vector-ref v2 i)) #f)"
-echo "        (else (loop (+ i 1))))))))"
+echo " (sort-rows $number_of_criteria"
 printf "  (vector"
 for s in "${source_tables[@]}"
 do
@@ -316,7 +303,7 @@ do
 done
 echo ")))"
 echo ""
-echo "(initialise $number_of_criteria $number_of_parameters)"
+echo "(initialise $number_of_criteria)"
 echo ""
 echo "(vector-for-each process-row rows)"
 echo "(vector-for-each"
@@ -325,9 +312,11 @@ echo "  (when (vector-ref row $number_of_criteria)"
 echo "   (do ((i 0 (+ i 1))) ((= i $number_of_criteria))"
 echo "    (display (string-append (vector-ref row i) \"\n\")))))"
 echo " rows)"
+#echo "(define o (open-output-file \"debug.txt\"))"
+#echo "(vector-for-each (lambda (r) (display r o) (display #\\newline o)) rows)"
 } > "$extraction_script"
 
-nl -b a "$extraction_script"
+#nl -b a "$extraction_script"
 
 ########################################################################################################### Extract measurements:
 "$script_dir/../../run-program.bash" -s $selected_system -e "$extraction_script" > "$measurements_pipe"

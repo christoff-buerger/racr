@@ -120,11 +120,11 @@ sleep 1 # let the record script write the table header
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
 ################################################################################################################ Read parameters:
-declare -a parameter_values
-declare -a parameter_iterations
-declare -a parameter_adjustments
+parameter_values=( "DUMMY DATE" )
+parameter_iterations=( "DUMMY DATE ITERATION" )
+parameter_adjustments=( "DUMMY DATE ADJUSTMENT" )
 
-for (( i = 0; i < number_of_parameters; i++ ))
+for (( i = 1; i < number_of_parameters; i++ ))
 do
 	read -r -p "${parameter_descriptions[$i]} [${parameter_names[$i]}]: " choice
 	if [ ! -t 0 ]
@@ -193,32 +193,37 @@ valid_parameters=1
 ########################################################################################################### Perform measurements:
 echo ""
 
-current_parameter=0
+current_parameter_values=( "DUMMY DATE" )
+current_parameter_iterations=( "DUMMY DATE ITERATION" )
+current_parameter=1
 undo=false
-declare -a current_parameter_values
-declare -a current_parameter_iterations
 
 exec 3> "$measurements_pipe"
-while [ $current_parameter -ge 0 ]
+while [ $current_parameter -ge 1 ]
 do
 	if (( current_parameter >= number_of_parameters ))
 	then # perform measurement
 		current_parameter=$(( current_parameter - 1 ))
 		undo=true
+		measurement_date=`date "+%Y-%m-%d %H:%M:%S"`
+		echo "$measurement_date" >&3
 		printf "Measurement ["
-		for (( i = 0; i < number_of_parameters; i++ ))
+		for (( i = 1; i < number_of_parameters; i++ ))
 		do
 			printf " ${parameter_names[$i]}=${current_parameter_values[$i]} "
 			echo "${current_parameter_values[$i]}" >&3
 		done
 		echo "]"
-		measurement_date=`date "+%Y-%m-%d %H:%M:%S"`
-		echo "$measurement_date" >&3
 		old_IFS="$IFS"
 		IFS=$'\n'
 		set +e
 		set +o pipefail
-		measurement_results=( `"$execution_script" ${current_parameter_values[@]} 2> "$measurement_stderr"` )
+		arguments=() # macOs workaround for more convenient, but broken "${current_parameter_values[@]:1}".
+		for (( i = 1; i < number_of_parameters; i++ ))
+		do
+			arguments+=( "${current_parameter_values[$i]}" )
+		done
+		measurement_results=( `"$execution_script" "${arguments[@]}" 2> "$measurement_stderr"` )
 		measurement_error=$?
 		set -e
 		set -o pipefail
@@ -226,7 +231,7 @@ do
 		if [ $measurement_error -ne 0 -o -s "$measurement_stderr" ]
 		then
 			measurement_failed=1
-		elif [ ${#measurement_results[@]} -ne $number_of_results ]
+		elif (( ${#measurement_results[@]} + 1 != number_of_results ))
 		then
 			echo "	!!! ERROR: Unexpected number of measurement results !!!" >&2
 			measurement_failed=1
@@ -235,7 +240,7 @@ do
 		fi
 		if [ $measurement_failed -ne 0 ]
 		then
-			echo "failed" >&3
+			echo "failed" >&3 # 1st result is the measurement status.
 			echo "	Measurement failed."
 			if [ $measurement_error -ne 0 ]
 			then
@@ -251,16 +256,22 @@ do
 			then
 				echo " !!! ERROR: Measurements aborted because of failed measurement !!!" >&2
 				exit 2
+			else # fix table
+				for (( i = 1; i < number_of_results; i++ ))
+				do
+					echo "-------------------" >&3
+				done
 			fi
 		else
-			echo "succeeded" >&3
-			for (( i = 0; i < number_of_results; i++ ))
+			echo "succeeded" >&3 # 1st result is the measurement status.
+			for (( i = 1; i < number_of_results; i++ ))
 			do
-				echo "	${result_names[$i]}=${measurement_results[$i]}"
-				echo "${measurement_results[$i]}" >&3
+				echo "	${result_names[$i]}=${measurement_results[$(( i - 1 ))]}"
+				echo "${measurement_results[$(( i - 1 ))]}" >&3
 			done
 		fi
-	elif [ "$undo" = true ] && (( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
+	elif [ "$undo" = true ] && \
+		(( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
 	then # redo with adjusted parameters
 		undo=false
 		current_parameter_values[$current_parameter]=$((
