@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ -z "$1" ]
+then
+	echo "Usage: $0 filename [modulename ...]"
+	exit 85
+fi
+
+LIBS=""
+for i in ${@:2}
+do
+	LIBS="$LIBS ++lib $i"
+done
+
+TMP=$(mktemp)
+
+#../../racket/racket/bin/raco ctool --c-mods "$TMP" ++lib racket/base ++lib rnrs ++lib racr ++lib racr-test-api $LIBS
+
+../../racket/racket/bin/racket -S ../racr/racket-bin/ -l- raco/main.rkt ctool --c-mods "$TMP" ++lib racket/base ++lib rnrs ++lib racr/core ++lib racr/testing $LIBS
+cat "$TMP" | head -n -7 | tail -n +6 | perl -ne 'for (split /,/) { printf"%c",$_ if /\d/ }' > "$1"
+
+if ! [ -s "$1" ]
+then
+	rm "$1"
+	echo "ERROR"
+	exit 1
+fi

@@ -1,0 +1,4 @@
+build
+bin/tests
+bin/bc
+*.swp
