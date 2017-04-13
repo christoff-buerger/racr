@@ -1451,7 +1451,9 @@
         (lambda children
           (let ((new-fragment (make-node n #f (list))))
             ;;; Before constructing the fragment ensure, that...
-            (unless (and (= (length children) (length checkers)) (for-all (lambda (f c) (f c)) checkers children)) ; ...the given children fit.
+            (unless (and ; ...the given children fit.
+                     (= (length children) (length checkers))
+                     (for-all (lambda (f c) (f c)) checkers children))
               (throw-exception
                "Cannot construct " n " fragment;"
                "The given children do not fit."))
@@ -2269,7 +2271,7 @@
      (let ((parent (node-parent n)))
        (if parent
            (begin
-             (add-dependency:cache->node parent)
+             (add-dependency:cache->node-upwards parent)
              parent)
            (begin
              (add-dependency:cache->node-is-root n)
@@ -2280,7 +2282,7 @@
      (let ((parent (node-parent n)))
        (unless parent
          (throw-exception "Cannot query parent of roots."))
-       (add-dependency:cache->node parent)
+       (add-dependency:cache->node-upwards parent)
        parent)))
  
  (define ast-has-child?
@@ -2296,7 +2298,7 @@
                 (and (>= i 1) (<= i (length (node-children n))) (list-ref (node-children n) (- i 1))))))
        (unless child
          (throw-exception "Cannot query non-existent " i (if (symbol? i) "" "'th") " child."))
-       (add-dependency:cache->node child)
+       (add-dependency:cache->node-downwards child)
        (if (node-terminal? child)
            (node-children child)
            child))))
@@ -2643,7 +2645,7 @@
       (= (length children) (length contexts))
       (for-all satisfies-context? children contexts))))
  
- ; INTERNAL FUNCTION: Given an AST node update its synthesized attribution (i.e., add missing synthesized
+ ; INTERNAL FUNCTION: Given an AST node update its synthesized attribution, i.e., add missing synthesized
  ; attributes, delete superfluous ones, shadow equally named inherited attributes and update the
  ; definitions of existing synthesized attributes.
  (define update-synthesized-attribution
@@ -2679,7 +2681,7 @@
              remove?))
          (node-attributes n))))))
  
- ; INTERNAL FUNCTION: Given an AST node update its inherited attribution (i.e., add missing inherited
+ ; INTERNAL FUNCTION: Given an AST node update its inherited attribution, i.e., add missing inherited
  ; attributes, delete superfluous ones and update the definitions of existing inherited attributes.
  ; If the given node is a list-node the inherited attributes of its elements are updated.
  (define update-inherited-attribution
@@ -2778,9 +2780,14 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
- (define add-dependency:cache->node
+ (define add-dependency:cache->node-upwards
    (lambda (influencing-node)
-     (add-dependency:cache->node-characteristic influencing-node (cons 0 racr-nil))))
+     (add-dependency:cache->node-characteristic influencing-node (cons 0 'up))))
+
+ ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
+ (define add-dependency:cache->node-downwards
+   (lambda (influencing-node)
+     (add-dependency:cache->node-characteristic influencing-node (cons 0 'down))))
  
  ; INTERNAL FUNCTION: See "add-dependency:cache->node-characteristic".
  (define add-dependency:cache->node-is-root
@@ -2816,14 +2823,15 @@
  ; the attribute cache entry currently in evaluation (considering the evaluator state of the AST N
  ; is part of) to N and an influence-edge vice versa. If no attribute cache entry is in evaluation
  ; no edges are added. The following seven correlations exist:
- ;  0) Dependency on the existence of the node (i.e., existence of a node at the same location)
- ;  1) Dependency on the node being a root (i.e., the node has no parent)
- ;  2) Dependency on the node's number of children (i.e., existence of a node at the same location and with
- ;     the same number of children)
- ;  3) Dependency on the node's type (i.e., existence of a node at the same location and with the same type)
- ;  4) Dependency on whether the node's type is a supertype w.r.t. a certain type encoded in C or not
- ;  5) Dependency on whether the node's type is a subtype w.r.t. a certain type encoded in C or not
- ;  6) Dependency on whether the node defines a certain context (i.e., has child with a certain name) or not
+ ;  (0) Dependency on the existence of the node w.r.t. a query from a certain direction encoded in C (i.e.,
+ ;      existence of a node at the same location queried from the same direction (upwards or downwards the AST))
+ ;  (1) Dependency on the node being a root (i.e., the node has no parent)
+ ;  (2) Dependency on the node's number of children (i.e., existence of a node at the same location and with
+ ;      the same number of children)
+ ;  (3) Dependency on the node's type (i.e., existence of a node at the same location and with the same type)
+ ;  (4) Dependency on whether the node's type is a supertype w.r.t. a certain type encoded in C or not
+ ;  (5) Dependency on whether the node's type is a subtype w.r.t. a certain type encoded in C or not
+ ;  (6) Dependency on whether the node defines a certain context (i.e., has child with a certain name) or not
  (define add-dependency:cache->node-characteristic
    (lambda (influencing-node correlation)
      (let ((dependent-cache (evaluator-state-in-evaluation? (node-evaluator-state influencing-node))))
@@ -2849,7 +2857,13 @@
               dependency-vector
               correlation-type
               (case correlation-type
-                ((0 1 2 3)
+                ((0)
+                 (let ((known-direction (vector-ref dependency-vector correlation-type)))
+                   (cond
+                     ((not known-direction) correlation-arg)
+                     ((eq? known-direction correlation-arg) known-direction)
+                     (else 'up/down))))
+                ((1 2 3)
                  #t)
                 ((4 5 6)
                  (let ((known-args (vector-ref dependency-vector correlation-type)))
@@ -2880,7 +2894,7 @@
            (attribute-cache-entry-cache-influences influencing-cache)))))))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abstract Syntax Tree Rewriting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Primitive Rewrites ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; INTERNAL FUNCTION: Given an attribute instance, flush all its cache entries.
@@ -3147,6 +3161,38 @@
           (lambda (child) (if (node-terminal? child) (node-children child) child))
           children-to-remove)))))
  
+ (define rewrite-subtree
+   (lambda (old-fragment new-fragment)
+     ;;; Before replacing the subtree ensure, that no attributes of the old fragment are in evaluation and...
+     (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment))
+       (throw-exception
+        "Cannot replace subtree; "
+        "There are attributes in evaluation."))
+     (unless (valid-replacement-candidate? old-fragment new-fragment) ; ...the new fragment fits in its context.
+       (throw-exception
+        "Cannot replace subtree; "
+        "The replacement does not fit."))
+     ;;; When all rewrite constraints are satisfied,...
+     (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attribution. Then,...
+     ; ...flush all attribute cache entries cross-depending the old fragment and...
+     (flush-inter-fragment-dependent-attribute-cache-entries old-fragment #t)
+     (for-each ; ...all entries depending on the new fragment being a root. Afterwards,...
+      (lambda (influence)
+        (flush-attribute-cache-entry (car influence)))
+      (filter
+       (lambda (influence)
+         (vector-ref (cdr influence) 1))
+       (node-cache-influences new-fragment)))
+     (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...update both fragments' evaluator state,...
+     (distribute-evaluator-state (make-evaluator-state) old-fragment)
+     (set-car! ; ...replace the old fragment by the new one and...
+      (list-tail (node-children (node-parent old-fragment)) (- (node-child-index? old-fragment) 1))
+      new-fragment)
+     (node-parent-set! new-fragment (node-parent old-fragment))
+     (node-parent-set! old-fragment #f)
+     (update-inherited-attribution new-fragment) ; ...update the new fragment's inherited attribution. Finally,...
+     old-fragment)) ; ...return the removed old fragment.
+
  (define rewrite-add
    (lambda (l e)
      ;;; Before adding the element ensure, that...
@@ -3183,38 +3229,6 @@
      (when (node-parent l)
        (update-inherited-attribution e)))) ; ...any inherited attributes defined for its new context.
  
- (define rewrite-subtree
-   (lambda (old-fragment new-fragment)
-     ;;; Before replacing the subtree ensure, that no attributes of the old fragment are in evaluation and...
-     (when (evaluator-state-in-evaluation? (node-evaluator-state old-fragment))
-       (throw-exception
-        "Cannot replace subtree; "
-        "There are attributes in evaluation."))
-     (unless (valid-replacement-candidate? old-fragment new-fragment) ; ...the new fragment fits in its context.
-       (throw-exception
-        "Cannot replace subtree; "
-        "The replacement does not fit."))
-     ;;; When all rewrite constraints are satisfied,...
-     (detach-inherited-attributes old-fragment) ; ...delete the old fragment's inherited attribution. Then,...
-     ; ...flush all attribute cache entries cross-depending the old fragment and...
-     (flush-inter-fragment-dependent-attribute-cache-entries old-fragment #t)
-     (for-each ; ...all entries depending on the new fragment being a root. Afterwards,...
-      (lambda (influence)
-        (flush-attribute-cache-entry (car influence)))
-      (filter
-       (lambda (influence)
-         (vector-ref (cdr influence) 1))
-       (node-cache-influences new-fragment)))
-     (distribute-evaluator-state (node-evaluator-state old-fragment) new-fragment) ; ...update both fragments' evaluator state,...
-     (distribute-evaluator-state (make-evaluator-state) old-fragment)
-     (set-car! ; ...replace the old fragment by the new one and...
-      (list-tail (node-children (node-parent old-fragment)) (- (node-child-index? old-fragment) 1))
-      new-fragment)
-     (node-parent-set! new-fragment (node-parent old-fragment))
-     (node-parent-set! old-fragment #f)
-     (update-inherited-attribution new-fragment) ; ...update the new fragment's inherited attribution. Finally,...
-     old-fragment)) ; ...return the removed old fragment.
- 
  (define rewrite-insert
    (lambda (l i e)
      ;;; Before inserting the new element ensure, that...
@@ -3242,10 +3256,14 @@
        (lambda (influence)
          (vector-ref (cdr influence) 2))
        (node-cache-influences l)))
-     (for-each ; ...for each tree spaned by the successor element's of the insertion position,...
-      ; ...flush all attribute cache entries depending on, but still outside of, the respective tree. Then,...
+     (for-each ; ...for each successor element after insertion,...
       (lambda (successor)
-        (flush-inter-fragment-dependent-attribute-cache-entries successor #f))
+        (for-each ; ...flush all attribute cache entries depending on the respective element...
+         (lambda (influence)
+           (define query-direction? (vector-ref (cdr influence) 0)) ; ...via a downwards query. Then,...
+           (when (or (eq? query-direction? 'down) (eq? query-direction? 'up/down))
+             (flush-attribute-cache-entry (car influence))))
+         (node-cache-influences successor)))
       (list-tail (node-children l) (- i 1)))
      (for-each ; ...flush all attribute cache entries depending on the new element being a root. Afterwards,...
       (lambda (influence)
@@ -3279,21 +3297,29 @@
        (throw-exception
         "Cannot delete list element; "
         "The given node is not element of a list."))
-     ;;; When all rewrite constraints are satisfied, flush all attribute cache entries influenced by...
-     (for-each ; ...the number of children of the list node the element is part of. Further,...
+     ;;; When all rewrite constraints are satisfied,...
+     (detach-inherited-attributes n) ; ...delete the element's inherited attributes and...
+     (for-each ;  ...flush all attribute cache entries influenced by...
       (lambda (influence)
         (flush-attribute-cache-entry (car influence)))
       (filter
        (lambda (influence)
-         (vector-ref (cdr influence) 2))
+         (or (vector-ref (cdr influence) 2) ; ...the number of children of the list node the element is part of or...
+             (let ((query-direction? (vector-ref (cdr influence) 0))) ; ...that query the list node via...
+               (and (or (eq? query-direction? 'up) (eq? query-direction? 'up/down)) ; ...an upwards query and...
+                    (node-inside-of? ; ...are within the element's subtree. Also flush,...
+                     (attribute-instance-context (attribute-cache-entry-context (car influence)))
+                     n)))))
        (node-cache-influences (node-parent n))))
-     (detach-inherited-attributes n) ; ...delete the element's inherited attributes and...
-     (flush-inter-fragment-dependent-attribute-cache-entries n #t) ; ...the attribute cache entries cross-depending its subtree...
-     (for-each ; ...and for each tree spaned by its successor elements,...
-      ; ...flush all attribute cache entries depending on, but still outside of, the respective tree. Then,...
+     (for-each ; ...for the element itself and each successor element,...
       (lambda (successor)
-        (flush-inter-fragment-dependent-attribute-cache-entries successor #f))
-      (list-tail (node-children (node-parent n)) (node-child-index? n)))
+        (for-each ; ...all attribute cache entries depending on the respective element...
+         (lambda (influence)
+           (define query-direction? (vector-ref (cdr influence) 0)) ; ...via a downwards query. Finally,...
+           (when (or (eq? query-direction? 'down) (eq? query-direction? 'up/down))
+             (flush-attribute-cache-entry (car influence))))
+         (node-cache-influences successor)))
+      (list-tail (node-children (node-parent n)) (- (node-child-index? n) 1)))
      (node-children-set! (node-parent n) (remq n (node-children (node-parent n)))) ; ...remove the element from the list,...
      (node-parent-set! n #f)
      (distribute-evaluator-state (make-evaluator-state) n) ; ...reset its evaluator state and...
