@@ -589,8 +589,7 @@
                        "Expected " symbol-type "."))
                     (let* ((parse-name
                             (lambda (terminal?)
-                              (let ((name
-                                     (append
+                              (let* ((character-part
                                       (let loop ((chars (list)))
                                         (if (and (not (eos?)) (char-alphabetic? (my-peek-char)))
                                             (begin
@@ -599,11 +598,13 @@
                                                  "Invalid AST rule " rule "; "
                                                  "Unexpected " (my-peek-char) " character."))
                                               (loop (cons (my-read-char) chars)))
-                                            (reverse chars)))
+                                            (reverse chars))))
+                                     (numerical-part
                                       (let loop ((chars (list)))
                                         (if (and (not (eos?)) (char-numeric? (my-peek-char)))
                                             (loop (cons (my-read-char) chars))
-                                            (reverse chars))))))
+                                            (reverse chars))))
+                                     (name (append character-part numerical-part)))
                                 (when (null? name)
                                   (throw-exception
                                    "Unexpected " (my-peek-char) " character in AST rule " rule "; "
