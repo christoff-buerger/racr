@@ -10,7 +10,7 @@ set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 libraries=( "$script_dir/racr" )
-libraries+=( $(find "$script_dir" -type f -name racr-library-configuration | sed s/\\/racr-library-configuration$// | grep -v /racr$) )
+libraries+=( $(find "$script_dir" -type f -name racr-library-configuration | sort | sed s/\\/racr-library-configuration$// | grep -v /racr$) )
 
 ############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
@@ -39,8 +39,8 @@ do
 			do
 				if [ "$OPTARG" == `basename "$l"` ]
 				then
-					echo "$l"
 					found=true
+					echo "$l"
 				fi
 			done
 			if [ -z "$found" ]
@@ -68,8 +68,8 @@ do
 			do
 				if [ "$absolute_path" == "$l" ]
 				then
-					echo "$l/racr-library-configuration"
 					found=true
+					echo "$l/racr-library-configuration"
 					break
 				fi
 			done

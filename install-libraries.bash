@@ -44,10 +44,7 @@ fi
 
 if [ -z ${selected_libraries+x} ]
 then
-	for l in `"$script_dir/list-libraries.bash" -k`
-	do
-		selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$l"` )
-	done
+	selected_libraries=`"$script_dir/list-libraries.bash" -i`
 fi
 
 ############################################################################################################## Install libraries:
@@ -141,12 +138,12 @@ then
 	echo "=========================================>>> Compile for IronScheme:"
 	for l in ${selected_libraries[@]}
 	do
-		library=`basename "$l"`
-		library_bin="$l/ironscheme-bin"
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
 		then
+			library=`basename "$l"`
+			library_bin="$l/ironscheme-bin"
 			rm -rf "$library_bin"
 			mkdir -p "$library_bin/$library"
 			lib_path=()
