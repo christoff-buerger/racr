@@ -57,16 +57,18 @@ then
 		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "racket" ]]
 		then
-			rm -rf "$l/racket-bin"
-			mkdir -p "$l/racket-bin/`basename "$l"`"
-			lib_path=""
+			l_bin="$l/racket-bin"
+			l_lib="$l_bin/`basename "$l"`"
+			rm -rf "$l_bin"
+			mkdir -p "$l_lib"
+			lib_path=()
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=" ++path $x/racket-bin"
+				lib_path+=( ++path "$x/racket-bin" )
 			done
 			for x in ${required_sources[@]}
 			do
-				plt-r6rs $lib_path --install --collections "$l/racket-bin" "$x.scm"
+				plt-r6rs ${lib_path[@]} --install --collections "$l_bin" "$x.scm"
 			done
 		fi
 	done
@@ -85,16 +87,45 @@ then
 			l_lib="$l_bin/`basename "$l"`"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
-			lib_path="--load-path=$l_bin"
+			lib_path=( --load-path="$l_bin" )
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=" --load-path=$x/guile-bin"
+				lib_path+=( --load-path="$x/guile-bin" )
 			done
 			for x in ${required_sources[@]}
 			do
 				cp -p "$x.scm" "$l_lib"
 				x=`basename "$x"`
-				guild compile $lib_path --output="$l_lib/$x.go" "$l_lib/$x.scm"
+				guild compile ${lib_path[@]} --output="$l_lib/$x.go" "$l_lib/$x.scm"
+			done
+		fi
+	done
+fi
+
+if [[ " ${selected_systems[@]} " =~ "chez" ]]
+then
+	echo "=========================================>>> Compile for Chez Scheme:"
+	for l in ${selected_libraries[@]}
+	do
+		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
+		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		if [[ " ${supported_systems[@]} " =~ "chez" ]]
+		then
+			l_bin="$l/chez-bin"
+			l_lib="$l_bin/`basename "$l"`"
+			rm -rf "$l_bin"
+			mkdir -p "$l_lib"
+			lib_path="$l_bin"
+			for x in ${required_libraries[@]}
+			do
+				lib_path+=":$x/chez-bin"
+			done
+			for x in ${required_sources[@]}
+			do
+				chez --libdirs "$lib_path" -q --optimize-level 3 << \
+EOF
+(compile-library "$x.scm" "$l_lib/`basename "$x"`.so")
+EOF
 			done
 		fi
 	done
@@ -143,9 +174,10 @@ then
 		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
 		then
 			library=`basename "$l"`
-			library_bin="$l/ironscheme-bin"
-			rm -rf "$library_bin"
-			mkdir -p "$library_bin/$library"
+			l_bin="$l/ironscheme-bin"
+			l_lib="$l_bin/`basename "$l"`"
+			rm -rf "$l_bin"
+			mkdir -p "$l_lib"
 			lib_path=()
 			for x in ${required_libraries[@]}
 			do
@@ -155,25 +187,25 @@ then
 			for x in ${required_sources[@]}
 			do
 				source_file=`basename "$x"`
-				cp -p "$x.scm" "$library_bin/$library/$source_file.sls"
+				cp -p "$x.scm" "$l_lib/$source_file.sls"
 				to_compile="$to_compile ($library $source_file)"
 			done
-			echo "$to_compile)" > "$library_bin/compile-script.sls"
+			echo "$to_compile)" > "$l_bin/compile-script.sls"
 			if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
 			then
-				mv "$library_bin/$library/core.sls" "$library_bin/$library/core.scm"
-				"$script_dir/racr-net/transcribe-racr-core.bash" "$library_bin/$library"
-				rm "$library_bin/$library/core.scm"
-				cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$library_bin"
+				mv "$l_lib/core.sls" "$l_lib/core.scm"
+				"$script_dir/racr-net/transcribe-racr-core.bash" "$l_lib"
+				rm "$l_lib/core.scm"
+				cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$l_bin"
 			fi
 			# Use subshell for local directory changes via cd:
 			(
-			cd "$library_bin"
-			echo "(compile \"$library_bin/compile-script.sls\")" | \
+			cd "$l_bin"
+			echo "(compile \"$l_bin/compile-script.sls\")" | \
 				mono `which IronScheme.Console-v4.exe` -nologo ${lib_path[@]}
 			)
-			rm -rf "$library_bin/$library" # Force usage of compiled IronScheme dll assemblies.
-			rm "$library_bin/compile-script.sls"
+			rm -rf "$l_lib" # Force usage of compiled IronScheme dll assemblies.
+			rm "$l_bin/compile-script.sls"
 		fi
 	done
 fi

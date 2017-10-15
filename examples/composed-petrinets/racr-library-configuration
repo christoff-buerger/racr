@@ -1,7 +1,7 @@
 @systems:
 racket
 larceny
-petite
+chez
 sagittarius
 ironscheme
 @libraries:

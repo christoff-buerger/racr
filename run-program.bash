@@ -103,21 +103,21 @@ fi
 ################################################################################################################ Execute program:
 case $selected_system in
 	racket)
-		libs=""
+		libs=()
 		for l in ${required_libraries[@]}
 		do
-			libs+=" ++path $l/racket-bin"
+			libs+=( ++path "$l/racket-bin" )
 		done
-		plt-r6rs $libs "$to_execute" $*;;
+		plt-r6rs ${libs[@]} "$to_execute" $*;;
 	guile)
-		llibs=""
-		clibs=""
+		llibs=()
+		clibs=()
 		for l in ${required_libraries[@]}
 		do
-			llibs+=" -L $l/guile-bin"
-			clibs+=" -C $l/guile-bin"
+			llibs+=( -L "$l/guile-bin" )
+			clibs+=( -C "$l/guile-bin" )
 		done
-		guile --no-auto-compile $llibs $clibs -s "$to_execute" $*;;
+		guile --no-auto-compile ${llibs[@]} ${clibs[@]} -s "$to_execute" $*;;
 	larceny)
 		libs=""
 		for l in ${required_libraries[@]}
@@ -134,17 +134,17 @@ case $selected_system in
 			arguments="-- $*"
 		fi
 		larceny --r6rs $libs --program "$to_execute" $arguments;;
-	petite)
+	chez)
 		libs=""
 		for l in ${required_libraries[@]}
 		do
-			libs+=":$l/.."
+			libs+=":$l/chez-bin"
 		done
 		if [ ! -z "$libs" ]
 		then
 			libs="--libdirs ${libs:1}"
 		fi
-		petite $libs --program "$to_execute" $*;;
+		chez $libs --program "$to_execute" $*;;
 	sagittarius)
 		libs=()
 		for l in ${required_libraries[@]}
