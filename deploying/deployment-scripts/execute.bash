@@ -15,7 +15,7 @@ arguments="${arguments#*--}"
 
 if [ $# -eq 0 ]
 then
-	"$script_dir/run-program.bash" -h
+	"$script_dir/execute.bash" -h
 	exit $?
 fi
 
@@ -63,7 +63,7 @@ do
 			echo "`"$script_dir/list-libraries.bash" -i | sed 's/^/             /'`" >&2
 			echo "          Implicitly set if the program to execute already is in a RACR library directory." >&2
 			echo "       -- Command line arguments for the Scheme program to execute (optional flag). " >&2
-			echo "          All following arguments are forwarded." >&2
+			echo "          All following arguments are forwarded to the executed program." >&2
 			exit 2;;
 	esac
 done
@@ -89,10 +89,10 @@ fi
 
 if [ -z ${configuration_to_parse+x} ]
 then
-	required_libraries=( "$script_dir/racr" )
-	required_libraries+=( "$script_dir/racr-meta" )
+	required_libraries=( "$script_dir/../../racr" )
+	required_libraries+=( "$script_dir/../../racr-meta" )
 else
-	. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+	. "$script_dir/configure.bash" # Sourced script sets configuration!
 	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
 	then
 		echo " !!! ERROR: Scheme system [$selected_system] not supported by the program !!!" >&2
@@ -106,7 +106,7 @@ case $selected_system in
 		libs=()
 		for l in ${required_libraries[@]}
 		do
-			libs+=( ++path "$l/racket-bin" )
+			libs+=( ++path "$l/binaries/racket" )
 		done
 		plt-r6rs ${libs[@]} "$to_execute" $*;;
 	guile)
@@ -114,15 +114,15 @@ case $selected_system in
 		clibs=()
 		for l in ${required_libraries[@]}
 		do
-			llibs+=( -L "$l/guile-bin" )
-			clibs+=( -C "$l/guile-bin" )
+			llibs+=( -L "$l/binaries/guile" )
+			clibs+=( -C "$l/binaries/guile" )
 		done
 		guile --no-auto-compile ${llibs[@]} ${clibs[@]} -s "$to_execute" $*;;
 	larceny)
 		libs=""
 		for l in ${required_libraries[@]}
 		do
-			libs+=":$l/larceny-bin"
+			libs+=":$l/binaries/larceny"
 		done
 		if [ ! -z "$libs" ]
 		then
@@ -138,7 +138,7 @@ case $selected_system in
 		libs=""
 		for l in ${required_libraries[@]}
 		do
-			libs+=":$l/chez-bin"
+			libs+=":$l/binaries/chez"
 		done
 		if [ ! -z "$libs" ]
 		then
@@ -156,7 +156,7 @@ case $selected_system in
 		libs=()
 		for l in ${required_libraries[@]}
 		do
-			libs+=( -I "$l/ironscheme-bin" )
+			libs+=( -I "$l/binaries/ironscheme" )
 		done
 		mono `which IronScheme.Console-v4.exe` -nologo ${libs[@]} "$to_execute" $*;;
 esac

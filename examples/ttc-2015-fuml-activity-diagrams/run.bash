@@ -51,7 +51,8 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
-			echo "`"$script_dir/../../list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
+			echo "`"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
+				sed 's/^/             /'`" >&2
 			echo "          By default, Larceny is used." >&2
 			echo "       -d Activity diagram (mandatory parameter)." >&2
 			echo "       -i Activity diagram input (optional parameter)." >&2
@@ -115,5 +116,5 @@ then
 fi
 
 ####################################################################################################### Execute activity diagram:
-"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- \
+"$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system -e "$script_dir/run.scm" -- \
 	"$diagram" "$input" "$mode" "$cache_enabled_analysis" "$print_trace"

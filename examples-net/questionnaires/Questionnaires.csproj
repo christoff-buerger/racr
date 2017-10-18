@@ -24,7 +24,7 @@
 		<DebugType>full</DebugType>
 		<DefineDebug>true</DefineDebug>
 		<Optimize>Disable</Optimize>
-		<OutputPath>bin</OutputPath>
+		<OutputPath>binaries</OutputPath>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
 		<ConsolePause>false</ConsolePause>
@@ -36,7 +36,7 @@
 		<Optimize>true</Optimize>
 		<WholeProgramOptimization>true</WholeProgramOptimization>
 		<RemoveIntegerChecks>true</RemoveIntegerChecks>
-		<OutputPath>bin</OutputPath>
+		<OutputPath>binaries</OutputPath>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
 		<ConsolePause>false</ConsolePause>
@@ -55,16 +55,16 @@
 		<Reference Include="gdk-sharp" />
 		<Reference Include="glib-sharp" />
 		<Reference Include="IronScheme">
-			<HintPath>..\..\racr\ironscheme-bin\IronScheme.dll</HintPath>
+			<HintPath>..\..\racr\binaries\ironscheme\IronScheme.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.core">
-			<HintPath>..\..\racr\ironscheme-bin\racr.core.dll</HintPath>
+			<HintPath>..\..\racr\binaries\ironscheme\racr.core.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.testing">
-			<HintPath>..\..\racr\ironscheme-bin\racr.testing.dll</HintPath>
+			<HintPath>..\..\racr\binaries\ironscheme\racr.testing.dll</HintPath>
 		</Reference>
 		<Reference Include="Racr">
-			<HintPath>..\..\racr-net\bin\Racr.dll</HintPath>
+			<HintPath>..\..\racr-net\binaries\Racr.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -12,7 +12,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 profiling_configuration="$script_dir/profiling-configuration"
 configuration_to_parse="$script_dir/racr-library-configuration"
 . "$script_dir/../profiling-scripts/configure.bash" # Sourced script sets configuration!
-. "$script_dir/../../parse-configuration.bash" # Sourced script sets configuration!
+. "$script_dir/../../deploying/deployment-scripts/configure.bash" # Sourced script sets configuration!
 
 if (( $# != number_of_parameters - 1 ))
 then
@@ -40,7 +40,8 @@ exec 3>&1 4>&2
 execution_time=$(
 	TIMEFORMAT=%R
 	{
-		time "$script_dir/../../run-program.bash" -s "$selected_system" -e "$script_dir/run.scm" -- "$@" 1>&3 2>&4
+		time "$script_dir/../../deploying/deployment-scripts/execute.bash" \
+			-s "$selected_system" -e "$script_dir/run.scm" -- "$@" 1>&3 2>&4
 	} 2>&1
 )
 exec 3>&- 4>&-

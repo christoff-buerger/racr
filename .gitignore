@@ -5,15 +5,10 @@
 
 # Ignore backup files of common text editors:
 **/*~
-# Ignore Mac Os X Desktop Services Store configuration files:
+# Ignore macOS Desktop Services Store configuration files:
 **/.DS_Store
-# Ignore generated code directories:
-**/*-gen
-# Ignore generated object & binary directories:
-**/*-bin
-**/bin
+# Ignore generated object and binary directories:
+**/binaries
 **/obj
-# Ignore generated Java Archives:
-**/tinycpp-*.jar
 # Ignore profiling measurements:
 **/measurements

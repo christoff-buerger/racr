@@ -36,7 +36,8 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
-			echo "`"$script_dir/../../list-scheme-systems.bash" -k | sed 's/^/             /'`" >&2
+			echo "`"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -k | \
+				sed 's/^/             /'`" >&2
 			echo "          By default, GNU Guile is used." >&2
 			echo "       -e SiPLE program to interpret (mandatory parameter)." >&2
 			echo "       -x Expect interpretation error (optional flag.)" >&2
@@ -72,4 +73,5 @@ then
 fi
 
 ########################################################################################################## Execute SiPLE program:
-"$script_dir/../../run-program.bash" $selected_system -e "$script_dir/run.scm" -- "$program" "$execute_incorrect" "$@"
+"$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system \
+	-e "$script_dir/run.scm" -- "$program" "$execute_incorrect" "$@"

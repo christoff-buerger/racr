@@ -14,11 +14,12 @@ while getopts s:h opt
 do
 	case $opt in
 		s)
-			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
+			"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -s "$OPTARG"
 			selected_systems+=( "$OPTARG" );;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
+			echo "`"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
+				sed 's/^/             /'`" >&2
 			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			exit 2;;
 	esac
@@ -33,7 +34,7 @@ fi
 
 if [ -z ${selected_systems+x} ]
 then
-	selected_systems=`"$script_dir/list-scheme-systems.bash" -i`
+	selected_systems=`"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i`
 fi
 
 ###################################################################################################### Define execution function:
@@ -53,7 +54,8 @@ run(){
 	do
 		set +e
 		set +o pipefail
-		error_message=`"$script_dir/run-program.bash" -s "$s" -e "$program" $args 2>&1 1>/dev/null`
+		error_message=`"$script_dir/../deploying/deployment-scripts/execute.bash" \
+			-s "$s" -e "$program" $args 2>&1 1>/dev/null`
 		error_status=$?
 		set -e
 		set -o pipefail
@@ -76,46 +78,46 @@ run(){
 ################################################################################################################## Execute tests:
 
 # Test basic API:
-for f in "$script_dir"/tests/*.scm
+for f in "$script_dir"/*.scm
 do
 	run "$f" ""
 done
 
 # Test binary numbers example:
-run "$script_dir/examples/binary-numbers/binary-numbers.scm" ""
+run "$script_dir/../examples/binary-numbers/binary-numbers.scm" ""
 
 # Test state machines example:
-run "$script_dir/examples/state-machines/state-machines.scm" ""
+run "$script_dir/../examples/state-machines/state-machines.scm" ""
 
 # Test atomic Petri nets example:
-for f in "$script_dir"/examples/atomic-petrinets/examples/*.scm
+for f in "$script_dir"/../examples/atomic-petrinets/examples/*.scm
 do
-	run "$f" "$script_dir/examples/atomic-petrinets"
+	run "$f" "$script_dir/../examples/atomic-petrinets"
 done
 
 # Test composed Petri nets example (Guile is excluded because of issue #37):
-for f in "$script_dir"/examples/composed-petrinets/examples/*.scm
+for f in "$script_dir"/../examples/composed-petrinets/examples/*.scm
 do
-	run "$f" "$script_dir/examples/composed-petrinets"
+	run "$f" "$script_dir/../examples/composed-petrinets"
 done
 
 # Test fUML Activity Diagrams example:
-for f in "$script_dir"/examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/*.ad
+for f in "$script_dir"/../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/*.ad
 do
 	input=${f%.ad}.adinput
 	if [ ! -f "$input" ]
 	then
 		input=":false:"
 	fi
-	run "$script_dir/examples/ttc-2015-fuml-activity-diagrams/run.scm" "" "$f" "$input" 6 ":true:" ":false:"
+	run "$script_dir/../examples/ttc-2015-fuml-activity-diagrams/run.scm" "" "$f" "$input" 6 ":true:" ":false:"
 done
 
 # Test SiPLE example:
-for f in "$script_dir"/examples/siple/examples/correct/*.siple
+for f in "$script_dir"/../examples/siple/examples/correct/*.siple
 do
-	run "$script_dir/examples/siple/run.scm" "" "$f" ":false:"
+	run "$script_dir/../examples/siple/run.scm" "" "$f" ":false:"
 done
-for f in "$script_dir"/examples/siple/examples/incorrect/*.siple
+for f in "$script_dir"/../examples/siple/examples/incorrect/*.siple
 do
-	run "$script_dir/examples/siple/run.scm" "" "$f" ":true:"
+	run "$script_dir/../examples/siple/run.scm" "" "$f" ":true:"
 done

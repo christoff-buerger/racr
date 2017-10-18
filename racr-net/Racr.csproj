@@ -20,7 +20,7 @@
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
 		<DebugType>full</DebugType>
 		<Optimize>true</Optimize>
-		<OutputPath>bin</OutputPath>
+		<OutputPath>binaries</OutputPath>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
 		<Externalconsole>true</Externalconsole>
@@ -31,13 +31,13 @@
 		<Compile Include="Racr.cs" />
 		<Reference Include="System" />
 		<Reference Include="IronScheme">
-			<HintPath>..\racr\ironscheme-bin\IronScheme.dll</HintPath>
+			<HintPath>..\racr\binaries\ironscheme\IronScheme.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.core">
-			<HintPath>..\racr\ironscheme-bin\racr.core.dll</HintPath>
+			<HintPath>..\racr\binaries\ironscheme\racr.core.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.testing">
-			<HintPath>..\racr\ironscheme-bin\racr.testing.dll</HintPath>
+			<HintPath>..\racr\binaries\ironscheme\racr.testing.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<Target Name="AfterBuild">

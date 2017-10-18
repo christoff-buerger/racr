@@ -15,7 +15,7 @@
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>full</DebugType>
 		<Optimize>false</Optimize>
-		<OutputPath>bin</OutputPath>
+		<OutputPath>binaries</OutputPath>
 		<DefineConstants>DEBUG;</DefineConstants>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
@@ -29,16 +29,16 @@
 			<HintPath>packages\NUnit.3.0.0\lib\net45\nunit.framework.dll</HintPath>
 		</Reference>
 		<Reference Include="IronScheme">
-			<HintPath>..\racr-net\bin\IronScheme.dll</HintPath>
+			<HintPath>..\racr-net\binaries\IronScheme.dll</HintPath>
 		</Reference>
 		<Reference Include="Racr">
-			<HintPath>..\racr-net\bin\Racr.dll</HintPath>
+			<HintPath>..\racr-net\binaries\Racr.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.core">
-			<HintPath>..\racr-net\bin\racr.core.dll</HintPath>
+			<HintPath>..\racr-net\binaries\racr.core.dll</HintPath>
 		</Reference>
 		<Reference Include="racr.testing">
-			<HintPath>..\racr-net\bin\racr.testing.dll</HintPath>
+			<HintPath>..\racr-net\binaries\racr.testing.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<Target Name="AfterBuild">

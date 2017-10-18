@@ -54,17 +54,17 @@ then
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
-		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "racket" ]]
 		then
-			l_bin="$l/racket-bin"
+			l_bin="$l/binaries/racket"
 			l_lib="$l_bin/`basename "$l"`"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=()
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=( ++path "$x/racket-bin" )
+				lib_path+=( ++path "$x/binaries/racket" )
 			done
 			for x in ${required_sources[@]}
 			do
@@ -80,17 +80,17 @@ then
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
-		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "guile" ]]
 		then
-			l_bin="$l/guile-bin"
+			l_bin="$l/binaries/guile"
 			l_lib="$l_bin/`basename "$l"`"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=( --load-path="$l_bin" )
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=( --load-path="$x/guile-bin" )
+				lib_path+=( --load-path="$x/binaries/guile" )
 			done
 			for x in ${required_sources[@]}
 			do
@@ -108,17 +108,17 @@ then
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
-		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "chez" ]]
 		then
-			l_bin="$l/chez-bin"
+			l_bin="$l/binaries/chez"
 			l_lib="$l_bin/`basename "$l"`"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path="$l_bin"
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=":$x/chez-bin"
+				lib_path+=":$x/binaries/chez"
 			done
 			for x in ${required_sources[@]}
 			do
@@ -137,17 +137,17 @@ then
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
-		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "larceny" ]]
 		then
-			l_bin="$l/larceny-bin"
+			l_bin="$l/binaries/larceny"
 			l_lib="$l_bin/`basename "$l"`"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path="$l_bin"
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=":$x/larceny-bin"
+				lib_path+=":$x/binaries/larceny"
 			done
 			for x in ${required_sources[@]}
 			do
@@ -170,18 +170,18 @@ then
 	for l in ${selected_libraries[@]}
 	do
 		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
-		. "$script_dir/parse-configuration.bash" # Sourced script sets configuration!
+		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
 		then
 			library=`basename "$l"`
-			l_bin="$l/ironscheme-bin"
+			l_bin="$l/binaries/ironscheme"
 			l_lib="$l_bin/`basename "$l"`"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=()
 			for x in ${required_libraries[@]}
 			do
-				lib_path+=( -I "$x/ironscheme-bin" )
+				lib_path+=( -I "$x/binaries/ironscheme" )
 			done
 			to_compile="(import"
 			for x in ${required_sources[@]}
@@ -194,7 +194,7 @@ then
 			if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
 			then
 				mv "$l_lib/core.sls" "$l_lib/core.scm"
-				"$script_dir/racr-net/transcribe-racr-core.bash" "$l_lib"
+				"$script_dir/../../racr-net/transcribe-racr-core.bash" "$l_lib"
 				rm "$l_lib/core.scm"
 				cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$l_bin"
 			fi

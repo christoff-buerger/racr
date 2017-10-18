@@ -9,8 +9,14 @@ set -e
 set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-libraries=( "$script_dir/racr" )
-libraries+=( $(find "$script_dir" -type f -name racr-library-configuration | sort | sed s/\\/racr-library-configuration$// | grep -v /racr$) )
+libraries_relative=( "$script_dir/../../racr" )
+libraries_relative+=( $(find "$script_dir/../.." -type f -name racr-library-configuration | \
+	sort | sed s/\\/racr-library-configuration$// | grep -v /racr$) )
+libraries=()
+for l in ${libraries_relative[@]}
+do
+	libraries+=( $(cd "$l" && echo "`pwd`") )
+done
 
 ############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
