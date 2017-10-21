@@ -15,7 +15,7 @@ arguments="${arguments#*--}"
 
 if [ $# -eq 0 ]
 then
-	"$script_dir/run.bash" -h
+	"$script_dir/execute.bash" -h
 	exit $?
 fi
 
@@ -74,4 +74,4 @@ fi
 
 ########################################################################################################## Execute SiPLE program:
 "$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system \
-	-e "$script_dir/run.scm" -- "$program" "$execute_incorrect" "$@"
+	-e "$script_dir/execute.scm" -- "$program" "$execute_incorrect" "$@"

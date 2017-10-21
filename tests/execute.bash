@@ -133,17 +133,17 @@ do
 	then
 		input=":false:"
 	fi
-	run "$script_dir/../examples/ttc-2015-fuml-activity-diagrams/run.scm" "" "$f" "$input" 6 ":true:" ":false:"
+	run "$script_dir/../examples/ttc-2015-fuml-activity-diagrams/execute.scm" "" "$f" "$input" 6 ":true:" ":false:"
 done
 
 # Test SiPLE example:
 for f in "$script_dir"/../examples/siple/examples/correct/*.siple
 do
-	run "$script_dir/../examples/siple/run.scm" "" "$f" ":false:"
+	run "$script_dir/../examples/siple/execute.scm" "" "$f" ":false:"
 done
 for f in "$script_dir"/../examples/siple/examples/incorrect/*.siple
 do
-	run "$script_dir/../examples/siple/run.scm" "" "$f" ":true:"
+	run "$script_dir/../examples/siple/execute.scm" "" "$f" ":true:"
 done
 
 status_message="=====T=E=S=T===S=U=M=M=A=R=Y=====

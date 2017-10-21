@@ -14,4 +14,4 @@ then
 	exit 2
 fi
 
-"$script_dir/../../deploying/deployment-scripts/execute.bash" -s racket -e "$script_dir/run.scm"
+"$script_dir/../../deploying/deployment-scripts/execute.bash" -s racket -e "$script_dir/execute.scm"

@@ -41,7 +41,7 @@ execution_time=$(
 	TIMEFORMAT=%R
 	{
 		time "$script_dir/../../deploying/deployment-scripts/execute.bash" \
-			-s "$selected_system" -e "$script_dir/run.scm" -- "$@" 1>&3 2>&4
+			-s "$selected_system" -e "$script_dir/execute.scm" -- "$@" 1>&3 2>&4
 	} 2>&1
 )
 exec 3>&- 4>&-

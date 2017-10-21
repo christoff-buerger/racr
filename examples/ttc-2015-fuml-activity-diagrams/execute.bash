@@ -12,7 +12,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ################################################################################################################ Parse arguments:
 if [ $# -eq 0 ]
 then
-	"$script_dir/run.bash" -h
+	"$script_dir/execute.bash" -h
 	exit $?
 fi
 
@@ -116,5 +116,5 @@ then
 fi
 
 ####################################################################################################### Execute activity diagram:
-"$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system -e "$script_dir/run.scm" -- \
+"$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system -e "$script_dir/execute.scm" -- \
 	"$diagram" "$input" "$mode" "$cache_enabled_analysis" "$print_trace"
