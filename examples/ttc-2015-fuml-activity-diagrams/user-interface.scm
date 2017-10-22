@@ -28,11 +28,13 @@
    (unless (for-all (lambda (n) (not (eq? (->initial n) Undefined))) (=variables activity))
      (exception: "Missing Input"))
    (when (> mode 1)
-     (unless (=valid? activity) (exception: "Invalid Diagram"))
+     (unless (=valid? activity)
+       (when print-trace? (print-diagram activity (current-error-port)))
+       (exception: "Invalid Diagram"))
      (when (> mode 2)
        (let ((net (=petrinet activity)))
          (when (> mode 3)
-           (unless (pn:=valid? net) (exception: "Invalid Diagram"))
+           (unless (pn:=valid? net) (exception: "Invalid Petri net"))
            (when (> mode 4)
              (for-each pn:=enabled? (pn:=transitions net))
              (when (> mode 5)
@@ -47,5 +49,13 @@
                 (lambda (n) (trace (->name n) " = " ((=v-accessor n))))
                 (=variables activity)))))))))
 
+ (define (print-diagram activity port)
+   (define (print-boolean b) (if b "#t" "#f"))
+   (define attribute-printers
+     (list
+      (cons 'well-typed? print-boolean)
+      (cons 'valid? print-boolean)))
+   (print-ast activity attribute-printers port))
+ 
  (define (initialise-activity-diagram-language cache-enabled-analysis?)
    (pn:initialise-petrinet-language cache-enabled-analysis?)))

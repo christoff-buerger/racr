@@ -86,10 +86,10 @@
    (create-ast spec 'BinaryExpression (list a op op1 op2)))
  
  ; Type, Operator & Tracing Support:
- (define-record-type atom     (sealed #t)(opaque #t))
- (define Boolean              (make-atom))
- (define Integer              (make-atom))
- (define Undefined            (make-atom))
+ (define-record-type atom     (sealed #t)(opaque #t)(fields v)) ; Dummy field avoids Chez Scheme bug
+ (define Boolean              (make-atom 1)) ; Dummy field avoids Chez Scheme bug
+ (define Integer              (make-atom 2)) ; Dummy field avoids Chez Scheme bug
+ (define Undefined            (make-atom 3)) ; Dummy field avoids Chez Scheme bug
  (define print-trace?         #t)
  (define (&& . a)             (for-all (lambda (x) x) a))
  (define (// . a)             (find (lambda (x) x) a))
@@ -236,10 +236,7 @@
   (define (out n f s)         (f (length (=outgoing n)) s)) ; Number of outgoing edges satisfies f?
   (define (guarded n g) ; All outgoing edges of n are guarded/not guarded?
     (define (guarded n)
-      (if (ast-subtype? n 'ControlFlow)
-          (let ((var (=v-lookup n (->guard n))))
-            (and g var (eq? (->type var) Boolean)))
-          (not g)))
+      (if (ast-subtype? n 'ControlFlow) g (not g)))
     (for-all guarded (=outgoing n)))
   
   (ag-rule
