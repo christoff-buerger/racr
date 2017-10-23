@@ -74,10 +74,6 @@ run(){
 		set -e
 		set -o pipefail
 		tests_executed=$(( tests_executed + 1 ))
-		if [ $error_status -eq 0 -a ! -z "$error_message" ]
-		then
-			error_status=1
-		fi
 		case $error_status in
 			0) # all correct => test passed
 				printf " $s"
