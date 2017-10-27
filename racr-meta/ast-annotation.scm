@@ -14,18 +14,18 @@
   ast-annotation-remove!)
  (import (rnrs) (rnrs mutable-pairs) (racr-meta core))
  
+ ; TODO: Replace the following external table based storage of annotations with
+ ;  an rewrite-based extension of the node record of (racr-meta core) that is applied
+ ;  the first time (racr-meta ast-annotation) is loaded.
  (define annotation-table (make-eq-hashtable))
- 
  (define (node-annotations n)
    (hashtable-ref annotation-table n (list)))
- 
  (define (node-annotations-set! n annotations)
    (if (null? annotations)
        (hashtable-delete! annotation-table n)
        (hashtable-set! annotation-table n annotations)))
  
- (define-record-type undefined-annotation-record (fields) (opaque #t)(sealed #t))
- (define undefined-annotation (make-undefined-annotation-record))
+ (define undefined-annotation (make-atom))
  
  (define (undefined-annotation? n)
    (eq? n undefined-annotation))

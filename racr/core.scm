@@ -86,17 +86,23 @@
   with-specification
   with-bindings
   ; Utility interface:
-  racr-exception?)
+  racr-exception?
+  make-atom)
  (import (rnrs) (rnrs mutable-pairs))
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Internal Data Structures ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
- ; Constructor for unique entities internally used by the RACR system
- (define-record-type racr-nil-record
-   (sealed #t)(opaque #t))
- (define racr-nil (make-racr-nil-record)) ; Unique value indicating undefined RACR entities
+ (define-record-type atom ; Unique key entities, each instance is only equal to itself.
+   (nongenerative atom:4eac95849d0fb73142c398c35979fa20a71b9d02)
+   (sealed #t)(opaque #t)(fields (mutable dummy-value))
+   (protocol
+    (lambda (new)
+      (lambda ()
+        (new #t)))))
+ 
+ (define racr-nil (make-atom)) ; Unique value indicating undefined RACR entities
  
  ; Record type representing RACR compiler specifications. A compiler specification consists of arbitrary
  ; many AST rule, attribute and rewrite specifications, all aggregated into a set of rules stored in a
@@ -108,6 +114,7 @@
  ; 3 : Rewrite specification
  ; 4 : Specification finished
  (define-record-type racr-specification
+   (nongenerative racr-specification:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields (mutable specification-phase) rules-table (mutable start-symbol))
    (opaque #t)(sealed #t)
    (protocol
@@ -133,6 +140,7 @@
  ; Record type for AST rules; An AST rule has a reference to the RACR specification it belongs to and consist
  ; of its symbolic encoding, a production (i.e., a list of production-symbols) and an optional supertype.
  (define-record-type ast-rule
+   (nongenerative ast-rule:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields specification as-symbol (mutable production) (mutable supertype?))
    (opaque #t)(sealed #t))
  
@@ -173,6 +181,7 @@
  ; of certain type) or not, a context-name unambiguously referencing it within the production it is part of
  ; and a list of attributes defined for it.
  (define-record-type (symbol make-production-symbol production-symbol?)
+   (nongenerative symbol:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields name ast-rule (mutable non-terminal?) kleene? context-name (mutable attributes))
    (opaque #t)(sealed #t))
  
@@ -184,6 +193,7 @@
  ; whether a fix-point is reached or not (i.e., equivalence-functions are arbitrary functions of arity two
  ; computing whether two given arguments are equal or not).
  (define-record-type attribute-definition
+   (nongenerative attribute-definition:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields name context equation circularity-definition cached?)
    (opaque #t)(sealed #t))
  
@@ -210,6 +220,7 @@
  ; attributes and rewrites, the AST rule they represent a context of, their parent, children, attribute
  ; instances, attribute cache entries they influence and annotations.
  (define-record-type node
+   (nongenerative node:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields
     (mutable evaluator-state)
     (mutable ast-rule)
@@ -297,6 +308,7 @@
  ; Record type for attribute instances of a certain attribute definition, associated with
  ; a certain node (context) and a cache.
  (define-record-type attribute-instance
+   (nongenerative attribute-instance:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields (mutable definition) (mutable context) cache)
    (opaque #t)(sealed #t)
    (protocol
@@ -312,6 +324,7 @@
  ; computation, called cycle value. Entries also track whether they are already in evaluation or
  ; not, such that the attribute evaluator can detect unexpected cycles.
  (define-record-type attribute-cache-entry
+   (nongenerative attribute-cache-entry:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields
     (mutable context)
     (mutable arguments)
@@ -343,6 +356,7 @@
  ; currently performs a fix-point evaluation, a flag indicating if throughout a fix-point iteration the
  ; value of an attribute changed and an attribute evaluation stack used for dependency tracking.
  (define-record-type evaluator-state
+   (nongenerative evaluator-state:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields (mutable ag-in-cycle?) (mutable ag-cycle-change?) (mutable evaluation-stack))
    (opaque #t)(sealed #t)
    (protocol

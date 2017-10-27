@@ -31,6 +31,7 @@
  (import (rnrs))
  
  (define-record-type type
+   (nongenerative siple:type:type:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields domain rtype paras))
  
  (define type-boolean?

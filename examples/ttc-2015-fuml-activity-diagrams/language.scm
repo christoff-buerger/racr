@@ -86,10 +86,9 @@
    (create-ast spec 'BinaryExpression (list a op op1 op2)))
  
  ; Type, Operator & Tracing Support:
- (define-record-type atom     (sealed #t)(opaque #t)(fields v)) ; Dummy field avoids Chez Scheme bug
- (define Boolean              (make-atom 1)) ; Dummy field avoids Chez Scheme bug
- (define Integer              (make-atom 2)) ; Dummy field avoids Chez Scheme bug
- (define Undefined            (make-atom 3)) ; Dummy field avoids Chez Scheme bug
+ (define Boolean              (make-atom))
+ (define Integer              (make-atom))
+ (define Undefined            (make-atom))
  (define print-trace?         #t)
  (define (&& . a)             (for-all (lambda (x) x) a))
  (define (// . a)             (find (lambda (x) x) a))

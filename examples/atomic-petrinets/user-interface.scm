@@ -105,15 +105,14 @@
    (define !marked-marking (map (lambda (n) (list)) !marked))
    (define (check-place place expected-tokens)
      (define given-values (map ->value (->* (->Token* place))))
-     (define-record-type nil-record (sealed #t)(opaque #t))
-     (define Ok (make-nil-record))
+     (define Ok (make-atom))
      (for-each
       (lambda (expected-token)
         (let ((value-found? (member expected-token given-values)))
           (assert value-found?)
           (set-car! value-found? Ok)))
       expected-tokens)
-     (assert (for-all nil-record? given-values)))
+     (assert (for-all (lambda (v) (eq? v Ok)) given-values)))
    (for-each check-place marked marked-marking)
    (for-each check-place !marked !marked-marking))
  

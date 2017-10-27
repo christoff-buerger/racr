@@ -27,6 +27,7 @@
  (import (rnrs) (racr core))
  
  (define-record-type state
+   (nongenerative siple:state:state:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields (mutable current-frame) output-port))
  
  (define state-allocate
@@ -46,7 +47,9 @@
              (loop (frame-closure frame)))))))
  
  (define-record-type frame
+   (nongenerative siple:state:frame:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields procedure closure (mutable environment) (mutable return-value)))
  
  (define-record-type memory-location
+   (nongenerative siple:state:memory-location:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields (mutable value))))

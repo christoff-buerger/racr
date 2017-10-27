@@ -17,6 +17,7 @@
  (import (rnrs) (siple exception-api))
  
  (define-record-type token
+   (nongenerative siple:lexer:token:4eac95849d0fb73142c398c35979fa20a71b9d02)
    (fields source line column type value))
  
  (define construct-lexer
