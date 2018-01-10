@@ -4,11 +4,11 @@ ___
 # Requirements
 
 _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work with any _R6RS_ conformant _Scheme_ system. No additional _SRFI_ or _Scheme_ libraries are required. _RACR_ has been tested with the following _Scheme_ systems:
-  * [_GNU Guile_ 2.2.2](http://www.gnu.org/software/guile/)
+  * [_GNU Guile_ 2.2.3](http://www.gnu.org/software/guile/)
   * [_Larceny_ 1.3](http://www.larcenists.org) ([_GitHub_ repository](https://github.com/larcenists/larceny))
   * [_Chez Scheme_ 9.5](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
-  * [_Racket_ 6.10.1](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
-  * [_Sagittarius Scheme_ 0.7.10](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository](https://github.com/ktakashi/sagittarius-scheme))
+  * [_Racket_ 6.11](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
+  * [_Sagittarius Scheme_ 0.8.9](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository](https://github.com/ktakashi/sagittarius-scheme))
   * [_IronScheme_ 1.0.102-de0d45c, 10th January 2017](http://ironscheme.codeplex.com) ([_GitHub_ repository](https://github.com/leppie/IronScheme))
 
 _RACR_ and some of its examples are provided as _Scheme_ libraries. The instantiation of libraries differs between different _Scheme_ systems. Consult the documentation of your _Scheme_ system in case of any instantiation issues. Besides proper instantiation as _Scheme_ library, no further configurations are required to use _RACR_.
