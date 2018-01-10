@@ -96,7 +96,11 @@ then
 			do
 				cp -p "$x.scm" "$l_lib"
 				x=`basename "$x"`
+				# workaround for broken '--no-auto-compile' flag:
+				old_GUILE_AUTO_COMPILE=$GUILE_AUTO_COMPILE 
+				export GUILE_AUTO_COMPILE=0
 				guild compile ${lib_path[@]} --output="$l_lib/$x.go" "$l_lib/$x.scm"
+				export GUILE_AUTO_COMPILE=$old_GUILE_AUTO_COMPILE
 			done
 		fi
 	done
