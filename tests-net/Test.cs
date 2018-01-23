@@ -11,7 +11,11 @@
 	functionalities in RACR-NET is validated by the C# implementation of the questionnaires
 	example (cf. examples-net/questionnaires).
 	
-	To run the tests from command line type `nunit-console Test.dll`.
+	To run the tests from command line, first install 'NUnit' by executing the
+	'install-nunit.bash' script. Afterwards, the tests can be run from within the 'binaries'
+	directory via `mono ../nunit/NUnit.ConsoleRunner.X.X.X/tools/nunit3-console.exe Test.dll`,
+	whereas 'X.X.X' is the version number of the installed NUnit (cf.
+	'https://github.com/nunit').
 */
 
 using System;
@@ -31,7 +35,7 @@ using IronScheme.Runtime;
 			"examples/composed-petrinets",
 			"examples/ttc-2015-fuml-activity-diagrams",
 			"examples/siple",
-		}) { ("(library-path (cons \"../../" + libpath + "/ironscheme-bin\" (library-path)))").Eval(); }
+		}) { ("(library-path (cons \"../../" + libpath + "/binaries/ironscheme\" (library-path)))").Eval(); }
 	}
 
 	[Test] public void SchemeAvailable() {
@@ -78,6 +82,7 @@ using IronScheme.Runtime;
 	[Test] public void ActivityDiagrams() {
 		const String path = "../../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/";
 		"(import (rnrs) (ttc-2015-fuml-activity-diagrams user-interface))".Eval();
+		"(initialise-activity-diagram-language #t)".Eval();
 		Callable interpretWithoutInput = "(lambda (d) (run-activity-diagram d #f 6 #f))".Eval<Callable>();
 		Callable interpretWithInput = "(lambda (d i) (run-activity-diagram d i 6 #f))".Eval<Callable>();
 		foreach (var diagram in new string[] {
@@ -142,7 +147,14 @@ using IronScheme.Runtime;
 	}
 
 	[Test] public void TestRewriteRefine() {
-		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "A", 1, new Racr.AstNode(spec, "B")));
+		var ast = new Racr.AstNode(
+			spec,
+			"S",
+			new Racr.AstNode(
+				spec,
+				"A",
+				1,
+				new Racr.AstNode(spec, "B")));
 		var A = ast.Child("A");
 		var B1 = A.Child("B1");
 
@@ -164,7 +176,16 @@ using IronScheme.Runtime;
 	}
 
 	[Test] public void TestRewriteAbstract() {
-		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "Aa", 1, new Racr.AstNode(spec, "B"), new Racr.AstNode(spec, "B"), 4));
+		var ast = new Racr.AstNode(
+			spec,
+			"S",
+			new Racr.AstNode(
+				spec,
+				"Aa",
+				1,
+				new Racr.AstNode(spec, "B"),
+				new Racr.AstNode(spec, "B"),
+				4));
 		var A = ast.Child("A");
 		var B1 = A.Child("B1");
 		var B2 = A.Child("B2");
@@ -190,7 +211,14 @@ using IronScheme.Runtime;
 	}
 
 	[Test] public void TestRewriteSubtree() {
-		var ast = new Racr.AstNode(spec, "S", new Racr.AstNode(spec, "A", 42, new Racr.AstNode(spec, "B")));
+		var ast = new Racr.AstNode(
+			spec,
+			"S",
+			new Racr.AstNode(
+				spec,
+				"A",
+				42,
+				new Racr.AstNode(spec, "B")));
 		var A = ast.Child("A");
 		var B1 = A.Child("B1");
 
@@ -200,7 +228,13 @@ using IronScheme.Runtime;
 		Assert.AreEqual(A.Child<int>(1), 42);
 		Assert.AreEqual(A.Child(2), B1);
 
-		A.RewriteSubtree(new Racr.AstNode(spec, "Aa", 1, new Racr.AstNode(spec, "B"), new Racr.AstNode(spec, "B"), 42));
+		A.RewriteSubtree(new Racr.AstNode(
+			spec,
+			"Aa",
+			1,
+			new Racr.AstNode(spec, "B"),
+			new Racr.AstNode(spec, "B"),
+			42));
 		Assert.IsFalse(A.HasParent());
 		Assert.AreEqual(A.NumChildren(), 2);
 		Assert.AreEqual(A.NodeType(), "A");
