@@ -29,7 +29,7 @@ Some of the [provided examples](../../examples/examples-overview.md) require a p
 
 # _.NET_ Installation and Usage
 
-_RACR_ provides a _.NET_ integration with a dedicated _C#_ API called [_RACR-NET_](../../racr-net/documentation/title.md). For an detailed overview of _RACR-NET_ its [reference manual](../../racr-net/documentation/title.md) can be consulted. The subject in the following just is its installation.
+_RACR_ provides a _.NET_ integration with a dedicated _C#_ API called _RACR-NET_. For an detailed overview of _RACR-NET_ its [reference manual](../../racr-net/documentation/title.md) can be consulted. The subject in the following just is its installation.
 
 _RACR-NET_ is tested to run with [_Mono 5.10.0.140_](https://www.mono-project.com) and is based on [_IronScheme_](https://archive.codeplex.com/?p=ironscheme). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, the implementation of _RACR-NET_ itself is in the `racr-net` directory etc. The _Microsoft Build Tools_ and `csproj` files are used for building _RACR-NET_, its examples and tests.
 
