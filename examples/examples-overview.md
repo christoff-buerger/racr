@@ -95,7 +95,7 @@ The example demonstrates the reuse of attribute-based analyses to ease and contr
 **Size:** Small/Medium
 **Scheme library:** Yes
 
-Implementation of the Questionnaire Language, the competition scenario of the [_Language Workbench Challenges 2013 and 2014_](http://www.languageworkbenches.net). The Questionnaire Language provides means for the convenient specification of formulas, consisting of questions users interactively answer, and form fields, computed from respective answers. Given the description of a formula, an interactive runtime rendering is generated and automatically updated (for example, new questions are shown if certain fields are selected or within a certain range of answers etc). For a complete description of the scenario consult `./questionnaires/documentation/language-workbench-challenge-2013.pdf`.
+Implementation of the Questionnaire Language, the competition scenario of the [_Language Workbench Challenges 2013 and 2014_](https://2016.splashcon.org/track/lwc2016). The Questionnaire Language provides means for the convenient specification of formulas, consisting of questions users interactively answer, and form fields, computed from respective answers. Given the description of a formula, an interactive runtime rendering is generated and automatically updated (for example, new questions are shown if certain fields are selected or within a certain range of answers etc). For a complete description of the scenario consult `./questionnaires/documentation/language-workbench-challenge-2013.pdf`.
 
 The questionnaires of the _RACR_ solution look as follows:
 
@@ -113,7 +113,7 @@ The _RACR_ solution is unique in several ways:
 
   * The abstract syntax graphs of questionnaires model both, the given and computed information _and_ their graphical representation.
   * The widgets of the GUI are computed by attributes. The actual rendering, i.e., showing and shadowing of questions and updating of computed results, is realised by attributes and rewrites respectively. In doing so, the rendering automatically becomes incremental, i.e., when drawing the GUI, the application will only re-render the GUI elements that changed since their last rendering (for example, if new answers change the value of computed questions or enable or disable groups).
-  * Attributes clearly encapsulates all language concerns; a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automatically realised by _RACR's_ incremental evaluation.
+  * Attributes clearly encapsulate all language concerns; a convenient model-view-controller solution is achieved without code mixing, doubling or unnecessary interdependencies. Thereby, the controller is automatically realised by _RACR's_ incremental evaluation.
   * Questionnaires are serialized and deserialized as symbolic-expressions, i.e., executable _Scheme_ programs. If executed, these programs construct the abstract syntax tree representing the respective questionnaire and its current answer state.
 
 The solution uses [_Racket_](http://racket-lang.org) for its GUI implementation for which reason it only works with _Racket_.
@@ -142,7 +142,7 @@ A highlight of the example is the automatically optimised enabled analysis thank
 **Objective:** Validation of the benefits of _RACR's_ incremental evaluation semantics for a non-trivial, interactive scenario with mutual-dependent analyses and transformations (execution semantics of hierarchical Petri nets).
 
  * Extensive incremental evaluation where rewrites are deduced using complex analyses (composition analysis of Petri nets) and non-obviously influence analyses (enabled analysis must consider tokens added or deleted in non-local, fused places)
- * Systematic language extensions by refining existing analyses and introducing new ones
+ * Systematic language extensions by refining existing analyses and introducing new ones (reuse of atomic Petri net implementation)
 
 ## _TTC 2015_: _fUML Activity Diagrams_
 
