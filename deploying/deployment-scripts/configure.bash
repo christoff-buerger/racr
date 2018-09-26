@@ -12,7 +12,9 @@
 #  set) required_libraries:		Array of paths to the libraries required according to the parsed configuration
 #  set) required_sources:		Array of paths to the source files according to the parsed configuration
 
-parse_script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+set -e
+set -o pipefail
+configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${configuration_to_parse+x} ] || [ ! -f "$configuration_to_parse" ]
 then
@@ -35,7 +37,7 @@ do
 			parsing_mode=systems
 			continue
 		fi
-		supported_systems=( `"$parse_script_dir/list-scheme-systems.bash" -k` )
+		supported_systems=( `"$configure_bash_dir/list-scheme-systems.bash" -k` )
 		if [ "$line" = "@libraries:" ]
 		then
 			parsing_mode=libraries
