@@ -43,17 +43,17 @@
   (assert-exception ; Unexpected non-list (non-terminal).
    (create-ast-2 spec 'E (list (create-ast-2 spec 'E (list (create-ast-bud))))))
   (assert-exception ; List does not fit because of element of wrong type.
-   (create-ast-2 spec 'E (list (create-ast-2 spec 'A (list (create-ast-bud))))))
+   (create-ast-2 spec 'E (list (create-ast-list-2 (list (create-ast-2 spec 'A (list (create-ast-bud))))))))
   (let ((ast (create-ast-bud))) ; Candidate already part of AST (list construction).
-    (assert-exception (create-ast-list-2 ast))
-    (assert-exception (create-ast-list-2 ast)))
+    (create-ast-list-2 (list ast))
+    (assert-exception (create-ast-list-2 (list ast))))
   (let ((ast (create-ast-bud))) ; Candidate already part of AST (non-list construction).
-    (assert-exception (create-ast-2 'A (list ast)))
-    (assert-exception (create-ast-2 'A (list ast))))
+    (create-ast-2 spec 'A (list ast))
+    (assert-exception (create-ast-2 spec 'A (list ast))))
   (assert-exception ; Candidate in evaluation (list construction).
-   (att-value 'erroneous-attribute (create-ast-2 'E (list (create-ast-bud)))))
+   (att-value 'erroneous-attribute (create-ast-2 spec 'E (list (create-ast-bud)))))
   (assert-exception ; Candidate in evaluation (non-list construction).
-   (att-value 'erroneous-attribute (create-ast-2 'B (list (create-ast-bud) #f (create-ast-bud) #f)))))
+   (att-value 'erroneous-attribute (create-ast-2 spec 'B (list (create-ast-bud) #f (create-ast-bud) #f)))))
 
 (define (run-correct-cases)
   (define spec (create-test-language))
