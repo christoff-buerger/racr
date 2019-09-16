@@ -52,7 +52,7 @@ do
 			echo "          Created if not existent. New measurements are appended." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
-			echo "       -x Abort in case of measurement failures (optional multi-flag)." >&2
+			echo "       -x Abort in case of measurement failures (multi-flag)." >&2
 			exit 2;;
 	esac
 done
@@ -105,6 +105,11 @@ fi
 echo "#!/bin/bash"
 echo "set -e"
 echo "set -o pipefail"
+echo "if [ ! \$# -eq 0 ]"
+echo "then"
+echo "	echo \" !!! ERROR: Unknown [\$@] command line arguments !!!\" >&2"
+echo "	exit 2"
+echo "fi"
 echo "cd \"$call_dir\""
 echo "\"$script_dir/measure.bash\" \\"
 echo "	-c \"$profiling_configuration\" \\"
@@ -214,15 +219,11 @@ do
 			echo "${current_parameter_values[$i]}" >&3
 		done
 		echo "]"
+		arguments=( "${current_parameter_values[@]:1}" )
 		old_IFS="$IFS"
-		IFS=$'\n'
+		IFS=$'\n' # measurement results are emitted line-wise
 		set +e
 		set +o pipefail
-		arguments=() # macOs workaround for more convenient, but broken "${current_parameter_values[@]:1}".
-		for (( i = 1; i < number_of_parameters; i++ ))
-		do
-			arguments+=( "${current_parameter_values[$i]}" )
-		done
 		measurement_results=( `"$execution_script" "${arguments[@]}" 2> "$measurement_stderr"` )
 		measurement_error=$?
 		set -e

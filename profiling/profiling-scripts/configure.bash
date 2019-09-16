@@ -22,11 +22,11 @@
 
 set -e
 set -o pipefail
-parse_script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
 then
-	echo " !!! ERROR: Non-existent or no profiling configuration to parse set !!!" >&2
+	echo " !!! ERROR: Non-existing or no profiling configuration to parse set !!!" >&2
 	exit 2
 fi
 
@@ -76,6 +76,12 @@ do
 	esac
 done < "$profiling_configuration"
 
+if [ -z ${execution_script+x} ]
+then
+	echo " !!! ERROR: Malformed profiling configuration (missing execution script) !!!" >&2
+	exit 2
+fi
+
 criteria_names=(
 	"${parameter_names[@]}"
 	"${result_names[@]}"
@@ -84,12 +90,6 @@ criteria_descriptions=(
 	"${parameter_descriptions[@]}"
 	"${result_descriptions[@]}"
 )
-
-if [ -z ${execution_script+x} ]
-then
-	echo " !!! ERROR: Malformed profiling configuration (missing execution script) !!!" >&2
-	exit 2
-fi
 
 number_of_parameters=${#parameter_names[@]}
 number_of_results=${#result_names[@]}

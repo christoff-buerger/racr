@@ -19,6 +19,7 @@ then
 	"$script_dir/extract.bash" -h
 	exit $?
 fi
+
 while getopts c:t:s:iaxh opt
 do
 	case $opt in
@@ -72,8 +73,8 @@ do
 			echo "       " >&2
 			echo "       Extraction operators (extract all rows whose columns satisfy their operators):" >&2
 			echo "          - Wild-card: *" >&2
-			echo "            No restriction on respective column values." >&2
-			echo "            Stops the querying of further extraction operators for a column." >&2
+			echo "            No further restrictions on respective column values." >&2
+			echo "            Stops the querying of extraction operators for a column." >&2
 			echo "          - Value comparator: <, >, <=, >=, ==, !=" >&2
 			echo "            Compare column values with constant; extract the ones satisfying the comparator." >&2
 			echo "            All value comparators must be satisfied for a row to be extracted." >&2
@@ -81,7 +82,7 @@ do
 			echo "            Extract extremum of column." >&2
 			echo "          - Row specific extrema: min, max" >&2
 			echo "            Extract extremum of column for each row combination." >&2
-			echo "       Row independent and specific extrema are non-exclusive." >&2
+			echo "       " >&2
 			echo "       The row of a cell being an extremum is selected if it satisfies all value comparators." >&2
 			echo "       Each column can have several extraction operators:" >&2
 			echo "          - Value comparators are subtractive (logical conjunction: and)." >&2
@@ -136,7 +137,7 @@ trap 'my_exit' 0 1 2 3 9 15
 mkfifo "$measurements_pipe"
 
 "$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" -x
-selected_system=( `"$script_dir/../../list-scheme-systems.bash" -i` )
+selected_system=( `"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i` )
 
 for a in "$@"
 do
@@ -154,6 +155,11 @@ fi
 echo "#!/bin/bash"
 echo "set -e"
 echo "set -o pipefail"
+echo "if [ ! \$# -eq 0 ]"
+echo "then"
+echo "	echo \" !!! ERROR: Unknown [\$@] command line arguments !!!\" >&2"
+echo "	exit 2"
+echo "fi"
 echo "cd \"$call_dir\""
 echo "\"$script_dir/extract.bash\" \\"
 echo "	-c \"$profiling_configuration\" \\"
@@ -184,42 +190,51 @@ sleep 1 # let the record script write the table header
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
 ####################################################################################################### Read extraction criteria:
+extractors=" (list"
+j=-1
 for (( i = 0; i < number_of_criteria; i++ ))
 do
-	read -r -p "${criteria_descriptions[$i]} [${criteria_names[$i]}]: " choice
+	if [ $j -lt $i ]
+	then
+		echo "${criteria_descriptions[$i]} [${criteria_names[$i]}]:"
+		j=$(( j + 1 ))
+		extractors="$extractors\n  (list"
+	fi
+	old_IFS="$IFS"
+	IFS=''
+	read -r -p "        Extraction operator: " choice
+	IFS="$old_IFS"
 	if [ ! -t 0 ]
 	then
-		echo "${criteria_descriptions[$i]} [${criteria_names[$i]}]: $choice"
+		echo "        Extraction operator: $choice"
 	fi
-	echo "$choice" >> "$rerun_script"
+	printf "%s\n" "$choice" >> "$rerun_script" # Save as read!
 	
 	case "$choice" in
 		\<|\>|\<=|\>=|==|!=)
-			comparators+=( "$choice" )
-			comparators_index+=( $i )
-			read -r -p "	value $choice " choice2
+			extractors="$extractors ps:$choice"
+			echo -en "\033[1A\033[$((30 + ${#choice}))C"
+			old_IFS="$IFS"
+			IFS=''
+			read -r choice2
+			IFS="$old_IFS"
 			if [ ! -t 0 ]
 			then
-				echo "	value $choice $choice2"
+				echo "$choice2"
 			fi
-			echo "$choice2" >> "$rerun_script"
-			comparators_constant+=( "$choice2" )
+			printf "%s\n" "$choice2" >> "$rerun_script" # Save as read!
 			if [ -z "$choice2" -o ${#choice2[@]} -ne 1 ]
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
 				exit 2
 			fi
+			extractors="$extractors \"$choice2\""
 			i=$(( i - 1 ));;
-		min|max)
-			local_extrema+=( "$choice" )
-			local_extrema_index+=( $i )
+		min|max|MIN|MAX)
+			extractors="$extractors ps:$choice"
 			i=$(( i - 1 ));;
-		MIN|MAX)
-			global_extrema+=( "$choice" )
-			global_extrema_index+=( $i )
-			i=$(( i - 1));;
 		\*)
-			;;
+			extractors="$extractors)";;
 		*)
 			echo " !!! ERROR: Invalid choice !!!" >&2
 			exit 2;;
@@ -227,99 +242,30 @@ do
 done
 echo "\|EOF\|" >> "$rerun_script"
 valid_parameters=1
+extractors="$extractors)"
 
-############################################################################################################# Generate extractor:
+########################################################################################################### Extract measurements:
 {
 echo "#!r6rs"
 echo ""
 echo "(import (rnrs) (profiling-scripts extract))"
 echo ""
-i=0
-for constant in "${comparators_constant[@]}"
+echo "(filter-tables"
+printf " (list"
+for s in "${criteria_names[@]}"
 do
-	echo "(define string-constant-$i (add-padding \"$constant\"))"
-	i=$(( i + 1))
+	printf "\n  \"$s\""
 done
-echo ""
-echo "(define (process-row row)"
-echo " (unless"
-echo "  (and"
-printf "   (unique-row? row)"
-i=0
-for comparator in "${comparators[@]}"
-do
-	printf "\n   (ps:$comparator (vector-ref row ${comparators_index[$i]}) string-constant-$i)"
-	i=$(( i + 1 ))
-done
-if [ ${#local_extrema[@]} -gt 0 -o ${#global_extrema[@]} -gt 0 ]
-then
-	printf "\n   (let ((extrema-count"
-	printf "\n          (+"
-	i=0
-	for operator in "${local_extrema[@]}"
-	do
-		printf "\n           (if (update-local-extremum row ${local_extrema_index[$i]} ps:$operator) 1 0)"
-		i=$(( i + 1 ))
-	done
-	i=0
-	for operator in "${global_extrema[@]}"
-	do
-		printf "\n           (if (update-global-extremum row ${global_extrema_index[$i]} ps:$operator) 1 0)"
-		i=$(( i + 1 ))
-	done
-	echo ")))"
-	echo "    (vector-set! row $number_of_criteria extrema-count)"
-	printf "    (> extrema-count 0))"
-fi
 echo ")"
-echo "  (discard-row row)))"
-echo ""
-echo "(define rows"
-echo " (sort-rows $number_of_criteria"
-printf "  (vector"
+printf "$extractors"
 for s in "${source_tables[@]}"
 do
-	tail -n +3 "$s" | while read line
-	do
-		printf "\n   (vector"
-		old_IFS="$IFS"
-		IFS='|' read -ra column <<< "$line"
-		IFS="$old_IFS"
-		if [ ${#column[@]} -ne $number_of_criteria ]
-		then
-			echo " !!! ERROR: Invalid measurements table !!!" >&2
-			exit 2
-		fi
-		i=0
-		for c in "${column[@]}"
-		do
-			c="${c#"${c%%[![:space:]]*}"}" # trim leading white space
-			c="${c%"${c##*[![:space:]]}"}" # trim trailing white space
-			printf " (add-padding \"$c\")"
-			i=$(( i + 1 ))
-		done
-		printf " 0)"
-	done
+	printf "\n \"$s\""
 done
-echo ")))"
-echo ""
-echo "(initialise $number_of_criteria)"
-echo ""
-echo "(vector-for-each process-row rows)"
-echo "(vector-for-each"
-echo " (lambda (row)"
-echo "  (when (vector-ref row $number_of_criteria)"
-echo "   (do ((i 0 (+ i 1))) ((= i $number_of_criteria))"
-echo "    (display (string-append (vector-ref row i) \"\n\")))))"
-echo " rows)"
-#echo "(define o (open-output-file \"debug.txt\"))"
-#echo "(vector-for-each (lambda (r) (display r o) (display #\\newline o)) rows)"
+echo ")"
 } > "$extraction_script"
 
-#nl -b a "$extraction_script"
-
-########################################################################################################### Extract measurements:
-"$script_dir/../../run-program.bash" -s $selected_system -e "$extraction_script" > "$measurements_pipe"
+"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -e "$extraction_script" > "$measurements_pipe"
 sleep 1 # let the record script write all extracted measurements
 
 ################################################################################# Finish execution & cleanup temporary resources:

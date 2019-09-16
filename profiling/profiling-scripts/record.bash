@@ -69,16 +69,16 @@ then
 	exit 2
 fi
 
+if [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
+then
+	echo " !!! ERROR: Non-existing or no input pipe specified via -p flag !!!" >&2
+	exit 2
+fi
+
 if [ -z "$measurements_table" ] ||
    [ -e "$measurements_table" -a ! -f "$measurements_table" ]
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t flag !!!" >&2
-	exit 2
-fi
-
-if [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
-then
-	echo " !!! ERROR: Non-existing or no input pipe specified via -p flag !!!" >&2
 	exit 2
 fi
 
@@ -108,7 +108,7 @@ fi
 
 ############################################################################################################ Print table content:
 column_count=1
-while true #lsof "$measurements_pipe"
+while true
 do
 	if read -r line
 	then
