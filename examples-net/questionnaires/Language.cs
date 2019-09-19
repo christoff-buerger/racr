@@ -87,7 +87,8 @@ static class QuestionnairesLanguage {
 			var r = l.Child(j).LLookup(name);
 			if (r != null) return r;
 		}
-		return null; }
+		return null;
+	}
 
 	[AgRule("GLookup", "Form", Context = "Body")] static Ast FormGLookup(Ast n, string name) {
 		var ret = findL(name, n.Parent(), n.ChildIndex() - 1);
@@ -100,8 +101,7 @@ static class QuestionnairesLanguage {
 	}
 
 	[AgRule("LLookup", "Question")] static Ast QuestionLLookup(Ast n, string name) {
-		if (n.GetName() == name) return n;
-		return null;
+		return n.GetName() == name ? n : null;
 	}
 	
 	[AgRule("LLookup", "Group")] static Ast GroupLLookup(Ast n, string name) {
@@ -112,7 +112,7 @@ static class QuestionnairesLanguage {
 
 	[AgRule("Type", "OrdinaryQuestion")] static Types OrdinaryQuestionType(Ast n) {
 		var type = n.GetValueType();
-		return (TypeToAcceptor(type) != null) ? type : Types.ErrorType;
+		return TypeToAcceptor(type) != null ? type : Types.ErrorType;
 	}
 
 	[AgRule("Type", "ComputedQuestion")] static Types ComputedQuestionType(Ast n) {
