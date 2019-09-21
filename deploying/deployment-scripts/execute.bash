@@ -152,6 +152,25 @@ case $selected_system in
 			libs+=( --loadpath="$l/.." )
 		done
 		sagittarius ${libs[@]} "$to_execute" $*;;
+	ypsilon)
+		libs=""
+		for l in ${required_libraries[@]}
+		do
+			libs+=":$l/.."
+		done
+		if [ ! -z "$libs" ]
+		then
+			libs="${libs:1}"
+			sitelib="--sitelib=$libs"
+			loadpath="--loadpath=$libs"
+		fi
+		cache="$script_dir/../../racr/binaries/ypsilon"
+		mkdir -p "$cache"
+		# To reconstruct compiled-cache add --clean-acc flag.
+		# To add compilation warnings add --warning flag.
+		# To echo load and compile actions add --verbose flag.
+		# The heap limit is in MBytes.
+		ypsilon "$sitelib" "$loadpath" --acc="$cache" --quiet --r6rs --heap-limit=512 -- "$to_execute" $*;;
 	ironscheme)
 		libs=()
 		for l in ${required_libraries[@]}

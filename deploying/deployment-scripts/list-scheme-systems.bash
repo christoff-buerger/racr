@@ -20,13 +20,13 @@ while getopts kis:h opt
 do
 	case $opt in
 		k)
-			for s in chez guile racket larceny sagittarius ironscheme
+			for s in chez guile racket larceny sagittarius ypsilon ironscheme
 			do
 				echo "$s"
 			done;;
 		i)
 			found=""
-			for s in chez guile racket larceny sagittarius
+			for s in chez guile racket larceny sagittarius ypsilon
 			do
 				if command -v "$s" > /dev/null
 				then

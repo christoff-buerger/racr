@@ -3,6 +3,7 @@ racket
 larceny
 chez
 sagittarius
+ypsilon
 ironscheme
 @libraries:
 ../../racr
