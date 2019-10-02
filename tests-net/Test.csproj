@@ -9,13 +9,13 @@
 	<PropertyGroup>
 		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
 		<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-		<ProjectGuid>{1050D1E6-0CA4-4433-981B-C23DE926020C}</ProjectGuid>
+		<ProductVersion>1.0.0.0</ProductVersion>
+		<ProjectGuid>{4f9d0a4f-8824-7e0d-3141-309532404598}</ProjectGuid>
+		<SchemaVersion>2.0</SchemaVersion>
 		<OutputType>Library</OutputType>
 		<RootNamespace>Test</RootNamespace>
 		<AssemblyName>Test</AssemblyName>
-		<TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
-		<ProductVersion>8.0.30703</ProductVersion>
-		<SchemaVersion>2.0</SchemaVersion>
+		<TargetFramework>netstandard2.0</TargetFramework>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 		<DebugSymbols>true</DebugSymbols>
