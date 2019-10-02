@@ -10,7 +10,7 @@
 		<Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
 		<Platform Condition=" '$(Platform)' == '' ">x86</Platform>
 		<ProductVersion>1.0.0.0</ProductVersion>
-		<ProjectGuid>{4ff49a92-8611-3782-2b03-5b0befb6ad57}</ProjectGuid>
+		<ProjectGuid>{02141713-e369-131b-1579-27a0f07cb020}</ProjectGuid>
 		<SchemaVersion>2.0</SchemaVersion>
 		<OutputType>Library</OutputType>
 		<RootNamespace>Racr</RootNamespace>

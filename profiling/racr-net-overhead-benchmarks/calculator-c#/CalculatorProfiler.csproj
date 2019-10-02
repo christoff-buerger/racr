@@ -10,13 +10,13 @@
 		<Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
 		<Platform Condition=" '$(Platform)' == '' ">x86</Platform>
 		<ProductVersion>1.0.0.0</ProductVersion>
+		<ProjectGuid>{4ff49a92-8611-3782-2b03-5b0befb6ad57}</ProjectGuid>
 		<SchemaVersion>2.0</SchemaVersion>
-		<ProjectGuid>{26ED33DA-9166-4BED-BA79-AC930E82AA07}</ProjectGuid>
 		<OutputType>Exe</OutputType>
 		<Utf8Output>true</Utf8Output>
 		<RootNamespace>CalculatorProfiler</RootNamespace>
 		<AssemblyName>CalculatorProfiler</AssemblyName>
-		<TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+		<TargetFramework>netstandard2.0</TargetFramework>
 		<NoVBRuntimeReference>true</NoVBRuntimeReference>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 	</PropertyGroup>
