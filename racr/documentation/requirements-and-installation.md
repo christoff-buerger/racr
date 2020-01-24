@@ -7,7 +7,7 @@ _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work wit
   * [_GNU Guile_ 2.2.6](http://www.gnu.org/software/guile/)
   * [_Larceny_ 1.3](http://www.larcenists.org) ([_GitHub_ repository](https://github.com/larcenists/larceny))
   * [_Chez Scheme_ 9.5.2](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
-  * [_Racket_ 7.4, regular and CS](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
+  * [_Racket_ 7.5, regular and CS](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
   * [_Sagittarius Scheme_ 0.9.6](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository](https://github.com/ktakashi/sagittarius-scheme))
   * [_Ypsilon_ 0.9.6-trunk/r506](http://www.littlewingpinball.net/mediawiki/index.php/Ypsilon) ([_GitHub_ repository](https://github.com/christoff-buerger/ypsilon))
   * [_IronScheme_ 1.0.102-de0d45c, 10th January 2017](https://archive.codeplex.com/?p=ironscheme) ([_GitHub_ repository](https://github.com/leppie/IronScheme))
@@ -32,6 +32,6 @@ Some of the [provided examples](../../examples/examples-overview.md) require a p
 
 _RACR_ provides a _.NET_ integration with a dedicated _C#_ API called _RACR-NET_. For an detailed overview of _RACR-NET_ its [reference manual](../../racr-net/documentation/title.md) can be consulted. The subject in the following just is its installation.
 
-_RACR-NET_ is tested to run with [_Mono_ 6.4.0.198](https://www.mono-project.com) and is based on [_IronScheme_](https://archive.codeplex.com/?p=ironscheme). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, the implementation of _RACR-NET_ itself is in the `racr-net` directory etc. The _Microsoft Build Tools_ and `csproj` files are used for building _RACR-NET_, its examples and tests.
+_RACR-NET_ is tested to run with [_Mono_ 6.8.0.96](https://www.mono-project.com) and is based on [_IronScheme_](https://archive.codeplex.com/?p=ironscheme). The artefacts related to _RACR-NET_ are in `*-net` directories. _C#_ example programs using _RACR-NET_ are in the `examples-net` directory, tests are in the `tests-net` directory, the implementation of _RACR-NET_ itself is in the `racr-net` directory etc. The _Microsoft Build Tools_ and `csproj` files are used for building _RACR-NET_, its examples and tests.
 
 _RACR-NET_ provides for each of _RACR's_ functionalities an respective abstraction in _C#_. Internally, _RACR-NET_ calls _RACR_ in turn; to that end it requires _RACR's_ _Scheme_ libraries as _IronScheme_ _.NET_ assemblies (dynamic linked libraries compiled by _IronScheme_ and depending on it). The `install.bash` script can be used to generate the respective `dll` assemblies. A local _IronScheme_ distribution must be available however; its root directory must be part of the `PATH` environment variable. Afterterwards, _RACR-NET_ itself can be build via the `racr-net/Racr.csproj` build script. The resulting `Racr.dll` in `racr-net/binaries` together with the _IronScheme_ and _RACR_ assemblies are all assemblies required to use _RACR-NET_.
