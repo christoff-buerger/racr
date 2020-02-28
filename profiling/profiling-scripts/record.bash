@@ -84,6 +84,43 @@ fi
 
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
+
+#################################################################################### Check header of existing measurement tables:
+i=0
+for (( ; i < number_of_criteria - 1; i++ ))
+do
+	header[0]+=`printf " %-19s |" "${criteria_names[$i]}"`
+done
+header[0]+=`printf " %-19s " "${criteria_names[$i]}"`
+for (( i = 1; i < number_of_criteria; i++ ))
+do
+	header[1]+=`printf "%s" "---------------------+"`
+done
+header[1]+=`printf "%s" "---------------------"`
+
+if [ -e "$measurements_table" ]
+then
+	i=0
+	for h in "${header[@]}"
+	do
+		if IFS='' read -r line
+		then
+			if [ "$line" != "$h" ]
+			then
+				break
+			fi
+		else
+			break
+		fi
+		i=$(( i + 1 ))
+	done < "$measurements_table"
+	if [ $i -lt ${#header[@]} ]
+	then
+		echo " !!! ERROR: Measurements table specified via -t flag has malformed header !!!" >&2
+		exit 2
+	fi
+fi
+
 if [ ! -z "$test_run" ]
 then
 	exit 0
@@ -91,19 +128,13 @@ fi
 
 ############################################################################################################# Print table header:
 mkdir -p "`dirname "$measurements_table"`"
+
 if [ ! -e "$measurements_table" ]
 then
-	i=0
-	for (( ; i < number_of_criteria - 1; i++ ))
+	for h in "${header[@]}"
 	do
-		printf " %-19s |" "${criteria_names[$i]}" >> "$measurements_table"
+		echo "$h" >> "$measurements_table"
 	done
-	printf " %-19s \n" "${criteria_names[$i]}" >> "$measurements_table"
-	for (( i = 1; i < number_of_criteria; i++ ))
-	do
-		printf "%s" "---------------------+" >> "$measurements_table"
-	done
-	echo "---------------------" >> "$measurements_table"
 fi
 
 ############################################################################################################ Print table content:

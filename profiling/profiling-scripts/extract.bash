@@ -100,6 +100,22 @@ then
 	exit 2
 fi
 
+for a in "$@"
+do
+	if [ ! -f "$a" ]
+	then
+		echo " !!! ERROR: Non-existing source table [$a] specified via '--' argument list !!!" >&2
+		exit 2
+	fi
+	source_tables+=( "$a" )
+	shift
+done
+if [ -z ${source_tables+x} ]
+then
+	echo " !!! ERROR: No source table specified via '--' argument list !!!" >&2
+	exit 2
+fi
+
 if [ -z ${rerun_script+x} ]
 then
 	rerun_script="/dev/null"
@@ -115,10 +131,10 @@ then
 fi
 
 ##################################################################################### Configure temporary and external resources:
-measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
-measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
-recording_table="$script_dir/$measurements_date.recording-table"
-extraction_script="$script_dir/$measurements_date.extraction-script"
+extraction_date=`date "+%Y-%m-%d_%H-%M-%S"`
+extraction_pipe="$script_dir/$extraction_date.extraction-pipe"
+extraction_table="$script_dir/$extraction_date.extraction-table"
+extraction_script="$script_dir/$extraction_date.extraction-script"
 valid_parameters=0
 
 my_exit(){
@@ -127,23 +143,17 @@ my_exit(){
 	then # user specified invalid measurement-parameters while generating rerun script
 		rm "$rerun_script"
 	fi
-	rm -f "$measurements_pipe"
-	rm -f "$recording_table"
+	rm -f "$extraction_pipe"
+	rm -f "$extraction_table"
 	rm -f "$extraction_script"
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
 
-mkfifo "$measurements_pipe"
+mkfifo "$extraction_pipe"
 
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" -x
+"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$extraction_pipe" -x
 selected_system=( `"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i` )
-
-for a in "$@"
-do
-	source_tables+=( "$a" )
-	shift
-done
 
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
@@ -173,7 +183,7 @@ if [ -f "$measurements_table" ]
 then
 	if [ "$recording_mode" == "-a" ]
 	then
-		cp "$measurements_table" "$recording_table"
+		cp "$measurements_table" "$extraction_table"
 	elif [ "$recording_mode" == "-i" ]
 	then
 		source_tables+=( "$measurements_table" )
@@ -183,7 +193,7 @@ fi
 touch "$extraction_script"
 chmod +x "$extraction_script"
 
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$recording_table" -p "$measurements_pipe" &
+"$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" &
 sleep 1 # let the record script write the table header
 
 ############################################################################################################# Read configuration:
@@ -265,9 +275,10 @@ done
 echo ")"
 } > "$extraction_script"
 
-"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -e "$extraction_script" > "$measurements_pipe"
+"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -e "$extraction_script" > "$extraction_pipe"
 sleep 1 # let the record script write all extracted measurements
 
 ################################################################################# Finish execution & cleanup temporary resources:
-cp "$recording_table" "$measurements_table"
+mkdir -p "`dirname "$measurements_table"`"
+cp "$extraction_table" "$measurements_table"
 my_exit
