@@ -32,7 +32,7 @@ fi
 
 parsing_mode=execution-script
 parameter_names=( "Date" )
-parameter_descriptions=( "Measurement date (yyyy-mm-dd hh:mm:ss)" )
+parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) format (year-month-day hour:minute:second)" )
 result_names=( "Status" )
 result_descriptions=( "Measurement status (failed, aborted, succeeded)" )
 

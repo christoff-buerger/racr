@@ -131,7 +131,7 @@ then
 fi
 
 ##################################################################################### Configure temporary and external resources:
-extraction_date=`date "+%Y-%m-%d_%H-%M-%S"`
+extraction_date=`date -u "+%Y-%m-%d_%H-%M-%S"`
 extraction_pipe="$script_dir/$extraction_date.extraction-pipe"
 extraction_table="$script_dir/$extraction_date.extraction-table"
 extraction_script="$script_dir/$extraction_date.extraction-script"

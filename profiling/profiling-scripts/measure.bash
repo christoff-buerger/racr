@@ -74,7 +74,7 @@ then
 fi
 
 ##################################################################################### Configure temporary and external resources:
-measurements_date=`date "+%Y-%m-%d_%H-%M-%S"`
+measurements_date=`date -u "+%Y-%m-%d_%H-%M-%S"`
 measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
 measurement_stderr="$script_dir/$measurements_date.stderr"
 valid_parameters=0
@@ -210,7 +210,7 @@ do
 	then # perform measurement
 		current_parameter=$(( current_parameter - 1 ))
 		undo=true
-		measurement_date=`date "+%Y-%m-%d %H:%M:%S"`
+		measurement_date=`date -u "+%Y-%m-%d %H:%M:%S"`
 		echo "$measurement_date" >&3
 		printf "Measurement ["
 		for (( i = 1; i < number_of_parameters; i++ ))
