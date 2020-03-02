@@ -24,7 +24,7 @@ do
 			then
 				profiling_configuration="$OPTARG"
 			else
-				echo " !!! ERROR: Several profiling configurations selected via -c flag !!!" >&2
+				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
 			fi;;
 		p)
@@ -32,7 +32,7 @@ do
 			then
 				measurements_pipe="$OPTARG"
 			else
-				echo " !!! ERROR: Several input pipes selected via -p flag !!!" >&2
+				echo " !!! ERROR: Several input pipes selected via -p parameter !!!" >&2
 				exit 2
 			fi;;
 		t)
@@ -40,7 +40,7 @@ do
 			then
 				measurements_table="$OPTARG"
 			else
-				echo " !!! ERROR: Several measurement tables selected via -t flag !!!" >&2
+				echo " !!! ERROR: Several measurement tables selected via -t parameter !!!" >&2
 				exit 2
 			fi;;
 		x)
@@ -65,20 +65,20 @@ fi
 
 if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
 then
-	echo " !!! ERROR: Non-existing or no profiling configuration specified via -c flag !!!" >&2
+	echo " !!! ERROR: Non-existing or no profiling configuration specified via -c parameter !!!" >&2
 	exit 2
 fi
 
 if [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
 then
-	echo " !!! ERROR: Non-existing or no input pipe specified via -p flag !!!" >&2
+	echo " !!! ERROR: Non-existing or no input pipe specified via -p parameter !!!" >&2
 	exit 2
 fi
 
 if [ -z "$measurements_table" ] ||
    [ -e "$measurements_table" -a ! -f "$measurements_table" ]
 then
-	echo " !!! ERROR: Invalid or no measurements table specified via -t flag !!!" >&2
+	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
 fi
 
@@ -89,14 +89,14 @@ fi
 i=0
 for (( ; i < number_of_criteria - 1; i++ ))
 do
-	header[0]+=`printf " %-19s |" "${criteria_names[$i]}"`
+	header[0]+="$( printf " %-19s |" "${criteria_names[$i]}" )"
 done
-header[0]+=`printf " %-19s " "${criteria_names[$i]}"`
+header[0]+="$( printf " %-19s " "${criteria_names[$i]}" )"
 for (( i = 1; i < number_of_criteria; i++ ))
 do
-	header[1]+=`printf "%s" "---------------------+"`
+	header[1]+="$( printf "%s" "---------------------+" )"
 done
-header[1]+=`printf "%s" "---------------------"`
+header[1]+="$( printf "%s" "---------------------" )"
 
 if [ -e "$measurements_table" ]
 then
@@ -116,7 +116,7 @@ then
 	done < "$measurements_table"
 	if [ $i -lt ${#header[@]} ]
 	then
-		echo " !!! ERROR: Measurements table specified via -t flag has malformed header !!!" >&2
+		echo " !!! ERROR: Measurements table specified via -t parameter has malformed header !!!" >&2
 		exit 2
 	fi
 fi
@@ -127,7 +127,7 @@ then
 fi
 
 ############################################################################################################# Print table header:
-mkdir -p "`dirname "$measurements_table"`"
+mkdir -p "$( dirname "$measurements_table" )"
 
 if [ ! -e "$measurements_table" ]
 then

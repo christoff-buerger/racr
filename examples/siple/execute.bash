@@ -31,19 +31,19 @@ do
 			then
 				program="$OPTARG"
 			else
-				echo " !!! ERROR: Several SiPLE programs for execution selected via -e flag !!!" >&2
+				echo " !!! ERROR: Several SiPLE programs for execution selected via -e parameter !!!" >&2
 				exit 2
 			fi;;
 		h|?)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
-			echo "`"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -k | \
-				sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -k | \
+				sed 's/^/             /' )" >&2
 			echo "          By default, GNU Guile is used." >&2
 			echo "       -e SiPLE program to interpret (mandatory parameter)." >&2
-			echo "       -x Expect interpretation error (optional flag.)" >&2
+			echo "       -x Expect interpretation error (optional flag)." >&2
 			echo "          Abort with an error if no runtime error is encountered throughout interpretation." >&2
 			echo "          By default, a correct SiPLE program is expected." >&2
-			echo "       -- Command line arguments for the SiPLE program to interpret (optional flag). " >&2
+			echo "       -- Command line arguments for the SiPLE program to interpret (optional parameter)." >&2
 			echo "          All following arguments are forwarded." >&2
 			exit 2
 	esac
@@ -68,7 +68,7 @@ fi
 
 if [ -z ${program+x} ]
 then
-	echo " !!! ERROR: No SiPLE program to interpret given via -e flag !!!" >&2
+	echo " !!! ERROR: No SiPLE program to interpret given via -e parameter !!!" >&2
 	exit 2
 fi
 

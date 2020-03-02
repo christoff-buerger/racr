@@ -10,12 +10,12 @@ set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 libraries_relative=( "$script_dir/../../racr" )
-libraries_relative+=( $(find "$script_dir/../.." -type f -name racr-library-configuration | \
-	sort | sed s/\\/racr-library-configuration$// | grep -v /racr$) )
+libraries_relative+=( $( find "$script_dir/../.." -type f -name racr-library-configuration | \
+	sort | sed s/\\/racr-library-configuration$// | grep -v /racr$ ) )
 libraries=()
 for l in ${libraries_relative[@]}
 do
-	libraries+=( $(cd "$l" && echo "`pwd`") )
+	libraries+=( "$( cd "$l" && pwd )" )
 done
 
 ############################################################################################################## Process arguments:
@@ -32,7 +32,7 @@ do
 			known_libraries=()
 			for l in ${libraries[@]}
 			do
-				l=`basename "$l"`
+				l="$( basename "$l" )"
 				if [[ ! " ${known_libraries[@]} " =~ "$l" ]]
 				then
 					known_libraries+=( "$l" )
@@ -43,7 +43,7 @@ do
 			found=""
 			for l in ${libraries[@]}
 			do
-				if [ "$OPTARG" == `basename "$l"` ]
+				if [ "$OPTARG" == "$( basename "$l" )" ]
 				then
 					found=true
 					echo "$l"
@@ -61,24 +61,19 @@ do
 			done;;
 		c)
 			found=""
-			absolute_path=$(
-				if [ -d "$OPTARG" ]
-				then
-					cd "$OPTARG"
-					echo "`pwd`"
-				else
-					echo ""
-				fi
-			)
-			for l in ${libraries[@]}
-			do
-				if [ "$absolute_path" == "$l" ]
-				then
-					found=true
-					echo "$l/racr-library-configuration"
-					break
-				fi
-			done
+			if [ -d "$OPTARG" ]
+			then
+				absolute_path="$( cd "$OPTARG" && pwd )"
+				for l in ${libraries[@]}
+				do
+					if [ "$absolute_path" == "$l" ]
+					then
+						found=true
+						echo "$l/racr-library-configuration"
+						break
+					fi
+				done
+			fi
 			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library directory !!!" >&2
@@ -89,7 +84,7 @@ do
 			echo "       -l List all directories of a RACR library (multi-parameter)." >&2
 			echo "          The listed paths are absolut." >&2
 			echo "          Abort with an error if the library is unknown." >&2
-			echo "       -i List all directories of all knwon RACR libraries (multi-parameter)." >&2
+			echo "       -i List all directories of all knwon RACR libraries (multi-flag)." >&2
 			echo "          The listed paths are absolut." >&2
 			echo "       -c List configuraton file of a RACR library directory (multi-parameter)." >&2
 			echo "          The listed path is absolut." >&2

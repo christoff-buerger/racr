@@ -28,41 +28,41 @@ do
 				"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
 				selected_system="$OPTARG"
 			else
-				echo " !!! ERROR: Several Scheme systems for execution selected via -s flag !!!" >&2
+				echo " !!! ERROR: Several Scheme systems for execution selected via -s parameter !!!" >&2
 				exit 2
 			fi;;
 		e)
 			if [ -z ${to_execute+x} ]
 			then
 				to_execute="$OPTARG"
-				to_execute_directory=`dirname "$to_execute"`
-				if [ `"$script_dir/list-libraries.bash" -c "$to_execute_directory" 2> /dev/null` ]
+				to_execute_dir="$( dirname "$to_execute" )"
+				if [ ! -z "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" ]
 				then
-					configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$to_execute_directory"`
+					configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" )"
 				fi
 			else
-				echo " !!! ERROR: Several programs to execute specified via -e flag !!!" >&2
+				echo " !!! ERROR: Several programs to execute specified via -e parameter !!!" >&2
 				exit 2
 			fi;;
 		l)
 			if [ -z ${configuration_to_parse+x} ]
 			then
-				configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$OPTARG"`
+				configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$OPTARG" )"
 			else
-				echo " !!! ERROR: Several libraries to use specified, either via -l flag or implicitly" >&2
+				echo " !!! ERROR: Several libraries to use specified, either via -l parameter or implicitly" >&2
 				echo "            because the program to execute is in a RACR library directory !!!" >&2
 				exit 2
 			fi;;
 		h|?)
 			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' )" >&2
 			echo "       -e Scheme program to execute (mandatory parameter)." >&2
 			echo "       -l Load a RACR library before execution (optional parameter)." >&2
 			echo "          The given argument must be a RACR library directory." >&2
 			echo "          Know RACR library directories are:" >&2
-			echo "`"$script_dir/list-libraries.bash" -i | sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/list-libraries.bash" -i | sed 's/^/             /' )" >&2
 			echo "          Implicitly set if the program to execute already is in a RACR library directory." >&2
-			echo "       -- Command line arguments for the Scheme program to execute (optional flag). " >&2
+			echo "       -- Command line arguments for the Scheme program to execute (optional parameter). " >&2
 			echo "          All following arguments are forwarded to the executed program." >&2
 			exit 2;;
 	esac
@@ -77,13 +77,13 @@ fi
 
 if [ -z "$to_execute" ] || [ ! -f "$to_execute" ]
 then
-	echo " !!! ERROR: Non-existent or no Scheme program to execute specified via -e flag !!!" >&2
+	echo " !!! ERROR: Non-existent or no Scheme program to execute specified via -e parameter !!!" >&2
 	exit 2
 fi
 
 if [ -z "$selected_system" ]
 then
-	echo " !!! ERROR: No Scheme system for execution selected via -s flag !!!" >&2
+	echo " !!! ERROR: No Scheme system for execution selected via -s parameter !!!" >&2
 	exit 2
 fi
 
@@ -177,5 +177,5 @@ case $selected_system in
 		do
 			libs+=( -I "$l/binaries/ironscheme" )
 		done
-		mono `which IronScheme.Console-v4.exe` -nologo ${libs[@]} "$to_execute" $*;;
+		mono "$( which IronScheme.Console-v4.exe )" -nologo ${libs[@]} "$to_execute" $*;;
 esac

@@ -8,7 +8,7 @@
 set -e
 set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-call_dir=`pwd`
+call_dir="$( pwd )"
 
 ################################################################################################################ Parse arguments:
 arguments="$* --"
@@ -28,7 +28,7 @@ do
 			then
 				profiling_configuration="$OPTARG"
 			else
-				echo " !!! ERROR: Several profiling configurations selected via -c flag !!!" >&2
+				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
 			fi;;
 		t)
@@ -36,7 +36,7 @@ do
 			then
 				measurements_table="$OPTARG"
 			else
-				echo " !!! ERROR: Several measurement tables selected via -t flag !!!" >&2
+				echo " !!! ERROR: Several measurement tables selected via -t parameter !!!" >&2
 				exit 2
 			fi;;
 		s)
@@ -44,7 +44,7 @@ do
 			then
 				rerun_script="$OPTARG"
 			else
-				echo " !!! ERROR: Several rerun script names selected via -s flag !!!" >&2
+				echo " !!! ERROR: Several rerun script names selected via -s parameter !!!" >&2
 				exit 2
 			fi;;
 		i|a|x)
@@ -61,7 +61,7 @@ do
 			echo "          Created if not existent." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the extraction." >&2
-			echo "       -- List of source tables to extract from." >&2
+			echo "       -- List of source tables to extract from (mandatory parameter)." >&2
 			echo "          Must be non-empty." >&2
 			echo "       At most one of the following recording modes (optional flags):" >&2
 			echo "          -a Append extracted measurements on recording table." >&2
@@ -121,7 +121,7 @@ then
 	rerun_script="/dev/null"
 elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
 then
-	echo " !!! ERROR: Invalid rerun script specified via -s flag !!!" >&2
+	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
 	exit 2
 fi
 
@@ -131,10 +131,10 @@ then
 fi
 
 ##################################################################################### Configure temporary and external resources:
-extraction_date=`date -u "+%Y-%m-%d_%H-%M-%S"`
-extraction_pipe="$script_dir/$extraction_date.extraction-pipe"
-extraction_table="$script_dir/$extraction_date.extraction-table"
-extraction_script="$script_dir/$extraction_date.extraction-script"
+tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
+extraction_pipe="$tmp_dir/extraction-pipe.fifo"
+extraction_table="$tmp_dir/extraction-table.txt"
+extraction_script="$tmp_dir/extraction-script.scm"
 valid_parameters=0
 
 my_exit(){
@@ -143,9 +143,7 @@ my_exit(){
 	then # user specified invalid measurement-parameters while generating rerun script
 		rm "$rerun_script"
 	fi
-	rm -f "$extraction_pipe"
-	rm -f "$extraction_table"
-	rm -f "$extraction_script"
+	rm -rf "$tmp_dir"
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
@@ -157,7 +155,7 @@ selected_system=( `"$script_dir/../../deploying/deployment-scripts/list-scheme-s
 
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
-	mkdir -p "`dirname "$rerun_script"`"
+	mkdir -p "$( dirname "$rerun_script" )"
 	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
@@ -273,12 +271,13 @@ do
 	printf "\n \"$s\""
 done
 echo ")"
-} > "$extraction_script"
+} >> "$extraction_script"
 
-"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -e "$extraction_script" > "$extraction_pipe"
+"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -l "$script_dir" \
+	-e "$extraction_script" > "$extraction_pipe"
 sleep 1 # let the record script write all extracted measurements
 
 ################################################################################# Finish execution & cleanup temporary resources:
-mkdir -p "`dirname "$measurements_table"`"
+mkdir -p "$( dirname "$measurements_table" )"
 cp "$extraction_table" "$measurements_table"
 my_exit

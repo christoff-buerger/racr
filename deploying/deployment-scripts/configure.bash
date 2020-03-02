@@ -23,7 +23,7 @@ then
 fi
 
 parsing_mode=initial
-configuration_directory=`dirname "$configuration_to_parse"`
+configuration_directory="$( cd "$( dirname "$configuration_to_parse" )" && pwd )"
 supported_systems=()
 required_libraries=( "$configuration_directory" )
 required_sources=()

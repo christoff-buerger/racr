@@ -10,6 +10,8 @@
 # Ignore generated object and binary directories:
 **/binaries
 **/obj
+# Ignore temporary directory:
+deploying/deployment-scripts/temporary-files
 # Ignore profiling measurements:
 **/measurements
 # Ignore installed NUnit:

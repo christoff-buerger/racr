@@ -20,11 +20,11 @@ do
 			selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$OPTARG"` );;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' )" >&2
 			echo "          If no Scheme system is selected, the selected RACR libraries" >&2
 			echo "          are installed for all available systems." >&2
 			echo "       -i RACR library to install (optional multi-parameter). Permitted values:" >&2
-			echo "`"$script_dir/list-libraries.bash" -k | sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/list-libraries.bash" -k | sed 's/^/             /' )" >&2
 			echo "          If no library is selected, all libraries are installed." >&2
 			exit 2;;
 	esac
@@ -53,12 +53,12 @@ then
 	echo "=========================================>>> Compile for Racket:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
+		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "racket" ]]
 		then
 			l_bin="$l/binaries/racket"
-			l_lib="$l_bin/`basename "$l"`"
+			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=()
@@ -79,12 +79,12 @@ then
 	echo "=========================================>>> Compile for Guile:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
+		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "guile" ]]
 		then
 			l_bin="$l/binaries/guile"
-			l_lib="$l_bin/`basename "$l"`"
+			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=( --load-path="$l_bin" )
@@ -95,7 +95,7 @@ then
 			for x in ${required_sources[@]}
 			do
 				cp -p "$x.scm" "$l_lib"
-				x=`basename "$x"`
+				x="$( basename "$x" )"
 				# workaround for broken '--no-auto-compile' flag:
 				old_GUILE_AUTO_COMPILE="$GUILE_AUTO_COMPILE"
 				GUILE_AUTO_COMPILE=0
@@ -111,12 +111,12 @@ then
 	echo "=========================================>>> Compile for Chez Scheme:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
+		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "chez" ]]
 		then
 			l_bin="$l/binaries/chez"
-			l_lib="$l_bin/`basename "$l"`"
+			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path="$l_bin"
@@ -126,9 +126,10 @@ then
 			done
 			for x in ${required_sources[@]}
 			do
+				x_so="$l_lib/$( basename "$x" ).so"
 				chez --libdirs "$lib_path" -q --optimize-level 3 << \
 EOF
-(compile-library "$x.scm" "$l_lib/`basename "$x"`.so")
+				(compile-library "$x.scm" "$x_so")
 EOF
 			done
 		fi
@@ -140,12 +141,12 @@ then
 	echo "=========================================>>> Compile for Larceny:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
+		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "larceny" ]]
 		then
 			l_bin="$l/binaries/larceny"
-			l_lib="$l_bin/`basename "$l"`"
+			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path="$l_bin"
@@ -155,7 +156,7 @@ then
 			done
 			for x in ${required_sources[@]}
 			do
-				x_sls="$l_lib/`basename "$x"`.sls"
+				x_sls="$l_lib/$( basename "$x" ).sls"
 				cp -p "$x.scm" "$x_sls"
 				larceny --r6rs --path "$lib_path" << \
 EOF
@@ -173,13 +174,13 @@ then
 	echo "=========================================>>> Compile for IronScheme:"
 	for l in ${selected_libraries[@]}
 	do
-		configuration_to_parse=`"$script_dir/list-libraries.bash" -c "$l"`
+		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
 		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
 		then
-			library=`basename "$l"`
+			library="$( basename "$l" )"
 			l_bin="$l/binaries/ironscheme"
-			l_lib="$l_bin/`basename "$l"`"
+			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=()
@@ -190,7 +191,7 @@ then
 			to_compile="(import"
 			for x in ${required_sources[@]}
 			do
-				source_file=`basename "$x"`
+				source_file="$( basename "$x" )"
 				cp -p "$x.scm" "$l_lib/$source_file.sls"
 				to_compile="$to_compile ($library $source_file)"
 			done
@@ -200,13 +201,13 @@ then
 				mv "$l_lib/core.sls" "$l_lib/core.scm"
 				"$script_dir/../../racr-net/transcribe-racr-core.bash" "$l_lib"
 				rm "$l_lib/core.scm"
-				cp -p "`dirname \`which IronScheme.Console-v4.exe\``/IronScheme.dll" "$l_bin"
+				cp -p "$( dirname "$( which IronScheme.Console-v4.exe )" )/IronScheme.dll" "$l_bin"
 			fi
 			# Use subshell for local directory changes via cd:
 			(
 			cd "$l_bin"
 			echo "(compile \"$l_bin/compile-script.sls\")" | \
-				mono `which IronScheme.Console-v4.exe` -nologo ${lib_path[@]}
+				mono "$( which IronScheme.Console-v4.exe )" -nologo ${lib_path[@]}
 			)
 			rm -rf "$l_lib" # Force usage of compiled IronScheme dll assemblies.
 			rm "$l_bin/compile-script.sls"

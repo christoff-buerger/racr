@@ -46,7 +46,7 @@ do
 			fi;;
 		s)
 			found=""
-			for s in `$script_dir/list-scheme-systems.bash -i`
+			for s in `"$script_dir/list-scheme-systems.bash" -i`
 			do
 				if [ "$OPTARG" == "$s"  ]
 				then
@@ -56,7 +56,7 @@ do
 			done
 			if [ -z "$found" ]
 			then
-				echo " !!! ERROR: Unknown [$OPTARG] Scheme system !!!" >&2
+				echo " !!! ERROR: Unknown [$OPTARG] Scheme system selected via -s parameter !!!" >&2
 				exit 2
 			fi;;
 		h|?)

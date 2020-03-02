@@ -30,7 +30,7 @@ do
 			then
 				diagram="$OPTARG"
 			else
-				echo " !!! ERROR: Several activity diagrams for execution selected via -d flag !!!" >&2
+				echo " !!! ERROR: Several activity diagrams for execution selected via -d parameter !!!" >&2
 				exit 2
 			fi;;
 		i)
@@ -38,7 +38,7 @@ do
 			then
 				input="$OPTARG"
 			else
-				echo " !!! ERROR: Several diagram inputs for execution selected via -i flag !!!" >&2
+				echo " !!! ERROR: Several diagram inputs for execution selected via -i parameter !!!" >&2
 				exit 2
 			fi;;
 		m)
@@ -46,13 +46,13 @@ do
 			then
 				mode="$OPTARG"
 			else
-				echo " !!! ERROR: Several modes for diagram execution selected via -m flag !!!" >&2
+				echo " !!! ERROR: Several modes for diagram execution selected via -m parameter !!!" >&2
 				exit 2
 			fi;;
 		h|?)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
-			echo "`"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
-				sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
+				sed 's/^/             /' )" >&2
 			echo "          By default, Larceny is used." >&2
 			echo "       -d Activity diagram (mandatory parameter)." >&2
 			echo "       -i Activity diagram input (optional parameter)." >&2
@@ -65,9 +65,9 @@ do
 			echo "             6=PN-execution (no enabled passes)" >&2
 			echo "             7=PN-execution (use enabled passes)" >&2
 			echo "          The default is 6: Petri net execution, one transition each step." >&2
-			echo "       -c Deactivate caching of enabled analysis (optional multi-parameter)." >&2
+			echo "       -c Deactivate caching of enabled analysis (optional multi-flag)." >&2
 			echo "          By default, the enabled analysis of generated Petri nets is cached." >&2
-			echo "       -x Deactivate printing the execution trace on stdout (optional multi-parameter)." >&2
+			echo "       -x Deactivate printing the execution trace on stdout (optional multi-flag)." >&2
 			echo "          By default, the execution trace is printed." >&2
 			exit 2
 	esac
@@ -97,7 +97,7 @@ fi
 
 if [ -z ${diagram+x} ]
 then
-	echo " !!! ERROR: No activity diagram to execute given via -d flag !!!" >&2
+	echo " !!! ERROR: No activity diagram to execute given via -d parameter !!!" >&2
 	exit 2
 fi
 

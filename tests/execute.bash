@@ -20,8 +20,8 @@ do
 			abort_on_failed_test="false";;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "`"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
-				sed 's/^/             /'`" >&2
+			echo "$( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
+				sed 's/^/             /' )" >&2
 			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			echo "       -x Do not abort testing on error (multi-flag)." >&2
 			echo "          By default, testing is aborted as soon as any test failed." >&2
@@ -68,8 +68,8 @@ run(){
 	do
 		set +e
 		set +o pipefail
-		error_message=`"$script_dir/../deploying/deployment-scripts/execute.bash" \
-			-s "$s" -e "$program" $args 2>&1 1>/dev/null`
+		error_message="$( "$script_dir/../deploying/deployment-scripts/execute.bash" \
+			-s "$s" -e "$program" $args 2>&1 1>/dev/null )"
 		error_status=$?
 		set -e
 		set -o pipefail

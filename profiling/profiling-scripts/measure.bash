@@ -8,7 +8,7 @@
 set -e
 set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-call_dir=`pwd`
+call_dir="$( pwd )"
 
 ################################################################################################################ Parse arguments:
 if [ $# -eq 0 ]
@@ -25,7 +25,7 @@ do
 			then
 				profiling_configuration="$OPTARG"
 			else
-				echo " !!! ERROR: Several profiling configurations selected via -c flag !!!" >&2
+				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
 			fi;;
 		t)
@@ -33,7 +33,7 @@ do
 			then
 				measurements_table="$OPTARG"
 			else
-				echo " !!! ERROR: Several measurement tables selected via -t flag !!!" >&2
+				echo " !!! ERROR: Several measurement tables selected via -t parameter !!!" >&2
 				exit 2
 			fi;;
 		s)
@@ -41,7 +41,7 @@ do
 			then
 				rerun_script="$OPTARG"
 			else
-				echo " !!! ERROR: Several rerun script names selected via -s flag !!!" >&2
+				echo " !!! ERROR: Several rerun script names selected via -s parameter !!!" >&2
 				exit 2
 			fi;;
 		x)
@@ -52,7 +52,7 @@ do
 			echo "          Created if not existent. New measurements are appended." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
-			echo "       -x Abort in case of measurement failures (multi-flag)." >&2
+			echo "       -x Abort in case of measurement failures (optional multi-flag)." >&2
 			exit 2;;
 	esac
 done
@@ -69,14 +69,14 @@ then
 	rerun_script="/dev/null"
 elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
 then
-	echo " !!! ERROR: Invalid rerun script specified via -s flag !!!" >&2
+	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
 	exit 2
 fi
 
 ##################################################################################### Configure temporary and external resources:
-measurements_date=`date -u "+%Y-%m-%d_%H-%M-%S"`
-measurements_pipe="$script_dir/$measurements_date.measurements-pipe"
-measurement_stderr="$script_dir/$measurements_date.stderr"
+tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
+measurements_pipe="$tmp_dir/measurements-pipe.fifo"
+measurements_stderr="$tmp_dir/measurements-errors.txt"
 valid_parameters=0
 
 my_exit(){
@@ -85,8 +85,7 @@ my_exit(){
 	then # user specified invalid measurement-parameters while generating rerun script
 		rm "$rerun_script"
 	fi
-	rm -f "$measurements_pipe"
-	rm -f "$measurement_stderr"
+	rm -rf "$tmp_dir"
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
@@ -97,7 +96,7 @@ mkfifo "$measurements_pipe"
 
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
-	mkdir -p "`dirname "$rerun_script"`"
+	mkdir -p "$( dirname "$rerun_script" )"
 	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
@@ -210,7 +209,7 @@ do
 	then # perform measurement
 		current_parameter=$(( current_parameter - 1 ))
 		undo=true
-		measurement_date=`date -u "+%Y-%m-%d %H:%M:%S"`
+		measurement_date="$( date -u "+%Y-%m-%d %H:%M:%S" )"
 		echo "$measurement_date" >&3
 		printf "Measurement ["
 		for (( i = 1; i < number_of_parameters; i++ ))
@@ -224,12 +223,12 @@ do
 		IFS=$'\n' # measurement results are emitted line-wise
 		set +e
 		set +o pipefail
-		measurement_results=( `"$execution_script" "${arguments[@]}" 2> "$measurement_stderr"` )
+		measurement_results=( `"$execution_script" "${arguments[@]}" 2> "$measurements_stderr"` )
 		measurement_error=$?
 		set -e
 		set -o pipefail
 		IFS="$old_IFS"
-		if [ $measurement_error -ne 0 -o -s "$measurement_stderr" ]
+		if [ $measurement_error -ne 0 -o -s "$measurements_stderr" ]
 		then
 			measurement_failed=1
 		elif (( ${#measurement_results[@]} + 1 != number_of_results ))
@@ -247,10 +246,10 @@ do
 			then
 				echo "	The error code was: $measurement_error"
 			fi
-			if [ -s "$measurement_stderr" ]
+			if [ -s "$measurements_stderr" ]
 			then
 				echo "	The error message was:"
-				cat "$measurement_stderr" >&2
+				cat "$measurements_stderr" >&2
 				echo ""
 			fi
 			if [ ! -z "$failsave" ]
