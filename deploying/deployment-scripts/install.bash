@@ -201,13 +201,13 @@ then
 				mv "$l_lib/core.sls" "$l_lib/core.scm"
 				"$script_dir/../../racr-net/transcribe-racr-core.bash" "$l_lib"
 				rm "$l_lib/core.scm"
-				cp -p "$( dirname "$( which IronScheme.Console-v4.exe )" )/IronScheme.dll" "$l_bin"
+				cp -p "$( dirname "$( command -v IronScheme.Console-v4.exe )" )/IronScheme.dll" "$l_bin"
 			fi
 			# Use subshell for local directory changes via cd:
 			(
 			cd "$l_bin"
 			echo "(compile \"$l_bin/compile-script.sls\")" | \
-				mono "$( which IronScheme.Console-v4.exe )" -nologo ${lib_path[@]}
+				mono "$( command -v IronScheme.Console-v4.exe )" -nologo ${lib_path[@]}
 			)
 			rm -rf "$l_lib" # Force usage of compiled IronScheme dll assemblies.
 			rm "$l_bin/compile-script.sls"
