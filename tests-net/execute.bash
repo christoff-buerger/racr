@@ -21,5 +21,5 @@ fi
 
 (
 	cd "$script_dir/binaries"
-	mono "$script_dir/nunit/NUnit.ConsoleRunner."*.*.*"/tools/nunit3-console.exe" "Test.dll"
+	mono "$script_dir/nunit/NUnit.ConsoleRunner."*.*.*"/tools/nunit3-console.exe" "$script_dir/binaries/Test.dll"
 )
