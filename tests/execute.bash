@@ -84,7 +84,7 @@ run(){
 			*) # test failed (execution error) => print error and...
 				echo " !$s!"
 				echo "$error_message" >&2
-				if [[ "$abort_on_failed_test" =~ "true" ]] # ...abort testing if requested
+				if [ "$abort_on_failed_test" == "true" ] # ...abort testing if requested
 				then
 					echo " !!! ERROR: Testing aborted because of failed test !!!" >&2
 					exit $error_status

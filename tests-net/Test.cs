@@ -2,20 +2,14 @@
 	This program and the accompanying materials are made available under the
 	terms of the MIT license (X11 license) which accompanies this distribution.
 	
-	Author: C. Bürger, D. Langner
+	Author: C. Bürger
 */
 
 /*
 	NUnit tests to validate the proper execution of RACR's test cases in IronScheme and the
 	graph rewriting adaptation of RACR in RACR-NET. The coverage of all other RACR
 	functionalities in RACR-NET is validated by the C# implementation of the questionnaires
-	example (cf. examples-net/questionnaires).
-	
-	To run the tests from command line, first install 'NUnit' by executing the
-	'install-nunit.bash' script. Afterwards, the tests can be run from within the 'binaries'
-	directory via `mono ../nunit/NUnit.ConsoleRunner.X.X.X/tools/nunit3-console.exe Test.dll`,
-	whereas 'X.X.X' is the version number of the installed NUnit (cf.
-	'https://github.com/nunit').
+	example (cf. ../examples-net/questionnaires).
 */
 
 using System;

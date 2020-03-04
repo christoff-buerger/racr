@@ -9,5 +9,17 @@ set -e
 set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-######################################################################################################## Start Questionnaire GUI:
-mono "$script_dir/binaries/Questionnaires.exe"
+if [ ! -e "$script_dir/nunit" ]
+then
+	mkdir -p "$script_dir/nunit"
+	(
+		cd "$script_dir/nunit"
+		NuGet install NUnit
+		NuGet install NUnit.Console
+	)
+fi
+
+(
+	cd "$script_dir/binaries"
+	mono "$script_dir/nunit/NUnit.ConsoleRunner."*.*.*"/tools/nunit3-console.exe" "Test.dll"
+)
