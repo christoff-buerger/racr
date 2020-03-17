@@ -4,7 +4,7 @@ ___
 # Requirements
 
 _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work with any _R6RS_ conformant _Scheme_ system. No additional _SRFI_ or _Scheme_ libraries are required. _RACR_ has been tested with the following _Scheme_ systems:
-  * [_GNU Guile_ 2.2.6](http://www.gnu.org/software/guile/)
+  * [_GNU Guile_ 2.2.7](http://www.gnu.org/software/guile/)
   * [_Larceny_ 1.3](http://www.larcenists.org) ([_GitHub_ repository](https://github.com/larcenists/larceny))
   * [_Chez Scheme_ 9.5.2](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
   * [_Racket_ 7.5, regular and CS](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
