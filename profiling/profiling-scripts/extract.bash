@@ -181,7 +181,7 @@ if [ -f "$measurements_table" ]
 then
 	if [ "$recording_mode" == "-a" ]
 	then
-		cp "$measurements_table" "$extraction_table"
+		cp -p "$measurements_table" "$extraction_table"
 	elif [ "$recording_mode" == "-i" ]
 	then
 		source_tables+=( "$measurements_table" )
@@ -208,10 +208,7 @@ do
 		j=$(( j + 1 ))
 		extractors="$extractors\n  (list"
 	fi
-	old_IFS="$IFS"
-	IFS=''
-	read -r -p "        Extraction operator: " choice
-	IFS="$old_IFS"
+	IFS='' read -r -p "        Extraction operator: " choice
 	if [ ! -t 0 ]
 	then
 		echo "        Extraction operator: $choice"
@@ -222,10 +219,7 @@ do
 		\<|\>|\<=|\>=|==|!=)
 			extractors="$extractors ps:$choice"
 			echo -en "\033[1A\033[$((30 + ${#choice}))C"
-			old_IFS="$IFS"
-			IFS=''
-			read -r choice2
-			IFS="$old_IFS"
+			IFS='' read -r choice2
 			if [ ! -t 0 ]
 			then
 				echo "$choice2"
@@ -279,5 +273,5 @@ sleep 1 # let the record script write all extracted measurements
 
 ################################################################################# Finish execution & cleanup temporary resources:
 mkdir -p "$( dirname "$measurements_table" )"
-cp "$extraction_table" "$measurements_table"
+mv -f "$extraction_table" "$measurements_table"
 my_exit

@@ -85,7 +85,6 @@ fi
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
-#################################################################################### Check header of existing measurement tables:
 i=0
 for (( ; i < number_of_criteria - 1; i++ ))
 do
@@ -98,6 +97,7 @@ do
 done
 header[1]+="$( printf "%s" "---------------------" )"
 
+############################################################################################## Check existing measurements table:
 if [ -e "$measurements_table" ]
 then
 	i=0
@@ -114,11 +114,33 @@ then
 		fi
 		i=$(( i + 1 ))
 	done < "$measurements_table"
-	if [ $i -lt ${#header[@]} ]
+	if [ $i -ne ${#header[@]} ]
 	then
 		echo " !!! ERROR: Measurements table specified via -t parameter has malformed header !!!" >&2
 		exit 2
 	fi
+	
+	line_number=3
+	while IFS='' read -r line
+	do
+		cell_number=0
+		IFS='|' read -r -a cells <<< "$line"
+		for cell in "${cells[@]}"
+		do
+			if [ ${#cell} -ne 21 ]
+			then
+				break
+			fi
+			cell_number=$(( cell_number + 1 ))
+		done
+		if [ $cell_number -ne $number_of_criteria ]
+		then
+			printf " !!! ERROR: Measurements table specified via -t parameter has malformed content " >&2
+			echo   "(line $line_number, cell $cell_number) !!!" >&2
+			exit 2
+		fi
+		line_number=$(( line_number + 1 ))
+	done < <( tail -n +3 "$measurements_table" )
 fi
 
 if [ ! -z "$test_run" ]
@@ -127,10 +149,9 @@ then
 fi
 
 ############################################################################################################# Print table header:
-mkdir -p "$( dirname "$measurements_table" )"
-
 if [ ! -e "$measurements_table" ]
 then
+	mkdir -p "$( dirname "$measurements_table" )"
 	for h in "${header[@]}"
 	do
 		echo "$h" >> "$measurements_table"

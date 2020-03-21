@@ -36,7 +36,7 @@ parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) f
 result_names=( "Status" )
 result_descriptions=( "Measurement status (failed, aborted, succeeded)" )
 
-while read line
+while read -r line
 do
 	case $parsing_mode in
 	execution-script)
@@ -56,7 +56,7 @@ do
 			parsing_mode=results
 			continue;
 		fi
-		IFS='|' read -ra config_line <<< "$line"
+		IFS='|' read -r -a config_line <<< "$line"
 		if [ ${#config_line[@]} -ne 2 ]
 		then
 			echo " !!! ERROR: Malformed profiling configuration (measurement parameter syntax error) !!!" >&2
@@ -65,7 +65,7 @@ do
 		parameter_names+=( "${config_line[0]}" )
 		parameter_descriptions+=( "${config_line[1]}" );;
 	results)
-		IFS='|' read -ra config_line <<< "$line"
+		IFS='|' read -r -a config_line <<< "$line"
 		if [ ${#config_line[@]} -ne 2 ]
 		then
 			echo " !!! ERROR: Malformed profiling configuration (measurement result syntax error) !!!" >&2
