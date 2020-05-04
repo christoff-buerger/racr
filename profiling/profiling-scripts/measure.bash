@@ -130,7 +130,7 @@ parameter_adjustments=( "DUMMY DATE ADJUSTMENT" )
 
 for (( i = 1; i < number_of_parameters; i++ ))
 do
-	read -r -p "${parameter_descriptions[$i]} [${parameter_names[$i]}]: " choice
+	IFS='' read -r -p "${parameter_descriptions[$i]} [${parameter_names[$i]}]: " choice
 	if [ ! -t 0 ]
 	then
 		echo "${parameter_descriptions[$i]} [${parameter_names[$i]}]: $choice"
@@ -140,9 +140,10 @@ do
 	
 	case "$choice" in
 		''|*[0-9]*)
-			read -r -n1 -p "	Iterate? (y/n): " choice
+			IFS='' read -r -n1 -p "	Iterate? (y/n): " choice
 			if [ ! -t 0 ]
-				then printf "	Iterate? (y/n): $choice"
+			then
+				printf "	Iterate? (y/n): $choice"
 			fi
 			echo ""
 			printf "$choice" >> "$rerun_script";;
@@ -151,7 +152,7 @@ do
 	esac
 	case "$choice" in
 		[y]*)
-			read -r -p "	Number of iterations (altogether): " choice
+			IFS='' read -r -p "	Number of iterations (altogether): " choice
 			if [ ! -t 0 ]
 			then
 				echo "	Number of iterations (altogether): $choice"
@@ -169,7 +170,7 @@ do
 					exit 2;;
 			esac
 			parameter_iterations+=( "$choice" )
-			read -r -p "	Adjustment each iteration (excluding first): " choice
+			IFS='' read -r -p "	Adjustment each iteration (excluding first): " choice
 			if [ ! -t 0 ]
 			then
 				echo "	Adjustment each iteration (excluding first): $choice"
@@ -259,7 +260,7 @@ do
 			else # fix table
 				for (( i = 1; i < number_of_results; i++ ))
 				do
-					echo "-------------------" >&3
+					echo "" >&3
 				done
 			fi
 		else

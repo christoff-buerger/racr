@@ -36,7 +36,7 @@ parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) f
 result_names=( "Status" )
 result_descriptions=( "Measurement status (failed, aborted, succeeded)" )
 
-while read -r line
+while IFS='' read -r line
 do
 	case $parsing_mode in
 	execution-script)

@@ -119,3 +119,5 @@ case $temporary_type in
 		mkfifo "$tmp_dir/$tmp_name";;
 esac
 echo "$tmp_dir/$tmp_name"
+
+exit 0

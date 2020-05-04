@@ -127,7 +127,7 @@ then
 		IFS='|' read -r -a cells <<< "$line"
 		for cell in "${cells[@]}"
 		do
-			if [ ${#cell} -ne 21 ]
+			if [ ${#cell} -ne 21 ] || [[ "$cell" =~ "\t" ]]
 			then
 				break
 			fi
@@ -136,7 +136,7 @@ then
 		if [ $cell_number -ne $number_of_criteria ]
 		then
 			printf " !!! ERROR: Measurements table specified via -t parameter has malformed content " >&2
-			echo   "(line $line_number, cell $cell_number) !!!" >&2
+			echo   "(line $line_number, cell $(( cell_number + 1 ))) !!!" >&2
 			exit 2
 		fi
 		line_number=$(( line_number + 1 ))
@@ -162,15 +162,24 @@ fi
 column_count=1
 while true
 do
-	if read -r line
+	if IFS='' read -r cell
 	then
 		if (( column_count < number_of_criteria ))
 		then
-			printf " %19s |" "$line" >> "$measurements_table"
+			cell_separator="|"
 			column_count=$(( column_count + 1 ))
 		else
-			printf " %19s \n" "$line" >> "$measurements_table"
+			cell_separator=$'\n'
 			column_count=1
+		fi
+		if [ ${#cell} -eq 21 ] && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
+		then
+			printf "%s%s" "$cell" "$cell_separator" >> "$measurements_table"
+		elif [ ${#cell} -gt 19 ] || [[ "$cell" =~ "\t"|"|" ]]
+		then
+			printf "<------------------->%s" "$cell_separator" >> "$measurements_table"
+		else
+			printf " %19s %s" "$cell" "$cell_separator" >> "$measurements_table"
 		fi
 	else
 		if (( column_count > 1 ))
@@ -181,14 +190,16 @@ do
 				then
 					printf "             aborted |" >> "$measurements_table"
 				else
-					printf " ------------------- |" >> "$measurements_table"
+					printf "<???????????????????>|" >> "$measurements_table"
 				fi
 			done
 			if (( column_count <= number_of_criteria ))
 			then
-				echo " ------------------- " >> "$measurements_table"
+				echo "<???????????????????>" >> "$measurements_table"
 			fi
 		fi
 		break
 	fi
 done < "$measurements_pipe"
+
+exit 0

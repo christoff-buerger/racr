@@ -179,3 +179,5 @@ case $selected_system in
 		done
 		mono "$( command -v IronScheme.Console-v4.exe )" -nologo ${libs[@]} "$to_execute" $*;;
 esac
+
+exit 0

@@ -214,3 +214,5 @@ then
 		fi
 	done
 fi
+
+exit 0

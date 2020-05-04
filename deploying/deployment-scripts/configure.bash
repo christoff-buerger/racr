@@ -28,7 +28,7 @@ supported_systems=()
 required_libraries=( "$configuration_directory" )
 required_sources=()
 
-while read line
+while IFS='' read -r line
 do
 	case $parsing_mode in
 	initial)

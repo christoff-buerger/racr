@@ -75,3 +75,5 @@ then
 	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
 	exit 2
 fi
+
+exit 0
