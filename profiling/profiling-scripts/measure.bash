@@ -117,9 +117,6 @@ echo "	-s /dev/null \\"
 echo "	$failsave -- << \|EOF\|"
 } > "$rerun_script"
 
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" &
-sleep 1 # let the record script write the table header
-
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
@@ -202,6 +199,8 @@ current_parameter_values=( "DUMMY DATE" )
 current_parameter_iterations=( "DUMMY DATE ITERATION" )
 current_parameter=1
 undo=false
+
+recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" )
 
 exec 3> "$measurements_pipe"
 while [ $current_parameter -ge 1 ]
@@ -291,6 +290,11 @@ do
 	fi
 done
 exec 3>&-
+
+while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] # Wait until all measurements are recorded.
+do
+	sleep 1
+done
 
 ################################################################################# Finish execution & cleanup temporary resources:
 my_exit

@@ -191,9 +191,6 @@ fi
 touch "$extraction_script"
 chmod +x "$extraction_script"
 
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" &
-sleep 1 # let the record script write the table header
-
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
@@ -246,7 +243,7 @@ echo "\|EOF\|" >> "$rerun_script"
 valid_parameters=1
 extractors="$extractors)"
 
-########################################################################################################### Extract measurements:
+##################################################################################################### Generate extraction script:
 {
 echo "#!r6rs"
 echo ""
@@ -267,9 +264,14 @@ done
 echo ")"
 } >> "$extraction_script"
 
-"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -l "$script_dir" \
-	-e "$extraction_script" > "$extraction_pipe"
-sleep 1 # let the record script write all extracted measurements
+########################################################################################################### Extract measurements:
+recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" )
+"$script_dir/../../deploying/deployment-scripts/execute.bash" \
+	-s $selected_system -l "$script_dir" -e "$extraction_script" > "$extraction_pipe"
+while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] # Wait until all extracted measurements are recorded.
+do
+	sleep 1
+done
 
 ################################################################################# Finish execution & cleanup temporary resources:
 mkdir -p "$( dirname "$measurements_table" )"

@@ -48,10 +48,16 @@ do
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -p Input pipe providing measurement results to record (mandatory parameter)." >&2
+			echo "          The measurement results provided via the pipe are processed by an asynchronous" >&2
+			echo "          process whose PID is echoed such that callees can wait for its termination" >&2
+			echo "          before, for example, deleting the pipe premature (i.e., before recording" >&2
+			echo "          of all measurements is finished)." >&2
 			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
 			echo "          Created if not existent. New measurements are appended." >&2
 			echo "       -x Only test arguments (optional multi-flag)." >&2
-			echo "          No measurements are recorded. The measurements table is not updated." >&2
+			echo "          No measurements are recorded; no asynchronous recording process is started" >&2
+			echo "          and therefore no PID of such echoed." >&2
+			echo "          The measurements table is not updated." >&2
 			exit 2;;
 	esac
 done
@@ -159,47 +165,52 @@ then
 fi
 
 ############################################################################################################ Print table content:
-column_count=1
-while true
-do
-	if IFS='' read -r cell
-	then
-		if (( column_count < number_of_criteria ))
+record(){
+	column_count=1
+	while true
+	do
+		if IFS='' read -r cell
 		then
-			cell_separator="|"
-			column_count=$(( column_count + 1 ))
-		else
-			cell_separator=$'\n'
-			column_count=1
-		fi
-		if [ ${#cell} -eq 21 ] && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
-		then
-			printf "%s%s" "$cell" "$cell_separator" >> "$measurements_table"
-		elif [ ${#cell} -gt 19 ] || [[ "$cell" =~ "\t"|"|" ]]
-		then
-			printf "<------------------->%s" "$cell_separator" >> "$measurements_table"
-		else
-			printf " %19s %s" "$cell" "$cell_separator" >> "$measurements_table"
-		fi
-	else
-		if (( column_count > 1 ))
-		then # fix table if entries are missing
-			for (( i = column_count; i < number_of_criteria; i++ ))
-			do
-				if (( i == number_of_parameters + 1 ))
-				then
-					printf "             aborted |" >> "$measurements_table"
-				else
-					printf "<???????????????????>|" >> "$measurements_table"
-				fi
-			done
-			if (( column_count <= number_of_criteria ))
+			if (( column_count < number_of_criteria ))
 			then
-				echo "<???????????????????>" >> "$measurements_table"
+				cell_separator="|"
+				column_count=$(( column_count + 1 ))
+			else
+				cell_separator=$'\n'
+				column_count=1
 			fi
+			if [ ${#cell} -eq 21 ] && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
+			then
+				printf "%s%s" "$cell" "$cell_separator" >> "$measurements_table"
+			elif [ ${#cell} -gt 19 ] || [[ "$cell" =~ "\t"|"|" ]]
+			then
+				printf "<------------------->%s" "$cell_separator" >> "$measurements_table"
+			else
+				printf " %19s %s" "$cell" "$cell_separator" >> "$measurements_table"
+			fi
+		else
+			if (( column_count > 1 ))
+			then # fix table if entries are missing
+				for (( i = column_count; i < number_of_criteria; i++ ))
+				do
+					if (( i == number_of_parameters + 1 ))
+					then
+						printf "             aborted |" >> "$measurements_table"
+					else
+						printf "<???????????????????>|" >> "$measurements_table"
+					fi
+				done
+				if (( column_count <= number_of_criteria ))
+				then
+					echo "<???????????????????>" >> "$measurements_table"
+				fi
+			fi
+			break
 		fi
-		break
-	fi
-done < "$measurements_pipe"
+	done < "$measurements_pipe"
+}
+
+record >/dev/null &
+echo $! # Return PID of the asynchronous process recording the measurements.
 
 exit 0
