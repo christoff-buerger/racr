@@ -62,19 +62,9 @@ then
 fi
 
 ####################################################################################################### Check measurement tables:
-extraction_pipe="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t p )"
-
-my_exit(){
-	exit_status=$?
-	rm -f "$extraction_pipe"
-	exit $exit_status
-}
-trap 'my_exit' 0 1 2 3 9 15
-
 for t in "${source_tables[@]}"
 do
-	"$script_dir/record.bash" -c "$profiling_configuration" -t "$t" -p "$extraction_pipe" -x
+	"$script_dir/record.bash" -c "$profiling_configuration" -t "$t" -x
 done
 
-################################################################################# Finish execution & cleanup temporary resources:
-my_exit
+exit 0

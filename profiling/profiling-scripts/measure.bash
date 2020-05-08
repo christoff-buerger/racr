@@ -74,25 +74,41 @@ then
 fi
 
 ##################################################################################### Configure temporary and external resources:
-tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
-measurements_pipe="$tmp_dir/measurements-pipe.fifo"
-measurements_stderr="$tmp_dir/measurements-errors.txt"
+tmp_dir=""
+unset recording_pid
 valid_parameters=0
 
 my_exit(){
+	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
+	# Close the recording pipe and wait until all measurements are recorded:
+	if [ ! -z ${recording_pid+x} ]
+	then
+		exec 3>&-
+		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
+		do
+			sleep 1
+		done
+	fi
+	# Delete the rerun script in case a user interactively specified invalid measurement-parameters while generating it:
 	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
-	then # user specified invalid measurement-parameters while generating rerun script
+	then
 		rm "$rerun_script"
 	fi
+	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
+	# Return captured exit status (i.e., if the original script execution succeded or not):
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
 
-mkfifo "$measurements_pipe"
+tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
+measurements_pipe="$tmp_dir/measurements-pipe.fifo"
+measurements_stderr="$tmp_dir/measurements-errors.txt"
 
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" -x
+mkfifo "$measurements_pipe"
+recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" )
+exec 3> "$measurements_pipe"
 
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
@@ -200,9 +216,6 @@ current_parameter_iterations=( "DUMMY DATE ITERATION" )
 current_parameter=1
 undo=false
 
-recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$measurements_pipe" )
-
-exec 3> "$measurements_pipe"
 while [ $current_parameter -ge 1 ]
 do
 	if (( current_parameter >= number_of_parameters ))
@@ -289,12 +302,6 @@ do
 		current_parameter=$(( current_parameter + 1 ))
 	fi
 done
-exec 3>&-
 
-while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] # Wait until all measurements are recorded.
-do
-	sleep 1
-done
-
-################################################################################# Finish execution & cleanup temporary resources:
-my_exit
+################################################################# Finish recording of measurements & cleanup temporary resources:
+exit 0 # triggers 'my_exit'

@@ -47,11 +47,11 @@ do
 			test_run=true;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
-			echo "       -p Input pipe providing measurement results to record (mandatory parameter)." >&2
-			echo "          The measurement results provided via the pipe are processed by an asynchronous" >&2
-			echo "          process whose PID is echoed such that callees can wait for its termination" >&2
-			echo "          before, for example, deleting the pipe premature (i.e., before recording" >&2
-			echo "          of all measurements is finished)." >&2
+			echo "       -p Input pipe providing measurement results to record (mandatory parameter if no -x)." >&2
+			echo "          If the -x flag is not set, the measurement results provided via the pipe are" >&2
+			echo "          processed by an asynchronous process whose PID is echoed. Callees can use this" >&2
+			echo "          PID to wait for the recording of piped measurements to finish and thereby avoid" >&2
+			echo "          too early termination or premature deletion of the pipe." >&2
 			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
 			echo "          Created if not existent. New measurements are appended." >&2
 			echo "       -x Only test arguments (optional multi-flag)." >&2
@@ -75,14 +75,16 @@ then
 	exit 2
 fi
 
-if [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
+if [ ! -z "$test_run" ] && [ -z ${measurements_pipe+x} ]
+then
+	:
+elif [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
 then
 	echo " !!! ERROR: Non-existing or no input pipe specified via -p parameter !!!" >&2
 	exit 2
 fi
 
-if [ -z "$measurements_table" ] ||
-   [ -e "$measurements_table" -a ! -f "$measurements_table" ]
+if [ -z "$measurements_table" ] || [ -e "$measurements_table" -a ! -f "$measurements_table" ]
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2

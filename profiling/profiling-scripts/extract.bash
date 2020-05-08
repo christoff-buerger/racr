@@ -100,6 +100,21 @@ then
 	exit 2
 fi
 
+if [ -z "$measurements_table" ] || [ -e "$measurements_table" -a ! -f "$measurements_table" ]
+then
+	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
+	exit 2
+fi
+
+if [ -z ${rerun_script+x} ]
+then
+	rerun_script="/dev/null"
+elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
+then
+	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
+	exit 2
+fi
+
 for a in "$@"
 do
 	if [ ! -f "$a" ]
@@ -116,41 +131,70 @@ then
 	exit 2
 fi
 
-if [ -z ${rerun_script+x} ]
-then
-	rerun_script="/dev/null"
-elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
-then
-	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
-	exit 2
-fi
-
 if [ -z ${recording_mode+x} ]
 then
 	recording_mode="-i"
 fi
 
 ##################################################################################### Configure temporary and external resources:
-tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
-extraction_pipe="$tmp_dir/extraction-pipe.fifo"
-extraction_table="$tmp_dir/extraction-table.txt"
-extraction_script="$tmp_dir/extraction-script.scm"
+tmp_dir=""
+unset recording_pid
 valid_parameters=0
+extraction_successful=0
 
 my_exit(){
+	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
+	# Close the recording pipe and wait until all extracted measurements are recorded:
+	if [ ! -z ${recording_pid+x} ]
+	then
+		exec 3>&-
+		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
+		do
+			sleep 1
+		done
+	fi
+	# Update the final measurements table if, and only if, everything was fine:
+	if [ $extraction_successful -eq 1 ]
+	then
+		mkdir -p "$( dirname "$measurements_table" )"
+		mv -f "$extraction_table" "$measurements_table"
+	fi
+	# Delete the rerun script in case a user interactively specified invalid extraction-parameters while generating it:
 	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
-	then # user specified invalid measurement-parameters while generating rerun script
+	then
 		rm "$rerun_script"
 	fi
+	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
+	# Return captured exit status (i.e., if the original script execution succeded or not):	
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
 
-mkfifo "$extraction_pipe"
+tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
+extraction_pipe="$tmp_dir/extraction-pipe.fifo"
+extraction_table="$tmp_dir/extraction-table.txt"
+extraction_script="$tmp_dir/extraction-script.scm"
 
-"$script_dir/record.bash" -c "$profiling_configuration" -t "$measurements_table" -p "$extraction_pipe" -x
+if [ -f "$measurements_table" ]
+then
+	if [ "$recording_mode" == "-a" ]
+	then
+		cp -p "$measurements_table" "$extraction_table"
+	elif [ "$recording_mode" == "-i" ]
+	then
+		source_tables+=( "$measurements_table" )
+	else
+		# Extreme sanity check to avoid accidential overwriting of arbitrary files:
+		"$script_dir/check-tables.bash" -c "$profiling_configuration" -- "$measurements_table"
+	fi
+fi
+
+mkfifo "$extraction_pipe"
+recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" )
+exec 3> "$extraction_pipe"
+
 selected_system=( `"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i` )
 
 if [ ! "$rerun_script" -ef "/dev/null" ]
@@ -176,20 +220,6 @@ echo "	-s /dev/null \\"
 echo "	$recording_mode \\"
 echo "-- ${source_tables[@]} << \|EOF\|"
 } > "$rerun_script"
-
-if [ -f "$measurements_table" ]
-then
-	if [ "$recording_mode" == "-a" ]
-	then
-		cp -p "$measurements_table" "$extraction_table"
-	elif [ "$recording_mode" == "-i" ]
-	then
-		source_tables+=( "$measurements_table" )
-	fi
-fi
-
-touch "$extraction_script"
-chmod +x "$extraction_script"
 
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
@@ -262,18 +292,13 @@ do
 	printf "\n \"$s\""
 done
 echo ")"
-} >> "$extraction_script"
+} > "$extraction_script"
+
+chmod +x "$extraction_script"
 
 ########################################################################################################### Extract measurements:
-recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" )
-"$script_dir/../../deploying/deployment-scripts/execute.bash" \
-	-s $selected_system -l "$script_dir" -e "$extraction_script" > "$extraction_pipe"
-while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] # Wait until all extracted measurements are recorded.
-do
-	sleep 1
-done
+"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -l "$script_dir" -e "$extraction_script" >&3
+extraction_successful=1
 
-################################################################################# Finish execution & cleanup temporary resources:
-mkdir -p "$( dirname "$measurements_table" )"
-mv -f "$extraction_table" "$measurements_table"
-my_exit
+############################################################## Update the final measurements table & cleanup temporary resources:
+exit 0 # triggers 'my_exit'
