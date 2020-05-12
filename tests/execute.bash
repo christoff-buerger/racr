@@ -38,7 +38,7 @@ fi
 
 if [ -z ${selected_systems+x} ]
 then
-	selected_systems=`"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i`
+	selected_systems=$( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i )
 fi
 
 if [ -z ${abort_on_failed_test+x} ]
@@ -59,20 +59,25 @@ run(){
 	shift
 	if [ -z "$library" ]
 	then
-		args=`echo -- "$@"`
+		args=$( echo -- "$@" )
 	else
-		args=`echo -l "$library" -- "$@"`
+		args=$( echo -l "$library" -- "$@" )
 	fi
 	echo "$program" "$@"
 	for s in ${selected_systems[@]}
 	do
-		set +e
-		set +o pipefail
-		error_message="$( "$script_dir/../deploying/deployment-scripts/execute.bash" \
-			-s "$s" -e "$program" $args 2>&1 1>/dev/null )"
-		error_status=$?
-		set -e
-		set -o pipefail
+		if [[ " ${excluded_systems[@]} " =~ " $s " ]]
+		then
+			error_status=2
+		else
+			set +e
+			set +o pipefail
+			error_message="$( "$script_dir/../deploying/deployment-scripts/execute.bash" \
+				-s "$s" -e "$program" $args 2>&1 1>/dev/null )"
+			error_status=$?
+			set -e
+			set -o pipefail
+		fi
 		tests_executed=$(( tests_executed + 1 ))
 		case $error_status in
 			0) # all correct => test passed
@@ -100,8 +105,18 @@ run(){
 # Test basic API:
 for f in "$script_dir"/*.scm
 do
+	excluded_systems=()
+	for e in "$f.exclude."*
+	do
+		if [ -f "$e" ]
+		then
+			e="$( basename "$e" )"
+			excluded_systems+=( "${e##*.}" )
+		fi
+	done
 	run "$f" ""
 done
+excluded_systems=()
 
 # Test binary numbers example:
 run "$script_dir/../examples/binary-numbers/binary-numbers.scm" ""
@@ -124,7 +139,7 @@ done
 # Test fUML Activity Diagrams example:
 for f in "$script_dir"/../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/*.ad
 do
-	input=${f%.ad}.adinput
+	input="${f%.ad}.adinput"
 	if [ ! -f "$input" ]
 	then
 		input=":false:"
@@ -142,14 +157,17 @@ do
 	run "$script_dir/../examples/siple/execute.scm" "" "$f" ":true:"
 done
 
+######################################################################################################### Print summary and exit:
 status_message="=====T=E=S=T===S=U=M=M=A=R=Y=====
 Number of tests: $tests_executed
 Tests passed:    $tests_passed
 Tests skipped:   $tests_skipped
 Tests failed:    $tests_failed"
+
 if [ $tests_failed -gt 0 ]
 then
 	printf "%s\n" "$status_message" >&2
 	exit 2
 fi
 printf "%s\n" "$status_message"
+exit 0
