@@ -1,0 +1,12 @@
+The rational for this test being excluded for _GNU Guile_ is given in [issue #37](https://github.com/christoff-buerger/racr/issues/37); the following text is taken from it.
+
+Since _GNU Guile_ 3.0.2, the failing tests do not always fail with stack overflows anymore, but sometimes just do not terminate. The tests failing are still:
+
+ - all composed Petri nets examples (`purchase-processing.scm`, `runtime-structure-example-slide.scm` and `syntax-tests.scm`)
+ - and `tests/rewrite-lists.scm`
+
+but now additional `tests/ast-construction.scm` fails (it tests `racr-meta`, **not** the stable `racr` AST construction).
+
+Because of the now non-terminating behaviour for some of these tests, a need to exclude them for _GNU Guile_ was needed. For _RACR_ libraries, like the composed Petri nets, this already can be and _is_ done in the library configuration. But for the simple source code file tests like `tests/ast-construction.scm`, a new exclusion feature has been added with commit a242621bb2ba09242af3e52c943a6c7e817745e3.
+
+The rationale why _GNU Guile_ fails some tests is still the same: _GNU Guile_ does not support cycle safe `equal?`. It is somehow worse however, because the record type for AST nodes (`define-record-type node`) is declared to be `opaque`, which according to R6RS semantic implies that the content of an AST node must never be inspected via generic record accessors (cf. conclusions of issue #85). Such are however the only way the standard `equal?` can start to unfold AST structure for equivalence tests. This is forbidden! It is intentional, that an AST node is only equal to itself; a structural equivalence test must never be applied. In case of `opaque` records, `equal?` must fall back to a simple `eq?` test. _GNU Guile_ therefore violates a whole set of _R6RS_ semantic.
