@@ -97,7 +97,7 @@ my_exit(){
 	fi
 	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
-	# Return captured exit status (i.e., if the original script execution succeded or not):
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15

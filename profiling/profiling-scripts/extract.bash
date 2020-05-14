@@ -167,7 +167,7 @@ my_exit(){
 	fi
 	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
-	# Return captured exit status (i.e., if the original script execution succeded or not):	
+	# Return captured exit status (i.e., if the original script execution succeeded or not):	
 	exit $exit_status
 }
 trap 'my_exit' 0 1 2 3 9 15
@@ -186,7 +186,7 @@ then
 	then
 		source_tables+=( "$measurements_table" )
 	else
-		# Extreme sanity check to avoid accidential overwriting of arbitrary files:
+		# Extreme sanity check to avoid accidental overwriting of arbitrary files:
 		"$script_dir/check-tables.bash" -c "$profiling_configuration" -- "$measurements_table"
 	fi
 fi

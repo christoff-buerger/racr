@@ -49,7 +49,7 @@ do
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -p Input pipe providing measurement results to record (mandatory parameter if no -x)." >&2
 			echo "          If the -x flag is not set, the measurement results provided via the pipe are" >&2
-			echo "          processed by an asynchronous process whose PID is echoed. Callees can use this" >&2
+			echo "          processed by an asynchronous process whose PID is echoed. Callers can use this" >&2
 			echo "          PID to wait for the recording of piped measurements to finish and thereby avoid" >&2
 			echo "          too early termination or premature deletion of the pipe." >&2
 			echo "       -t Measurements table used for recording (mandatory parameter)." >&2

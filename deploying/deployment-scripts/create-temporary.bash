@@ -47,7 +47,7 @@ do
 		h|?)
 			echo "Usage: -t Type of temporary to create (mandatory parameter)." >&2
 			echo "          Must be one of the following: f (file), d (directory), p (pipe)." >&2
-			echo "       -n Name of temporary to create (optinal parameter)." >&2
+			echo "       -n Name of temporary to create (optional parameter)." >&2
 			echo "          Forces the created temporary to have a certain basename." >&2
 			echo "       -u Use existing temporary directory (optional parameter)." >&2
 			echo "          Forces the created temporary to be within an existing temporary directory." >&2

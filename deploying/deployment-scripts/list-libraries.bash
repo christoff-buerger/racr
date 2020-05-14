@@ -82,12 +82,12 @@ do
 		h|?)
 			echo "Usage: -k List all known RACR libraries (multi-flag)." >&2
 			echo "       -l List all directories of a RACR library (multi-parameter)." >&2
-			echo "          The listed paths are absolut." >&2
+			echo "          The listed paths are absolute." >&2
 			echo "          Abort with an error if the library is unknown." >&2
-			echo "       -i List all directories of all knwon RACR libraries (multi-flag)." >&2
-			echo "          The listed paths are absolut." >&2
-			echo "       -c List configuraton file of a RACR library directory (multi-parameter)." >&2
-			echo "          The listed path is absolut." >&2
+			echo "       -i List all directories of all known RACR libraries (multi-flag)." >&2
+			echo "          The listed paths are absolute." >&2
+			echo "       -c List configuration file of a RACR library directory (multi-parameter)." >&2
+			echo "          The listed path is absolute." >&2
 			echo "          Abort with an error if the library directory is unknown." >&2
 			exit 2;;
 	esac
