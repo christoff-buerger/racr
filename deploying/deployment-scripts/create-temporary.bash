@@ -110,14 +110,24 @@ do
 	fi
 done
 mkdir -p "$( dirname "$tmp_dir/$tmp_name" )"
+set +e
+set +o pipefail
 case $temporary_type in
 	file)
-		touch "$tmp_dir/$tmp_name";;
+		touch "$tmp_dir/$tmp_name" 2>/dev/null;;
 	directory)
-		mkdir -p "$tmp_dir/$tmp_name";;
+		mkdir -p "$tmp_dir/$tmp_name" 2>/dev/null;;
 	pipe)
-		mkfifo "$tmp_dir/$tmp_name";;
+		mkfifo "$tmp_dir/$tmp_name" 2>/dev/null;;
 esac
+invalid_name=$?
+set -e
+set -o pipefail
+if [ $invalid_name -ne 0 ]
+then
+	echo " !!! ERROR: [$name] is an invalid $temporary_type name !!!" >&2
+	exit 2
+fi
 echo "$tmp_dir/$tmp_name"
 
 exit 0
