@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This program and the accompanying materials are made available under the
 # terms of the MIT license (X11 license) which accompanies this distribution.
@@ -117,7 +117,7 @@ then
 	chmod +x "$rerun_script"
 fi
 {
-echo "#!/bin/bash"
+echo "#!/usr/bin/env bash"
 echo "set -e"
 echo "set -o pipefail"
 echo "if [ ! \$# -eq 0 ]"
@@ -130,7 +130,7 @@ echo "\"$script_dir/measure.bash\" \\"
 echo "	-c \"$profiling_configuration\" \\"
 echo "	-t \"$measurements_table\" \\"
 echo "	-s /dev/null \\"
-echo "	$failsave -- << \|EOF\|"
+echo "	$failsave -- << \"\|EOF\|\""
 } > "$rerun_script"
 
 ############################################################################################################# Read configuration:

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This program and the accompanying materials are made available under the
 # terms of the MIT license (X11 license) which accompanies this distribution.
@@ -124,7 +124,7 @@ then
 	done < "$measurements_table"
 	if [ $i -ne ${#header[@]} ]
 	then
-		echo " !!! ERROR: Measurements table specified via -t parameter has malformed header !!!" >&2
+		echo " !!! ERROR: Measurements table [$measurements_table] has malformed header !!!" >&2
 		exit 2
 	fi
 	
@@ -143,7 +143,7 @@ then
 		done
 		if [ $cell_number -ne $number_of_criteria ]
 		then
-			printf " !!! ERROR: Measurements table specified via -t parameter has malformed content " >&2
+			printf " !!! ERROR: Measurements table [$measurements_table] has malformed content " >&2
 			echo   "(line $line_number, cell $(( cell_number + 1 ))) !!!" >&2
 			exit 2
 		fi

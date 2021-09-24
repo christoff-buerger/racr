@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This program and the accompanying materials are made available under the
 # terms of the MIT license (X11 license) which accompanies this distribution.
@@ -204,7 +204,7 @@ then
 	chmod +x "$rerun_script"
 fi
 {
-echo "#!/bin/bash"
+echo "#!/usr/bin/env bash"
 echo "set -e"
 echo "set -o pipefail"
 echo "if [ ! \$# -eq 0 ]"
@@ -218,7 +218,7 @@ echo "	-c \"$profiling_configuration\" \\"
 echo "	-t \"$measurements_table\" \\"
 echo "	-s /dev/null \\"
 echo "	$recording_mode \\"
-echo "-- ${source_tables[@]} << \|EOF\|"
+echo "-- ${source_tables[@]} << \"\|EOF\|\""
 } > "$rerun_script"
 
 ############################################################################################################# Read configuration:
