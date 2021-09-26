@@ -20,8 +20,8 @@ do
 			abort_on_failed_test="false";;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "$( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
-				sed 's/^/             /' )" >&2
+			"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
+				sed 's/^/             /' >&2
 			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			echo "       -x Do not abort testing on error (multi-flag)." >&2
 			echo "          By default, testing is aborted as soon as any test failed." >&2
@@ -32,13 +32,13 @@ shift $(( OPTIND - 1 ))
 
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
 if [ -z ${selected_systems+x} ]
 then
-	selected_systems=$( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i )
+	mapfile -t selected_systems < <( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i )
 fi
 
 if [ -z ${abort_on_failed_test+x} ]
@@ -54,26 +54,25 @@ tests_skipped=0
 
 run(){
 	program="$1"
-	library="$2"
-	shift
-	shift
-	if [ -z "$library" ]
+	if [ -z "$2" ]
 	then
-		args=$( echo -- "$@" )
+		library=()
 	else
-		args=$( echo -l "$library" -- "$@" )
+		library=( -l "$2" )
 	fi
+	shift
+	shift
 	echo "$program" "$@"
-	for s in ${selected_systems[@]}
+	for s in "${selected_systems[@]}"
 	do
-		if [[ " ${excluded_systems[@]} " =~ " $s " ]]
+		if [ ${excluded_systems["$s"]+x} ]
 		then
 			error_status=2
 		else
 			set +e
 			set +o pipefail
 			error_message="$( "$script_dir/../deploying/deployment-scripts/execute.bash" \
-				-s "$s" -e "$program" $args 2>&1 1>/dev/null )"
+				-s "$s" -e "$program" "${library[@]}" -- "$@" 2>&1 1>/dev/null )"
 			error_status=$?
 			set -e
 			set -o pipefail
@@ -81,10 +80,10 @@ run(){
 		tests_executed=$(( tests_executed + 1 ))
 		case $error_status in
 			0) # all correct => test passed
-				printf " $s"
+				printf " %s" "$s"
 				tests_passed=$(( tests_passed + 1));;
 			2) # configuration error for Scheme system => test skipped
-				printf " -$s-"
+				printf " -%s-" "$s"
 				tests_skipped=$(( tests_skipped + 1));;
 			*) # test failed (execution error) => print error and...
 				echo " !$s!"
@@ -105,18 +104,19 @@ run(){
 # Test basic API:
 for f in "$script_dir"/*.scm
 do
-	excluded_systems=()
+	declare -A excluded_systems=()
 	for e in "$f.exclude."*
 	do
 		if [ -f "$e" ]
 		then
 			e="$( basename "$e" )"
-			excluded_systems+=( "${e##*.}" )
+			e="${e##*.}"
+			excluded_systems["$e"]="$e"
 		fi
 	done
 	run "$f" ""
 done
-excluded_systems=()
+declare -A excluded_systems=()
 
 # Test binary numbers example:
 run "$script_dir/../examples/binary-numbers/binary-numbers.scm" ""

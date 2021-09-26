@@ -19,13 +19,18 @@ then
 	exit $?
 fi
 
+selected_systems=()
+
 while getopts xs:e:h opt
 do
 	case $opt in
 		x)
-			execute_incorrect=":true:";;
+			execute_incorrect=":true:"
+			;;
 		s)
-			selected_system=`echo $selected_system -s "$OPTARG"`;;
+			selected_systems+=( -s )
+			selected_systems+=( "$OPTARG" )
+			;;
 		e)
 			if [ -z ${program+x} ]
 			then
@@ -33,11 +38,12 @@ do
 			else
 				echo " !!! ERROR: Several SiPLE programs for execution selected via -e parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
-			echo "$( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -k | \
-				sed 's/^/             /' )" >&2
+			"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -k | \
+				sed 's/^/             /' >&2
 			echo "          By default, GNU Guile is used." >&2
 			echo "       -e SiPLE program to interpret (mandatory parameter)." >&2
 			echo "       -x Expect interpretation error (optional flag)." >&2
@@ -46,13 +52,14 @@ do
 			echo "       -- Command line arguments for the SiPLE program to interpret (optional parameter)." >&2
 			echo "          All following arguments are forwarded." >&2
 			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
@@ -61,9 +68,10 @@ then
 	execute_incorrect=":false:"
 fi
 
-if [ -z ${selected_system+x} ]
+if [[ ! -v selected_systems[@] ]]
 then
-	selected_system=`echo -s "guile"`
+	selected_systems+=( -s )
+	selected_systems+=( "guile" )
 fi
 
 if [ -z ${program+x} ]
@@ -73,5 +81,5 @@ then
 fi
 
 ########################################################################################################## Execute SiPLE program:
-"$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system \
+"$script_dir/../../deploying/deployment-scripts/execute.bash" "${selected_systems[@]}" \
 	-e "$script_dir/execute.scm" -- "$program" "$execute_incorrect" "$@"

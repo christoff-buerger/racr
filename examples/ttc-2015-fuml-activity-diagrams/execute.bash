@@ -16,15 +16,21 @@ then
 	exit $?
 fi
 
+selected_systems=()
+
 while getopts cxs:d:i:m:h opt
 do
 	case $opt in
 		c)
-			cache_enabled_analysis=":false:";;
+			cache_enabled_analysis=":false:"
+			;;
 		x)
-			print_trace=":false:";;
+			print_trace=":false:"
+			;;
 		s)
-			selected_system=`echo $selected_system -s "$OPTARG"`;;
+			selected_systems+=( -s )
+			selected_systems+=( "$OPTARG" )
+			;;
 		d)
 			if [ -z ${diagram+x} ]
 			then
@@ -32,7 +38,8 @@ do
 			else
 				echo " !!! ERROR: Several activity diagrams for execution selected via -d parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		i)
 			if [ -z ${input+x} ]
 			then
@@ -40,7 +47,8 @@ do
 			else
 				echo " !!! ERROR: Several diagram inputs for execution selected via -i parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		m)
 			if [ -z ${mode+x} ]
 			then
@@ -48,12 +56,13 @@ do
 			else
 				echo " !!! ERROR: Several modes for diagram execution selected via -m parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
-			echo "$( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
-				sed 's/^/             /' )" >&2
-			echo "          By default, Larceny is used." >&2
+			"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
+				sed 's/^/             /' >&2
+			echo "          By default, Chez Scheme is used." >&2
 			echo "       -d Activity diagram (mandatory parameter)." >&2
 			echo "       -i Activity diagram input (optional parameter)." >&2
 			echo "       -m Execution mode (optional parameter). Permitted values:" >&2
@@ -70,13 +79,14 @@ do
 			echo "       -x Deactivate printing the execution trace on stdout (optional multi-flag)." >&2
 			echo "          By default, the execution trace is printed." >&2
 			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
@@ -90,9 +100,10 @@ then
 	print_trace=":true:"
 fi
 
-if [ -z ${selected_system+x} ]
+if [[ ! -v selected_systems[@] ]]
 then
-	selected_system=`echo -s "larceny"`
+	selected_systems+=( -s )
+	selected_systems+=( "chez" )
 fi
 
 if [ -z ${diagram+x} ]
@@ -116,5 +127,5 @@ then
 fi
 
 ####################################################################################################### Execute activity diagram:
-"$script_dir/../../deploying/deployment-scripts/execute.bash" $selected_system -e "$script_dir/execute.scm" -- \
+"$script_dir/../../deploying/deployment-scripts/execute.bash" "${selected_systems[@]}" -e "$script_dir/execute.scm" -- \
 	"$diagram" "$input" "$mode" "$cache_enabled_analysis" "$print_trace"

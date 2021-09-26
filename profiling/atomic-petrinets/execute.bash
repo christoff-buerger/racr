@@ -45,4 +45,4 @@ execution_time=$(
 	} 2>&1
 )
 exec 3>&- 4>&-
-echo $execution_time
+echo "$execution_time"

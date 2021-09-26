@@ -115,47 +115,39 @@ case $selected_system in
 		plt-r6rs "${libs[@]}" "$to_execute" "$@"
 		;;
 	guile)
-		llibs=()
-		clibs=()
+		libs=()
 		for l in "${required_libraries[@]}"
 		do
-			llibs+=( -L "$l/binaries/guile" )
-			clibs+=( -C "$l/binaries/guile" )
+			libs+=( -L "$l/binaries/guile" )
+			libs+=( -C "$l/binaries/guile" )
 		done
-		guile --no-auto-compile "${llibs[@]}" "${clibs[@]}" -s "$to_execute" "$@"
+		guile --no-auto-compile "${libs[@]}" -s "$to_execute" "$@"
 		;;
 	larceny)
 		libs_string=""
-		libs_flag=""
+		libs=()
 		for l in "${required_libraries[@]}"
 		do
 			libs_string+=":$l/binaries/larceny"
 		done
 		if [ -n "$libs_string" ]
 		then
-			libs_string="${libs_string:1}"
-			libs_flag="--path"
+			libs+=( --path "${libs_string:1}" )
 		fi
-		arguments_flag=""
-		if [ "$#" -ge 1 ]
-		then
-			arguments_flag="--"
-		fi
-		larceny --r6rs "$libs_flag" "$libs_string" --program "$to_execute" "$arguments_flag" "$@"
+		larceny --r6rs "${libs[@]}" --program "$to_execute" -- "$@"
 		;;
 	chez)
 		libs_string=""
-		libs_flag=""
+		libs=()
 		for l in "${required_libraries[@]}"
 		do
 			libs_string+=":$l/binaries/chez"
 		done
 		if [ -n "$libs_string" ]
 		then
-			libs_string="${libs_string:1}"
-			libs_flag="--libdirs"
+			libs+=( --libdirs "${libs_string:1}" )
 		fi
-		chez "$libs_flag" "$libs_string" --program "$to_execute" "$@"
+		chez "${libs[@]}" --program "$to_execute" "$@"
 		;;
 	sagittarius)
 		libs=()
