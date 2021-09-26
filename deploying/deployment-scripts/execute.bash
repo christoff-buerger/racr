@@ -141,7 +141,7 @@ case $selected_system in
 		then
 			arguments_flag="--"
 		fi
-		larceny --r6rs "$libs_flag" "$libs_string" --program "$to_execute" $arguments_flag "$@"
+		larceny --r6rs "$libs_flag" "$libs_string" --program "$to_execute" "$arguments_flag" "$@"
 		;;
 	chez)
 		libs_string=""
