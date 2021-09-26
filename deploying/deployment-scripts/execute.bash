@@ -30,20 +30,22 @@ do
 			else
 				echo " !!! ERROR: Several Scheme systems for execution selected via -s parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		e)
 			if [ -z ${to_execute+x} ]
 			then
 				to_execute="$OPTARG"
 				to_execute_dir="$( dirname "$to_execute" )"
-				if [ ! -z "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" ]
+				if [ -n "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" ]
 				then
 					configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" )"
 				fi
 			else
 				echo " !!! ERROR: Several programs to execute specified via -e parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		l)
 			if [ -z ${configuration_to_parse+x} ]
 			then
@@ -52,26 +54,28 @@ do
 				echo " !!! ERROR: Several libraries to use specified, either via -l parameter or implicitly" >&2
 				echo "            because the program to execute is in a RACR library directory !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
-			echo "$( "$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' )" >&2
+			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
 			echo "       -e Scheme program to execute (mandatory parameter)." >&2
 			echo "       -l Load a RACR library before execution (optional parameter)." >&2
 			echo "          The given argument must be a RACR library directory." >&2
 			echo "          Know RACR library directories are:" >&2
-			echo "$( "$script_dir/list-libraries.bash" -i | sed 's/^/             /' )" >&2
+			"$script_dir/list-libraries.bash" -i | sed 's/^/             /' >&2
 			echo "          Implicitly set if the program to execute already is in a RACR library directory." >&2
 			echo "       -- Command line arguments for the Scheme program to execute (optional parameter). " >&2
 			echo "          All following arguments are forwarded to the executed program." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
@@ -93,7 +97,7 @@ then
 	required_libraries+=( "$script_dir/../../racr-meta" )
 else
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
-	if [[ ! " ${supported_systems[@]} " =~ "$selected_system" ]]
+	if [ ! ${supported_systems["$selected_system"]+x} ]
 	then
 		echo " !!! ERROR: Scheme system [$selected_system] not supported by the program !!!" >&2
 		exit 2
@@ -104,65 +108,74 @@ fi
 case $selected_system in
 	racket)
 		libs=()
-		for l in ${required_libraries[@]}
+		for l in "${required_libraries[@]}"
 		do
 			libs+=( ++path "$l/binaries/racket" )
 		done
-		plt-r6rs ${libs[@]} "$to_execute" $*;;
+		plt-r6rs "${libs[@]}" "$to_execute" "$@"
+		;;
 	guile)
 		llibs=()
 		clibs=()
-		for l in ${required_libraries[@]}
+		for l in "${required_libraries[@]}"
 		do
 			llibs+=( -L "$l/binaries/guile" )
 			clibs+=( -C "$l/binaries/guile" )
 		done
-		guile --no-auto-compile ${llibs[@]} ${clibs[@]} -s "$to_execute" $*;;
+		guile --no-auto-compile "${llibs[@]}" "${clibs[@]}" -s "$to_execute" "$@"
+		;;
 	larceny)
-		libs=""
-		for l in ${required_libraries[@]}
+		libs_string=""
+		libs_flag=""
+		for l in "${required_libraries[@]}"
 		do
-			libs+=":$l/binaries/larceny"
+			libs_string+=":$l/binaries/larceny"
 		done
-		if [ ! -z "$libs" ]
+		if [ -n "$libs_string" ]
 		then
-			libs="--path ${libs:1}"
+			libs_string="${libs_string:1}"
+			libs_flag="--path"
 		fi
-		arguments=""
+		arguments_flag=""
 		if [ "$#" -ge 1 ]
 		then
-			arguments="-- $*"
+			arguments_flag="--"
 		fi
-		larceny --r6rs $libs --program "$to_execute" $arguments;;
+		larceny --r6rs "$libs_flag" "$libs_string" --program "$to_execute" $arguments_flag "$@"
+		;;
 	chez)
-		libs=""
-		for l in ${required_libraries[@]}
+		libs_string=""
+		libs_flag=""
+		for l in "${required_libraries[@]}"
 		do
-			libs+=":$l/binaries/chez"
+			libs_string+=":$l/binaries/chez"
 		done
-		if [ ! -z "$libs" ]
+		if [ -n "$libs_string" ]
 		then
-			libs="--libdirs ${libs:1}"
+			libs_string="${libs_string:1}"
+			libs_flag="--libdirs"
 		fi
-		chez $libs --program "$to_execute" $*;;
+		chez "$libs_flag" "$libs_string" --program "$to_execute" "$@"
+		;;
 	sagittarius)
 		libs=()
-		for l in ${required_libraries[@]}
+		for l in "${required_libraries[@]}"
 		do
 			libs+=( --loadpath="$l/.." )
 		done
-		sagittarius ${libs[@]} "$to_execute" $*;;
+		sagittarius "${libs[@]}" "$to_execute" "$@"
+		;;
 	ypsilon)
-		libs=""
-		for l in ${required_libraries[@]}
+		libs_string=""
+		for l in "${required_libraries[@]}"
 		do
-			libs+=":$l/.."
+			libs_string+=":$l/.."
 		done
-		if [ ! -z "$libs" ]
+		if [ -n "$libs_string" ]
 		then
-			libs="${libs:1}"
-			sitelib="--sitelib=$libs"
-			loadpath="--loadpath=$libs"
+			libs_string="${libs_string:1}"
+			sitelib="--sitelib=$libs_string"
+			loadpath="--loadpath=$libs_string"
 		fi
 		cache="$script_dir/../../racr/binaries/ypsilon"
 		mkdir -p "$cache"
@@ -170,14 +183,16 @@ case $selected_system in
 		# To add compilation warnings add --warning flag.
 		# To echo load and compile actions add --verbose flag.
 		# The heap limit is in MBytes.
-		ypsilon "$sitelib" "$loadpath" --acc="$cache" --quiet --r6rs --heap-limit=512 -- "$to_execute" $*;;
+		ypsilon "$sitelib" "$loadpath" --acc="$cache" --quiet --r6rs --heap-limit=512 -- "$to_execute" "$@"
+		;;
 	ironscheme)
 		libs=()
-		for l in ${required_libraries[@]}
+		for l in "${required_libraries[@]}"
 		do
 			libs+=( -I "$l/binaries/ironscheme" )
 		done
-		mono "$( command -v IronScheme.Console-v4.exe )" -nologo ${libs[@]} "$to_execute" $*;;
+		mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${libs[@]}" "$to_execute" "$@"
+		;;
 esac
 
 exit 0

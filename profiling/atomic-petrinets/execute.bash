@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This program and the accompanying materials are made available under the
 # terms of the MIT license (X11 license) which accompanies this distribution.
@@ -22,9 +22,9 @@ then
 		echo "             $i: ${parameter_names[$i]} (${parameter_descriptions[$i]})" >&2
 	done
 	echo "       The Scheme system for execution must be one of:" >&2
-	for (( i = 0; i < ${#supported_systems[@]}; i++))
+	for s in "${supported_systems[@]}"
 	do
-		echo "             ${supported_systems[$i]}" >&2
+		echo "             $s" >&2
 	done
 	echo "       The caching of the enabled analysis must be either, 'on' or 'off'." >&2
 	echo "       All other arguments must be natural numbers." >&2

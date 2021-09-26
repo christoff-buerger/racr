@@ -6,11 +6,11 @@
 # author: C. Bürger
 
 # BEWARE: This script must be sourced. It expects one variables to be set and sets four variables:
-#  in)  configuration_to_parse:		Configuration file to parse
-#  set) configuration_directory:	Directory containing the configuration file to parse
-#  set) supported_systems:		Array of KNOWN Scheme systems supported according to the parsed configuration
-#  set) required_libraries:		Array of paths to the libraries required according to the parsed configuration
-#  set) required_sources:		Array of paths to the source files according to the parsed configuration
+#  in)  configuration_to_parse:	 Configuration file to parse
+#  set) configuration_directory: Directory containing the configuration file to parse
+#  set) supported_systems:	 Associative array of KNOWN Scheme systems supported according to the parsed configuration
+#  set) required_libraries:	 Array of paths to the libraries required according to the parsed configuration
+#  set) required_sources:	 Array of paths to the source files according to the parsed configuration
 
 set -e
 set -o pipefail
@@ -24,7 +24,7 @@ fi
 
 parsing_mode=initial
 configuration_directory="$( cd "$( dirname "$configuration_to_parse" )" && pwd )"
-supported_systems=()
+supported_systems_array=()
 required_libraries=( "$configuration_directory" )
 required_sources=()
 
@@ -37,7 +37,7 @@ do
 			parsing_mode=systems
 			continue
 		fi
-		supported_systems=( `"$configure_bash_dir/list-scheme-systems.bash" -k` )
+		mapfile -t supported_systems_array < <( "$configure_bash_dir/list-scheme-systems.bash" -k )
 		if [ "$line" = "@libraries:" ]
 		then
 			parsing_mode=libraries
@@ -49,7 +49,8 @@ do
 			continue
 		fi
 		parsing_mode=sources
-		required_sources+=( "$configuration_directory/$line" );;
+		required_sources+=( "$configuration_directory/$line" )
+		;;
 	systems)
 		if [ "$line" = "@libraries:" ]
 		then
@@ -61,16 +62,30 @@ do
 			parsing_mode=sources
 			continue
 		fi
-		supported_systems+=( "$line" )
-		continue;;
+		supported_systems_array+=( "$line" )
+		continue
+		;;
 	libraries)
 		if [ "$line" = "@sources:" ]
 		then
 			parsing_mode=sources
 			continue
 		fi
-		required_libraries+=( "$configuration_directory/$line" );;
+		required_libraries+=( "$configuration_directory/$line" )
+		;;
 	sources)
-		required_sources+=( "$configuration_directory/$line" );;
+		required_sources+=( "$configuration_directory/$line" )
+		;;
 	esac
 done < "$configuration_to_parse"
+
+declare -A supported_systems
+for s in "${supported_systems_array[@]}"
+do
+	# shellcheck disable=SC2034
+	supported_systems["$s"]="$s"
+done
+
+unset supported_systems_array
+unset parsing_mode
+unset configure_bash_dir

@@ -27,7 +27,8 @@ do
 			else
 				echo " !!! ERROR: Several temporary-types selected via -t parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		n)
 			if [ -z ${name+x} ]
 			then
@@ -35,7 +36,8 @@ do
 			else
 				echo " !!! ERROR: Several names selected via -n parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		u)
 			if [ -z ${use_existing+x} ]
 			then
@@ -43,7 +45,8 @@ do
 			else
 				echo " !!! ERROR: Several temporary directories selected via -u parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -t Type of temporary to create (mandatory parameter)." >&2
 			echo "          Must be one of the following: f (file), d (directory), p (pipe)." >&2
@@ -54,26 +57,31 @@ do
 			echo "          If also -n is set, and a respective temporary already exists in the used" >&2
 			echo "          directory, the created temporary will be in a newly created direct" >&2
 			echo "          subdirectory of the used one." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
 case "$temporary_type" in
 	f|file)
-		temporary_type=file;;
+		temporary_type="file"
+		;;
 	d|directory)
-		temporary_type=directory;;
+		temporary_type="directory"
+		;;
 	p|pipe)
-		temporary_type=pipe;;
+		temporary_type="pipe"
+		;;
 	*)
-		temporary_type="";;
+		temporary_type=""
+		;;
 esac
 if [ -z "$temporary_type" ]
 then
@@ -81,7 +89,7 @@ then
 	exit 2
 fi
 
-if [ ! -z ${use_existing+x} ]
+if [ -n "${use_existing+x}" ]
 then
 	if [ ! -d "$use_existing" ]
 	then
@@ -103,8 +111,8 @@ tmp_name="$name"
 while [ -e "$tmp_dir/$tmp_name" ]
 do
 	current_date="$( date -u "+%Y-%m-%dT%H:%M:%SZ" )" # Date in xs:dateTime format.
-	tmp_name="$current_date-$(( $RANDOM % 10 ))$(( $RANDOM % 10 ))$(( $RANDOM % 10 ))$(( $RANDOM % 10 ))"
-	if [ ! -z ${name+x} ]
+	tmp_name="$current_date-$(( RANDOM % 10 ))$(( RANDOM % 10 ))$(( RANDOM % 10 ))$(( RANDOM % 10 ))"
+	if [ -n "${name+x}" ]
 	then
 		tmp_name="$tmp_name/$name"
 	fi
@@ -114,11 +122,14 @@ set +e
 set +o pipefail
 case $temporary_type in
 	file)
-		touch "$tmp_dir/$tmp_name" 2>/dev/null;;
+		touch "$tmp_dir/$tmp_name" 2>/dev/null
+		;;
 	directory)
-		mkdir -p "$tmp_dir/$tmp_name" 2>/dev/null;;
+		mkdir -p "$tmp_dir/$tmp_name" 2>/dev/null
+		;;
 	pipe)
-		mkfifo "$tmp_dir/$tmp_name" 2>/dev/null;;
+		mkfifo "$tmp_dir/$tmp_name" 2>/dev/null
+		;;
 esac
 invalid_name=$?
 set -e

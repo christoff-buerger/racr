@@ -23,7 +23,8 @@ do
 			for s in chez guile racket larceny sagittarius ypsilon ironscheme
 			do
 				echo "$s"
-			done;;
+			done
+			;;
 		i)
 			found=""
 			for s in chez guile racket larceny sagittarius ypsilon
@@ -36,43 +37,42 @@ do
 			done
 			if command -v IronScheme.Console-v4.exe > /dev/null
 			then
-				echo ironscheme
+				echo "ironscheme"
 				found=true
 			fi
 			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: No Scheme system found !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		s)
 			found=""
-			for s in `"$script_dir/list-scheme-systems.bash" -i`
+			for s in $( "$script_dir/list-scheme-systems.bash" -i )
 			do
 				if [ "$OPTARG" == "$s"  ]
 				then
-					found=true
-					break
+					exit 0
 				fi
 			done
-			if [ -z "$found" ]
-			then
-				echo " !!! ERROR: Unknown [$OPTARG] Scheme system selected via -s parameter !!!" >&2
-				exit 2
-			fi;;
+			echo " !!! ERROR: Unknown [$OPTARG] Scheme system selected via -s parameter !!!" >&2
+			exit 2
+			;;
 		h|?)
 			echo "Usage: -k List all Scheme systems officially supported by RACR (multi-flag)." >&2
 			echo "       -i List all installed and officially supported Scheme systems (multi-flag)." >&2
 			echo "          Abort with an error if no supported system is installed." >&2
 			echo "       -s Ensure a certain system is installed and supported (multi-parameter)." >&2
 			echo "          Abort with an error if not." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
