@@ -9,125 +9,138 @@ set -e
 set -o pipefail
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+selected_systems_array=()
+selected_libraries=()
+
 ################################################################################################################ Parse arguments:
 while getopts s:i:h opt
 do
 	case $opt in
 		s)
 			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
-			selected_systems+=( "$OPTARG" );;
+			selected_systems_array+=( "$OPTARG" )
+			;;
 		i)
-			selected_libraries+=( `"$script_dir/list-libraries.bash" -l "$OPTARG"` );;
+			mapfile -t additional_libraries < <( "$script_dir/list-libraries.bash" -l "$OPTARG" || kill -13 $$ )
+			selected_libraries+=( "${additional_libraries[@]}" )
+			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
-			echo "$( "$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' )" >&2
+			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
 			echo "          If no Scheme system is selected, the selected RACR libraries" >&2
 			echo "          are installed for all available systems." >&2
 			echo "       -i RACR library to install (optional multi-parameter). Permitted values:" >&2
-			echo "$( "$script_dir/list-libraries.bash" -k | sed 's/^/             /' )" >&2
+			"$script_dir/list-libraries.bash" -k | sed 's/^/             /' >&2
 			echo "          If no library is selected, all libraries are installed." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
-if [ -z ${selected_systems+x} ]
+if [[ ! -v selected_systems_array[@] ]]
 then
-	selected_systems=`"$script_dir/list-scheme-systems.bash" -i`
+	mapfile -t selected_systems_array < <( "$script_dir/list-scheme-systems.bash" -i || kill -13 $$ )
 fi
+declare -A selected_systems
+selected_systems=()
+for s in "${selected_systems_array[@]}"
+do
+	selected_systems["$s"]="$s"
+done
 
-if [ -z ${selected_libraries+x} ]
+if [[ ! -v selected_libraries[@] ]]
 then
-	selected_libraries=`"$script_dir/list-libraries.bash" -i`
+	mapfile -t selected_libraries < <( "$script_dir/list-libraries.bash" -i || kill -13 $$ )
 fi
 
 ############################################################################################################## Install libraries:
-if [[ " ${selected_systems[@]} " =~ "racket" ]]
+if [ ${selected_systems["racket"]+x} ]
 then
 	echo "=========================================>>> Compile for Racket:"
-	for l in ${selected_libraries[@]}
+	for l in "${selected_libraries[@]}"
 	do
 		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [[ " ${supported_systems[@]} " =~ "racket" ]]
+		if [ ${supported_systems["racket"]+x} ]
 		then
 			l_bin="$l/binaries/racket"
 			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=()
-			for x in ${required_libraries[@]}
+			for x in "${required_libraries[@]}"
 			do
 				lib_path+=( ++path "$x/binaries/racket" )
 			done
-			for x in ${required_sources[@]}
+			for x in "${required_sources[@]}"
 			do
-				plt-r6rs ${lib_path[@]} --install --collections "$l_bin" "$x.scm"
+				plt-r6rs "${lib_path[@]}" --install --collections "$l_bin" "$x.scm"
 			done
 		fi
 	done
 fi
 
-if [[ " ${selected_systems[@]} " =~ "guile" ]]
+if [ ${selected_systems["guile"]+x} ]
 then
 	echo "=========================================>>> Compile for Guile:"
-	for l in ${selected_libraries[@]}
+	for l in "${selected_libraries[@]}"
 	do
 		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [[ " ${supported_systems[@]} " =~ "guile" ]]
+		if [ ${supported_systems["guile"]+x} ]
 		then
 			l_bin="$l/binaries/guile"
 			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=( --load-path="$l_bin" )
-			for x in ${required_libraries[@]}
+			for x in "${required_libraries[@]}"
 			do
 				lib_path+=( --load-path="$x/binaries/guile" )
 			done
-			for x in ${required_sources[@]}
+			for x in "${required_sources[@]}"
 			do
 				cp -p "$x.scm" "$l_lib"
 				x="$( basename "$x" )"
 				# workaround for broken '--no-auto-compile' flag:
 				old_GUILE_AUTO_COMPILE="$GUILE_AUTO_COMPILE"
 				GUILE_AUTO_COMPILE=0
-				guild compile --optimize=3 ${lib_path[@]} --output="$l_lib/$x.go" "$l_lib/$x.scm"
+				guild compile --optimize=3 "${lib_path[@]}" --output="$l_lib/$x.go" "$l_lib/$x.scm"
 				GUILE_AUTO_COMPILE="$old_GUILE_AUTO_COMPILE"
 			done
 		fi
 	done
 fi
 
-if [[ " ${selected_systems[@]} " =~ "chez" ]]
+if [ ${selected_systems["racket"]+x} ]
 then
 	echo "=========================================>>> Compile for Chez Scheme:"
-	for l in ${selected_libraries[@]}
+	for l in "${selected_libraries[@]}"
 	do
 		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [[ " ${supported_systems[@]} " =~ "chez" ]]
+		if [ ${supported_systems["chez"]+x} ]
 		then
 			l_bin="$l/binaries/chez"
 			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
-			lib_path="$l_bin"
-			for x in ${required_libraries[@]}
+			lib_path_string="$l_bin"
+			for x in "${required_libraries[@]}"
 			do
-				lib_path+=":$x/binaries/chez"
+				lib_path_string+=":$x/binaries/chez"
 			done
-			for x in ${required_sources[@]}
+			for x in "${required_sources[@]}"
 			do
 				x_so="$l_lib/$( basename "$x" ).so"
-				chez --libdirs "$lib_path" -q --optimize-level 3 << \
+				chez --libdirs "$lib_path_string" -q --optimize-level 3 << \
 EOF
 				(compile-library "$x.scm" "$x_so")
 EOF
@@ -136,29 +149,29 @@ EOF
 	done
 fi
 
-if [[ " ${selected_systems[@]} " =~ "larceny" ]]
+if [ ${selected_systems["larceny"]+x} ]
 then
 	echo "=========================================>>> Compile for Larceny:"
-	for l in ${selected_libraries[@]}
+	for l in "${selected_libraries[@]}"
 	do
 		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [[ " ${supported_systems[@]} " =~ "larceny" ]]
+		if [ ${supported_systems["larceny"]+x} ]
 		then
 			l_bin="$l/binaries/larceny"
 			l_lib="$l_bin/$( basename "$l" )"
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
-			lib_path="$l_bin"
-			for x in ${required_libraries[@]}
+			lib_path_string="$l_bin"
+			for x in "${required_libraries[@]}"
 			do
-				lib_path+=":$x/binaries/larceny"
+				lib_path_string+=":$x/binaries/larceny"
 			done
-			for x in ${required_sources[@]}
+			for x in "${required_sources[@]}"
 			do
 				x_sls="$l_lib/$( basename "$x" ).sls"
 				cp -p "$x.scm" "$x_sls"
-				larceny --r6rs --path "$lib_path" << \
+				larceny --r6rs --path "$lib_path_string" << \
 EOF
 				(import (rnrs) (larceny compiler))
 				(compiler-switches (quote fast-safe)) ; optimisation (even more aggressive: fast-unsafe)
@@ -169,14 +182,14 @@ EOF
 	done
 fi
 
-if [[ " ${selected_systems[@]} " =~ "ironscheme" ]]
+if [ ${selected_systems["ironscheme"]+x} ]
 then
 	echo "=========================================>>> Compile for IronScheme:"
-	for l in ${selected_libraries[@]}
+	for l in "${selected_libraries[@]}"
 	do
 		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
 		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [[ " ${supported_systems[@]} " =~ "ironscheme" ]]
+		if [ ${supported_systems["ironscheme"]+x} ]
 		then
 			library="$( basename "$l" )"
 			l_bin="$l/binaries/ironscheme"
@@ -184,12 +197,12 @@ then
 			rm -rf "$l_bin"
 			mkdir -p "$l_lib"
 			lib_path=()
-			for x in ${required_libraries[@]}
+			for x in "${required_libraries[@]}"
 			do
 				lib_path+=( -I "$x/binaries/ironscheme" )
 			done
 			to_compile="(import"
-			for x in ${required_sources[@]}
+			for x in "${required_sources[@]}"
 			do
 				source_file="$( basename "$x" )"
 				cp -p "$x.scm" "$l_lib/$source_file.sls"
@@ -207,7 +220,7 @@ then
 			(
 			cd "$l_bin"
 			echo "(compile \"$l_bin/compile-script.sls\")" | \
-				mono "$( command -v IronScheme.Console-v4.exe )" -nologo ${lib_path[@]}
+				mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${lib_path[@]}"
 			)
 			rm -rf "$l_lib" # Force usage of compiled IronScheme dll assemblies.
 			rm "$l_bin/compile-script.sls"

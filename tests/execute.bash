@@ -38,7 +38,8 @@ fi
 
 if [ -z ${selected_systems+x} ]
 then
-	mapfile -t selected_systems < <( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i )
+	mapfile -t selected_systems < \
+		<( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
 fi
 
 if [ -z ${abort_on_failed_test+x} ]

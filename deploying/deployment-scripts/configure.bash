@@ -37,7 +37,7 @@ do
 			parsing_mode=systems
 			continue
 		fi
-		mapfile -t supported_systems_array < <( "$configure_bash_dir/list-scheme-systems.bash" -k )
+		mapfile -t supported_systems_array < <( "$configure_bash_dir/list-scheme-systems.bash" -k || kill -13 $$ )
 		if [ "$line" = "@libraries:" ]
 		then
 			parsing_mode=libraries
@@ -80,6 +80,7 @@ do
 done < "$configuration_to_parse"
 
 declare -A supported_systems
+supported_systems=() # Set separately from declaration since script may be sourced several times for varying configurations!
 for s in "${supported_systems_array[@]}"
 do
 	# shellcheck disable=SC2034

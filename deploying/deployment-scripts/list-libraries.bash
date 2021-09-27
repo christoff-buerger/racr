@@ -14,7 +14,8 @@ mapfile -O 1 -t libraries_relative < <(
 	find "$script_dir/../.." -type f -name racr-library-configuration \
 	| sort \
 	| sed s/\\/racr-library-configuration$// \
-	| grep -v /racr$ )
+	| grep -v /racr$ \
+	|| kill -13 $$ )
 libraries=()
 for l in "${libraries_relative[@]}"
 do
@@ -32,7 +33,8 @@ while getopts kl:ic:h opt
 do
 	case $opt in
 		k)
-			declare -A known_libraries=()
+			declare -A known_libraries
+			known_libraries=()
 			for l in "${libraries[@]}"
 			do
 				l="$( basename "$l" )"
