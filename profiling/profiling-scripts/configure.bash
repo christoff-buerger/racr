@@ -22,7 +22,7 @@
 
 set -e
 set -o pipefail
-configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
 then
@@ -30,6 +30,7 @@ then
 	exit 2
 fi
 
+profiling_configuration_dir="$( dirname "$profiling_configuration" )"
 parsing_mode=execution-script
 parameter_names=( "Date" )
 parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) format (year-month-day hour:minute:second)" )
@@ -41,7 +42,7 @@ do
 	case $parsing_mode in
 	execution-script)
 		execution_script="$(
-			cd "$( dirname "$profiling_configuration")" &&
+			cd "$profiling_configuration_dir" &&
 			cd "$( dirname "$line")" &&
 			pwd )/$( basename "$line" )"
 		if [ ! -x "$execution_script" ]
@@ -82,15 +83,23 @@ then
 	exit 2
 fi
 
+# shellcheck disable=SC2034
 criteria_names=(
 	"${parameter_names[@]}"
 	"${result_names[@]}"
 )
+# shellcheck disable=SC2034
 criteria_descriptions=(
 	"${parameter_descriptions[@]}"
 	"${result_descriptions[@]}"
 )
-
+# shellcheck disable=SC2034
 number_of_parameters=${#parameter_names[@]}
+# shellcheck disable=SC2034
 number_of_results=${#result_names[@]}
+# shellcheck disable=SC2034
 number_of_criteria=$(( number_of_parameters + number_of_results ))
+
+unset parsing_mode
+unset profiling_configuration_dir
+#unset configure_bash_dir

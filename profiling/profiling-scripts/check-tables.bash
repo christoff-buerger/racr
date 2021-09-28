@@ -41,7 +41,7 @@ shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 

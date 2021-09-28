@@ -60,14 +60,14 @@ shift $(( OPTIND - 1 ))
 
 if [ -t 0 ] && [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
 if [ -z ${rerun_script+x} ]
 then
 	rerun_script="/dev/null"
-elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
+elif [ -z "$rerun_script" ] || { [ ! "$rerun_script" -ef "/dev/null" ] && [ -e "$rerun_script" ]; }
 then
 	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
 	exit 2
@@ -82,7 +82,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Close the recording pipe and wait until all measurements are recorded:
-	if [ ! -z ${recording_pid+x} ]
+	if [ -n "${recording_pid+x}" ]
 	then
 		exec 3>&-
 		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
@@ -100,7 +100,7 @@ my_exit(){
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
-trap 'my_exit' 0 1 2 3 9 15
+trap 'my_exit' 0 1 2 3 15
 
 tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
 measurements_pipe="$tmp_dir/measurements-pipe.fifo"
@@ -156,10 +156,10 @@ do
 			IFS='' read -r -n1 -p "	Iterate? (y/n): " choice
 			if [ ! -t 0 ]
 			then
-				printf "	Iterate? (y/n): $choice"
+				printf "	Iterate? (y/n): %s" "$choice"
 			fi
 			echo ""
-			printf "$choice" >> "$rerun_script";;
+			printf "%s" "$choice" >> "$rerun_script";;
 		*)
 			choice="n";;
 	esac
@@ -227,7 +227,7 @@ do
 		printf "Measurement ["
 		for (( i = 1; i < number_of_parameters; i++ ))
 		do
-			printf " ${parameter_names[$i]}=${current_parameter_values[$i]} "
+			printf " %s=%s " "${parameter_names[$i]}" "${current_parameter_values[$i]}"
 			echo "${current_parameter_values[$i]}" >&3
 		done
 		echo "]"
@@ -236,12 +236,12 @@ do
 		IFS=$'\n' # measurement results are emitted line-wise
 		set +e
 		set +o pipefail
-		measurement_results=( `"$execution_script" "${arguments[@]}" 2> "$measurements_stderr"` )
+		mapfile -t measurement_results < <( "$execution_script" "${arguments[@]}" 2> "$measurements_stderr" )
 		measurement_error=$?
 		set -e
 		set -o pipefail
 		IFS="$old_IFS"
-		if [ $measurement_error -ne 0 -o -s "$measurements_stderr" ]
+		if [ $measurement_error -ne 0 ] || [ -s "$measurements_stderr" ]
 		then
 			measurement_failed=1
 		elif (( ${#measurement_results[@]} + 1 != number_of_results ))
@@ -265,7 +265,7 @@ do
 				cat "$measurements_stderr" >&2
 				echo ""
 			fi
-			if [ ! -z "$failsave" ]
+			if [ -n "$failsave" ]
 			then
 				echo " !!! ERROR: Measurements aborted because of failed measurement !!!" >&2
 				exit 2

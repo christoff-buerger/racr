@@ -20,6 +20,7 @@ then
 fi
 
 declare -A criteria
+criteria=()
 
 while getopts c:l:x:y:z:h opt
 do
@@ -33,9 +34,9 @@ do
 				exit 2
 			fi;;
 		l|x|y|z)
-			if [ -z ${criteria[$opt]+x} ]
+			if [ -z ${criteria["$opt"]+x} ]
 			then
-				criteria[$opt]="$OPTARG"
+				criteria["$opt"]="$OPTARG"
 			else
 				echo " !!! ERROR: Several measurement criteria for -$opt parameter selected !!!" >&2
 				exit 2
@@ -55,13 +56,13 @@ shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
 for c in l x y
 do
-	if [ -z "${criteria[$c]}" ]
+	if [ -z "${criteria["$c"]}" ]
 	then
 		echo " !!! ERROR: No measurement criteria for -$c parameter selected !!!" >&2
 		exit 2
@@ -95,7 +96,7 @@ my_exit(){
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
 	exit $exit_status
 }
-trap 'my_exit' 0 1 2 3 9 15
+trap 'my_exit' 0 1 2 3 15
 
 tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
 #plotting_pipe="$tmp_dir/plotting-pipe.fifo"
@@ -110,12 +111,13 @@ tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bas
 
 # Find l, x, y, z measurement criteria in profiling configuration and store their index for later use:
 declare -A criteria_index
-for c in ${!criteria[@]}
+criteria_index=()
+for c in "${!criteria[@]}"
 do
 	i=0
-	for n in ${criteria_names[@]}
+	for n in "${criteria_names[@]}"
 	do
-		if [ "$n" == "${criteria[$c]}" ]
+		if [ "$n" == "${criteria["$c"]}" ]
 		then
 			break
 		fi
@@ -126,7 +128,7 @@ do
 		echo " !!! ERROR: Unknown measurement criteria [${criteria[$c]}] specified via -$c parameter !!!" >&2
 		exit 2
 	fi
-	criteria_index[$c]=$i
+	criteria_index["$c"]=$i
 done
 
 ################################################################################# Finish execution & cleanup temporary resources:

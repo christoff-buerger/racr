@@ -65,7 +65,7 @@ shift $(( OPTIND - 1 ))
 
 if [ ! $# -eq 0 ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
@@ -75,7 +75,7 @@ then
 	exit 2
 fi
 
-if [ ! -z "$test_run" ] && [ -z ${measurements_pipe+x} ]
+if [ -n "$test_run" ] && [ -z ${measurements_pipe+x} ]
 then
 	:
 elif [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
@@ -84,7 +84,7 @@ then
 	exit 2
 fi
 
-if [ -z "$measurements_table" ] || [ -e "$measurements_table" -a ! -f "$measurements_table" ]
+if [ -z "$measurements_table" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
@@ -143,7 +143,7 @@ then
 		done
 		if [ $cell_number -ne $number_of_criteria ]
 		then
-			printf " !!! ERROR: Measurements table [$measurements_table] has malformed content " >&2
+			printf " !!! ERROR: Measurements table [%s] has malformed content " "$measurements_table" >&2
 			echo   "(line $line_number, cell $(( cell_number + 1 ))) !!!" >&2
 			exit 2
 		fi
@@ -151,7 +151,7 @@ then
 	done < <( tail -n +3 "$measurements_table" )
 fi
 
-if [ ! -z "$test_run" ]
+if [ -n "$test_run" ]
 then
 	exit 0
 fi

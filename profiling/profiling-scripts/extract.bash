@@ -96,11 +96,11 @@ shift $(( OPTIND - 1 ))
 
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
-	echo " !!! ERROR: Unknown [$@] command line arguments !!!" >&2
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
-if [ -z "$measurements_table" ] || [ -e "$measurements_table" -a ! -f "$measurements_table" ]
+if [ -z "$measurements_table" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
@@ -109,7 +109,7 @@ fi
 if [ -z ${rerun_script+x} ]
 then
 	rerun_script="/dev/null"
-elif [ -z "$rerun_script" ] || [ ! "$rerun_script" -ef "/dev/null" -a -e "$rerun_script" ]
+elif [ -z "$rerun_script" ] || { [ ! "$rerun_script" -ef "/dev/null" ] && [ -e "$rerun_script" ]; }
 then
 	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
 	exit 2
@@ -146,7 +146,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Close the recording pipe and wait until all extracted measurements are recorded:
-	if [ ! -z ${recording_pid+x} ]
+	if [ -n "${recording_pid+x}" ]
 	then
 		exec 3>&-
 		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
@@ -170,7 +170,7 @@ my_exit(){
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
 	exit $exit_status
 }
-trap 'my_exit' 0 1 2 3 9 15
+trap 'my_exit' 0 1 2 3 15
 
 tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
 extraction_pipe="$tmp_dir/extraction-pipe.fifo"
@@ -195,7 +195,8 @@ mkfifo "$extraction_pipe"
 recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" )
 exec 3> "$extraction_pipe"
 
-selected_system=( `"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i` )
+mapfile -t installed_systems < <( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
+selected_system="${installed_systems[0]}"
 
 if [ ! "$rerun_script" -ef "/dev/null" ]
 then
@@ -203,6 +204,11 @@ then
 	touch "$rerun_script"
 	chmod +x "$rerun_script"
 fi
+source_tables_string=""
+for s in "${source_tables[@]}"
+do
+	source_tables_string="$source_tables_string \"$s\""
+done
 {
 echo "#!/usr/bin/env bash"
 echo "set -e"
@@ -218,7 +224,7 @@ echo "	-c \"$profiling_configuration\" \\"
 echo "	-t \"$measurements_table\" \\"
 echo "	-s /dev/null \\"
 echo "	$recording_mode \\"
-echo "-- ${source_tables[@]} << \"\|EOF\|\""
+echo "--$source_tables_string << \"\|EOF\|\""
 } > "$rerun_script"
 
 ############################################################################################################# Read configuration:
@@ -229,7 +235,7 @@ extractors=" (list"
 j=-1
 for (( i = 0; i < number_of_criteria; i++ ))
 do
-	if [ $j -lt $i ]
+	if (( j < i ))
 	then
 		echo "${criteria_descriptions[$i]} [${criteria_names[$i]}]:"
 		j=$(( j + 1 ))
@@ -252,7 +258,7 @@ do
 				echo "$choice2"
 			fi
 			printf "%s\n" "$choice2" >> "$rerun_script" # Save as read!
-			if [ -z "$choice2" -o ${#choice2[@]} -ne 1 ]
+			if [ -z "$choice2" ] || [ ${#choice2[@]} -ne 1 ]
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
 				exit 2
@@ -283,13 +289,13 @@ echo "(filter-tables"
 printf " (list"
 for s in "${criteria_names[@]}"
 do
-	printf "\n  \"$s\""
+	printf "\n  \"%s\"" "$s"
 done
 echo ")"
-printf "$extractors"
+printf "%s" "$extractors"
 for s in "${source_tables[@]}"
 do
-	printf "\n \"$s\""
+	printf "\n \"%s\"" "$s"
 done
 echo ")"
 } > "$extraction_script"
@@ -297,7 +303,7 @@ echo ")"
 chmod +x "$extraction_script"
 
 ########################################################################################################### Extract measurements:
-"$script_dir/../../deploying/deployment-scripts/execute.bash" -s $selected_system -l "$script_dir" -e "$extraction_script" >&3
+"$script_dir/../../deploying/deployment-scripts/execute.bash" -s "$selected_system" -l "$script_dir" -e "$extraction_script" >&3
 extraction_successful=1
 
 ############################################################## Update the final measurements table & cleanup temporary resources:
