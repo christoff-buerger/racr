@@ -125,10 +125,62 @@ do
 	done
 	if (( i == number_of_criteria ))
 	then
-		echo " !!! ERROR: Unknown measurement criteria [${criteria[$c]}] specified via -$c parameter !!!" >&2
+		echo " !!! ERROR: Unknown measurement criteria [${criteria["$c"]}] specified via -$c parameter !!!" >&2
 		exit 2
 	fi
 	criteria_index["$c"]=$i
+done
+
+############################################################################################################ Construct plot data:
+
+check_number(){
+	if [[ ! "$1" =~ ^[[:blank:]]*[-+]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?[[:blank:]]*$ ]]
+	then
+		echo " !!! ERROR: Measurement value [$1] is not a number !!!" >&2
+		exit 2
+	else
+		printf "%s" "$( echo -e "$1" | tr -d '[:space:]' )"
+	fi
+	shift
+}
+
+value_axis="y"
+if [ -v "criteria[z]" ]
+then
+	value_axis="z"
+fi
+
+declare -A existing_points
+existing_points=()
+
+for s in "${source_tables[@]}"
+do
+	while IFS='' read -r line
+	do
+		coordinate=""
+		for c in "${!criteria[@]}"
+		do
+			start=$(( criteria_index["$c"] * 21 + criteria_index["$c"] + 1 ))
+			end=$(( ( criteria_index["$c"] + 1 ) * 21 + criteria_index["$c"] ))
+			cell_value="$( printf "%s" "$line" | cut -c $start-$end )"
+			if [ ! "$c" = "l" ]
+			then
+				cell_value="$( check_number "$cell_value" )"
+			fi
+			if [ ! "$c" == "$value_axis" ]
+			then
+				coordinate="$coordinate | $c: $cell_value"
+			fi
+		done
+		coordinate="${coordinate:2}"
+		if [ -v "existing_points[$coordinate]" ]
+		then
+			echo " !!! ERROR: Duplicated measurement for [$coordinate] !!!" >&2
+			exit 2
+		else
+			existing_points["$coordinate"]="true"
+		fi
+	done < <( tail -n +3 "$s" )
 done
 
 ################################################################################# Finish execution & cleanup temporary resources:

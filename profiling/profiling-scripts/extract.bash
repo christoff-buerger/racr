@@ -215,7 +215,7 @@ echo "set -e"
 echo "set -o pipefail"
 echo "if [ ! \$# -eq 0 ]"
 echo "then"
-echo "	echo \" !!! ERROR: Unknown [\$@] command line arguments !!!\" >&2"
+echo "	echo \" !!! ERROR: Unknown [\$*] command line arguments !!!\" >&2"
 echo "	exit 2"
 echo "fi"
 echo "cd \"$call_dir\""
@@ -239,7 +239,7 @@ do
 	then
 		echo "${criteria_descriptions[$i]} [${criteria_names[$i]}]:"
 		j=$(( j + 1 ))
-		extractors="$extractors\n  (list"
+		extractors="$extractors"$'\n'"  (list"
 	fi
 	IFS='' read -r -p "        Extraction operator: " choice
 	if [ ! -t 0 ]
