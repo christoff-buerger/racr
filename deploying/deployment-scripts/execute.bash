@@ -134,7 +134,7 @@ case $selected_system in
 		then
 			libs+=( --path "${libs_string:1}" )
 		fi
-		larceny --r6rs "${libs[@]}" --program "$to_execute" -- "$@"
+		larceny --utf8 --r6rs "${libs[@]}" --program "$to_execute" -- "$@"
 		;;
 	chez)
 		libs_string=""

@@ -119,7 +119,7 @@ then
 	done
 fi
 
-if [ ${selected_systems["racket"]+x} ]
+if [ ${selected_systems["chez"]+x} ]
 then
 	echo "=========================================>>> Compile for Chez Scheme:"
 	for l in "${selected_libraries[@]}"
@@ -171,7 +171,7 @@ then
 			do
 				x_sls="$l_lib/$( basename "$x" ).sls"
 				cp -p "$x.scm" "$x_sls"
-				larceny --r6rs --path "$lib_path_string" << \
+				larceny --utf8 --r6rs --path "$lib_path_string" << \
 EOF
 				(import (rnrs) (larceny compiler))
 				(compiler-switches (quote fast-safe)) ; optimisation (even more aggressive: fast-unsafe)
