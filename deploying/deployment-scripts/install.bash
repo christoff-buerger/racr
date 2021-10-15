@@ -60,172 +60,230 @@ then
 	mapfile -t selected_libraries < <( "$script_dir/list-libraries.bash" -i || kill -13 $$ )
 fi
 
-############################################################################################################## Install libraries:
-if [ ${selected_systems["racket"]+x} ]
-then
-	echo "=========================================>>> Compile for Racket:"
-	for l in "${selected_libraries[@]}"
-	do
-		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
-		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [ ${supported_systems["racket"]+x} ]
-		then
-			l_bin="$l/binaries/racket"
-			l_lib="$l_bin/$( basename "$l" )"
-			rm -rf "$l_bin"
-			mkdir -p "$l_lib"
-			lib_path=()
-			for x in "${required_libraries[@]}"
-			do
-				lib_path+=( ++path "$x/binaries/racket" )
-			done
-			for x in "${required_sources[@]}"
-			do
-				plt-r6rs "${lib_path[@]}" --install --collections "$l_bin" "$x.scm"
-			done
-		fi
-	done
-fi
+############################################################# Define encapsulated installation procedures for each Scheme system:
+install_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Release lock:
+	rm -f "$mutex"
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
+	exit $exit_status
+}
 
-if [ ${selected_systems["guile"]+x} ]
-then
-	echo "=========================================>>> Compile for Guile:"
-	for l in "${selected_libraries[@]}"
-	do
-		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
-		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [ ${supported_systems["guile"]+x} ]
-		then
-			l_bin="$l/binaries/guile"
-			l_lib="$l_bin/$( basename "$l" )"
-			rm -rf "$l_bin"
-			mkdir -p "$l_lib"
-			lib_path=( --load-path="$l_bin" )
-			for x in "${required_libraries[@]}"
-			do
-				lib_path+=( --load-path="$x/binaries/guile" )
-			done
-			for x in "${required_sources[@]}"
-			do
-				cp -p "$x.scm" "$l_lib"
-				x="$( basename "$x" )"
-				# workaround for broken '--no-auto-compile' flag:
-				old_GUILE_AUTO_COMPILE="$GUILE_AUTO_COMPILE"
-				GUILE_AUTO_COMPILE=0
-				guild compile --optimize=3 "${lib_path[@]}" --output="$l_lib/$x.go" "$l_lib/$x.scm"
-				GUILE_AUTO_COMPILE="$old_GUILE_AUTO_COMPILE"
-			done
-		fi
-	done
-fi
-
-if [ ${selected_systems["chez"]+x} ]
-then
-	echo "=========================================>>> Compile for Chez Scheme:"
-	for l in "${selected_libraries[@]}"
-	do
-		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
-		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [ ${supported_systems["chez"]+x} ]
-		then
-			l_bin="$l/binaries/chez"
-			l_lib="$l_bin/$( basename "$l" )"
-			rm -rf "$l_bin"
-			mkdir -p "$l_lib"
-			lib_path_string="$l_bin"
-			for x in "${required_libraries[@]}"
-			do
-				lib_path_string+=":$x/binaries/chez"
-			done
-			for x in "${required_sources[@]}"
-			do
-				x_so="$l_lib/$( basename "$x" ).so"
-				chez --libdirs "$lib_path_string" -q --optimize-level 3 << \
-EOF
-				(compile-library "$x.scm" "$x_so")
-EOF
-			done
-		fi
-	done
-fi
-
-if [ ${selected_systems["larceny"]+x} ]
-then
-	echo "=========================================>>> Compile for Larceny:"
-	for l in "${selected_libraries[@]}"
-	do
-		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
-		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [ ${supported_systems["larceny"]+x} ]
-		then
-			l_bin="$l/binaries/larceny"
-			l_lib="$l_bin/$( basename "$l" )"
-			rm -rf "$l_bin"
-			mkdir -p "$l_lib"
-			lib_path_string="$l_bin"
-			for x in "${required_libraries[@]}"
-			do
-				lib_path_string+=":$x/binaries/larceny"
-			done
-			for x in "${required_sources[@]}"
-			do
-				x_sls="$l_lib/$( basename "$x" ).sls"
-				cp -p "$x.scm" "$x_sls"
-				larceny --utf8 --r6rs --path "$lib_path_string" << \
-EOF
-				(import (rnrs) (larceny compiler))
-				(compiler-switches (quote fast-safe)) ; optimisation (even more aggressive: fast-unsafe)
-				(compile-library "$x_sls")
-EOF
-			done
-		fi
-	done
-fi
-
-if [ ${selected_systems["ironscheme"]+x} ]
-then
-	echo "=========================================>>> Compile for IronScheme:"
-	for l in "${selected_libraries[@]}"
-	do
-		configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
-		. "$script_dir/configure.bash" # Sourced script sets configuration!
-		if [ ${supported_systems["ironscheme"]+x} ]
-		then
-			library="$( basename "$l" )"
-			l_bin="$l/binaries/ironscheme"
-			l_lib="$l_bin/$( basename "$l" )"
-			rm -rf "$l_bin"
-			mkdir -p "$l_lib"
-			lib_path=()
-			for x in "${required_libraries[@]}"
-			do
-				lib_path+=( -I "$x/binaries/ironscheme" )
-			done
-			to_compile="(import"
-			for x in "${required_sources[@]}"
-			do
-				source_file="$( basename "$x" )"
-				cp -p "$x.scm" "$l_lib/$source_file.sls"
-				to_compile="$to_compile ($library $source_file)"
-			done
-			echo "$to_compile)" > "$l_bin/compile-script.sls"
-			if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
+install_racket()( # Encapsulate installation...
+	# shellcheck disable=SC2030
+	if [ ${selected_systems["racket"]+x} ]
+	then
+		mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_racket" )"
+		trap 'install_exit' 0 1 2 3 15
+		echo "=========================================>>> Compile for Racket:"
+		for l in "${selected_libraries[@]}"
+		do
+			configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
+			. "$script_dir/configure.bash" # Sourced script sets configuration!
+			if [ ${supported_systems["racket"]+x} ]
 			then
-				mv "$l_lib/core.sls" "$l_lib/core.scm"
-				"$script_dir/../../racr-net/transcribe-racr-core.bash" "$l_lib"
-				rm "$l_lib/core.scm"
-				cp -p "$( dirname "$( command -v IronScheme.Console-v4.exe )" )/IronScheme.dll" "$l_bin"
+				l_bin="$l/binaries/racket"
+				l_lib="$l_bin/$( basename "$l" )"
+				rm -rf "$l_bin"
+				mkdir -p "$l_lib"
+				lib_path=()
+				for x in "${required_libraries[@]}"
+				do
+					lib_path+=( ++path "$x/binaries/racket" )
+				done
+				for x in "${required_sources[@]}"
+				do
+					plt-r6rs "${lib_path[@]}" --install --collections "$l_bin" "$x.scm"
+				done
 			fi
-			# Use subshell for local directory changes via cd:
-			(
-			cd "$l_bin"
-			echo "(compile \"$l_bin/compile-script.sls\")" | \
-				mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${lib_path[@]}"
-			)
-			rm -rf "$l_lib" # Force usage of compiled IronScheme dll assemblies.
-			rm "$l_bin/compile-script.sls"
-		fi
-	done
-fi
+		done
+	fi
+)
+
+install_guile()( # Encapsulate installation...
+	# shellcheck disable=SC2030,SC2031
+	if [ ${selected_systems["guile"]+x} ]
+	then
+		mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_guile" )"
+		trap 'install_exit' 0 1 2 3 15
+		echo "=========================================>>> Compile for Guile:"
+		for l in "${selected_libraries[@]}"
+		do
+			configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
+			. "$script_dir/configure.bash" # Sourced script sets configuration!
+			if [ ${supported_systems["guile"]+x} ]
+			then
+				l_bin="$l/binaries/guile"
+				l_lib="$l_bin/$( basename "$l" )"
+				rm -rf "$l_bin"
+				mkdir -p "$l_lib"
+				lib_path=( --load-path="$l_bin" )
+				for x in "${required_libraries[@]}"
+				do
+					lib_path+=( --load-path="$x/binaries/guile" )
+				done
+				for x in "${required_sources[@]}"
+				do
+					cp -p "$x.scm" "$l_lib"
+					x="$( basename "$x" )"
+					# workaround for broken '--no-auto-compile' flag:
+					old_GUILE_AUTO_COMPILE="$GUILE_AUTO_COMPILE"
+					GUILE_AUTO_COMPILE=0
+					guild compile --optimize=3 "${lib_path[@]}" --output="$l_lib/$x.go" "$l_lib/$x.scm"
+					GUILE_AUTO_COMPILE="$old_GUILE_AUTO_COMPILE"
+				done
+			fi
+		done
+	fi
+)
+
+install_chez()( # Encapsulate installation...
+	# shellcheck disable=SC2030,SC2031
+	if [ ${selected_systems["chez"]+x} ]
+	then
+		mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_chez" )"
+		trap 'install_exit' 0 1 2 3 15
+		echo "=========================================>>> Compile for Chez Scheme:"
+		for l in "${selected_libraries[@]}"
+		do
+			configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
+			. "$script_dir/configure.bash" # Sourced script sets configuration!
+			if [ ${supported_systems["chez"]+x} ]
+			then
+				l_bin="$l/binaries/chez"
+				l_lib="$l_bin/$( basename "$l" )"
+				rm -rf "$l_bin"
+				mkdir -p "$l_lib"
+				lib_path_string="$l_bin"
+				for x in "${required_libraries[@]}"
+				do
+					lib_path_string+=":$x/binaries/chez"
+				done
+				for x in "${required_sources[@]}"
+				do
+					x_so="$l_lib/$( basename "$x" ).so"
+					chez --libdirs "$lib_path_string" -q --optimize-level 3 << \
+EOF
+					(compile-library "$x.scm" "$x_so")
+EOF
+				done
+			fi
+		done
+	fi
+)
+
+install_larceny()( # Encapsulate installation...
+	# shellcheck disable=SC2030,SC2031
+	if [ ${selected_systems["larceny"]+x} ]
+	then
+		mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_larceny" )"
+		trap 'install_exit' 0 1 2 3 15
+		echo "=========================================>>> Compile for Larceny:"
+		for l in "${selected_libraries[@]}"
+		do
+			configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
+			. "$script_dir/configure.bash" # Sourced script sets configuration!
+			if [ ${supported_systems["larceny"]+x} ]
+			then
+				l_bin="$l/binaries/larceny"
+				l_lib="$l_bin/$( basename "$l" )"
+				rm -rf "$l_bin"
+				mkdir -p "$l_lib"
+				lib_path_string="$l_bin"
+				for x in "${required_libraries[@]}"
+				do
+					lib_path_string+=":$x/binaries/larceny"
+				done
+				for x in "${required_sources[@]}"
+				do
+					x_sls="$l_lib/$( basename "$x" ).sls"
+					cp -p "$x.scm" "$x_sls"
+					larceny --utf8 --r6rs --path "$lib_path_string" << \
+EOF
+					(import (rnrs) (larceny compiler))
+					(compiler-switches (quote fast-safe)) ; optimisation (even more aggressive: fast-unsafe)
+					(compile-library "$x_sls")
+EOF
+				done
+			fi
+		done
+	fi
+)
+
+install_ironscheme()( # Encapsulate installation...
+	# shellcheck disable=SC2031
+	if [ ${selected_systems["ironscheme"]+x} ]
+	then
+		mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ironscheme" )"
+		trap 'install_exit' 0 1 2 3 15
+		echo "=========================================>>> Compile for IronScheme:"
+		for l in "${selected_libraries[@]}"
+		do
+			configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$l" )"
+			. "$script_dir/configure.bash" # Sourced script sets configuration!
+			if [ ${supported_systems["ironscheme"]+x} ]
+			then
+				library="$( basename "$l" )"
+				l_bin="$l/binaries/ironscheme"
+				l_lib="$l_bin/$( basename "$l" )"
+				rm -rf "$l_bin"
+				mkdir -p "$l_lib"
+				lib_path=()
+				for x in "${required_libraries[@]}"
+				do
+					lib_path+=( -I "$x/binaries/ironscheme" )
+				done
+				to_compile="(import"
+				for x in "${required_sources[@]}"
+				do
+					source_file="$( basename "$x" )"
+					cp -p "$x.scm" "$l_lib/$source_file.sls"
+					to_compile="$to_compile ($library $source_file)"
+				done
+				echo "$to_compile)" > "$l_bin/compile-script.sls"
+				if [ "$library" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
+				then
+					mv "$l_lib/core.sls" "$l_lib/core.scm"
+					"$script_dir/../../racr-net/transcribe-racr-core.bash" "$l_lib"
+					rm "$l_lib/core.scm"
+					cp -p "$( dirname "$( command -v IronScheme.Console-v4.exe )" )/IronScheme.dll" "$l_bin"
+				fi
+				# Use subshell for local directory changes via cd:
+				(
+				cd "$l_bin"
+				echo "(compile \"$l_bin/compile-script.sls\")" | \
+					mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${lib_path[@]}"
+				)
+				rm -rf "$l_lib" # Force usage of compiled IronScheme dll assemblies.
+				rm "$l_bin/compile-script.sls"
+			fi
+		done
+	fi
+)
+
+################################################################## Install libraries (concurrently for different Scheme systems):
+declare -A install_pids
+install_pids=()
+
+install_racket &
+install_pids["racket"]=$!
+
+install_guile &
+install_pids["guile"]=$!
+
+install_chez &
+install_pids["chez"]=$!
+
+install_larceny &
+install_pids["larceny"]=$!
+
+install_ironscheme &
+install_pids["ironscheme"]=$!
+
+for pid in "${install_pids[@]}"
+do
+	wait $pid
+done
 
 exit 0
