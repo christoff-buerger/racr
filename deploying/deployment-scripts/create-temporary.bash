@@ -105,6 +105,19 @@ then
 	tmp_dir="$use_existing"
 fi
 
+############################################################################################################ Configure resources:
+mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/create-temporary.bash" )"
+
+my_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Release lock:
+	rm -f "$mutex"
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
+	exit $exit_status
+}
+trap 'my_exit' 0 1 2 3 15
+
 ############################################################################################################### Create temporary:
 mkdir -p "$tmp_dir"
 tmp_name="$name"
@@ -141,4 +154,5 @@ then
 fi
 echo "$tmp_dir/$tmp_name"
 
-exit 0
+############################################################################################################## Cleanup resources:
+exit 0 # triggers 'my_exit'
