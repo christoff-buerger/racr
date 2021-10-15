@@ -10,8 +10,9 @@
 # Ignore generated object and binary directories:
 **/binaries
 **/obj
-# Ignore temporary directory:
+# Ignore temporary files and file locks dicetories:
 deploying/deployment-scripts/temporary-files
+deploying/deployment-scripts/file-locks
 # Ignore profiling measurements:
 **/measurements
 # Ignore installed NUnit:
