@@ -60,19 +60,41 @@ then
 	mapfile -t selected_libraries < <( "$script_dir/list-libraries.bash" -i || kill -13 $$ )
 fi
 
+############################################################################################################ Configure resources:
+log_dir="$( "$script_dir/create-temporary.bash" -t d )"
+my_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Wait for installation co-routines to cleanup first:
+	wait
+	# Delete installation logs:
+	rm -rf "$log_dir"
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
+	exit $exit_status
+}
+trap 'my_exit' 0 1 2 3 15
+
+declare -A install_pids
+install_pids=()
+
 ############################################################# Define encapsulated installation procedures for each Scheme system:
 install_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
+	# Make note that installation failed:
+	if (( exit_status != 0 ))
+	then
+		touch "$log_dir/$1-failed" 
+	fi
 	# Release lock:
-	rm -f "$mutex"
+	rm -f "$2"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
 
-install_chez()( # Encapsulate installation...
+install_chez()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_chez" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit chez "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for Chez Scheme:"
 	echo ""
@@ -103,9 +125,9 @@ EOF
 	done
 )
 
-install_guile()( # Encapsulate installation...
+install_guile()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_guile" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit guile "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for Guile:"
 	echo ""
@@ -138,9 +160,9 @@ install_guile()( # Encapsulate installation...
 	done
 )
 
-install_racket()( # Encapsulate installation...
+install_racket()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_racket" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit racket "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for Racket:"
 	echo ""
@@ -167,9 +189,9 @@ install_racket()( # Encapsulate installation...
 	done
 )
 
-install_larceny()( # Encapsulate installation...
+install_larceny()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_larceny" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit larceny "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for Larceny:"
 	echo ""
@@ -203,27 +225,27 @@ EOF
 	done
 )
 
-install_sagittarius()( # Encapsulate installation...
+install_sagittarius()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_sagittarius" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit sagittarius "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for Sagittarius Scheme:"
 	echo ""
 	echo "Sagittarius Scheme doesn't require any installation procedure for RACR-libraries."
 )
 
-install_ypsilon()( # Encapsulate installation...
+install_ypsilon()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ypsilon" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit ypsilon "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for Ypsilon Scheme:"
 	echo ""
 	echo "Ypsilon Scheme doesn't require any installation procedure for RACR-libraries."
 )
 
-install_ironscheme()( # Encapsulate installation...
+install_ironscheme()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ironscheme" )"
-	trap 'install_exit' 0 1 2 3 15
+	trap 'install_exit ironscheme "$mutex"' 0 1 2 3 15
 	echo ""
 	echo "=========================================>>> Installation report for IronScheme:"
 	echo ""
@@ -270,24 +292,10 @@ install_ironscheme()( # Encapsulate installation...
 	done
 )
 
-############################################################################################################ Configure resources:
-log_dir="$( "$script_dir/create-temporary.bash" -t d )"
-my_exit(){
-	# Capture exit status (i.e., script success or failure):
-	exit_status=$?
-	# Delete installation logs:
-	rm -rf "$log_dir"
-	# Return captured exit status (i.e., if the original script execution succeeded or not):
-	exit $exit_status
-}
-trap 'my_exit' 0 1 2 3 15
-
-declare -A install_pids
-install_pids=()
-
 ################################################################## Install libraries (concurrently for different Scheme systems):
+# Start an installation co-routine for each Scheme system:
 for system in $( "$script_dir/list-scheme-systems.bash" -i )
-do # Start installation co-routine for each Scheme system:
+do
 	if [ ${selected_systems["$system"]+x} ]
 	then
 		"install_$system" >> "$log_dir/$system-log.txt" 2>&1 &
@@ -295,24 +303,38 @@ do # Start installation co-routine for each Scheme system:
 	fi
 done
 
+# Report installation progress:
 progress=( "." ".." "..." )
 progress_index=0
-echo -n "\r"
+echo ""
+for _ in "${install_pids[@]}"
+do
+	echo ""
+done
 while true
-do # Report installation progress:
+do
 	running=0
-	status="Installing$( printf "%-3s" "${progress[$progress_index]}")"
+	status_messages=()
 	for system in "${!install_pids[@]}"
 	do
 		if kill -0 "${install_pids[$system]}" > /dev/null 2>&1
 		then
 			running=$(( running + 1 ))
-			status="$status $( printf "[%-11s: \033[0;31m%-4s\033[0m]" "$system" "busy" )"
+			status="\033[0;34minstalling\033[0m"
+		elif [ -f "$log_dir/$system-failed" ]
+		then
+			status="\033[0;31mfailed\033[0m"
 		else
-			status="$status $( printf "[%-11s: \033[0;32m%-4s\033[0m]" "$system" "done" )"
+			status="\033[0;32msucceeded\033[0m"
 		fi
+		status_messages+=( "$( printf "[%-11s: %-10s]" "$system" "$status" )" )
 	done
-	echo -e -n "\r\033[2K$status"
+	# \r: move cursor to start of line. \033[XA: move cursor X lines up. \033[0K: delete rest if line.
+	echo -e "\r\033[$(( ${#status_messages[@]} + 1 ))A\033[0KInstalling$( printf "%-3s" "${progress[$progress_index]}")"
+	for message in "${status_messages[@]}"
+	do
+		echo -e "\r\033[0K  $message"
+	done
 	if (( running == 0 ))
 	then
 		break
@@ -321,11 +343,18 @@ do # Report installation progress:
 	progress_index=$(( ( progress_index + 1 ) % 3 ))
 done
 wait # Defensive programming (all co-routines should have finished anyway).
-echo ""
 
+# Report final installation report for each Scheme system separately (non-interleaved):
 for system in "${!install_pids[@]}"
-do # Report final installation reports for each Scheme system separately (non-interleaved):
+do
 	cat "$log_dir/$system-log.txt"
+done
+echo ""
+echo "=========================================>>> Installation summary:"
+echo ""
+for message in "${status_messages[@]}"
+do
+	echo -e "  $message"
 done
 
 ############################################################################################################## Cleanup resources:
