@@ -95,6 +95,7 @@ install_exit(){
 install_chez()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_chez" )"
 	trap 'install_exit chez "$mutex"' 0 1 2 3 15
+	touch "$log_dir/chez-started"
 	echo ""
 	echo "=========================================>>> Installation report for Chez Scheme:"
 	echo ""
@@ -128,6 +129,7 @@ EOF
 install_guile()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_guile" )"
 	trap 'install_exit guile "$mutex"' 0 1 2 3 15
+	touch "$log_dir/guile-started"
 	echo ""
 	echo "=========================================>>> Installation report for Guile:"
 	echo ""
@@ -163,6 +165,7 @@ install_guile()( # Encapsulated installation:
 install_racket()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_racket" )"
 	trap 'install_exit racket "$mutex"' 0 1 2 3 15
+	touch "$log_dir/racket-started"
 	echo ""
 	echo "=========================================>>> Installation report for Racket:"
 	echo ""
@@ -192,6 +195,7 @@ install_racket()( # Encapsulated installation:
 install_larceny()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_larceny" )"
 	trap 'install_exit larceny "$mutex"' 0 1 2 3 15
+	touch "$log_dir/larceny-started"
 	echo ""
 	echo "=========================================>>> Installation report for Larceny:"
 	echo ""
@@ -228,6 +232,7 @@ EOF
 install_sagittarius()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_sagittarius" )"
 	trap 'install_exit sagittarius "$mutex"' 0 1 2 3 15
+	touch "$log_dir/sagittarius-started"
 	echo ""
 	echo "=========================================>>> Installation report for Sagittarius Scheme:"
 	echo ""
@@ -237,6 +242,7 @@ install_sagittarius()( # Encapsulated installation:
 install_ypsilon()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ypsilon" )"
 	trap 'install_exit ypsilon "$mutex"' 0 1 2 3 15
+	touch "$log_dir/ypsilon-started"
 	echo ""
 	echo "=========================================>>> Installation report for Ypsilon Scheme:"
 	echo ""
@@ -246,6 +252,7 @@ install_ypsilon()( # Encapsulated installation:
 install_ironscheme()( # Encapsulated installation:
 	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ironscheme" )"
 	trap 'install_exit ironscheme "$mutex"' 0 1 2 3 15
+	touch "$log_dir/ironscheme-started"
 	echo ""
 	echo "=========================================>>> Installation report for IronScheme:"
 	echo ""
@@ -320,7 +327,12 @@ do
 		if kill -0 "${install_pids[$system]}" > /dev/null 2>&1
 		then
 			running=$(( running + 1 ))
-			status="\033[0;34minstalling\033[0m"
+			if [ -f "$log_dir/$system-started" ]
+			then
+				status="\033[0;34minstalling\033[0m"
+			else
+				status="\033[1;33mwaiting\033[0m"
+			fi
 		elif [ -f "$log_dir/$system-failed" ]
 		then
 			status="\033[0;31mfailed\033[0m"
