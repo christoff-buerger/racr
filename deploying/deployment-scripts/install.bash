@@ -67,6 +67,11 @@ my_exit(){
 	exit_status=$?
 	# Wait for installation co-routines to cleanup first:
 	wait
+	# Ensure no installation failed; otherwise set error exit status:
+	if compgen -G "$log_dir/*-failed" > /dev/null
+	then
+		exit_status=2
+	fi
 	# Delete installation logs:
 	rm -rf "$log_dir"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
@@ -87,13 +92,13 @@ install_exit(){
 		touch "$log_dir/$1-failed" 
 	fi
 	# Release lock:
-	rm -f "$2"
+	"$2"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
 
 install_chez()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_chez" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-chez" )"
 	trap 'install_exit chez "$mutex"' 0 1 2 3 15
 	touch "$log_dir/chez-started"
 	echo ""
@@ -127,7 +132,7 @@ EOF
 )
 
 install_guile()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_guile" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-guile" )"
 	trap 'install_exit guile "$mutex"' 0 1 2 3 15
 	touch "$log_dir/guile-started"
 	echo ""
@@ -163,7 +168,7 @@ install_guile()( # Encapsulated installation:
 )
 
 install_racket()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_racket" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-racket" )"
 	trap 'install_exit racket "$mutex"' 0 1 2 3 15
 	touch "$log_dir/racket-started"
 	echo ""
@@ -193,7 +198,7 @@ install_racket()( # Encapsulated installation:
 )
 
 install_larceny()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_larceny" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-larceny" )"
 	trap 'install_exit larceny "$mutex"' 0 1 2 3 15
 	touch "$log_dir/larceny-started"
 	echo ""
@@ -230,7 +235,7 @@ EOF
 )
 
 install_sagittarius()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_sagittarius" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-sagittarius" )"
 	trap 'install_exit sagittarius "$mutex"' 0 1 2 3 15
 	touch "$log_dir/sagittarius-started"
 	echo ""
@@ -240,7 +245,7 @@ install_sagittarius()( # Encapsulated installation:
 )
 
 install_ypsilon()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ypsilon" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock_ypsilon" )"
 	trap 'install_exit ypsilon "$mutex"' 0 1 2 3 15
 	touch "$log_dir/ypsilon-started"
 	echo ""
@@ -250,7 +255,7 @@ install_ypsilon()( # Encapsulated installation:
 )
 
 install_ironscheme()( # Encapsulated installation:
-	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/install_ironscheme" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-ironscheme" )"
 	trap 'install_exit ironscheme "$mutex"' 0 1 2 3 15
 	touch "$log_dir/ironscheme-started"
 	echo ""
