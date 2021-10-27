@@ -33,7 +33,7 @@ do
 			then
 				measurements_table="$OPTARG"
 			else
-				echo " !!! ERROR: Several measurement tables selected via -t parameter !!!" >&2
+				echo " !!! ERROR: Several measurements tables selected via -t parameter !!!" >&2
 				exit 2
 			fi;;
 		s)

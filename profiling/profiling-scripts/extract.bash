@@ -36,7 +36,7 @@ do
 			then
 				measurements_table="$OPTARG"
 			else
-				echo " !!! ERROR: Several measurement tables selected via -t parameter !!!" >&2
+				echo " !!! ERROR: Several measurements tables selected via -t parameter !!!" >&2
 				exit 2
 			fi;;
 		s)
@@ -100,6 +100,22 @@ then
 	exit 2
 fi
 
+source_tables=( "$@" )
+shift ${#source_tables[@]}
+for t in "${source_tables[@]}"
+do
+	if [ ! -f "$t" ]
+	then
+		echo " !!! ERROR: Non-existing source table [$t] specified via '--' argument list !!!" >&2
+		exit 2
+	fi
+done
+if (( ${#source_tables[@]} == 0 ))
+then
+	echo " !!! ERROR: No source table specified via '--' argument list !!!" >&2
+	exit 2
+fi
+
 if [ -z "$measurements_table" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
@@ -112,22 +128,6 @@ then
 elif [ -z "$rerun_script" ] || { [ ! "$rerun_script" -ef "/dev/null" ] && [ -e "$rerun_script" ]; }
 then
 	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
-	exit 2
-fi
-
-for a in "$@"
-do
-	if [ ! -f "$a" ]
-	then
-		echo " !!! ERROR: Non-existing source table [$a] specified via '--' argument list !!!" >&2
-		exit 2
-	fi
-	source_tables+=( "$a" )
-	shift
-done
-if [ -z ${source_tables+x} ]
-then
-	echo " !!! ERROR: No source table specified via '--' argument list !!!" >&2
 	exit 2
 fi
 

@@ -32,7 +32,7 @@ do
 			fi;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
-			echo "       -- List of source tables to check (mandatory parameter)." >&2
+			echo "       -- List of measurements tables to check (mandatory parameter)." >&2
 			echo "          Must be non-empty." >&2
 			exit 2;;
 	esac
@@ -45,24 +45,24 @@ then
 	exit 2
 fi
 
-for a in "$@"
+measurements_tables=( "$@" )
+shift ${#measurements_tables[@]}
+for t in "${measurements_tables[@]}"
 do
-	if [ ! -f "$a" ]
+	if [ ! -f "$t" ]
 	then
-		echo " !!! ERROR: Non-existing source table [$a] specified via '--' argument list !!!" >&2
+		echo " !!! ERROR: Non-existing measurements table [$t] specified via '--' argument list !!!" >&2
 		exit 2
 	fi
-	source_tables+=( "$a" )
-	shift
 done
-if [ -z ${source_tables+x} ]
+if (( ${#measurements_tables[@]} == 0 ))
 then
-	echo " !!! ERROR: No source table specified via '--' argument list !!!" >&2
+	echo " !!! ERROR: No measurements table specified via '--' argument list !!!" >&2
 	exit 2
 fi
 
-####################################################################################################### Check measurement tables:
-for t in "${source_tables[@]}"
+###################################################################################################### Check measurements tables:
+for t in "${measurements_tables[@]}"
 do
 	"$script_dir/record.bash" -c "$profiling_configuration" -t "$t" -x
 done
