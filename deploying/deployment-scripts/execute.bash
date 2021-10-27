@@ -105,6 +105,21 @@ else
 fi
 
 ################################################################################################################ Execute program:
+my_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Release lock:
+	"$mutex"
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
+	exit $exit_status
+}
+
+mutex="$( "$script_dir/lock-files.bash" \
+	-k "$script_dir/execute.bash" \
+	-x " !!! ERROR: Can not execute [$to_execute]; installation of RACR libraries for $selected_system in progress !!!" \
+	-- "$script_dir/lock-$selected_system" )"
+trap 'my_exit' 0 1 2 3 15
+
 case $selected_system in
 	racket)
 		libs=()
@@ -187,4 +202,4 @@ case $selected_system in
 		;;
 esac
 
-exit 0
+exit 0 # triggers 'my_exit'
