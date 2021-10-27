@@ -106,16 +106,16 @@ then
 fi
 
 ############################################################################################################ Configure resources:
-mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/create-temporary.bash" )"
-
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release lock:
-	rm -f "$mutex"
+	"$mutex"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
+
+mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/create-temporary.bash" )"
 trap 'my_exit' 0 1 2 3 15
 
 ############################################################################################################### Create temporary:
