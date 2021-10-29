@@ -7,7 +7,9 @@
 
 set -e
 set -o pipefail
+shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 call_dir="$( pwd )"
 
 ################################################################################################################ Parse arguments:
@@ -213,6 +215,7 @@ done
 echo "#!/usr/bin/env bash"
 echo "set -e"
 echo "set -o pipefail"
+echo "shopt -s inherit_errexit"
 echo "if [ ! \$# -eq 0 ]"
 echo "then"
 echo "	echo \" !!! ERROR: Unknown [\$*] command line arguments !!!\" >&2"

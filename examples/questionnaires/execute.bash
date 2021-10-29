@@ -5,6 +5,9 @@
 
 # author: C. Bürger
 
+set -e
+set -o pipefail
+shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ######################################################################################################### Execute questionnaires:

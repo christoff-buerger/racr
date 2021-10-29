@@ -7,6 +7,7 @@
 
 set -e
 set -o pipefail
+shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ################################################################################################################ Parse arguments:
@@ -47,7 +48,7 @@ do
 			echo "       -x Measurement criteria used for x-axis coordinates (mandatory parameter)." >&2
 			echo "       -y Measurement criteria used for y-axis coordinates (mandatory parameter)." >&2
 			echo "       -z Measurement criteria used for z-axis coordinates (optional parameter)." >&2
-			echo "       -- List of source tables to plot (mandatory parameter)." >&2
+			echo "       -- List of measurements tables to plot (mandatory parameter)." >&2
 			echo "          Must be non-empty." >&2
 			exit 2;;
 	esac
@@ -69,21 +70,8 @@ do
 	fi
 done
 
-for a in "$@"
-do
-	if [ ! -f "$a" ]
-	then
-		echo " !!! ERROR: Non-existing source table [$a] specified via '--' argument list !!!" >&2
-		exit 2
-	fi
-	source_tables+=( "$a" )
-	shift
-done
-if [ -z ${source_tables+x} ]
-then
-	echo " !!! ERROR: No source table specified via '--' argument list !!!" >&2
-	exit 2
-fi
+measurements_tables=( "$@" )
+shift ${#measurements_tables[@]}
 
 ##################################################################################### Configure temporary and external resources:
 tmp_dir=""
@@ -99,12 +87,9 @@ my_exit(){
 trap 'my_exit' 0 1 2 3 15
 
 tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
-#plotting_pipe="$tmp_dir/plotting-pipe.fifo"
 #plotting_script="$tmp_dir/plotting-script.r"
 
-#mkfifo "$plotting_pipe"
-
-"$script_dir/check-tables.bash" -c "$profiling_configuration" -- "${source_tables[@]}"
+"$script_dir/check-tables.bash" -c "$profiling_configuration" -- "${measurements_tables[@]}"
 
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
@@ -153,7 +138,7 @@ fi
 declare -A existing_points
 existing_points=()
 
-for s in "${source_tables[@]}"
+for t in "${measurements_tables[@]}"
 do
 	while IFS='' read -r line
 	do
@@ -180,7 +165,7 @@ do
 		else
 			existing_points["$coordinate"]="true"
 		fi
-	done < <( tail -n +3 "$s" )
+	done < <( tail -n +3 "$t" )
 done
 
 ################################################################################# Finish execution & cleanup temporary resources:

@@ -22,6 +22,7 @@
 
 set -e
 set -o pipefail
+shopt -s inherit_errexit
 #configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]

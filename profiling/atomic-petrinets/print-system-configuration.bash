@@ -5,6 +5,10 @@
 
 # author: C. Bürger
 
+set -e
+set -o pipefail
+shopt -s inherit_errexit
+
 if command -v system_profiler > /dev/null
 then
 	system_profiler SPHardwareDataType \

@@ -7,7 +7,9 @@
 
 set -e
 set -o pipefail
+shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 tmp_dir="$script_dir/temporary-files"
 
 ################################################################################################################ Parse arguments:

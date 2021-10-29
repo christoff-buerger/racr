@@ -9,6 +9,10 @@
 # such that Scheme nodes know their respective wrapping C# node. A bidirectional mapping
 # between C# and Scheme nodes is required by RACR-NET for proper integration with RACR.
 
+set -e
+set -o pipefail
+shopt -s inherit_errexit
+
 sed	-e 's/(export/(export node-dot-net-instance node-dot-net-instance-set!/g' \
 	-e 's/(mutable annotations)/(mutable annotations) (mutable dot-net-instance)/g' \
 	-e '1,/(list))))))/s//(list) #f)))))/' \
