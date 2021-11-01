@@ -10,7 +10,6 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-
 ############################################################################################################ Configure resources:
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
