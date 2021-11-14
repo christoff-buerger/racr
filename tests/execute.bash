@@ -16,9 +16,11 @@ do
 	case $opt in
 		s)
 			"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -s "$OPTARG"
-			selected_systems+=( "$OPTARG" );;
+			selected_systems+=( "$OPTARG" )
+			;;
 		x)
-			abort_on_failed_test="false";;
+			abort_on_failed_test="false"
+			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
 			"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
@@ -26,7 +28,8 @@ do
 			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			echo "       -x Do not abort testing on error (multi-flag)." >&2
 			echo "          By default, testing is aborted as soon as any test failed." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
@@ -83,10 +86,12 @@ run(){
 		case $error_status in
 			0) # all correct => test passed
 				printf " %s" "$s"
-				tests_passed=$(( tests_passed + 1));;
+				tests_passed=$(( tests_passed + 1 ))
+				;;
 			2) # configuration error for Scheme system => test skipped
 				printf " -%s-" "$s"
-				tests_skipped=$(( tests_skipped + 1));;
+				tests_skipped=$(( tests_skipped + 1 ))
+				;;
 			*) # test failed (execution error) => print error and...
 				echo " !$s!"
 				echo "$error_message" >&2
@@ -95,7 +100,8 @@ run(){
 					echo " !!! ERROR: Testing aborted because of failed test !!!" >&2
 					exit $error_status
 				fi
-				tests_failed=$(( tests_failed + 1 ));;
+				tests_failed=$(( tests_failed + 1 ))
+				;;
 		esac
 	done
 	echo ""
@@ -104,9 +110,10 @@ run(){
 ################################################################################################################## Execute tests:
 
 # Test basic API:
+declare -A excluded_systems
 for f in "$script_dir"/*.scm
 do
-	declare -A excluded_systems=()
+	excluded_systems=()
 	for e in "$f.exclude."*
 	do
 		if [ -f "$e" ]
@@ -118,7 +125,7 @@ do
 	done
 	run "$f" ""
 done
-declare -A excluded_systems=()
+excluded_systems=()
 
 # Test binary numbers example:
 run "$script_dir/../examples/binary-numbers/binary-numbers.scm" ""

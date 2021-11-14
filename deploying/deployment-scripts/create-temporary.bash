@@ -99,7 +99,7 @@ then
 		exit 2
 	fi
 	use_existing="$( cd "$use_existing" && pwd )"
-	if [ "${use_existing##$tmp_dir}" == "$use_existing" ]
+	if [ "${use_existing##"$tmp_dir"}" == "$use_existing" ]
 	then
 		echo " !!! ERROR: No temporary directory selected via -u parameter !!!" >&2
 		exit 2
