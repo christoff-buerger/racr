@@ -51,7 +51,8 @@ do
 			echo " !!! ERROR: Malformed profiling configuration (non-existent/executable execution script) !!!" >&2
 			exit 2
 		fi
-		parsing_mode=parameters;;
+		parsing_mode=parameters
+		;;
 	parameters)
 		if [ "$line" == ">" ]
 		then
@@ -65,7 +66,8 @@ do
 			exit 2
 		fi
 		parameter_names+=( "${config_line[0]}" )
-		parameter_descriptions+=( "${config_line[1]}" );;
+		parameter_descriptions+=( "${config_line[1]}" )
+		;;
 	results)
 		IFS='|' read -r -a config_line <<< "$line"
 		if [ ${#config_line[@]} -ne 2 ]
@@ -74,7 +76,8 @@ do
 			exit 2
 		fi
 		result_names+=( "${config_line[0]}" )
-		result_descriptions+=( "${config_line[1]}" );;
+		result_descriptions+=( "${config_line[1]}" )
+		;;
 	esac
 done < "$profiling_configuration"
 

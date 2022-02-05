@@ -27,7 +27,8 @@ do
 			else
 				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		p)
 			if [ -z ${measurements_pipe+x} ]
 			then
@@ -35,7 +36,8 @@ do
 			else
 				echo " !!! ERROR: Several input pipes selected via -p parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		t)
 			if [ -z ${measurements_table+x} ]
 			then
@@ -43,9 +45,11 @@ do
 			else
 				echo " !!! ERROR: Several measurements tables selected via -t parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		x)
-			test_run=true;;
+			test_run=true
+			;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -p Input pipe providing measurement results to record (mandatory parameter if no -x)." >&2
@@ -59,7 +63,8 @@ do
 			echo "          No measurements are recorded; no asynchronous recording process is started" >&2
 			echo "          and therefore no PID of such echoed." >&2
 			echo "          The measurements table is not updated." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))

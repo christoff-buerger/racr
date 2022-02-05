@@ -32,7 +32,8 @@ do
 			else
 				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		t)
 			if [ -z ${measurements_table+x} ]
 			then
@@ -40,7 +41,8 @@ do
 			else
 				echo " !!! ERROR: Several measurements tables selected via -t parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		s)
 			if [ -z ${rerun_script+x} ]
 			then
@@ -48,7 +50,8 @@ do
 			else
 				echo " !!! ERROR: Several rerun script names selected via -s parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		i|a|x)
 			if [ -z ${recording_mode+x} ]
 			then
@@ -56,7 +59,8 @@ do
 			else
 				echo " !!! ERROR: Several recording modes selected via -i, -a or -x flag !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -t Measurements table used to record extracted measurements (mandatory parameter)." >&2
@@ -91,7 +95,8 @@ do
 			echo "            Column cells must satisfy all their comparators." >&2
 			echo "          - Extrema are additive (logical disjunction: or)." >&2
 			echo "            It is sufficient if a column cell satisfies one of its extrema." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
@@ -267,15 +272,19 @@ do
 				exit 2
 			fi
 			extractors="$extractors \"$choice2\""
-			i=$(( i - 1 ));;
+			i=$(( i - 1 ))
+			;;
 		min|max|MIN|MAX)
 			extractors="$extractors ps:$choice"
-			i=$(( i - 1 ));;
+			i=$(( i - 1 ))
+			;;
 		\*)
-			extractors="$extractors)";;
+			extractors="$extractors)"
+			;;
 		*)
 			echo " !!! ERROR: Invalid choice !!!" >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 echo "\|EOF\|" >> "$rerun_script"

@@ -29,7 +29,8 @@ do
 			else
 				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		t)
 			if [ -z ${measurements_table+x} ]
 			then
@@ -37,7 +38,8 @@ do
 			else
 				echo " !!! ERROR: Several measurements tables selected via -t parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		s)
 			if [ -z ${rerun_script+x} ]
 			then
@@ -45,9 +47,11 @@ do
 			else
 				echo " !!! ERROR: Several rerun script names selected via -s parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		x)
-			failsave="-x";;
+			failsave="-x"
+			;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
@@ -55,7 +59,8 @@ do
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
 			echo "       -x Abort in case of measurement failures (optional multi-flag)." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
@@ -162,9 +167,11 @@ do
 				printf "	Iterate? (y/n): %s" "$choice"
 			fi
 			echo ""
-			printf "%s" "$choice" >> "$rerun_script";;
+			printf "%s" "$choice" >> "$rerun_script"
+			;;
 		*)
-			choice="n";;
+			choice="n"
+			;;
 	esac
 	case "$choice" in
 		[y]*)
@@ -180,10 +187,12 @@ do
 					then
 						echo " !!! ERROR: Invalid choice !!!" >&2
 						exit 2
-					fi;;
+					fi
+					;;
 				*)
 					echo " !!! ERROR: Invalid choice !!!" >&2
-					exit 2;;
+					exit 2
+					;;
 			esac
 			parameter_iterations+=( "$choice" )
 			IFS='' read -r -p "	Adjustment each iteration (excluding first): " choice
@@ -197,15 +206,19 @@ do
 					;;
 				*)
 					echo " !!! ERROR: Invalid choice !!!" >&2
-					exit 2;;
+					exit 2
+					;;
 			esac
-			parameter_adjustments+=( "$choice" );;
+			parameter_adjustments+=( "$choice" )
+			;;
 		[n]*)
 			parameter_iterations+=( 1 )
-			parameter_adjustments+=( 0 );;
+			parameter_adjustments+=( 0 )
+			;;
 		*)
 			echo "	!!! ERROR: Invalid choice !!!" >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 echo "\|EOF\|" >> "$rerun_script"

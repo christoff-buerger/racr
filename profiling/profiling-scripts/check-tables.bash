@@ -30,12 +30,14 @@ do
 			else
 				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -- List of measurements tables to check (mandatory parameter)." >&2
 			echo "          Must be non-empty." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))

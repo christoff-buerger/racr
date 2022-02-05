@@ -33,7 +33,8 @@ do
 			else
 				echo " !!! ERROR: Several profiling configurations selected via -c parameter !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		l|x|y|z)
 			if [ -z ${criteria["$opt"]+x} ]
 			then
@@ -41,7 +42,8 @@ do
 			else
 				echo " !!! ERROR: Several measurement criteria for -$opt parameter selected !!!" >&2
 				exit 2
-			fi;;
+			fi
+			;;
 		h|?)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -l Measurement criteria used for plot labels (mandatory parameter)." >&2
@@ -50,7 +52,8 @@ do
 			echo "       -z Measurement criteria used for z-axis coordinates (optional parameter)." >&2
 			echo "       -- List of measurements tables to plot (mandatory parameter)." >&2
 			echo "          Must be non-empty." >&2
-			exit 2;;
+			exit 2
+			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
@@ -148,7 +151,7 @@ do
 			start=$(( criteria_index["$c"] * 21 + criteria_index["$c"] + 1 ))
 			end=$(( ( criteria_index["$c"] + 1 ) * 21 + criteria_index["$c"] ))
 			cell_value="$( printf "%s" "$line" | cut -c $start-$end )"
-			if [ ! "$c" = "l" ]
+			if [ ! "$c" == "l" ]
 			then
 				cell_value="$( check_number "$cell_value" )"
 			fi
@@ -163,7 +166,7 @@ do
 			echo " !!! ERROR: Duplicated measurement for [$coordinate] !!!" >&2
 			exit 2
 		else
-			existing_points["$coordinate"]="true"
+			existing_points["$coordinate"]="_"
 		fi
 	done < <( tail -n +3 "$t" )
 done
