@@ -22,8 +22,9 @@ do
 			selected_systems_array+=( "$OPTARG" )
 			;;
 		i)
-			mapfile -t additional_libraries < <( "$script_dir/list-libraries.bash" -l "$OPTARG" || kill -13 $$ )
-			selected_libraries+=( "${additional_libraries[@]}" )
+			mapfile -O ${#selected_libraries[@]} -t selected_libraries < <(
+				"$script_dir/list-libraries.bash" -l "$OPTARG" \
+				|| kill -13 $$ )
 			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
