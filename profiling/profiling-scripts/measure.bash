@@ -252,6 +252,7 @@ do
 		IFS=$'\n' # measurement results are emitted line-wise
 		set +e
 		set +o pipefail
+		measurement_results=()
 		mapfile -t measurement_results < <( "$execution_script" "${arguments[@]}" 2> "$measurements_stderr" )
 		measurement_error=$?
 		set -e

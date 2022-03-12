@@ -202,6 +202,7 @@ mkfifo "$extraction_pipe"
 recording_pid=$( "$script_dir/record.bash" -c "$profiling_configuration" -t "$extraction_table" -p "$extraction_pipe" )
 exec 3> "$extraction_pipe"
 
+installed_systems=()
 mapfile -t installed_systems < <( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
 selected_system="${installed_systems[0]}"
 
