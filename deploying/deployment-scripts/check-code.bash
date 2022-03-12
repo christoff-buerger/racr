@@ -19,7 +19,7 @@ fi
 
 ############################################################################################################# Check Bash scripts:
 bash_scripts_relative=()
-mapfile -O 1 -t bash_scripts_relative < <(
+mapfile -O 0 -t bash_scripts_relative < <(
 	find "$script_dir/../.." -type f -iname "*.bash" \
 	| sort \
 	|| kill -13 $$ )
