@@ -10,6 +10,8 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+results=() # Collect results and only print them if ALL arguments are valid.
+
 ############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
 then
@@ -23,7 +25,7 @@ do
 		k)
 			for s in chez guile racket larceny sagittarius ypsilon ironscheme
 			do
-				echo "$s"
+				results+=( "$s" )
 			done
 			;;
 		i)
@@ -32,14 +34,14 @@ do
 			do
 				if command -v "$s" > /dev/null
 				then
-					echo "$s"
-					found=true
+					results+=( "$s" )
+					found="true"
 				fi
 			done
 			if command -v IronScheme.Console-v4.exe > /dev/null
 			then
-				echo "ironscheme"
-				found=true
+				results+=( "ironscheme" )
+				found="true"
 			fi
 			if [ -z "$found" ]
 			then
@@ -53,11 +55,15 @@ do
 			do
 				if [ "$OPTARG" == "$s"  ]
 				then
-					exit 0
+					found="true"
+					break
 				fi
 			done
-			echo " !!! ERROR: Unknown [$OPTARG] Scheme system selected via -s parameter !!!" >&2
-			exit 2
+			if [ -z "$found" ]
+			then
+				echo " !!! ERROR: Unknown [$OPTARG] Scheme system selected via -s parameter !!!" >&2
+				exit 2
+			fi
 			;;
 		h|?)
 			echo "Usage: -k List all Scheme systems officially supported by RACR (multi-flag)." >&2
@@ -76,5 +82,11 @@ then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
+
+################################################################################################################## Print results:
+for r in "${results[@]}"
+do
+	echo "$r"
+done
 
 exit 0
