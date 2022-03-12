@@ -11,7 +11,7 @@ shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 libraries_relative=( "$script_dir/../../racr" )
-mapfile -O 1 -t libraries_relative < <(
+mapfile -O 0 -t libraries_relative < <(
 	find "$script_dir/../.." -type f -name racr-library-configuration \
 	| sort \
 	| sed s/\\/racr-library-configuration$// \
@@ -22,6 +22,8 @@ for l in "${libraries_relative[@]}"
 do
 	libraries+=( "$( cd "$l" && pwd )" )
 done
+
+results=() # Collect results and only print them if ALL arguments are valid.
 
 ############################################################################################################## Process arguments:
 if [ $# -eq 0 ]
@@ -42,7 +44,7 @@ do
 				if [ ! ${known_libraries["$l"]+x} ]
 				then
 					known_libraries["$l"]="$l"
-					echo "$l"
+					results+=( "$l" )
 				fi
 			done
 			;;
@@ -52,8 +54,8 @@ do
 			do
 				if [ "$OPTARG" == "$( basename "$l" )" ]
 				then
-					found=true
-					echo "$l"
+					found="true"
+					results+=( "$l" )
 				fi
 			done
 			if [ -z "$found" ]
@@ -65,7 +67,9 @@ do
 		i)
 			for k in $( "$script_dir/list-libraries.bash" -k )
 			do
-				"$script_dir/list-libraries.bash" -l "$k"
+				mapfile -O ${#results[@]} -t results < <(
+					"$script_dir/list-libraries.bash" -l "$k" \
+					|| kill -13 $$ )
 			done
 			;;
 		c)
@@ -77,8 +81,8 @@ do
 				do
 					if [ "$absolute_path" == "$l" ]
 					then
-						found=true
-						echo "$l/racr-library-configuration"
+						found="true"
+						results+=( "$l/racr-library-configuration" )
 						break
 					fi
 				done
@@ -110,5 +114,11 @@ then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
+
+################################################################################################################## Print results:
+for r in "${results[@]}"
+do
+	echo "$r"
+done
 
 exit 0
