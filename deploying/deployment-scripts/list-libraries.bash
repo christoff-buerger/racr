@@ -11,7 +11,7 @@ shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 libraries_relative=( "$script_dir/../../racr" )
-mapfile -O 0 -t libraries_relative < <(
+mapfile -O 1 -t libraries_relative < <(
 	find "$script_dir/../.." -type f -name racr-library-configuration \
 	| sort \
 	| sed s/\\/racr-library-configuration$// \
