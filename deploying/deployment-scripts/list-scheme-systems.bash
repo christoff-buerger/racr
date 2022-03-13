@@ -45,7 +45,7 @@ do
 			fi
 			if [ -z "$found" ]
 			then
-				echo " !!! ERROR: No Scheme system found !!!" >&2
+				echo " !!! ERROR: No supported Scheme system found !!!" >&2
 				exit 2
 			fi
 			;;
@@ -61,7 +61,7 @@ do
 			done
 			if [ -z "$found" ]
 			then
-				echo " !!! ERROR: Unknown [$OPTARG] Scheme system selected via -s parameter !!!" >&2
+				echo " !!! ERROR: [$OPTARG] Scheme system selected via -s parameter unavailable !!!" >&2
 				exit 2
 			fi
 			;;
