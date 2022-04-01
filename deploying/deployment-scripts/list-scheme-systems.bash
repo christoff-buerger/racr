@@ -46,7 +46,7 @@ do
 			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: No supported Scheme system found !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		s)
@@ -62,7 +62,7 @@ do
 			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: [$OPTARG] Scheme system selected via -s parameter unavailable !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		h|?)
@@ -71,7 +71,7 @@ do
 			echo "          Abort with an error if no supported system is installed." >&2
 			echo "       -s Ensure a certain system is installed and supported (multi-parameter)." >&2
 			echo "          Abort with an error if not." >&2
-			exit 2
+			exit 64
 			;;
 	esac
 done
@@ -80,7 +80,7 @@ shift $(( OPTIND - 1 ))
 if [ ! $# -eq 0 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 ################################################################################################################## Print results:

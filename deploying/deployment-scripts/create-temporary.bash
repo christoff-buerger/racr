@@ -23,7 +23,7 @@ while getopts t:n:u:h opt
 do
 	case $opt in
 		t)
-			if [ -z ${temporary_type+x} ]
+			if [[ ! -v "temporary_type" ]]
 			then
 				temporary_type="$OPTARG"
 			else
@@ -32,7 +32,7 @@ do
 			fi
 			;;
 		n)
-			if [ -z ${name+x} ]
+			if [[ ! -v "name" ]]
 			then
 				name="$OPTARG"
 			else
@@ -41,7 +41,7 @@ do
 			fi
 			;;
 		u)
-			if [ -z ${use_existing+x} ]
+			if [[ ! -v "use_existing" ]]
 			then
 				use_existing="$OPTARG"
 			else
@@ -91,7 +91,7 @@ then
 	exit 2
 fi
 
-if [ -n "${use_existing+x}" ]
+if [[ -v "use_existing" ]]
 then
 	if [ ! -d "$use_existing" ]
 	then
@@ -127,7 +127,7 @@ while [ -e "$tmp_dir/$tmp_name" ]
 do
 	current_date="$( date -u "+%Y-%m-%dT%H:%M:%SZ" )" # Date in xs:dateTime format.
 	tmp_name="$current_date-$(( RANDOM % 10 ))$(( RANDOM % 10 ))$(( RANDOM % 10 ))$(( RANDOM % 10 ))"
-	if [ -n "${name+x}" ]
+	if [[ -v "name" ]]
 	then
 		tmp_name="$tmp_name/$name"
 	fi

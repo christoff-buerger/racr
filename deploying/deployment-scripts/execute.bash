@@ -24,17 +24,17 @@ while getopts s:e:l:h opt
 do
 	case $opt in
 		s)
-			if [ -z ${selected_system+x} ]
+			if [[ ! -v "selected_system" ]]
 			then
 				"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
 				selected_system="$OPTARG"
 			else
 				echo " !!! ERROR: Several Scheme systems for execution selected via -s parameter !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		e)
-			if [ -z ${to_execute+x} ]
+			if [[ ! -v "to_execute" ]]
 			then
 				to_execute="$OPTARG"
 				to_execute_dir="$( dirname "$to_execute" )"
@@ -44,17 +44,17 @@ do
 				fi
 			else
 				echo " !!! ERROR: Several programs to execute specified via -e parameter !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		l)
-			if [ -z ${configuration_to_parse+x} ]
+			if [[ ! -v "configuration_to_parse" ]]
 			then
 				configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$OPTARG" )"
 			else
 				echo " !!! ERROR: Several libraries to use specified, either via -l parameter or implicitly" >&2
 				echo "            because the program to execute is in a RACR library directory !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		h|?)
@@ -68,7 +68,7 @@ do
 			echo "          Implicitly set if the program to execute already is in a RACR library directory." >&2
 			echo "       -- Command line arguments for the Scheme program to execute (optional parameter). " >&2
 			echo "          All following arguments are forwarded to the executed program." >&2
-			exit 2
+			exit 64
 			;;
 	esac
 done
@@ -77,50 +77,64 @@ shift $(( OPTIND - 1 ))
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 if [ -z "$to_execute" ] || [ ! -f "$to_execute" ]
 then
 	echo " !!! ERROR: Non-existent or no Scheme program to execute specified via -e parameter !!!" >&2
-	exit 2
+	exit 64
 fi
 
 if [ -z "$selected_system" ]
 then
 	echo " !!! ERROR: No Scheme system for execution selected via -s parameter !!!" >&2
-	exit 2
+	exit 64
 fi
 
-if [ -z ${configuration_to_parse+x} ]
+if [[ ! -v "configuration_to_parse" ]]
 then
 	required_libraries=( "$script_dir/../../racr" )
 	required_libraries+=( "$script_dir/../../racr-meta" )
 else
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
-	if [ ! ${supported_systems["$selected_system"]+x} ]
+	if [[ ! -v "supported_systems[$selected_system]" ]]
 	then
 		echo " !!! ERROR: Scheme system [$selected_system] not supported by the program !!!" >&2
-		exit 2
+		exit 64
 	fi
 fi
 
-################################################################################################################ Execute program:
+###################################### Lock binaries of all used libraries to prevent race-conditions with installations of such:
+locks=()
+
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
-	# Release lock:
-	"$mutex"
+	# Release locks:
+	for mutex in "${locks[@]}"
+	do
+		"$mutex"
+	done
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
 
-mutex="$( "$script_dir/lock-files.bash" \
+required_binaries=()
+for l in "${required_libraries[@]}"
+do
+	required_binaries+=( "$l/binaries/$selected_system" )
+done
+
+mapfile -t locks < <(
+	"$script_dir/lock-files.bash" \
 	-k "$script_dir/execute.bash" \
 	-x " !!! ERROR: Can not execute [$to_execute]; installation of RACR libraries for $selected_system in progress !!!" \
-	-- "$script_dir/lock-$selected_system" )"
+	-- "${required_binaries[@]}" \
+	|| kill -13 $$ )
 trap 'my_exit' 0 1 2 3 15
 
+################################################################################################################ Execute program:
 case $selected_system in
 	racket)
 		libs=()
@@ -169,7 +183,7 @@ case $selected_system in
 		libs=()
 		for l in "${required_libraries[@]}"
 		do
-			libs+=( --loadpath="$l/.." )
+			libs+=( --loadpath="$l/binaries/sagittarius" )
 		done
 		sagittarius "${libs[@]}" "$to_execute" "$@"
 		;;
@@ -177,7 +191,7 @@ case $selected_system in
 		libs_string=""
 		for l in "${required_libraries[@]}"
 		do
-			libs_string+=":$l/.."
+			libs_string+=":$l/binaries/ypsilon"
 		done
 		if [ -n "$libs_string" ]
 		then

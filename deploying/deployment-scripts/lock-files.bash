@@ -29,7 +29,7 @@ do
 				no_spinning="$OPTARG"
 			else
 				echo " !!! ERROR: Several error messages selected via -x parameter !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		k)
@@ -38,7 +38,7 @@ do
 				reentrance_key="$OPTARG"
 			else
 				echo " !!! ERROR: Several re-entrance keys selected via -k parameter !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		h|?)
@@ -75,7 +75,7 @@ do
 			echo "            resources race conditions on such can be avoided." >&2
 			echo "          - All RACR scripts partake; they are thread-safe and suited for parallel execution." >&2
 			echo "       " >&2
-			exit 2
+			exit 64
 			;;
 	esac
 done
@@ -84,7 +84,7 @@ shift $(( OPTIND - 1 ))
 if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 #################################################################### Handle special case of no files (just exit => optimization):
@@ -103,20 +103,20 @@ do
 	if [ -d "$f" ]
 	then
 		echo " !!! ERROR: Invalid file [$f]; locking directories is not supported !!!" >&2
-		exit 2
+		exit 64
 	fi
 	f_dirname="$( dirname "$f" )"
 	if [ ! -d "$f_dirname" ]
 	then
 		echo " !!! ERROR: Invalid file [$f]; the parent directory of the file does not exist !!!" >&2
-		exit 2
+		exit 64
 	fi
 	file_dir_absolute="$( cd "$f_dirname" && pwd )"
 	file_normalized="$file_dir_absolute/$( basename "$f" )"
 	if [[ -v "files_set[$file_normalized]" ]]
 	then
 		echo " !!! ERROR: Multiple locking of [$file_normalized] !!!" >&2
-		exit 2
+		exit 64
 	fi
 	# shellcheck disable=SC2034
 	files_set["$file_normalized"]="_"
@@ -148,7 +148,7 @@ then
 			if [[ -v "no_spinning" ]]
 			then
 				echo "$no_spinning" >&2
-				exit 2
+				exit 1
 			fi
 			sleep 1
 		fi
@@ -201,7 +201,7 @@ do
 		if [[ -v "no_spinning" ]]
 		then
 			echo "$no_spinning" >&2
-			exit 2
+			exit 1
 		fi
 		"$mutex" # Enable release-scripts to unlock contested files and parallel 'file-lock.bash' instances...
 		not_suspended=0 # ...while suspended...

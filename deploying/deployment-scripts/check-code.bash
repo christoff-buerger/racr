@@ -14,7 +14,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [ $# -ge 1 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 ############################################################################################################# Check Bash scripts:
@@ -82,6 +82,6 @@ fi
 ######################################################################################### Exit considering ALL checked artefacts:
 if (( bash_scripts_failed > 0 ))
 then
-	exit 2
+	exit 1
 fi
 exit 0

@@ -41,7 +41,7 @@ do
 			for l in "${libraries[@]}"
 			do
 				l="$( basename "$l" )"
-				if [ ! ${known_libraries["$l"]+x} ]
+				if [[ ! -v "known_libraries[$l]" ]]
 				then
 					known_libraries["$l"]="$l"
 					results+=( "$l" )
@@ -61,7 +61,7 @@ do
 			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		i)
@@ -90,20 +90,20 @@ do
 			if [ -z "$found" ]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library directory !!!" >&2
-				exit 2
+				exit 64
 			fi
 			;;
 		h|?)
-			echo "Usage: -k List all known RACR libraries (multi-flag)." >&2
-			echo "       -l List all directories of a RACR library (multi-parameter)." >&2
+			echo "Usage: -k List all known RACR libraries (optional multi-flag)." >&2
+			echo "       -l List all directories of a RACR library (optional multi-parameter)." >&2
 			echo "          The listed paths are absolute." >&2
 			echo "          Abort with an error if the library is unknown." >&2
-			echo "       -i List all directories of all known RACR libraries (multi-flag)." >&2
+			echo "       -i List all directories of all known RACR libraries (optional multi-flag)." >&2
 			echo "          The listed paths are absolute." >&2
-			echo "       -c List configuration file of a RACR library directory (multi-parameter)." >&2
+			echo "       -c List configuration file of a RACR library directory (optional multi-parameter)." >&2
 			echo "          The listed path is absolute." >&2
 			echo "          Abort with an error if the library directory is unknown." >&2
-			exit 2
+			exit 64
 			;;
 	esac
 done
@@ -112,7 +112,7 @@ shift $(( OPTIND - 1 ))
 if [ ! $# -eq 0 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 ################################################################################################################## Print results:

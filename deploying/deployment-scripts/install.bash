@@ -10,11 +10,15 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+installation_was_required_exit_code=75 # Cf. '/usr/include/sysexits.h': Temporary failure; user is invited to retry.
 selected_systems_array=()
-selected_libraries=()
+selected_libraries_array=()
 
 ################################################################################################################ Parse arguments:
-while getopts s:i:h opt
+unset force_reinstallation
+unset quiet_mode
+
+while getopts s:i:xqh opt
 do
 	case $opt in
 		s)
@@ -22,9 +26,15 @@ do
 			selected_systems_array+=( "$OPTARG" )
 			;;
 		i)
-			mapfile -O ${#selected_libraries[@]} -t selected_libraries < <(
+			mapfile -O ${#selected_libraries_array[@]} -t selected_libraries_array < <(
 				"$script_dir/list-libraries.bash" -l "$OPTARG" \
 				|| kill -13 $$ )
+			;;
+		x)
+			force_reinstallation="-x"
+			;;
+		q)
+			quiet_mode="-q"
 			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
@@ -34,7 +44,12 @@ do
 			echo "       -i RACR library to install (optional multi-parameter). Permitted values:" >&2
 			"$script_dir/list-libraries.bash" -k | sed 's/^/             /' >&2
 			echo "          If no library is selected, all libraries are installed." >&2
-			exit 2
+			echo "       -x Force reinstallation, including required RACR libraries (optional multi-flag)." >&2
+			echo "       -q Quiet mode (optinal multi-flag)." >&2
+			echo "          Only report errors (on stderr)." >&2
+			echo "          The exit code in case of any succesful, but indeed needed, RACR library" >&2
+			echo "          installation is 0 and not $installation_was_required_exit_code." >&2
+			exit 64
 			;;
 	esac
 done
@@ -43,27 +58,338 @@ shift $(( OPTIND - 1 ))
 if [ ! $# -eq 0 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
-if [[ ! -v selected_systems_array[@] ]]
+if [[ ! -v "selected_systems_array[@]" ]]
 then
 	mapfile -t selected_systems_array < <( "$script_dir/list-scheme-systems.bash" -i || kill -13 $$ )
 fi
-declare -A selected_systems
+declare -A selected_systems # Use associative array as set, to avoid double entries.
 selected_systems=()
 for s in "${selected_systems_array[@]}"
 do
 	selected_systems["$s"]="$s"
 done
 
-if [[ ! -v selected_libraries[@] ]]
+if [[ ! -v "selected_libraries_array[@]" ]]
 then
-	mapfile -t selected_libraries < <( "$script_dir/list-libraries.bash" -i || kill -13 $$ )
+	mapfile -t selected_libraries_array < <( "$script_dir/list-libraries.bash" -i || kill -13 $$ )
 fi
+declare -A selected_libraries # Use associative array as set, to avoid double entries.
+selected_libraries=()
+for l in "${selected_libraries_array[@]}"
+do
+	selected_libraries["$l"]="$l"
+done
 
 ############################################################################################################ Configure resources:
+
+my_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Wait for installation co-routines to cleanup first:
+	wait
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
+	exit $exit_status
+}
+trap 'my_exit' 0 1 2 3 15
+
+##################################################################### Define installation procedures for specific Scheme systems:
+install_chez(){
+	installation_directory="$binaries/$( basename "$library" )"
+	mkdir -p "$installation_directory"
+	library_paths_string="$binaries"
+	for l in "${required_libraries[@]}"
+	do
+		library_paths_string+=":$l/binaries/$system"
+	done
+	for s in "${required_sources[@]}"
+	do
+		s_basename="$( basename "$s" )"
+		chez --libdirs "$library_paths_string" -q --optimize-level 3 << \
+EOF
+		(compile-library "$s.scm" "$installation_directory/$s_basename.so")
+EOF
+	done
+}
+
+install_guile(){
+	installation_directory="$binaries/$( basename "$library" )"
+	mkdir -p "$installation_directory"
+	library_paths=( --load-path="$binaries" )
+	for l in "${required_libraries[@]}"
+	do
+		library_paths+=( --load-path="$l/binaries/$system" )
+	done
+	for s in "${required_sources[@]}"
+	do
+		s_basename="$( basename "$s" )"
+		cp -p "$s.scm" "$installation_directory"
+		GUILE_AUTO_COMPILE=0 # Workaround for broken '--no-auto-compile' flag.
+		guild \
+			compile \
+			--optimize=3 \
+			"${library_paths[@]}" \
+			--output="$installation_directory/$s_basename.go" \
+			"$installation_directory/$s_basename.scm"
+	done
+}
+
+install_racket(){
+	#installation_directory="$binaries/$( basename "$library" )"
+	#mkdir -p "$installation_directory"	
+	library_paths=()
+	for l in "${required_libraries[@]}"
+	do
+		library_paths+=( ++path "$l/binaries/$system" )
+	done
+	for s in "${required_sources[@]}"
+	do
+		plt-r6rs "${library_paths[@]}" --install --collections "$binaries" "$s.scm"
+	done
+}
+
+install_larceny(){
+	installation_directory="$binaries/$( basename "$library" )"
+	mkdir -p "$installation_directory"
+	library_paths_string="$binaries"
+	for l in "${required_libraries[@]}"
+	do
+		library_paths_string+=":$l/binaries/$system"
+	done
+	for s in "${required_sources[@]}"
+	do
+		s_basename="$( basename "$s" )"		
+		cp -p "$s.scm" "$installation_directory/$s_basename.sls"
+		larceny --utf8 --r6rs --path "$library_paths_string" << \
+EOF
+		(import (rnrs) (larceny compiler))
+		(compiler-switches (quote fast-safe)) ; optimisation (even more aggressive: fast-unsafe)
+		(compile-library "$installation_directory/$s_basename.sls")
+EOF
+	done
+}
+
+install_ironscheme(){
+	library_basename="$( basename "$library" )"
+	installation_directory="$binaries/$library_basename"
+	mkdir -p "$installation_directory"	
+	library_paths=()
+	for l in "${required_libraries[@]}"
+	do
+		library_paths+=( -I "$l/binaries/$system" )
+	done
+	compile_script="(import"
+	for s in "${required_sources[@]}"
+	do
+		s_basename="$( basename "$s" )"
+		cp -p "$s.scm" "$installation_directory/$s_basename.sls"
+		compile_script="$compile_script ($library_basename $s_basename)"
+	done
+	echo "$compile_script)" > "$binaries/compile-script.sls"
+	if [ "$library_basename" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
+	then
+		mv "$installation_directory/core.sls" "$installation_directory/core.scm"
+		"$script_dir/../../racr-net/transcribe-racr-core.bash" "$installation_directory"
+		rm "$installation_directory/core.scm"
+		cp -p "$( dirname "$( command -v IronScheme.Console-v4.exe )" )/IronScheme.dll" "$binaries"
+	fi
+	# Use subshell for local directory changes via cd:
+	(
+	cd "$binaries"
+	echo "(compile \"$binaries/compile-script.sls\")" | \
+		mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${library_paths[@]}"
+	)
+	rm -rf "$installation_directory" # Force usage of compiled IronScheme dll assemblies.
+	rm "$binaries/compile-script.sls"
+}
+
+install_sagittarius(){
+	installation_directory="$binaries/$( basename "$library" )"
+	mkdir -p "$installation_directory"
+	for s in "${required_sources[@]}"
+	do
+		cp -p "$s.scm" "$installation_directory"
+	done
+}
+
+install_ypsilon(){
+	installation_directory="$binaries/$( basename "$library" )"
+	mkdir -p "$installation_directory"
+	for s in "${required_sources[@]}"
+	do
+		cp -p "$s.scm" "$installation_directory"
+	done
+}
+
+######################### Define encapsulated common procedures to concurrently install RACR libraries on varying Scheme systems:
+install_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Release lock:
+	"$1"
+	# Return captured exit status (i.e., if the original script execution succeeded or not):
+	exit $exit_status
+}
+
+join_install_coroutines(){
+	joined_exit_status=0
+	for p in "${install_pids[@]}"
+	do
+		set +e # Temporarily disable "fail on error".
+		set +o pipefail
+		wait "$p"
+		exit_status=$?
+		set -e # Restore "fail on error".
+		set -o pipefail
+		if (( exit_status != 0 ))
+		then
+			if (( exit_status != installation_was_required_exit_code ))
+			then
+				joined_exit_status=1
+			elif (( joined_exit_status == 0 ))
+			then
+				joined_exit_status="$installation_was_required_exit_code"
+			fi
+		fi
+	done
+	wait # Defensive programming (all co-routines should have finished anyway).
+}
+
+install_system()( # Encapsulated common procedure for Scheme system installation:
+	# Configure the directory for the Scheme system specific binaries:
+	system="$1"
+	binaries="$library/binaries/$system"
+	mkdir -p "$binaries"
+	if [[ -v "force_reinstallation" ]]
+	then
+		rm -rf "${binaries:?}/"*
+	fi
+	
+	# Start an installation co-routine for each required library:
+	declare -A install_pids
+	install_pids=()
+	for l in "${required_libraries[@]}"
+	do
+		if [ "$l" != "$library" ]
+		then
+			"$script_dir/install.bash" -s "$system" -i "$l" "$force_reinstallation" "$quiet_mode" &
+			install_pids["$l"]=$!
+		fi
+	done
+	
+	# Wait for each required library installation to finish; afterwards abort iff any failed:
+	join_install_coroutines
+	if (( joined_exit_status == 1 ))
+	then
+		rm -rf "${binaries:?}/"*
+		echo " !!! ERROR: Required RACR libraries failed to install !!!" > "$binaries/install-log.txt"
+		log="$( < "$binaries/install-log.txt" )"
+		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \ # Atomic stdout.
+			"$library" \
+			"$system" \
+			"$log" \
+			>&2
+		exit 1
+	fi
+	
+	# Acquire lock for race-condition-free check if sources changed; also used to protect installation iff required:
+	mutex="$( "$script_dir/lock-files.bash" -- "$binaries" )"
+	trap 'install_exit "$mutex"' 0 1 2 3 15
+	if (( joined_exit_status != installation_was_required_exit_code ))
+	then
+		if [ -f "$binaries/library-hash.txt" ]
+		then
+			read -r library_hash_old < "$binaries/library-hash.txt"
+		else
+			library_hash_old=""
+		fi
+		if (( "$library_hash_old" == "$library_hash" ))
+		then
+			exit 0
+		fi
+	fi
+	
+	# Library needs installation; delete old installation, install and, iff error-free, write new hash:
+	rm -rf "${binaries:?}/"*
+	set +e # Temporarily disable "fail on error".
+	set +o pipefail
+	"install_$system" > "$binaries/install-log.txt" 2>&1
+	exit_status=$?
+	set -e # Restore "fail on error".
+	set -o pipefail
+	if [[ ! -v "quiet_mode" ]] || (( exit_status != 0 ))
+	then
+		if (( exit_status == 0 ))
+		then
+			target_std=/dev/stdout
+		else
+			target_std=/dev/stderr
+		fi
+		log="$( < "$binaries/install-log.txt" )"
+		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \ # Atomic stdout.
+			"$library" \
+			"$system" \
+			"$log" \
+			>&$target_std
+	fi
+	if (( exit_status != 0 ))
+	then
+		exit $exit_status
+	fi
+	printf "%s" "$library_hash" > "$binaries/library-hash.txt"
+	exit $installation_was_required_exit_code
+)
+
+install_library()( # Encapsulated common procedure for library installation:
+	# Read the library configuration and compute the hash of its current implementation:
+	library="$1"
+	configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$library" )"
+	. "$script_dir/configure.bash" # Sourced script sets configuration!
+	library_hash="$( cat "${required_sources[@]}" | openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+	
+	# Start an installation co-routine for each Scheme system:
+	declare -A install_pids
+	install_pids=()
+	for s in "${selected_systems[@]}"
+	do
+		if [[ -v "supported_systems[$s]" ]]
+		then
+			install_system "$s" &
+			install_pids["$s"]=$!
+		fi
+	done
+	
+	# Wait for each Scheme system to finish installation; afterwards return if any failed or actually installed anything:
+	join_install_coroutines
+	exit $joined_exit_status
+)
+
+##################################################### Install all selected libraries on all selected Scheme systems concurrently:
+# Start an installation co-routine for each library:
+declare -A install_pids
+install_pids=()
+for l in "${selected_libraries[@]}"
+do
+	install_library "$l" &
+	install_pids["$l"]=$!
+done
+
+# Wait for each library to finish installation; afterwards return if any failed or any has been actually installed:
+join_install_coroutines
+if (( joined_exit_status == installation_was_required_exit_code )) && [[ -v "quiet_mode" ]]
+then
+	joined_exit_status=0
+fi
+exit $joined_exit_status # triggers 'my_exit'
+
+############################################################################################################# OLD IMPLEMENTATION:
+
+############################################################################################################ Configure resources:
+installation_was_required_exit_code=75 # Cf. '/usr/include/sysexits.h': Temporary failure; user is invited to retry.
 log_dir="$( "$script_dir/create-temporary.bash" -t d )"
+
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
@@ -72,7 +398,7 @@ my_exit(){
 	# Ensure no installation failed; otherwise set error exit status:
 	if compgen -G "$log_dir/*-failed" > /dev/null
 	then
-		exit_status=2
+		exit_status=1
 	fi
 	# Delete installation logs:
 	rm -rf "$log_dir"
@@ -84,7 +410,8 @@ trap 'my_exit' 0 1 2 3 15
 declare -A install_pids
 install_pids=()
 
-############################################################# Define encapsulated installation procedures for each Scheme system:
+##################################################################### Define installation procedures for specific Scheme systems:
+
 install_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
@@ -308,13 +635,10 @@ install_ironscheme()( # Encapsulated installation:
 
 ################################################################## Install libraries (concurrently for different Scheme systems):
 # Start an installation co-routine for each Scheme system:
-for system in $( "$script_dir/list-scheme-systems.bash" -i )
+for system in "${selected_systems[@]}"
 do
-	if [ ${selected_systems["$system"]+x} ]
-	then
-		"install_$system" >> "$log_dir/$system-log.txt" 2>&1 &
-		install_pids["$system"]=$!
-	fi
+	"install_$system" >> "$log_dir/$system-log.txt" 2>&1 &
+	install_pids["$system"]=$!
 done
 
 # Report installation progress:

@@ -17,10 +17,10 @@ set -o pipefail
 shopt -s inherit_errexit
 configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ -z ${configuration_to_parse+x} ] || [ ! -f "$configuration_to_parse" ]
+if [[ ! -v "configuration_to_parse" ]] || [ ! -f "$configuration_to_parse" ]
 then
 	echo " !!! ERROR: Non-existent or no configuration to parse set !!!" >&2
-	exit 2
+	exit 64
 fi
 
 parsing_mode=initial
