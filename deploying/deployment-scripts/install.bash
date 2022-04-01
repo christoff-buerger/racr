@@ -274,7 +274,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	do
 		if [ "$l" != "$library" ]
 		then
-			"$script_dir/install.bash" -s "$system" -i "$l" "$force_reinstallation" "$quiet_mode" &
+			"$script_dir/install.bash" -s "$system" -i "$( basename "$l" )" $force_reinstallation $quiet_mode &
 			install_pids["$l"]=$!
 		fi
 	done
@@ -286,7 +286,8 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		rm -rf "${binaries:?}/"*
 		echo " !!! ERROR: Required RACR libraries failed to install !!!" > "$binaries/install-log.txt"
 		log="$( < "$binaries/install-log.txt" )"
-		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \ # Atomic stdout.
+		# Atomic stdout:
+		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \
 			"$library" \
 			"$system" \
 			"$log" \
@@ -295,7 +296,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	fi
 	
 	# Acquire lock for race-condition-free check if sources changed; also used to protect installation iff required:
-	mutex="$( "$script_dir/lock-files.bash" -- "$binaries" )"
+	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
 	trap 'install_exit "$mutex"' 0 1 2 3 15
 	if (( joined_exit_status != installation_was_required_exit_code ))
 	then
@@ -305,7 +306,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		else
 			library_hash_old=""
 		fi
-		if (( "$library_hash_old" == "$library_hash" ))
+		if [[ "$library_hash_old" == "$library_hash" ]]
 		then
 			exit 0
 		fi
@@ -328,7 +329,8 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 			target_std=/dev/stderr
 		fi
 		log="$( < "$binaries/install-log.txt" )"
-		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \ # Atomic stdout.
+		# Atomic stdout:
+		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \
 			"$library" \
 			"$system" \
 			"$log" \
@@ -347,7 +349,7 @@ install_library()( # Encapsulated common procedure for library installation:
 	library="$1"
 	configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$library" )"
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
-	library_hash="$( cat "${required_sources[@]}" | openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+	library_hash="$( cat "${required_sources[@]/%/.scm}" | openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
 	
 	# Start an installation co-routine for each Scheme system:
 	declare -A install_pids

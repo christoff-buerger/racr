@@ -123,7 +123,7 @@ my_exit(){
 required_binaries=()
 for l in "${required_libraries[@]}"
 do
-	required_binaries+=( "$l/binaries/$selected_system" )
+	required_binaries+=( "$l/binaries/$selected_system/lock" )
 done
 
 mapfile -t locks < <(
