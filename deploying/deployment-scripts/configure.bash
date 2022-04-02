@@ -72,7 +72,7 @@ do
 			parsing_mode=sources
 			continue
 		fi
-		required_libraries+=( "$configuration_directory/$line" )
+		required_libraries+=( "$( cd "$configuration_directory/$line" && pwd )" )
 		;;
 	sources)
 		required_sources+=( "$configuration_directory/$line" )
