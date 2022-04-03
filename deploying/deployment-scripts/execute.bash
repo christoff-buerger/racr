@@ -87,6 +87,7 @@ then
 	exit 64
 fi
 
+required_libraries=()
 if (( ${#configurations_array[@]} > 1 ))
 then
 	echo " !!! ERROR: Several libraries to use specified, either via -l parameter or implicitly" >&2
@@ -102,9 +103,6 @@ then
 		echo " !!! ERROR: Scheme system [$selected_system] not supported by the program !!!" >&2
 		exit 64
 	fi	
-else
-	required_libraries=( "$script_dir/../../racr" )
-	required_libraries+=( "$script_dir/../../racr-meta" )
 fi
 
 ###################################### Lock binaries of all used libraries to prevent race-conditions with installations of such:

@@ -95,7 +95,6 @@ do
 done
 
 ############################################################################################################ Configure resources:
-
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
@@ -273,10 +272,6 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	system="$1"
 	binaries="$library/binaries/$system"
 	mkdir -p "$binaries"
-	if [[ -v "force_reinstallation" ]]
-	then
-		rm -rf "${binaries:?}/"*
-	fi
 	
 	# Start an installation co-routine for each required library:
 	declare -A install_pids
@@ -287,8 +282,19 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		install_pids["$l"]=$!
 	done
 	
-	# Wait for each required library installation to finish; afterwards abort iff any failed:
+	# Wait for each required library installation to finish:
 	join_install_coroutines
+	
+	# Combine hash of sources with hashes of required libraries to final hash capturing any kind of change:
+	library_hash="$(
+		cat <( echo "$library_hash" ) "${required_libraries[@]/%//binaries/$system/installation-hash.txt}" |
+		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+	
+	# Acquire lock for race-condition-free check if (re)installation is required and perform ALL changes:
+	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
+	trap 'install_exit "$mutex"' 0 1 2 3 15
+	
+	# Delete existing installation in case required libraries failed to install:
 	if (( joined_exit_status == 1 ))
 	then
 		rm -rf "${binaries:?}/"*
@@ -303,19 +309,12 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		exit 1
 	fi
 	
-	# Combine hash of sources with hashes of required libraries to final hash capturing any kind of change:
-	library_hash="$(
-		cat <( echo "$library_hash" ) "${required_libraries[@]/%//binaries/$system/library-hash.txt}" |
-		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
-	
-	# Acquire lock for race-condition-free check if library changed; also used to protect installation iff required:
-	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
-	trap 'install_exit "$mutex"' 0 1 2 3 15
+	# Avoid reinstallation if existing installation is up-to-date (requires LOCKED reading of installation hash):
 	if (( joined_exit_status != installation_was_required_exit_code ))
 	then
-		if [ -f "$binaries/library-hash.txt" ]
+		if [ -f "$binaries/installation-hash.txt" ]
 		then
-			read -r library_hash_old < "$binaries/library-hash.txt"
+			read -r library_hash_old < "$binaries/installation-hash.txt"
 		else
 			library_hash_old=""
 		fi
@@ -353,7 +352,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	then
 		exit $exit_status
 	fi
-	echo "$library_hash" > "$binaries/library-hash.txt"
+	echo "$library_hash" > "$binaries/installation-hash.txt"
 	exit $installation_was_required_exit_code
 )
 
