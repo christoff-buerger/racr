@@ -26,7 +26,7 @@ fi
 parsing_mode=initial
 configuration_directory="$( cd "$( dirname "$configuration_to_parse" )" && pwd )"
 supported_systems_array=()
-required_libraries=( "$configuration_directory" )
+required_libraries=()
 required_sources=()
 
 while IFS='' read -r line

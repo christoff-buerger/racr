@@ -10,6 +10,8 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+configurations_array=()
+
 ################################################################################################################ Parse arguments:
 arguments="$* --"
 arguments="${arguments#*--}"
@@ -40,7 +42,7 @@ do
 				to_execute_dir="$( dirname "$to_execute" )"
 				if [ -n "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" ]
 				then
-					configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" )"
+					configurations_array+=( "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" )" )
 				fi
 			else
 				echo " !!! ERROR: Several programs to execute specified via -e parameter !!!" >&2
@@ -48,14 +50,7 @@ do
 			fi
 			;;
 		l)
-			if [[ ! -v "configuration_to_parse" ]]
-			then
-				configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$OPTARG" )"
-			else
-				echo " !!! ERROR: Several libraries to use specified, either via -l parameter or implicitly" >&2
-				echo "            because the program to execute is in a RACR library directory !!!" >&2
-				exit 64
-			fi
+			configurations_array+=( "$( "$script_dir/list-libraries.bash" -c "$OPTARG" )" )
 			;;
 		h|?)
 			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
@@ -92,17 +87,24 @@ then
 	exit 64
 fi
 
-if [[ ! -v "configuration_to_parse" ]]
+if (( ${#configurations_array[@]} > 1 ))
 then
-	required_libraries=( "$script_dir/../../racr" )
-	required_libraries+=( "$script_dir/../../racr-meta" )
-else
+	echo " !!! ERROR: Several libraries to use specified, either via -l parameter or implicitly" >&2
+	echo "            because the program to execute is in a RACR library directory !!!" >&2
+	exit 64
+elif (( ${#configurations_array[@]} == 1 ))
+then
+	configuration_to_parse="${configurations_array[0]}"
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
+	required_libraries+=( "$configuration_directory" )
 	if [[ ! -v "supported_systems[$selected_system]" ]]
 	then
 		echo " !!! ERROR: Scheme system [$selected_system] not supported by the program !!!" >&2
 		exit 64
-	fi
+	fi	
+else
+	required_libraries=( "$script_dir/../../racr" )
+	required_libraries+=( "$script_dir/../../racr-meta" )
 fi
 
 ###################################### Lock binaries of all used libraries to prevent race-conditions with installations of such:
@@ -120,17 +122,17 @@ my_exit(){
 	exit $exit_status
 }
 
-required_binaries=()
+required_binary_locks=()
 for l in "${required_libraries[@]}"
 do
-	required_binaries+=( "$l/binaries/$selected_system/lock" )
+	required_binary_locks+=( "$l/binaries/$selected_system/lock" )
 done
 
 mapfile -t locks < <(
 	"$script_dir/lock-files.bash" \
 	-k "$script_dir/execute.bash" \
 	-x " !!! ERROR: Can not execute [$to_execute]; installation of RACR libraries for $selected_system in progress !!!" \
-	-- "${required_binaries[@]}" \
+	-- "${required_binary_locks[@]}" \
 	|| kill -13 $$ )
 trap 'my_exit' 0 1 2 3 15
 

@@ -18,16 +18,22 @@ selected_libraries_array=()
 unset force_reinstallation
 unset quiet_mode
 
-while getopts s:i:xqh opt
+while getopts s:l:i:xqh opt
 do
 	case $opt in
 		s)
 			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
 			selected_systems_array+=( "$OPTARG" )
 			;;
-		i)
+		l)
 			mapfile -O ${#selected_libraries_array[@]} -t selected_libraries_array < <(
 				"$script_dir/list-libraries.bash" -l "$OPTARG" \
+				|| kill -13 $$ )
+			;;
+		i)
+			library_configuration="$( "$script_dir/list-libraries.bash" -c "$OPTARG" )"
+			mapfile -O ${#selected_libraries_array[@]} -t selected_libraries_array < <(
+				dirname "$library_configuration" \
 				|| kill -13 $$ )
 			;;
 		x)
@@ -41,14 +47,19 @@ do
 			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
 			echo "          If no Scheme system is selected, the selected RACR libraries" >&2
 			echo "          are installed for all available systems." >&2
-			echo "       -i RACR library to install (optional multi-parameter). Permitted values:" >&2
+			echo "       -l RACR library to install (optional multi-parameter)." >&2
+			echo "          Permitted values:" >&2
 			"$script_dir/list-libraries.bash" -k | sed 's/^/             /' >&2
-			echo "          If no library is selected, all libraries are installed." >&2
+			echo "       -i RACR library directory of library to install (optional multi-parameter)." >&2
+			echo "          Permitted values:" >&2
+			"$script_dir/list-libraries.bash" -i | sed 's/^/             /' >&2
 			echo "       -x Force reinstallation, including required RACR libraries (optional multi-flag)." >&2
 			echo "       -q Quiet mode (optinal multi-flag)." >&2
 			echo "          Only report errors (on stderr)." >&2
 			echo "          The exit code in case of any succesful, but indeed needed, RACR library" >&2
 			echo "          installation is 0 and not $installation_was_required_exit_code." >&2
+			echo "" >&2
+			echo "       If no library is selected via '-l' or '-i', all libraries are installed." >&2
 			exit 64
 			;;
 	esac
@@ -139,7 +150,7 @@ install_guile(){
 install_racket(){
 	#installation_directory="$binaries/$( basename "$library" )"
 	#mkdir -p "$installation_directory"	
-	library_paths=()
+	library_paths=( ++path "$binaries" )
 	for l in "${required_libraries[@]}"
 	do
 		library_paths+=( ++path "$l/binaries/$system" )
@@ -175,7 +186,7 @@ install_ironscheme(){
 	library_basename="$( basename "$library" )"
 	installation_directory="$binaries/$library_basename"
 	mkdir -p "$installation_directory"	
-	library_paths=()
+	library_paths=( -I "$binaries" )
 	for l in "${required_libraries[@]}"
 	do
 		library_paths+=( -I "$l/binaries/$system" )
@@ -272,11 +283,8 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	install_pids=()
 	for l in "${required_libraries[@]}"
 	do
-		if [ "$l" != "$library" ]
-		then
-			"$script_dir/install.bash" -s "$system" -i "$( basename "$l" )" $force_reinstallation $quiet_mode &
-			install_pids["$l"]=$!
-		fi
+		"$script_dir/install.bash" -s "$system" -i "$l" $force_reinstallation $quiet_mode &
+		install_pids["$l"]=$!
 	done
 	
 	# Wait for each required library installation to finish; afterwards abort iff any failed:
@@ -295,7 +303,12 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		exit 1
 	fi
 	
-	# Acquire lock for race-condition-free check if sources changed; also used to protect installation iff required:
+	# Combine hash of sources with hashes of required libraries to final hash capturing any kind of change:
+	library_hash="$(
+		cat <( echo "$library_hash" ) "${required_libraries[@]/%//binaries/$system/library-hash.txt}" |
+		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+	
+	# Acquire lock for race-condition-free check if library changed; also used to protect installation iff required:
 	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
 	trap 'install_exit "$mutex"' 0 1 2 3 15
 	if (( joined_exit_status != installation_was_required_exit_code ))
@@ -349,7 +362,9 @@ install_library()( # Encapsulated common procedure for library installation:
 	library="$1"
 	configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$library" )"
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
-	library_hash="$( cat "${required_sources[@]/%/.scm}" | openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+	library_hash="$(
+		cat "$script_dir/install.bash" "${required_sources[@]/%/.scm}" |
+		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
 	
 	# Start an installation co-routine for each Scheme system:
 	declare -A install_pids
