@@ -353,7 +353,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	then
 		exit $exit_status
 	fi
-	printf "%s" "$library_hash" > "$binaries/library-hash.txt"
+	echo "$library_hash" > "$binaries/library-hash.txt"
 	exit $installation_was_required_exit_code
 )
 
