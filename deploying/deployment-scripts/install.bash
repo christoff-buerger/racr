@@ -295,7 +295,8 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	then
 		rm -rf "${binaries:?}/"*
 		echo "$installation_hash" > "$binaries/installation-hash.txt"
-		echo " !!! ERROR: Required RACR libraries failed to install !!!" > "$binaries/install-log.txt"
+		touch "$binaries/installation-failed"
+		echo " !!! ERROR: A required RACR library failed to install !!!" > "$binaries/install-log.txt"
 		log="$( < "$binaries/install-log.txt" )"
 		# Atomic stdout:
 		printf "\n\033[0;31m===>>> Install [%s] for [%s]:\033[0m\n\n%s\n" \
@@ -317,6 +318,18 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		fi
 		if [[ "$installation_hash_old" == "$installation_hash" ]]
 		then
+			if [ -f "$binaries/installation-failed" ]
+			then
+				log="$( < "$binaries/install-log.txt" )"
+				# Atomic stdout:
+				printf "\n\033[0;31m===>>> Install [%s] for [%s]:\033[0m\n\n%s\n\n%s\n\n" \
+					"$library" \
+					"$system" \
+					"Previous installation failed; the installation log has been:" \
+					"$log" \
+					>&2
+				exit 1
+			fi
 			exit 0
 		fi
 	fi
@@ -350,6 +363,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	fi
 	if (( exit_status != 0 ))
 	then
+		touch "$binaries/installation-failed"
 		exit 1
 	fi
 	exit $installation_was_required_exit_code
