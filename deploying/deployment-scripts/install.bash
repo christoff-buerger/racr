@@ -15,10 +15,9 @@ selected_systems_array=()
 selected_libraries_array=()
 
 ################################################################################################################ Parse arguments:
-unset force_reinstallation
 unset quiet_mode
 
-while getopts s:l:i:xqh opt
+while getopts s:l:i:qh opt
 do
 	case $opt in
 		s)
@@ -36,14 +35,12 @@ do
 				dirname "$library_configuration" \
 				|| kill -13 $$ )
 			;;
-		x)
-			force_reinstallation="-x"
-			;;
 		q)
 			quiet_mode="-q"
 			;;
 		h|?)
-			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
+			echo "Usage: -s Scheme system (optional multi-parameter)." >&2
+			echo "          Permitted values:" >&2
 			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
 			echo "          If no Scheme system is selected, the selected RACR libraries" >&2
 			echo "          are installed for all available systems." >&2
@@ -53,7 +50,6 @@ do
 			echo "       -i RACR library directory of library to install (optional multi-parameter)." >&2
 			echo "          Permitted values:" >&2
 			"$script_dir/list-libraries.bash" -i | sed 's/^/             /' >&2
-			echo "       -x Force reinstallation, including required RACR libraries (optional multi-flag)." >&2
 			echo "       -q Quiet mode (optinal multi-flag)." >&2
 			echo "          Only report errors (on stderr)." >&2
 			echo "          The exit code in case of any succesful, but indeed needed, RACR library" >&2
@@ -278,7 +274,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	install_pids=()
 	for l in "${required_libraries[@]}"
 	do
-		"$script_dir/install.bash" -s "$system" -i "$l" $force_reinstallation $quiet_mode &
+		"$script_dir/install.bash" -s "$system" -i "$l" $quiet_mode &
 		install_pids["$l"]=$!
 	done
 	
