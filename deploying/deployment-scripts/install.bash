@@ -10,14 +10,13 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-installation_was_required_exit_code=75 # Cf. '/usr/include/sysexits.h': Temporary failure; user is invited to retry.
 selected_systems_array=()
 selected_libraries_array=()
 
 ################################################################################################################ Parse arguments:
 unset quiet_mode
 
-while getopts s:l:i:qh opt
+while getopts s:l:i:h opt
 do
 	case $opt in
 		s)
@@ -50,10 +49,6 @@ do
 			echo "       -i RACR library directory of library to install (optional multi-parameter)." >&2
 			echo "          Permitted values:" >&2
 			"$script_dir/list-libraries.bash" -i | sed 's/^/             /' >&2
-			echo "       -q Quiet mode (optinal multi-flag)." >&2
-			echo "          Only report errors (on stderr)." >&2
-			echo "          The exit code in case of any succesful, but indeed needed, RACR library" >&2
-			echo "          installation is 0 and not $installation_was_required_exit_code." >&2
 			echo "" >&2
 			echo "       If no library is selected via '-l' or '-i', all libraries are installed." >&2
 			exit 64
@@ -216,7 +211,7 @@ install_sagittarius(){
 	mkdir -p "$installation_directory"
 	for s in "${required_sources[@]}"
 	do
-		cp -p "$s.scm" "$installation_directory"
+		cp -p -v "$s.scm" "$installation_directory"
 	done
 }
 
@@ -225,7 +220,7 @@ install_ypsilon(){
 	mkdir -p "$installation_directory"
 	for s in "${required_sources[@]}"
 	do
-		cp -p "$s.scm" "$installation_directory"
+		cp -p -v "$s.scm" "$installation_directory"
 	done
 }
 
@@ -251,13 +246,7 @@ join_install_coroutines(){
 		set -o pipefail
 		if (( exit_status != 0 ))
 		then
-			if (( exit_status != installation_was_required_exit_code ))
-			then
-				joined_exit_status=1
-			elif (( joined_exit_status == 0 ))
-			then
-				joined_exit_status="$installation_was_required_exit_code"
-			fi
+			joined_exit_status=1
 		fi
 	done
 	wait # Defensive programming (all co-routines should have finished anyway).
@@ -308,30 +297,27 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	fi
 	
 	# Avoid reinstallation if existing installation is up-to-date (requires LOCKED reading of hash):
-	if (( joined_exit_status != installation_was_required_exit_code ))
+	if [ -f "$binaries/installation-hash.txt" ]
 	then
-		if [ -f "$binaries/installation-hash.txt" ]
+		read -r installation_hash_old < "$binaries/installation-hash.txt"
+	else
+		installation_hash_old=""
+	fi
+	if [[ "$installation_hash_old" == "$installation_hash" ]]
+	then
+		if [ -f "$binaries/installation-failed" ]
 		then
-			read -r installation_hash_old < "$binaries/installation-hash.txt"
-		else
-			installation_hash_old=""
+			log="$( < "$binaries/install-log.txt" )"
+			# Atomic stdout:
+			printf "\n\033[0;31m===>>> Install [%s] for [%s]:\033[0m\n\n%s\n\n%s\n\n" \
+				"$library" \
+				"$system" \
+				"Previous installation failed; the installation log has been:" \
+				"$log" \
+				>&2
+			exit 1
 		fi
-		if [[ "$installation_hash_old" == "$installation_hash" ]]
-		then
-			if [ -f "$binaries/installation-failed" ]
-			then
-				log="$( < "$binaries/install-log.txt" )"
-				# Atomic stdout:
-				printf "\n\033[0;31m===>>> Install [%s] for [%s]:\033[0m\n\n%s\n\n%s\n\n" \
-					"$library" \
-					"$system" \
-					"Previous installation failed; the installation log has been:" \
-					"$log" \
-					>&2
-				exit 1
-			fi
-			exit 0
-		fi
+		exit 0
 	fi
 	
 	# Library needs installation; delete old installation, install and write new hash:
@@ -364,9 +350,8 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	if (( exit_status != 0 ))
 	then
 		touch "$binaries/installation-failed"
-		exit 1
 	fi
-	exit $installation_was_required_exit_code
+	exit $exit_status
 )
 
 install_library()( # Encapsulated common procedure for library installation:
@@ -405,12 +390,8 @@ do
 	install_pids["$l"]=$!
 done
 
-# Wait for each library to finish installation; afterwards return if any failed or any has been actually installed:
+# Wait for each library to finish installation; afterwards return if any failed or all installed successfully:
 join_install_coroutines
-if (( joined_exit_status == installation_was_required_exit_code )) && [[ -v "quiet_mode" ]]
-then
-	joined_exit_status=0
-fi
 exit $joined_exit_status # triggers 'my_exit'
 
 ############################################################################################################# OLD IMPLEMENTATION:
