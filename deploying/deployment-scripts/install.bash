@@ -286,22 +286,23 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	join_install_coroutines
 	
 	# Combine hash of sources with hashes of required libraries to final hash capturing any kind of change:
-	library_hash="$(
-		cat <( echo "$library_hash" ) "${required_libraries[@]/%//binaries/$system/installation-hash.txt}" |
+	installation_hash="$(
+		cat <( echo "$installation_hash" ) "${required_libraries[@]/%//binaries/$system/installation-hash.txt}" |
 		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
 	
 	# Acquire lock for race-condition-free check if (re)installation is required and perform ALL changes:
 	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
 	trap 'install_exit "$mutex"' 0 1 2 3 15
 	
-	# Delete existing installation in case required libraries failed to install:
+	# Delete existing installation in case required libraries failed to install and write new hash:
 	if (( joined_exit_status == 1 ))
 	then
 		rm -rf "${binaries:?}/"*
+		echo "$installation_hash" > "$binaries/installation-hash.txt"
 		echo " !!! ERROR: Required RACR libraries failed to install !!!" > "$binaries/install-log.txt"
 		log="$( < "$binaries/install-log.txt" )"
 		# Atomic stdout:
-		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \
+		printf "\n\033[0;31m===>>> Install [%s] for [%s]:\033[0m\n\n%s\n" \
 			"$library" \
 			"$system" \
 			"$log" \
@@ -309,22 +310,22 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		exit 1
 	fi
 	
-	# Avoid reinstallation if existing installation is up-to-date (requires LOCKED reading of installation hash):
+	# Avoid reinstallation if existing installation is up-to-date (requires LOCKED reading of hash):
 	if (( joined_exit_status != installation_was_required_exit_code ))
 	then
 		if [ -f "$binaries/installation-hash.txt" ]
 		then
-			read -r library_hash_old < "$binaries/installation-hash.txt"
+			read -r installation_hash_old < "$binaries/installation-hash.txt"
 		else
-			library_hash_old=""
+			installation_hash_old=""
 		fi
-		if [[ "$library_hash_old" == "$library_hash" ]]
+		if [[ "$installation_hash_old" == "$installation_hash" ]]
 		then
 			exit 0
 		fi
 	fi
 	
-	# Library needs installation; delete old installation, install and, iff error-free, write new hash:
+	# Library needs installation; delete old installation, install and write new hash:
 	rm -rf "${binaries:?}/"*
 	set +e # Temporarily disable "fail on error".
 	set +o pipefail
@@ -332,17 +333,20 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	exit_status=$?
 	set -e # Restore "fail on error".
 	set -o pipefail
+	echo "$installation_hash" > "$binaries/installation-hash.txt"
 	if [[ ! -v "quiet_mode" ]] || (( exit_status != 0 ))
 	then
 		if (( exit_status == 0 ))
 		then
 			target_std=/dev/stdout
+			log_color="\033[0;32m"
 		else
 			target_std=/dev/stderr
+			log_color="\033[0;31m"
 		fi
 		log="$( < "$binaries/install-log.txt" )"
 		# Atomic stdout:
-		printf "\n==========================>>> Install [%s] for [%s]:\n\n%s\n" \
+		printf "\n${log_color}===>>> Install [%s] for [%s]:\033[0m\n\n%s\n" \
 			"$library" \
 			"$system" \
 			"$log" \
@@ -350,9 +354,8 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	fi
 	if (( exit_status != 0 ))
 	then
-		exit $exit_status
+		exit 1
 	fi
-	echo "$library_hash" > "$binaries/installation-hash.txt"
 	exit $installation_was_required_exit_code
 )
 
@@ -361,7 +364,7 @@ install_library()( # Encapsulated common procedure for library installation:
 	library="$1"
 	configuration_to_parse="$( "$script_dir/list-libraries.bash" -c "$library" )"
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
-	library_hash="$(
+	installation_hash="$(
 		cat "$script_dir/install.bash" "${required_sources[@]/%/.scm}" |
 		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
 	
@@ -403,7 +406,6 @@ exit $joined_exit_status # triggers 'my_exit'
 ############################################################################################################# OLD IMPLEMENTATION:
 
 ############################################################################################################ Configure resources:
-installation_was_required_exit_code=75 # Cf. '/usr/include/sysexits.h': Temporary failure; user is invited to retry.
 log_dir="$( "$script_dir/create-temporary.bash" -t d )"
 
 my_exit(){
