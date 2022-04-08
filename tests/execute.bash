@@ -28,7 +28,7 @@ do
 			echo "          If no system is selected, all installed and officially supported systems are tested." >&2
 			echo "       -x Do not abort testing on error (multi-flag)." >&2
 			echo "          By default, testing is aborted as soon as any test failed." >&2
-			exit 2
+			exit 64
 			;;
 	esac
 done
@@ -37,7 +37,7 @@ shift $(( OPTIND - 1 ))
 if [ ! $# -eq 0 ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 if [ -z ${selected_systems+x} ]
@@ -72,7 +72,7 @@ run(){
 	do
 		if [ ${excluded_systems["$s"]+x} ]
 		then
-			error_status=2
+			error_status=64
 		else
 			set +e
 			set +o pipefail
@@ -88,7 +88,7 @@ run(){
 				printf " %s" "$s"
 				tests_passed=$(( tests_passed + 1 ))
 				;;
-			2) # configuration error for Scheme system => test skipped
+			64) # configuration error for Scheme system => test skipped
 				printf " -%s-" "$s"
 				tests_skipped=$(( tests_skipped + 1 ))
 				;;
@@ -176,7 +176,7 @@ Tests failed:    $tests_failed"
 if [ $tests_failed -gt 0 ]
 then
 	printf "%s\n" "$status_message" >&2
-	exit 2
+	exit 1
 fi
 printf "%s\n" "$status_message"
 exit 0
