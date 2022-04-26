@@ -51,6 +51,19 @@ then
 	abort_on_failed_test="true"
 fi
 
+############################################################################################# Install RACR libraries as required:
+install_args=()
+for s in "${selected_systems[@]}"
+do
+	install_args+=( -s )
+	install_args+=( "$s" )
+done
+
+echo "Ensure RACR library installations are up-to-date and install libraries as required. This may take a moment..."
+"$script_dir/../deploying/deployment-scripts/install.bash" "${install_args[@]}" > /dev/null
+echo "...Installation finished. Start testing:"
+echo ""
+
 ###################################################################################################### Define execution function:
 tests_executed=0
 tests_passed=0
@@ -67,7 +80,7 @@ run(){
 	fi
 	shift
 	shift
-	echo "$program" "$@"
+	printf "\033[0;34m%s %s\033[0m\n" "$program" "$@"
 	for s in "${selected_systems[@]}"
 	do
 		if [ ${excluded_systems["$s"]+x} ]
@@ -85,15 +98,15 @@ run(){
 		tests_executed=$(( tests_executed + 1 ))
 		case $error_status in
 			0) # all correct => test passed
-				printf " %s" "$s"
+				printf " \033[0;32m%s\033[0m" "$s"
 				tests_passed=$(( tests_passed + 1 ))
 				;;
 			64) # configuration error for Scheme system => test skipped
-				printf " -%s-" "$s"
+				printf " \033[1;33m-%s-\033[0m" "$s"
 				tests_skipped=$(( tests_skipped + 1 ))
 				;;
 			*) # test failed (execution error) => print error and...
-				echo " !$s!"
+				printf " \033[0;31m!%s!\033[0m\n\n" "$s"
 				echo "$error_message" >&2
 				if [ "$abort_on_failed_test" == "true" ] # ...abort testing if requested
 				then
@@ -108,7 +121,6 @@ run(){
 }
 
 ################################################################################################################## Execute tests:
-
 # Test basic API:
 declare -A excluded_systems
 for f in "$script_dir"/*.scm
@@ -173,10 +185,10 @@ Tests passed:    $tests_passed
 Tests skipped:   $tests_skipped
 Tests failed:    $tests_failed"
 
-if [ $tests_failed -gt 0 ]
+if (( tests_failed > 0 ))
 then
-	printf "%s\n" "$status_message" >&2
+	printf "\n%s\n" "$status_message" >&2
 	exit 1
 fi
-printf "%s\n" "$status_message"
+printf "\n%s\n" "$status_message"
 exit 0

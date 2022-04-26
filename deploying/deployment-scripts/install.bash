@@ -14,8 +14,6 @@ selected_systems_array=()
 selected_libraries_array=()
 
 ################################################################################################################ Parse arguments:
-unset quiet_mode
-
 while getopts s:l:i:h opt
 do
 	case $opt in
@@ -33,9 +31,6 @@ do
 			mapfile -O ${#selected_libraries_array[@]} -t selected_libraries_array < <(
 				dirname "$library_configuration" \
 				|| kill -13 $$ )
-			;;
-		q)
-			quiet_mode="-q"
 			;;
 		h|?)
 			echo "Usage: -s Scheme system (optional multi-parameter)." >&2
@@ -234,7 +229,17 @@ install_exit(){
 	exit $exit_status
 }
 
-join_install_coroutines(){
+max_processes=$( ulimit -u )
+safe_fork(){
+	while (( $( ps -e | wc -l ) + 100 >= max_processes ))
+	do
+		sleep 1
+	done
+	"$@" &
+	install_pids+=( $! )
+}
+
+safe_join(){
 	joined_exit_status=0
 	for p in "${install_pids[@]}"
 	do
@@ -255,25 +260,35 @@ join_install_coroutines(){
 install_system()( # Encapsulated common procedure for Scheme system installation:
 	# Configure the directory for the Scheme system specific binaries:
 	system="$1"
+	if [[ ! -v "supported_systems[$system]" ]]
+	then
+		exit 0
+	fi
 	binaries="$library/binaries/$system"
 	mkdir -p "$binaries"
 	
-	# Start an installation co-routine for each required library:
-	declare -A install_pids
-	install_pids=()
-	for l in "${required_libraries[@]}"
-	do
-		"$script_dir/install.bash" -s "$system" -i "$l" $quiet_mode &
-		install_pids["$l"]=$!
-	done
-	
-	# Wait for each required library installation to finish:
-	join_install_coroutines
+	if (( ${#required_libraries[@]} == 1 ))
+	then # Avoid unnecessary spawning of background processes:
+		set +e # Temporarily disable "fail on error".
+		set +o pipefail	
+		"$script_dir/install.bash" -s "$system" -i "${required_libraries[@]}"
+		joined_exit_status=$(( $? != 0 ))
+		set -e # Restore "fail on error".
+		set -o pipefail
+	else # Run an installation co-routine for each required library:
+		install_pids=()
+		for l in "${required_libraries[@]}"
+		do
+			safe_fork "$script_dir/install.bash" -s "$system" -i "$l"
+		done
+		safe_join
+	fi
 	
 	# Combine hash of sources with hashes of required libraries to final hash capturing any kind of change:
 	installation_hash="$(
 		cat <( echo "$installation_hash" ) "${required_libraries[@]/%//binaries/$system/installation-hash.txt}" |
-		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+		openssl dgst -binary -sha3-512 |
+		xxd -p -c 512 )"
 	
 	# Acquire lock for race-condition-free check if (re)installation is required and perform ALL changes:
 	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
@@ -329,24 +344,21 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	set -e # Restore "fail on error".
 	set -o pipefail
 	echo "$installation_hash" > "$binaries/installation-hash.txt"
-	if [[ ! -v "quiet_mode" ]] || (( exit_status != 0 ))
+	if (( exit_status == 0 ))
 	then
-		if (( exit_status == 0 ))
-		then
-			target_std=/dev/stdout
-			log_color="\033[0;32m"
-		else
-			target_std=/dev/stderr
-			log_color="\033[0;31m"
-		fi
-		log="$( < "$binaries/install-log.txt" )"
-		# Atomic stdout:
-		printf "\n${log_color}===>>> Install [%s] for [%s]:\033[0m\n\n%s\n" \
-			"$library" \
-			"$system" \
-			"$log" \
-			>&$target_std
+		target_std=/dev/stdout
+		log_color="\033[0;32m"
+	else
+		target_std=/dev/stderr
+		log_color="\033[0;31m"
 	fi
+	log="$( < "$binaries/install-log.txt" )"
+	# Atomic stdout:
+	printf "\n${log_color}===>>> Install [%s] for [%s]:\033[0m\n\n%s\n" \
+		"$library" \
+		"$system" \
+		"$log" \
+		>&$target_std
 	if (( exit_status != 0 ))
 	then
 		touch "$binaries/installation-failed"
@@ -361,37 +373,45 @@ install_library()( # Encapsulated common procedure for library installation:
 	. "$script_dir/configure.bash" # Sourced script sets configuration!
 	installation_hash="$(
 		cat "$script_dir/install.bash" "${required_sources[@]/%/.scm}" |
-		openssl dgst -binary -sha3-512 | xxd -p -c 512 )"
+		openssl dgst -binary -sha3-512 |
+		xxd -p -c 512 )"
 	
-	# Start an installation co-routine for each Scheme system:
-	declare -A install_pids
-	install_pids=()
-	for s in "${selected_systems[@]}"
-	do
-		if [[ -v "supported_systems[$s]" ]]
-		then
-			install_system "$s" &
-			install_pids["$s"]=$!
-		fi
-	done
-	
-	# Wait for each Scheme system to finish installation; afterwards return if any failed or actually installed anything:
-	join_install_coroutines
+	if (( ${#selected_systems[@]} == 1 ))
+	then # Avoid unnecessary spawning of background processes:
+		set +e # Temporarily disable "fail on error".
+		set +o pipefail	
+		install_system "${selected_systems[@]}"
+		joined_exit_status=$(( $? != 0 ))
+		set -e # Restore "fail on error".
+		set -o pipefail
+	else # Run an installation co-routine for each Scheme system:
+		install_pids=()
+		for s in "${selected_systems[@]}"
+		do
+			safe_fork "install_system" "$s"
+		done
+		safe_join
+	fi
 	exit $joined_exit_status
 )
 
 ##################################################### Install all selected libraries on all selected Scheme systems concurrently:
-# Start an installation co-routine for each library:
-declare -A install_pids
-install_pids=()
-for l in "${selected_libraries[@]}"
-do
-	install_library "$l" &
-	install_pids["$l"]=$!
-done
-
-# Wait for each library to finish installation; afterwards return if any failed or all installed successfully:
-join_install_coroutines
+if (( ${#selected_libraries[@]} == 1 ))
+then # Avoid unnecessary spawning of background processes:
+	set +e # Temporarily disable "fail on error".
+	set +o pipefail	
+	install_library "${selected_libraries[@]}"
+	joined_exit_status=$(( $? != 0 ))
+	set -e # Restore "fail on error".
+	set -o pipefail
+else # Run an installation co-routine for each library:
+	install_pids=()
+	for l in "${selected_libraries[@]}"
+	do
+		safe_fork "install_library" "$l"
+	done
+	safe_join
+fi
 exit $joined_exit_status # triggers 'my_exit'
 
 ############################################################################################################# OLD IMPLEMENTATION:
@@ -416,7 +436,7 @@ my_exit(){
 }
 trap 'my_exit' 0 1 2 3 15
 
-declare -A install_pids
+# declare -A install_pids
 install_pids=()
 
 ##################################################################### Define installation procedures for specific Scheme systems:
