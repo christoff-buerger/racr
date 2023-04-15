@@ -151,7 +151,7 @@ install_guile(){
 
 install_racket(){
 	#installation_directory="$binaries/$( basename "$library" )"
-	#mkdir -p "$installation_directory"	
+	#mkdir -p "$installation_directory"
 	library_paths=( ++path "$binaries" )
 	for l in "${required_libraries[@]}"
 	do
