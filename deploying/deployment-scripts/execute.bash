@@ -191,14 +191,13 @@ case $selected_system in
 		sagittarius "${libs[@]}" "$to_execute" "$@"
 		;;
 	ypsilon)
-		libs_string=""
+		libs_string="$( dirname "$( command -v ypsilon )")/sitelib"
 		for l in "${required_libraries[@]}"
 		do
 			libs_string+=":$l/binaries/ypsilon"
 		done
 		if [ -n "$libs_string" ]
 		then
-			libs_string="${libs_string:1}"
 			sitelib="--sitelib=$libs_string"
 			loadpath="--loadpath=$libs_string"
 		fi
@@ -206,7 +205,7 @@ case $selected_system in
 		mkdir -p "$cache"
 		# To reconstruct compiled-cache add --clean-acc flag.
 		# To add compilation warnings add --warning flag.
-		# To echo load and compile actions add --verbose flag.
+		# To echo load and compile activities add --verbose flag.
 		# The heap limit is in MBytes.
 		ypsilon "$sitelib" "$loadpath" --acc="$cache" --quiet --r6rs --heap-limit=512 -- "$to_execute" "$@"
 		;;
