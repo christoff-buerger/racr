@@ -30,14 +30,14 @@ try:
     if x == '' or y == '' or l == '':
         raise getopt.GetoptError('', None)
 except getopt.GetoptError:
-    print 'Usage: -x x-axis (mandatory)'
-    print '       -y y-axis (mandatory)'
-    print '       -z z-axis (optional)'
-    print '       -l Line labels (mandatory)'
+    print('Usage: -x x-axis (mandatory)')
+    print('       -y y-axis (mandatory)')
+    print('       -z z-axis (optional)')
+    print('       -l Line labels (mandatory)')
     sys.exit(2)
 
 # Read combined measurements:
-data = np.genfromtxt('measurements/combined-measurements.table',
+data = np.genfromtxt('measurements/table-chez-3d-plot.txt',
                      delimiter='|',
                      names=True,
                      comments='--',
