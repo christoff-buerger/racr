@@ -133,7 +133,7 @@ check_number(){
 }
 
 value_axis="y"
-if [ -v "criteria[z]" ]
+if [[ -v "criteria[z]" ]]
 then
 	value_axis="z"
 fi
@@ -161,7 +161,7 @@ do
 			fi
 		done
 		coordinate="${coordinate:2}"
-		if [ -v "existing_points[$coordinate]" ]
+		if [[ -v "existing_points[$coordinate]" ]]
 		then
 			echo " !!! ERROR: Duplicated measurement for [$coordinate] !!!" >&2
 			exit 2
