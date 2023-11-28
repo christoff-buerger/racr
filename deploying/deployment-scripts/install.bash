@@ -211,7 +211,7 @@ install_ironscheme(){
 	# Use subshell for local directory changes via cd:
 	(
 	cd "$binaries"
-	echo "(compile \"$binaries/compile-script.sls\")" | \
+	echo "(begin (compile-to-current-directory? #t) (compile \"$binaries/compile-script.sls\"))" | \
 		mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${library_paths[@]}"
 	)
 	rm -rf "$installation_directory" # Force usage of compiled IronScheme dll assemblies.
