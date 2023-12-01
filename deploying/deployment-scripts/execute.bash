@@ -196,11 +196,8 @@ case $selected_system in
 		do
 			libs_string+=":$l/binaries/ypsilon"
 		done
-		if [ -n "$libs_string" ]
-		then
-			sitelib="--sitelib=$libs_string"
-			loadpath="--loadpath=$libs_string"
-		fi
+		sitelib="--sitelib=$libs_string"
+		loadpath="--loadpath=$libs_string"
 		cache="$script_dir/../../racr/binaries/ypsilon"
 		mkdir -p "$cache"
 		# To reconstruct compiled-cache add --clean-acc flag.
