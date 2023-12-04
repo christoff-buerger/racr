@@ -65,12 +65,7 @@ do
 			fi
 			;;
 		i)
-			for k in $( "$script_dir/list-libraries.bash" -k )
-			do
-				mapfile -O ${#results[@]} -t results < <(
-					"$script_dir/list-libraries.bash" -l "$k" \
-					|| kill -13 $$ )
-			done
+			results+=( "${libraries[@]}" )
 			;;
 		c)
 			found=""
