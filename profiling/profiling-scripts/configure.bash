@@ -34,7 +34,7 @@ fi
 profiling_configuration_dir="$( dirname "$profiling_configuration" )"
 parsing_mode=execution-script
 parameter_names=( "Date" )
-parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) format (year-month-day hour:minute:second)" )
+parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) according to ISO 8601-1:2019/Amd 1:2022 (YYYY-MM-DDThh:mm:ssZ)" )
 result_names=( "Status" )
 result_descriptions=( "Measurement status (failed, aborted, succeeded)" )
 

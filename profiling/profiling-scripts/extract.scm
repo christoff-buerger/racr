@@ -89,7 +89,7 @@
    (or (row-independent-extrema? e) (row-specific-extrema? e)))
  
  (define cell-size ; Length of columns.
-   21)
+   22)
 
  (define cell-delimeter ; Character separating adjacent cells of columns.
    #\|)

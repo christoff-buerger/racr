@@ -148,8 +148,8 @@ do
 		coordinate=""
 		for c in "${!criteria[@]}"
 		do
-			start=$(( criteria_index["$c"] * 21 + criteria_index["$c"] + 1 ))
-			end=$(( ( criteria_index["$c"] + 1 ) * 21 + criteria_index["$c"] ))
+			start=$(( criteria_index["$c"] * 22 + criteria_index["$c"] + 1 ))
+			end=$(( ( criteria_index["$c"] + 1 ) * 22 + criteria_index["$c"] ))
 			cell_value="$( printf "%s" "$line" | cut -c $start-$end )"
 			if [ ! "$c" == "l" ]
 			then

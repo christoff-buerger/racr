@@ -102,14 +102,14 @@ fi
 i=0
 for (( ; i < number_of_criteria - 1; i++ ))
 do
-	header[0]+="$( printf " %-19s |" "${criteria_names[$i]}" )"
+	header[0]+="$( printf " %-20s |" "${criteria_names[$i]}" )"
 done
-header[0]+="$( printf " %-19s " "${criteria_names[$i]}" )"
+header[0]+="$( printf " %-20s " "${criteria_names[$i]}" )"
 for (( i = 1; i < number_of_criteria; i++ ))
 do
-	header[1]+="$( printf "%s" "---------------------+" )"
+	header[1]+="$( printf "%s" "----------------------+" )"
 done
-header[1]+="$( printf "%s" "---------------------" )"
+header[1]+="$( printf "%s" "----------------------" )"
 
 ############################################################################################## Check existing measurements table:
 if [ -e "$measurements_table" ]
@@ -141,7 +141,7 @@ then
 		IFS='|' read -r -a cells <<< "$line"
 		for cell in "${cells[@]}"
 		do
-			if [ ${#cell} -ne 21 ] || [[ "$cell" =~ "\t" ]]
+			if [ ${#cell} -ne 22 ] || [[ "$cell" =~ "\t" ]]
 			then
 				break
 			fi
@@ -187,14 +187,14 @@ record(){
 				cell_separator=$'\n'
 				column_count=1
 			fi
-			if [ ${#cell} -eq 21 ] && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
+			if [ ${#cell} -eq 22 ] && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
 			then
 				printf "%s%s" "$cell" "$cell_separator" >> "$measurements_table"
-			elif [ ${#cell} -gt 19 ] || [[ "$cell" =~ "\t"|"|" ]]
+			elif [ ${#cell} -gt 20 ] || [[ "$cell" =~ "\t"|"|" ]]
 			then
-				printf "<------------------->%s" "$cell_separator" >> "$measurements_table"
+				printf "<-------------------->%s" "$cell_separator" >> "$measurements_table"
 			else
-				printf " %19s %s" "$cell" "$cell_separator" >> "$measurements_table"
+				printf " %20s %s" "$cell" "$cell_separator" >> "$measurements_table"
 			fi
 		else
 			if (( column_count > 1 ))
@@ -203,14 +203,14 @@ record(){
 				do
 					if (( i == number_of_parameters + 1 ))
 					then
-						printf "             aborted |" >> "$measurements_table"
+						printf "              aborted |" >> "$measurements_table"
 					else
-						printf "<???????????????????>|" >> "$measurements_table"
+						printf "<????????????????????>|" >> "$measurements_table"
 					fi
 				done
 				if (( column_count <= number_of_criteria ))
 				then
-					echo "<???????????????????>" >> "$measurements_table"
+					echo "<????????????????????>" >> "$measurements_table"
 				fi
 			fi
 			break

@@ -238,7 +238,7 @@ do
 	then # perform measurement
 		current_parameter=$(( current_parameter - 1 ))
 		undo=true
-		measurement_date="$( date -u "+%Y-%m-%d %H:%M:%S" )"
+		measurement_date="$( date -u "+%Y-%m-%dT%H:%M:%SZ" )"
 		echo "$measurement_date" >&3
 		printf "Measurement ["
 		for (( i = 1; i < number_of_parameters; i++ ))
