@@ -207,12 +207,14 @@ install_ironscheme(){
 		"$script_dir/../../racr-net/transcribe-racr-core.bash" "$installation_directory"
 		rm "$installation_directory/core.scm"
 		cp -p "$( dirname "$( command -v IronScheme.Console-v4.exe )" )/IronScheme.dll" "$binaries"
+#		cp -p "$( dirname "$( command -v IronScheme.ConsoleCore.dll )" )/IronScheme.dll" "$binaries"
 	fi
 	# Use subshell for local directory changes via cd:
 	(
 	cd "$binaries"
 	echo "(begin (compile-to-current-directory? #t) (compile \"$binaries/compile-script.sls\"))" | \
 		mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${library_paths[@]}"
+#		dotnet "$( command -v IronScheme.ConsoleCore.dll )" -nologo "${library_paths[@]}"
 	)
 	rm -rf "$installation_directory" # Force usage of compiled IronScheme dll assemblies.
 	rm "$binaries/compile-script.sls"

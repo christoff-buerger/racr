@@ -10,6 +10,9 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+selected_systems=()
+unset abort_on_failed_test
+
 ################################################################################################################ Parse arguments:
 while getopts s:xh opt
 do
@@ -40,89 +43,132 @@ then
 	exit 64
 fi
 
-if [ -z ${selected_systems+x} ]
+if [[ ! -v "selected_systems[@]" ]]
 then
 	mapfile -t selected_systems < \
 		<( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
 fi
 
-if [ -z ${abort_on_failed_test+x} ]
+if [[ ! -v "abort_on_failed_test" ]]
 then
 	abort_on_failed_test="true"
 fi
 
 ############################################################################################# Install RACR libraries as required:
+printf "\033[1;33m%s\033[0m" "\
+============================================= U P D A T E   I N S T A L L A T I O N =============================================
+
+Ensure RACR library installations are up-to-date and install libraries as required. This may take a moment...
+"
+
 install_args=()
 for s in "${selected_systems[@]}"
 do
 	install_args+=( -s )
 	install_args+=( "$s" )
 done
+"$script_dir/../deploying/deployment-scripts/install.bash" "${install_args[@]}"
 
-echo "Ensure RACR library installations are up-to-date and install libraries as required. This may take a moment..."
-"$script_dir/../deploying/deployment-scripts/install.bash" "${install_args[@]}" > /dev/null
-echo "...Installation finished. Start testing:"
-echo ""
+printf "\033[1;33m%s\033[0m" "
+...Installation finished.
+"
 
 ###################################################################################################### Define execution function:
+declare -A excluded_systems
+excluded_systems=()
+
 tests_executed=0
 tests_passed=0
 tests_failed=0
 tests_skipped=0
 
 run(){
+	measurements_dir="$script_dir/measurements/$measurements_dir"
 	program="$1"
-	if [ -z "$2" ]
+	if [ -n "$2" ]
 	then
-		library=()
-	else
 		library=( -l "$2" )
+	else
+		library=()
 	fi
 	shift
 	shift
-	printf "\033[0;34m%s %s\033[0m\n" "$program" "$@"
+	if (( $# != 0 ))
+	then
+		execution_arguments=( -- )
+		execution_arguments+=( "$@" )
+	else
+		execution_arguments=()
+	fi
+	printf "\033[0;34m"
+	echo "$program"
+	i=1
+	for a in "$@"
+	do
+		printf " %4i: %s\n" "$i" "$a"
+		i=$(( i + 1 ))
+	done
+	printf "\033[0m"
 	for s in "${selected_systems[@]}"
 	do
 		if [ ${excluded_systems["$s"]+x} ]
 		then
 			error_status=64
 		else
+			mkdir -p "$measurements_dir"
 			set +e
 			set +o pipefail
-			error_message="$( "$script_dir/../deploying/deployment-scripts/execute.bash" \
-				-s "$s" -e "$program" "${library[@]}" -- "$@" 2>&1 1>/dev/null )"
+			error_message="$( \
+				"$script_dir/../profiling/profiling-scripts/measure.bash" \
+					-c "$script_dir/profiling-configuration" \
+					-t "$measurements_dir/profiling-table.txt" \
+					-p "$script_dir/conduct-single-test.bash" \
+					-- -e "$program" "${library[@]}" "${execution_arguments[@]}" \
+					<<< "$s" \
+					2>&1 1>/dev/null
+			)"
 			error_status=$?
 			set -e
 			set -o pipefail
 		fi
 		tests_executed=$(( tests_executed + 1 ))
+		echo_trailing_newline="true"
 		case $error_status in
 			0) # all correct => test passed
-				printf " \033[0;32m%s\033[0m" "$s"
 				tests_passed=$(( tests_passed + 1 ))
+				printf " \033[0;32m%s\033[0m" "$s"
 				;;
 			64) # configuration error for Scheme system => test skipped
-				printf " \033[1;33m-%s-\033[0m" "$s"
 				tests_skipped=$(( tests_skipped + 1 ))
+				printf " \033[1;33m-%s-\033[0m" "$s"
 				;;
 			*) # test failed (execution error) => print error and...
+				tests_failed=$(( tests_failed + 1 ))
 				printf " \033[0;31m!%s!\033[0m\n\n" "$s"
-				echo "$error_message" >&2
+				printf "%s" "$error_message" >&2
+				printf "\n"
+				unset echo_trailing_newline
 				if [ "$abort_on_failed_test" == "true" ] # ...abort testing if requested
 				then
 					echo " !!! ERROR: Testing aborted because of failed test !!!" >&2
 					exit $error_status
 				fi
-				tests_failed=$(( tests_failed + 1 ))
 				;;
 		esac
 	done
-	echo ""
+	if [[ -v "echo_trailing_newline" ]]
+	then
+		echo ""
+	fi
 }
 
 ################################################################################################################## Execute tests:
+printf "\033[1;33m%s\033[0m" "
+=================================================== S T A R T   T E S T I N G ===================================================
+
+"
+
 # Test basic API:
-declare -A excluded_systems
 for f in "$script_dir"/*.scm
 do
 	excluded_systems=()
@@ -135,27 +181,34 @@ do
 			excluded_systems["$e"]="$e"
 		fi
 	done
+	measurements_dir="tests/$( basename "$f" )"
 	run "$f" ""
 done
 excluded_systems=()
 
 # Test binary numbers example:
+measurements_dir="binary-numbers/binary-numbers.scm"
 run "$script_dir/../examples/binary-numbers/binary-numbers.scm" ""
 
 # Test state machines example:
+measurements_dir="state-machines/state-machines.scm"
 run "$script_dir/../examples/state-machines/state-machines.scm" ""
 
 # Test atomic Petri nets example:
 for f in "$script_dir"/../examples/atomic-petrinets/examples/*.scm
 do
+	measurements_dir="atomic-petrinets/$( basename "$f" )"
 	run "$f" "$script_dir/../examples/atomic-petrinets"
 done
 
-# Test composed Petri nets example (Guile is excluded because of issue #37):
+# Test composed Petri nets example:
+excluded_systems=( [guile]="guile" ) # Guile is excluded because of issue #37).
 for f in "$script_dir"/../examples/composed-petrinets/examples/*.scm
 do
+	measurements_dir="composed-petrinets/$( basename "$f" )"
 	run "$f" "$script_dir/../examples/composed-petrinets"
 done
+excluded_systems=()
 
 # Test fUML Activity Diagrams example:
 for f in "$script_dir"/../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/*.ad
@@ -165,30 +218,49 @@ do
 	then
 		input=":false:"
 	fi
+	measurements_dir="ttc-2015-fuml-activity-diagrams/$( basename "$f" )"
 	run "$script_dir/../examples/ttc-2015-fuml-activity-diagrams/execute.scm" "" "$f" "$input" 6 ":true:" ":false:"
 done
 
 # Test SiPLE example:
 for f in "$script_dir"/../examples/siple/examples/correct/*.siple
 do
+	measurements_dir="siple/correct/$( basename "$f" )"
 	run "$script_dir/../examples/siple/execute.scm" "" "$f" ":false:"
 done
 for f in "$script_dir"/../examples/siple/examples/incorrect/*.siple
 do
+	measurements_dir="siple/incorrect/$( basename "$f" )"
 	run "$script_dir/../examples/siple/execute.scm" "" "$f" ":true:"
 done
 
+############################################################################################################## Check performance:
+printf "\033[1;33m%s\033[0m" "
+=============================================== C H E C K   P E R F O R M A N C E ===============================================
+
+"
+
 ######################################################################################################### Print summary and exit:
-status_message="=====T=E=S=T===S=U=M=M=A=R=Y=====
+printf "\033[1;33m%s\033[0m" "
+==================================================== T E S T   S U M M A R Y ====================================================
+
+"
+
+status_message="\
 Number of tests: $tests_executed
 Tests passed:    $tests_passed
 Tests skipped:   $tests_skipped
-Tests failed:    $tests_failed"
+Tests failed:    $tests_failed
+"
 
 if (( tests_failed > 0 ))
 then
-	printf "\n%s\n" "$status_message" >&2
+	printf "\033[0;31m%s\033[0m" "$status_message" >&2
 	exit 1
+elif (( tests_skipped > 0 ))
+then
+	printf "\033[1;33m%s\033[0m" "$status_message"
+	exit 0
 fi
-printf "\n%s\n" "$status_message"
+printf "\033[0;32m%s\033[0m" "$status_message"
 exit 0

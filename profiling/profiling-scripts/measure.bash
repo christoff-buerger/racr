@@ -11,15 +11,19 @@ shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 call_dir="$( pwd )"
+unset failsave
 
 ################################################################################################################ Parse arguments:
+arguments="$* --"
+arguments="${arguments#*--}"
+
 if [ $# -eq 0 ]
 then
 	"$script_dir/measure.bash" -h
 	exit $?
 fi
 
-while getopts c:t:s:xh opt
+while getopts c:t:p:s:xh opt
 do
 	case $opt in
 		c)
@@ -40,6 +44,15 @@ do
 				exit 2
 			fi
 			;;
+		p)
+			if [[ ! -v "to_profile" ]]
+			then
+				to_profile="$OPTARG"
+			else
+				echo " !!! ERROR: Several programs to profile selected via -p parameter !!!" >&2
+				exit 2
+			fi
+			;;
 		s)
 			if [ -z ${rerun_script+x} ]
 			then
@@ -56,19 +69,36 @@ do
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -t Measurements table used for recording (mandatory parameter)." >&2
 			echo "          Created if not existent. New measurements are appended." >&2
+			echo "       -p Program profiled (mandatory parameter)." >&2
 			echo "       -s Save rerun script (optional parameter)." >&2
 			echo "          Can be used to redo the measurements." >&2
 			echo "       -x Abort in case of measurement failures (optional multi-flag)." >&2
+			echo "       -- Command line arguments for the profiled program (optional parameter)." >&2
+			echo "          All following arguments are forwarded, after expected profiling parameters," >&2
+			echo "          whenever calling the profiled program. The final order of call arguments is:" >&2
+			echo "            1. profiling parameters ordered according to the profiling configuration" >&2
+			echo "            2. arguments of the forwarded argument list (without leading --)" >&2
+			echo "" >&2
+			echo "       In case of any failed measurements, the exit status code returned" >&2
+			echo "       after script termination is 1." >&2
 			exit 2
 			;;
 	esac
 done
 shift $(( OPTIND - 1 ))
 
-if [ -t 0 ] && [ ! $# -eq 0 ]
+fixed_arguments=( "$@" )
+
+if [ -t 0 ] && [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
+fi
+
+if [ -z "$to_profile" ] || [ ! -x "$to_profile" ]
+then
+	echo " !!! ERROR: No, non-existent or non-executable program to profile specified via -p parameter !!!" >&2
+	exit 64
 fi
 
 if [ -z ${rerun_script+x} ]
@@ -137,8 +167,22 @@ echo "cd \"$call_dir\""
 echo "\"$script_dir/measure.bash\" \\"
 echo "	-c \"$profiling_configuration\" \\"
 echo "	-t \"$measurements_table\" \\"
+echo "	-p \"$to_profile\" \\"
 echo "	-s /dev/null \\"
-echo "	$failsave -- << \"\|EOF\|\""
+if [[ -v "failsave" ]]
+then
+	echo "	-x \\"
+fi
+if (( ${#fixed_arguments[@]} != 0 ))
+then
+	printf "	--"
+	for a in "${fixed_arguments[@]}"
+	do
+		printf " \"%s\"" "$a"
+	done
+	echo " \\"
+fi
+echo "	<< \"\|EOF\|\""
 } > "$rerun_script"
 
 ############################################################################################################# Read configuration:
@@ -227,6 +271,7 @@ valid_parameters=1
 ########################################################################################################### Perform measurements:
 echo ""
 
+exit_status=0
 current_parameter_values=( "DUMMY DATE" )
 current_parameter_iterations=( "DUMMY DATE ITERATION" )
 current_parameter=1
@@ -240,6 +285,7 @@ do
 		undo=true
 		measurement_date="$( date -u "+%Y-%m-%dT%H:%M:%SZ" )"
 		echo "$measurement_date" >&3
+		printf "\033[0;34m"
 		printf "Measurement ["
 		for (( i = 1; i < number_of_parameters; i++ ))
 		do
@@ -247,18 +293,23 @@ do
 			echo "${current_parameter_values[$i]}" >&3
 		done
 		echo "]"
-		arguments=( "${current_parameter_values[@]:1}" )
+		printf "\033[0m"
+		parameter_arguments=( "${current_parameter_values[@]:1}" )
 		old_IFS="$IFS"
 		IFS=$'\n' # measurement results are emitted line-wise
-		set +e
-		set +o pipefail
 		measurement_results=()
-		mapfile -t measurement_results < <( "$execution_script" "${arguments[@]}" 2> "$measurements_stderr" )
-		measurement_error=$?
-		set -e
-		set -o pipefail
+		mapfile -t measurement_results < <(
+			set +e
+			set +o pipefail
+			"$to_profile" "${parameter_arguments[@]}" "${fixed_arguments[@]}" 2> "$measurements_stderr"
+			echo $?
+			set -e
+			set -o pipefail
+		)
 		IFS="$old_IFS"
-		if [ $measurement_error -ne 0 ] || [ -s "$measurements_stderr" ]
+		measurement_error="${measurement_results[-1]}"
+		unset 'measurement_results[-1]'
+		if [ "$measurement_error" -ne 0 ] || [ -s "$measurements_stderr" ]
 		then
 			measurement_failed=1
 		elif (( ${#measurement_results[@]} + 1 != number_of_results ))
@@ -270,19 +321,20 @@ do
 		fi
 		if [ $measurement_failed -ne 0 ]
 		then
+			exit_status=1
 			echo "failed" >&3 # 1st result is the measurement status.
-			echo "	Measurement failed."
-			if [ $measurement_error -ne 0 ]
-			then
-				echo "	The error code was: $measurement_error"
-			fi
+			printf "\033[0;31m" >&2
+			printf "  Measurement failed with exit code [%i] and " "$measurement_error" >&2
 			if [ -s "$measurements_stderr" ]
 			then
-				echo "	The error message was:"
-				cat "$measurements_stderr" >&2
-				echo ""
+				echo "error message (stderr):" >&2
+				# Command substitution removes trailing newlines from compacted message prefixed with ' >>':
+				printf "%s\n" "$( sed '/^[[:space:]]*$/d' "$measurements_stderr" | sed -e 's/^/  >>/' )" >&2
+			else
+				echo "no error message (empty stderr)." >&2
 			fi
-			if [ -n "$failsave" ]
+			printf "\033[0m" >&2
+			if [[ -v "failsave" ]]
 			then
 				echo " !!! ERROR: Measurements aborted because of failed measurement !!!" >&2
 				exit 2
@@ -294,11 +346,13 @@ do
 			fi
 		else
 			echo "succeeded" >&3 # 1st result is the measurement status.
+			printf "\033[0;32m"
 			for (( i = 1; i < number_of_results; i++ ))
 			do
-				echo "	${result_names[$i]}=${measurement_results[$(( i - 1 ))]}"
+				echo "  ${result_names[$i]}=${measurement_results[$(( i - 1 ))]}"
 				echo "${measurement_results[$(( i - 1 ))]}" >&3
 			done
+			printf "\033[0m"
 		fi
 	elif [ "$undo" = true ] && \
 		(( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
@@ -321,4 +375,4 @@ do
 done
 
 ################################################################# Finish recording of measurements & cleanup temporary resources:
-exit 0 # triggers 'my_exit'
+exit $exit_status # triggers 'my_exit'

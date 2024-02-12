@@ -1,4 +1,3 @@
-execute.bash
 Scheme|Scheme system used for measurements
 Caching|Caching of enabled analysis ('on' or 'off'; all other analyses are always cached)
 #Transitions|Number of transitions (scale load)

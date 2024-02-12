@@ -61,7 +61,7 @@ do
 			echo "          Know RACR library directories are:" >&2
 			"$script_dir/list-libraries.bash" -i | sed 's/^/             /' >&2
 			echo "          Implicitly set if the program to execute already is in a RACR library directory." >&2
-			echo "       -- Command line arguments for the Scheme program to execute (optional parameter). " >&2
+			echo "       -- Command line arguments for the Scheme program to execute (optional parameter)." >&2
 			echo "          All following arguments are forwarded to the executed program." >&2
 			exit 64
 			;;

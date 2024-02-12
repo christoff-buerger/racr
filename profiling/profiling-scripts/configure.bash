@@ -5,9 +5,8 @@
 
 # author: C. Bürger
 
-# BEWARE: This script must be sourced. It expects one variable to be set and sets ten variables:
+# BEWARE: This script must be sourced. It expects one variable to be set and sets nine variables:
 #  in)  profiling_configuration:	Profiling configuration to parse.
-#  set) execution_script:		The script to execute for each measurement.
 #  set) parameter_names:		Array of the names of parameters.
 #					The measurement date is automatically added as first parameter.
 #  set) parameter_descriptions:		Array of parameter descriptions (one description for each parameter).
@@ -31,8 +30,7 @@ then
 	exit 2
 fi
 
-profiling_configuration_dir="$( dirname "$profiling_configuration" )"
-parsing_mode=execution-script
+parsing_mode=parameters
 parameter_names=( "Date" )
 parameter_descriptions=( "Measurement date in Coordinated Universal Time (UTC) according to ISO 8601-1:2019/Amd 1:2022 (YYYY-MM-DDThh:mm:ssZ)" )
 result_names=( "Status" )
@@ -41,18 +39,6 @@ result_descriptions=( "Measurement status (failed, aborted, succeeded)" )
 while IFS='' read -r line
 do
 	case $parsing_mode in
-	execution-script)
-		execution_script="$(
-			cd "$profiling_configuration_dir" &&
-			cd "$( dirname "$line")" &&
-			pwd )/$( basename "$line" )"
-		if [ ! -x "$execution_script" ]
-		then
-			echo " !!! ERROR: Malformed profiling configuration (non-existent/executable execution script) !!!" >&2
-			exit 2
-		fi
-		parsing_mode=parameters
-		;;
 	parameters)
 		if [ "$line" == ">" ]
 		then
@@ -81,12 +67,6 @@ do
 	esac
 done < "$profiling_configuration"
 
-if [ -z ${execution_script+x} ]
-then
-	echo " !!! ERROR: Malformed profiling configuration (missing execution script) !!!" >&2
-	exit 2
-fi
-
 # shellcheck disable=SC2034
 criteria_names=(
 	"${parameter_names[@]}"
@@ -105,5 +85,4 @@ number_of_results=${#result_names[@]}
 number_of_criteria=$(( number_of_parameters + number_of_results ))
 
 unset parsing_mode
-unset profiling_configuration_dir
 #unset configure_bash_dir
