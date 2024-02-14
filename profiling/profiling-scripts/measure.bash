@@ -309,22 +309,36 @@ do
 		IFS="$old_IFS"
 		measurement_error="${measurement_results[-1]}"
 		unset 'measurement_results[-1]'
-		if [ "$measurement_error" -ne 0 ] || [ -s "$measurements_stderr" ]
+		
+		measurement_status="succeeded"
+		print_color="\033[0;32m"
+		print_stderr_message="false"
+		print_results="false"
+		if [ -s "$measurements_stderr" ]
 		then
-			measurement_failed=1
+			print_color="\033[1;33m"
+			print_stderr_message="true"
+		fi
+		if (( measurement_error != 0 ))
+		then
+			measurement_status="failed"
+			print_color="\033[0;31m"
+			print_stderr_message="true"
 		elif (( ${#measurement_results[@]} + 1 != number_of_results ))
 		then
+			measurement_status="failed"
+			print_color="\033[0;31m"
 			echo "	!!! ERROR: Unexpected number of measurement results !!!" >&2
-			measurement_failed=1
 		else
-			measurement_failed=0
+			print_results="true"
 		fi
-		if [ $measurement_failed -ne 0 ]
+		
+		echo "$measurement_status" >&3 # 1st result is the measurement status.
+		
+		if [[ "$print_stderr_message" == "true" ]]
 		then
-			exit_status=1
-			echo "failed" >&3 # 1st result is the measurement status.
-			printf "\033[0;31m" >&2
-			printf "  Measurement failed with exit code [%i] and " "$measurement_error" >&2
+			printf "%b" "$print_color" >&2
+			printf "  Measurement %s with exit code [%i] and " "$measurement_status" "$measurement_error" >&2
 			if [ -s "$measurements_stderr" ]
 			then
 				echo "error message (stderr):" >&2
@@ -334,25 +348,32 @@ do
 				echo "no error message (empty stderr)." >&2
 			fi
 			printf "\033[0m" >&2
-			if [[ -v "failsave" ]]
-			then
-				echo " !!! ERROR: Measurements aborted because of failed measurement !!!" >&2
-				exit 2
-			else # fix table
-				for (( i = 1; i < number_of_results; i++ ))
-				do
-					echo "" >&3
-				done
-			fi
-		else
-			echo "succeeded" >&3 # 1st result is the measurement status.
-			printf "\033[0;32m"
+		fi
+		if [[ "$print_results" == "true" ]]
+		then
+			printf "%b" "$print_color"
 			for (( i = 1; i < number_of_results; i++ ))
 			do
 				echo "  ${result_names[$i]}=${measurement_results[$(( i - 1 ))]}"
 				echo "${measurement_results[$(( i - 1 ))]}" >&3
 			done
 			printf "\033[0m"
+		fi
+		
+		if [[ "$measurement_status" == "failed" ]]
+		then
+			exit_status=1
+			if [[ -v "failsave" ]]
+			then
+				echo " !!! ERROR: Measurements aborted because of failed measurement !!!" >&2
+				exit 2
+			elif [[ "$print_results" != "true" ]] # fix table
+			then
+				for (( i = 1; i < number_of_results; i++ ))
+				do
+					echo "" >&3
+				done
+			fi
 		fi
 	elif [ "$undo" = true ] && \
 		(( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))

@@ -113,6 +113,7 @@ run(){
 	do
 		if [ ${excluded_systems["$s"]+x} ]
 		then
+			error_message=""
 			error_status=64
 		else
 			mkdir -p "$measurements_dir"
@@ -137,18 +138,30 @@ run(){
 			0) # all correct => test passed
 				tests_passed=$(( tests_passed + 1 ))
 				printf " \033[0;32m%s\033[0m" "$s"
+				if [ -n "$error_message" ]
+				then
+					printf "\n\n%s\n" "$error_message" >&2
+					unset echo_trailing_newline
+				fi
 				;;
 			64) # configuration error for Scheme system => test skipped
 				tests_skipped=$(( tests_skipped + 1 ))
 				printf " \033[1;33m-%s-\033[0m" "$s"
+				if [ -n "$error_message" ]
+				then
+					printf "\n\n%s\n" "$error_message" >&2
+					unset echo_trailing_newline
+				fi
 				;;
-			*) # test failed (execution error) => print error and...
+			*) # execution error => test failed
 				tests_failed=$(( tests_failed + 1 ))
-				printf " \033[0;31m!%s!\033[0m\n\n" "$s"
-				printf "%s" "$error_message" >&2
-				printf "\n"
-				unset echo_trailing_newline
-				if [ "$abort_on_failed_test" == "true" ] # ...abort testing if requested
+				printf " \033[0;31m!%s!\033[0m" "$s"
+				if [ -n "$error_message" ]
+				then
+					printf "\n\n%s\n" "$error_message" >&2
+					unset echo_trailing_newline
+				fi
+				if [ "$abort_on_failed_test" == "true" ] # abort testing if requested
 				then
 					echo " !!! ERROR: Testing aborted because of failed test !!!" >&2
 					exit $error_status
