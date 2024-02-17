@@ -96,6 +96,38 @@ then
 	exit 2
 fi
 
+##################################################################################### Configure temporary and external resources:
+unset measurements_table_lock
+
+my_exit(){
+	# Capture exit status (i.e., script success or failure):
+	exit_status=$?
+	# Release read lock on measurements table:
+	if [[ -v "measurements_table_lock" ]]
+	then
+		"$measurements_table_lock"
+	fi
+	# Return captured exit status (i.e., if the original script execution succeeded or not):	
+	exit $exit_status	
+}
+trap 'my_exit' 0 1 2 3 15
+
+mkdir -p "$( dirname "$measurements_table" )" # Parent directory required for locking => always create.
+
+if [ -n "$test_run" ]
+then
+	measurements_table_lock="$( \
+		"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
+		-x " !!! ERROR: Failed to check measurements table [$measurements_table]; table subject to recording !!!" \
+		-k "measurements table read lock" \
+		-- "$measurements_table" )"
+else
+	measurements_table_lock="$( \
+		"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
+		-x " !!! ERROR: Failed to record measurements; measurements table [$measurements_table] already in use !!!" \
+		-- "$measurements_table" )"
+fi
+
 ############################################################################################################# Read configuration:
 . "$script_dir/configure.bash" # Sourced script sets configuration!
 
@@ -131,7 +163,7 @@ then
 	if [ $i -ne ${#header[@]} ]
 	then
 		echo " !!! ERROR: Measurements table [$measurements_table] has malformed header !!!" >&2
-		exit 2
+		exit 2 # triggers 'my_exit'
 	fi
 	
 	line_number=3
@@ -151,7 +183,7 @@ then
 		then
 			printf " !!! ERROR: Measurements table [%s] has malformed content " "$measurements_table" >&2
 			echo   "(line $line_number, cell $(( cell_number + 1 ))) !!!" >&2
-			exit 2
+			exit 2 # triggers 'my_exit'
 		fi
 		line_number=$(( line_number + 1 ))
 	done < <( tail -n +3 "$measurements_table" )
@@ -159,13 +191,12 @@ fi
 
 if [ -n "$test_run" ]
 then
-	exit 0
+	exit 0 # triggers 'my_exit'
 fi
 
 ############################################################################################################# Print table header:
 if [ ! -e "$measurements_table" ]
 then
-	mkdir -p "$( dirname "$measurements_table" )"
 	for h in "${header[@]}"
 	do
 		echo "$h" >> "$measurements_table"
@@ -174,6 +205,7 @@ fi
 
 ############################################################################################################ Print table content:
 record(){
+	trap 'my_exit' 0 1 2 3 15
 	column_count=1
 	while true
 	do
@@ -216,9 +248,10 @@ record(){
 			break
 		fi
 	done < "$measurements_pipe"
+	exit 0 # triggers 'my_exit'
 }
 
+trap - 0 1 2 3 15
 record >/dev/null &
 echo $! # Return PID of the asynchronous process recording the measurements.
-
 exit 0

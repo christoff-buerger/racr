@@ -148,6 +148,7 @@ tmp_dir=""
 unset recording_pid
 valid_parameters=0
 extraction_successful=0
+source_tables_locks=()
 
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
@@ -161,6 +162,11 @@ my_exit(){
 			sleep 1
 		done
 	fi
+	# Release locks on source tables:
+	for mutex in "${source_tables_locks[@]}"
+	do
+		"$mutex"
+	done
 	# Update the final measurements table if, and only if, everything was fine:
 	if [ $extraction_successful -eq 1 ]
 	then
@@ -177,7 +183,15 @@ my_exit(){
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
 	exit $exit_status
 }
+
 trap 'my_exit' 0 1 2 3 15
+
+mapfile -t source_tables_locks < <(
+	"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
+	-x " !!! ERROR: Failed to extract measurements; recordings on source tables ongoing !!!" \
+	-k "measurements table read lock" \
+	-- "${source_tables[@]}" \
+	|| kill -13 $$ )
 
 tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
 extraction_pipe="$tmp_dir/extraction-pipe.fifo"
@@ -270,7 +284,7 @@ do
 			if [ -z "$choice2" ] || [ ${#choice2[@]} -ne 1 ]
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
-				exit 2
+				exit 2 # triggers 'my_exit'
 			fi
 			extractors="$extractors \"$choice2\""
 			i=$(( i - 1 ))
@@ -284,7 +298,7 @@ do
 			;;
 		*)
 			echo " !!! ERROR: Invalid choice !!!" >&2
-			exit 2
+			exit 2 # triggers 'my_exit'
 			;;
 	esac
 done

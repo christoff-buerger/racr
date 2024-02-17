@@ -67,6 +67,7 @@ my_exit(){
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
+trap 'my_exit' 0 1 2 3 15
 
 binaries_to_clean=()
 for library in "${selected_libraries[@]}"
@@ -85,7 +86,6 @@ mapfile -t locks < <(
 	-x " !!! ERROR: Failed to clean installations; RACR libraries are in use or installations are in progress !!!" \
 	-- "${binaries_to_clean[@]/%//lock}" \
 	|| kill -13 $$ )
-trap 'my_exit' 0 1 2 3 15
 
 ########################################################### Delete installation of all RACR libraries on selected Scheme systems:
 for binaries in "${binaries_to_clean[@]}"
