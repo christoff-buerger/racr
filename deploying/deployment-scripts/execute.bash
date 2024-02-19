@@ -117,11 +117,15 @@ my_exit(){
 	# Release locks:
 	for mutex in "${locks[@]}"
 	do
-		"$mutex"
+		if [ -f "$mutex" ]
+		then
+			"$mutex"
+		fi
 	done
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
+trap 'my_exit' 0 1 2 3 15
 
 required_binary_locks=()
 for l in "${required_libraries[@]}"
@@ -135,7 +139,6 @@ mapfile -t locks < <(
 	-x " !!! ERROR: Can not execute [$to_execute]; installation of RACR libraries for $selected_system in progress !!!" \
 	-- "${required_binary_locks[@]}" \
 	|| kill -13 $$ )
-trap 'my_exit' 0 1 2 3 15
 
 ################################################################################################################ Execute program:
 case $selected_system in

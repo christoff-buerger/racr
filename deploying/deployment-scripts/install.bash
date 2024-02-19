@@ -239,15 +239,6 @@ install_ypsilon(){
 }
 
 ######################### Define encapsulated common procedures to concurrently install RACR libraries on varying Scheme systems:
-install_exit(){
-	# Capture exit status (i.e., script success or failure):
-	exit_status=$?
-	# Release lock:
-	"$1"
-	# Return captured exit status (i.e., if the original script execution succeeded or not):
-	exit $exit_status
-}
-
 max_processes=$( ulimit -u )
 safe_fork(){
 	while (( $( ps -e | wc -l ) + 100 >= max_processes ))
@@ -310,8 +301,20 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		xxd -p -c 512 )"
 	
 	# Acquire lock for race-condition-free check if (re)installation is required and perform ALL changes:
+	mutex=""
+	install_exit(){
+		# Capture exit status (i.e., script success or failure):
+		exit_status=$?
+		# Release lock:
+		if [ -f "$mutex" ]
+		then
+			"$mutex"
+		fi
+		# Return captured exit status (i.e., if the original script execution succeeded or not):
+		exit $exit_status
+	}
+	trap 'install_exit' 0 1 2 3 15
 	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
-	trap 'install_exit "$mutex"' 0 1 2 3 15
 	
 	# Delete existing installation in case required libraries failed to install and write new hash:
 	if (( joined_exit_status == 1 ))

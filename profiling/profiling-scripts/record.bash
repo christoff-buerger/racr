@@ -97,13 +97,13 @@ then
 fi
 
 ##################################################################################### Configure temporary and external resources:
-unset measurements_table_lock
+measurements_table_lock=""
 
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release read lock on measurements table:
-	if [[ -v "measurements_table_lock" ]]
+	if [ -f "$measurements_table_lock" ]
 	then
 		"$measurements_table_lock"
 	fi
@@ -251,7 +251,7 @@ record(){
 	exit 0 # triggers 'my_exit'
 }
 
-trap - 0 1 2 3 15
-record >/dev/null &
-echo $! # Return PID of the asynchronous process recording the measurements.
+trap - 0 1 2 3 15 # Hand over the [my_exit] routine for cleaning up the measurements table lock to...
+record >/dev/null & # ...the asynchronous process recording the measurements and...
+echo $! # ...return its PID.
 exit 0

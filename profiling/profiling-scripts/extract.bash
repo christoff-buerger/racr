@@ -145,7 +145,7 @@ fi
 
 ##################################################################################### Configure temporary and external resources:
 tmp_dir=""
-unset recording_pid
+recording_pid=""
 valid_parameters=0
 extraction_successful=0
 source_tables_locks=()
@@ -154,7 +154,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Close the recording pipe and wait until all extracted measurements are recorded:
-	if [ -n "${recording_pid+x}" ]
+	if [ -n "$recording_pid" ]
 	then
 		exec 3>&-
 		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
@@ -165,7 +165,10 @@ my_exit(){
 	# Release locks on source tables:
 	for mutex in "${source_tables_locks[@]}"
 	do
-		"$mutex"
+		if [ -f "$mutex" ]
+		then
+			"$mutex"
+		fi
 	done
 	# Update the final measurements table if, and only if, everything was fine:
 	if [ $extraction_successful -eq 1 ]
@@ -176,14 +179,13 @@ my_exit(){
 	# Delete the rerun script in case a user interactively specified invalid extraction-parameters while generating it:
 	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
 	then
-		rm "$rerun_script"
+		rm -f "$rerun_script"
 	fi
 	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
 	exit $exit_status
 }
-
 trap 'my_exit' 0 1 2 3 15
 
 mapfile -t source_tables_locks < <(

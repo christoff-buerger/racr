@@ -156,22 +156,24 @@ then
 fi
 
 ############################################# Handle general case of many files or re-entrance locks (requires atomic operation):
+not_suspended=1
+mutex=""
+
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release locks:
-	if (( not_suspended == 1 ))
+	if (( not_suspended == 1 )) && [ -f "$mutex" ]
 	then
 		"$mutex"
 	fi
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
 }
+trap 'my_exit' 0 1 2 3 15
 
 # Mutex is shared with release-scripts for key-protected files to avoid race conditions with parallel unlocking:
-trap 'my_exit' 0 1 2 3 15
 mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/lock-files.bash" )"
-not_suspended=1
 
 while true
 do
@@ -229,11 +231,15 @@ do
 		{
 		printf "#!/usr/bin/env bash\n"
 		# Mutex is shared with 'lock-files.bash' to avoid race conditions with parallel locking:
+		printf "mutex=\"\"\n"
 		printf "my_exit(){\n"
-		printf "	\"\$mutex\"\n"
+		printf "	if [ -f \"\$mutex\" ]\n"
+		printf "	then\n"
+		printf "		\"\$mutex\"\n"
+		printf "	fi\n"
 		printf "}\n"
-		printf "mutex=\"\$( \"%s/lock-files.bash\" -- \"%s/lock-files.bash\" )\"\n" "$script_dir" "$script_dir"
 		printf "trap 'my_exit' 0 1 2 3 15\n"
+		printf "mutex=\"\$( \"%s/lock-files.bash\" -- \"%s/lock-files.bash\" )\"\n" "$script_dir" "$script_dir"
 		printf "rm -f \"%s\"\n" "$release_script"
 		printf "if find \"%s\" -maxdepth 0 -empty | read\n" "$release_script_dir"
 		printf "then\n"

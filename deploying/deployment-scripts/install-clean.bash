@@ -62,7 +62,10 @@ my_exit(){
 	# Release locks:
 	for mutex in "${locks[@]}"
 	do
-		"$mutex"
+		if [ -f "$mutex" ]
+		then
+			"$mutex"
+		fi
 	done
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
 	exit $exit_status
