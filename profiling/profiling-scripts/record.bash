@@ -102,7 +102,7 @@ measurements_table_lock=""
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
-	# Release read lock on measurements table:
+	# Release lock on measurements table:
 	if [ -f "$measurements_table_lock" ]
 	then
 		"$measurements_table_lock"

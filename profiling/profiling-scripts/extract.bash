@@ -149,6 +149,7 @@ recording_pid=""
 valid_parameters=0
 extraction_successful=0
 source_tables_locks=()
+measurements_table_lock=""
 
 my_exit(){
 	# Capture exit status (i.e., script success or failure):
@@ -162,7 +163,7 @@ my_exit(){
 			sleep 1
 		done
 	fi
-	# Release locks on source tables:
+	# Release read locks on source tables:
 	for mutex in "${source_tables_locks[@]}"
 	do
 		if [ -f "$mutex" ]
@@ -170,11 +171,20 @@ my_exit(){
 			"$mutex"
 		fi
 	done
+	# Release read lock on measurements table:
+	if [ -f "$measurements_table_lock" ]
+	then
+		"$measurements_table_lock"
+	fi
 	# Update the final measurements table if, and only if, everything was fine:
 	if [ $extraction_successful -eq 1 ]
 	then
-		mkdir -p "$( dirname "$measurements_table" )"
+		measurements_table_lock="$( \
+			"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
+			-x " !!! ERROR: Failed to store extraction results; measurements table [$measurements_table] already in use !!!" \
+			-- "$measurements_table" )"
 		mv -f "$extraction_table" "$measurements_table"
+		"$measurements_table_lock"
 	fi
 	# Delete the rerun script in case a user interactively specified invalid extraction-parameters while generating it:
 	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
@@ -188,12 +198,19 @@ my_exit(){
 }
 trap 'my_exit' 0 1 2 3 15
 
+mkdir -p "$( dirname "$measurements_table" )" # Parent directory required for locking => always create.
+
 mapfile -t source_tables_locks < <(
 	"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
 	-x " !!! ERROR: Failed to extract measurements; recordings on source tables ongoing !!!" \
 	-k "measurements table read lock" \
 	-- "${source_tables[@]}" \
 	|| kill -13 $$ )
+measurements_table_lock="$( \
+	"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
+	-x " !!! ERROR: Failed to access measurements table [$measurements_table]; table subject to recording !!!" \
+	-k "measurements table read lock" \
+	-- "$measurements_table" )"
 
 tmp_dir="$( "$script_dir/../../deploying/deployment-scripts/create-temporary.bash" -t d )"
 extraction_pipe="$tmp_dir/extraction-pipe.fifo"
