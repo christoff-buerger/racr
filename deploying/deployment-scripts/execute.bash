@@ -40,7 +40,7 @@ do
 			then
 				to_execute="$OPTARG"
 				to_execute_dir="$( dirname "$to_execute" )"
-				if [ -n "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" ]
+				if [ "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" != "" ]
 				then
 					configurations_array+=( "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" )" )
 				fi
@@ -75,13 +75,13 @@ then
 	exit 64
 fi
 
-if [ -z "$to_execute" ] || [ ! -f "$to_execute" ]
+if [ "$to_execute" = "" ] || [ ! -f "$to_execute" ]
 then
 	echo " !!! ERROR: Non-existent or no Scheme program to execute specified via -e parameter !!!" >&2
 	exit 64
 fi
 
-if [ -z "$selected_system" ]
+if [ "$selected_system" = "" ]
 then
 	echo " !!! ERROR: No Scheme system for execution selected via -s parameter !!!" >&2
 	exit 64
@@ -123,7 +123,7 @@ my_exit(){
 		fi
 	done
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
-	exit $exit_status
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 
@@ -166,7 +166,7 @@ case $selected_system in
 		do
 			libs_string+=":$l/binaries/larceny"
 		done
-		if [ -n "$libs_string" ]
+		if [ "$libs_string" != "" ]
 		then
 			libs+=( --path "${libs_string:1}" )
 		fi
@@ -179,7 +179,7 @@ case $selected_system in
 		do
 			libs_string+=":$l/binaries/chez"
 		done
-		if [ -n "$libs_string" ]
+		if [ "$libs_string" != "" ]
 		then
 			libs+=( --libdirs "${libs_string:1}" )
 		fi

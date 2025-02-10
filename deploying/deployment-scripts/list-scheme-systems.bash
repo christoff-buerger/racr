@@ -43,7 +43,7 @@ do
 				results+=( "ironscheme" )
 				found="true"
 			fi
-			if [ -z "$found" ]
+			if [ "$found" = "" ]
 			then
 				echo " !!! ERROR: No supported Scheme system found !!!" >&2
 				exit 64
@@ -59,7 +59,7 @@ do
 					break
 				fi
 			done
-			if [ -z "$found" ]
+			if [ "$found" = "" ]
 			then
 				echo " !!! ERROR: [$OPTARG] Scheme system selected via -s parameter unavailable !!!" >&2
 				exit 64

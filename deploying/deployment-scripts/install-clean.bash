@@ -68,7 +68,7 @@ my_exit(){
 		fi
 	done
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
-	exit $exit_status
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 

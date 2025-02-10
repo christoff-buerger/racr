@@ -103,7 +103,7 @@ my_exit(){
 	# Wait for installation co-routines to cleanup first:
 	wait
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
-	exit $exit_status
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 
@@ -311,7 +311,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 			"$mutex"
 		fi
 		# Return captured exit status (i.e., if the original script execution succeeded or not):
-		exit $exit_status
+		exit "$exit_status"
 	}
 	trap 'install_exit' 0 1 2 3 15
 	mutex="$( "$script_dir/lock-files.bash" -- "$binaries/lock" )"
@@ -380,12 +380,12 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		"$library" \
 		"$system" \
 		"$log" \
-		>&$target_std
+		>&"$target_std"
 	if (( exit_status != 0 ))
 	then
 		touch "$binaries/installation-failed"
 	fi
-	exit $exit_status
+	exit "$exit_status"
 )
 
 install_library()( # Encapsulated common procedure for library installation:
@@ -414,7 +414,7 @@ install_library()( # Encapsulated common procedure for library installation:
 		done
 		safe_join
 	fi
-	exit $joined_exit_status
+	exit "$joined_exit_status"
 )
 
 ##################################################### Install all selected libraries on all selected Scheme systems concurrently:
@@ -436,4 +436,4 @@ else # Run an installation co-routine for each library:
 fi
 
 ############################################################################################################## Cleanup resources:
-exit $joined_exit_status # triggers 'my_exit'
+exit "$joined_exit_status" # triggers 'my_exit'

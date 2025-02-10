@@ -85,7 +85,7 @@ case "$temporary_type" in
 		temporary_type=""
 		;;
 esac
-if [ -z "$temporary_type" ]
+if [ "$temporary_type" = "" ]
 then
 	echo " !!! ERROR: No or unknown temporary-type selected via -t parameter !!!" >&2
 	exit 2
@@ -119,7 +119,7 @@ my_exit(){
 		"$mutex"
 	fi
 	# Return captured exit status (i.e., if the original script execution succeeded or not):
-	exit $exit_status
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 
@@ -154,7 +154,7 @@ esac
 invalid_name=$?
 set -e
 set -o pipefail
-if [ $invalid_name -ne 0 ]
+if [ "$invalid_name" -ne 0 ]
 then
 	echo " !!! ERROR: [$name] is an invalid $temporary_type name !!!" >&2
 	exit 2

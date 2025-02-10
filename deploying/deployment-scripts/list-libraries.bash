@@ -58,7 +58,7 @@ do
 					results+=( "$l" )
 				fi
 			done
-			if [ -z "$found" ]
+			if [ "$found" = "" ]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library !!!" >&2
 				exit 64
@@ -82,7 +82,7 @@ do
 					fi
 				done
 			fi
-			if [ -z "$found" ]
+			if [ "$found" = "" ]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library directory !!!" >&2
 				exit 64
