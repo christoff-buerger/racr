@@ -85,7 +85,7 @@ tests_skipped=0
 run(){
 	measurements_dir="$script_dir/measurements/$measurements_dir"
 	program="$1"
-	if [ -n "$2" ]
+	if [ "$2" != "" ]
 	then
 		library=( -l "$2" )
 	else
@@ -111,7 +111,7 @@ run(){
 	printf "\033[0m"
 	for s in "${selected_systems[@]}"
 	do
-		if [ ${excluded_systems["$s"]+x} ]
+		if [ "${excluded_systems["$s"]+x}" != "" ]
 		then
 			error_message=""
 			error_status=64
@@ -138,7 +138,7 @@ run(){
 			0) # all correct => test passed
 				tests_passed=$(( tests_passed + 1 ))
 				printf " \033[0;32m%s\033[0m" "$s"
-				if [ -n "$error_message" ]
+				if [ "$error_message" != "" ]
 				then
 					printf "\n\n%s\n" "$error_message" >&2
 					unset echo_trailing_newline
@@ -147,7 +147,7 @@ run(){
 			64) # configuration error for Scheme system => test skipped
 				tests_skipped=$(( tests_skipped + 1 ))
 				printf " \033[1;33m-%s-\033[0m" "$s"
-				if [ -n "$error_message" ]
+				if [ "$error_message" != "" ]
 				then
 					printf "\n\n%s\n" "$error_message" >&2
 					unset echo_trailing_newline
@@ -156,7 +156,7 @@ run(){
 			*) # execution error => test failed
 				tests_failed=$(( tests_failed + 1 ))
 				printf " \033[0;31m!%s!\033[0m" "$s"
-				if [ -n "$error_message" ]
+				if [ "$error_message" != "" ]
 				then
 					printf "\n\n%s\n" "$error_message" >&2
 					unset echo_trailing_newline
@@ -164,7 +164,7 @@ run(){
 				if [ "$abort_on_failed_test" == "true" ] # abort testing if requested
 				then
 					echo " !!! ERROR: Testing aborted because of failed test !!!" >&2
-					exit $error_status
+					exit "$error_status"
 				fi
 				;;
 		esac

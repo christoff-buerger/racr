@@ -33,7 +33,7 @@ do
 			selected_systems+=( "$OPTARG" )
 			;;
 		d)
-			if [ -z ${diagram+x} ]
+			if [ "${diagram+x}" = "" ]
 			then
 				diagram="$OPTARG"
 			else
@@ -42,7 +42,7 @@ do
 			fi
 			;;
 		i)
-			if [ -z ${input+x} ]
+			if [ "${input+x}" = "" ]
 			then
 				input="$OPTARG"
 			else
@@ -51,7 +51,7 @@ do
 			fi
 			;;
 		m)
-			if [ -z ${mode+x} ]
+			if [ "${mode+x}" = "" ]
 			then
 				mode="$OPTARG"
 			else
@@ -91,12 +91,12 @@ then
 	exit 2
 fi
 
-if [ -z ${cache_enabled_analysis+x} ]
+if [ "${cache_enabled_analysis+x}" = "" ]
 then
 	cache_enabled_analysis=":true:"
 fi
 
-if [ -z ${print_trace+x} ]
+if [ "${print_trace+x}" = "" ]
 then
 	print_trace=":true:"
 fi
@@ -107,18 +107,18 @@ then
 	selected_systems+=( "chez" )
 fi
 
-if [ -z ${diagram+x} ]
+if [ "${diagram+x}" = "" ]
 then
 	echo " !!! ERROR: No activity diagram to execute given via -d parameter !!!" >&2
 	exit 2
 fi
 
-if [ -z ${input+x} ]
+if [ "${input+x}" = "" ]
 then
 	input=":false:"
 fi
 
-if [ -z ${mode+x} ]
+if [ "${mode+x}" = "" ]
 then
 	mode=6
 elif (( "$mode" < 1 || "$mode" > 7 ))

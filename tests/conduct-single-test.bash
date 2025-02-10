@@ -13,4 +13,4 @@ execution_time=$(
 exit_status=$?
 exec 3>&- 4>&-
 echo "$execution_time"
-exit $exit_status
+exit "$exit_status"

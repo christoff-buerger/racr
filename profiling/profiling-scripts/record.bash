@@ -21,7 +21,7 @@ while getopts c:p:t:xh opt
 do
 	case $opt in
 		c)
-			if [ -z ${profiling_configuration+x} ]
+			if [ "${profiling_configuration+x}" = "" ]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -30,7 +30,7 @@ do
 			fi
 			;;
 		p)
-			if [ -z ${measurements_pipe+x} ]
+			if [ "${measurements_pipe+x}" = "" ]
 			then
 				measurements_pipe="$OPTARG"
 			else
@@ -39,7 +39,7 @@ do
 			fi
 			;;
 		t)
-			if [ -z ${measurements_table+x} ]
+			if [ "${measurements_table+x}" = "" ]
 			then
 				measurements_table="$OPTARG"
 			else
@@ -75,22 +75,22 @@ then
 	exit 2
 fi
 
-if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
+if [ "${profiling_configuration+x}" = "" ] || [ ! -f "$profiling_configuration" ]
 then
 	echo " !!! ERROR: Non-existing or no profiling configuration specified via -c parameter !!!" >&2
 	exit 2
 fi
 
-if [ -n "$test_run" ] && [ -z ${measurements_pipe+x} ]
+if [ "$test_run" != "" ] && [ "${measurements_pipe+x}" = "" ]
 then
 	:
-elif [ -z ${measurements_pipe+x} ] || [ ! -p "$measurements_pipe" ]
+elif [ "${measurements_pipe+x}" = "" ] || [ ! -p "$measurements_pipe" ]
 then
 	echo " !!! ERROR: Non-existing or no input pipe specified via -p parameter !!!" >&2
 	exit 2
 fi
 
-if [ -z "$measurements_table" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
+if [ "$measurements_table" = "" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
@@ -108,13 +108,13 @@ my_exit(){
 		"$measurements_table_lock"
 	fi
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
-	exit $exit_status	
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 
 mkdir -p "$( dirname "$measurements_table" )" # Parent directory required for locking => always create.
 
-if [ -n "$test_run" ]
+if [ "$test_run" != "" ]
 then
 	measurements_table_lock="$( \
 		"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
@@ -160,7 +160,7 @@ then
 		fi
 		i=$(( i + 1 ))
 	done < "$measurements_table"
-	if [ $i -ne ${#header[@]} ]
+	if [ "$i" -ne ${#header[@]} ]
 	then
 		echo " !!! ERROR: Measurements table [$measurements_table] has malformed header !!!" >&2
 		exit 2 # triggers 'my_exit'
@@ -179,7 +179,7 @@ then
 			fi
 			cell_number=$(( cell_number + 1 ))
 		done
-		if [ $cell_number -ne $number_of_criteria ]
+		if [ "$cell_number" -ne "$number_of_criteria" ]
 		then
 			printf " !!! ERROR: Measurements table [%s] has malformed content " "$measurements_table" >&2
 			echo   "(line $line_number, cell $(( cell_number + 1 ))) !!!" >&2
@@ -189,7 +189,7 @@ then
 	done < <( tail -n +3 "$measurements_table" )
 fi
 
-if [ -n "$test_run" ]
+if [ "$test_run" != "" ]
 then
 	exit 0 # triggers 'my_exit'
 fi

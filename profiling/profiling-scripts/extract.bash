@@ -26,7 +26,7 @@ while getopts c:t:s:iaxh opt
 do
 	case $opt in
 		c)
-			if [ -z ${profiling_configuration+x} ]
+			if [ "${profiling_configuration+x}" = "" ]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -35,7 +35,7 @@ do
 			fi
 			;;
 		t)
-			if [ -z ${measurements_table+x} ]
+			if [ "${measurements_table+x}" = "" ]
 			then
 				measurements_table="$OPTARG"
 			else
@@ -44,7 +44,7 @@ do
 			fi
 			;;
 		s)
-			if [ -z ${rerun_script+x} ]
+			if [ "${rerun_script+x}" = "" ]
 			then
 				rerun_script="$OPTARG"
 			else
@@ -53,7 +53,7 @@ do
 			fi
 			;;
 		i|a|x)
-			if [ -z ${recording_mode+x} ]
+			if [ "${recording_mode+x}" = "" ]
 			then
 				recording_mode="-$opt"
 			else
@@ -123,22 +123,22 @@ then
 	exit 2
 fi
 
-if [ -z "$measurements_table" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
+if [ "$measurements_table" = "" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
 fi
 
-if [ -z ${rerun_script+x} ]
+if [ "${rerun_script+x}" = "" ]
 then
 	rerun_script="/dev/null"
-elif [ -z "$rerun_script" ] || { [ ! "$rerun_script" -ef "/dev/null" ] && [ -e "$rerun_script" ]; }
+elif [ "$rerun_script" = "" ] || { [ ! "$rerun_script" -ef "/dev/null" ] && [ -e "$rerun_script" ]; }
 then
 	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
 	exit 2
 fi
 
-if [ -z ${recording_mode+x} ]
+if [ "${recording_mode+x}" = "" ]
 then
 	recording_mode="-i"
 fi
@@ -155,7 +155,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Close the recording pipe and wait until all extracted measurements are recorded:
-	if [ -n "$recording_pid" ]
+	if [ "$recording_pid" != "" ]
 	then
 		exec 3>&-
 		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
@@ -177,7 +177,7 @@ my_exit(){
 		"$measurements_table_lock"
 	fi
 	# Update the final measurements table if, and only if, everything was fine:
-	if [ $extraction_successful -eq 1 ]
+	if [ "$extraction_successful" -eq 1 ]
 	then
 		measurements_table_lock="$( \
 			"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
@@ -187,14 +187,14 @@ my_exit(){
 		"$measurements_table_lock"
 	fi
 	# Delete the rerun script in case a user interactively specified invalid extraction-parameters while generating it:
-	if [ -t 0 ] && [ $exit_status -gt 0 ] && [ $valid_parameters -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
+	if [ -t 0 ] && [ "$exit_status" -gt 0 ] && [ "$valid_parameters" -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
 	then
 		rm -f "$rerun_script"
 	fi
 	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
-	exit $exit_status
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 
@@ -300,7 +300,7 @@ do
 				echo "$choice2"
 			fi
 			printf "%s\n" "$choice2" >> "$rerun_script" # Save as read!
-			if [ -z "$choice2" ] || [ ${#choice2[@]} -ne 1 ]
+			if [ "$choice2" = "" ] || [ ${#choice2[@]} -ne 1 ]
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
 				exit 2 # triggers 'my_exit'

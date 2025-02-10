@@ -27,7 +27,7 @@ while getopts c:l:x:y:z:h opt
 do
 	case $opt in
 		c)
-			if [ -z ${profiling_configuration+x} ]
+			if [ "${profiling_configuration+x}" = "" ]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -36,7 +36,7 @@ do
 			fi
 			;;
 		l|x|y|z)
-			if [ -z ${criteria["$opt"]+x} ]
+			if [ "${criteria["$opt"]+x}" = "" ]
 			then
 				criteria["$opt"]="$OPTARG"
 			else
@@ -66,7 +66,7 @@ fi
 
 for c in l x y
 do
-	if [ -z "${criteria["$c"]}" ]
+	if [ "${criteria["$c"]}" = "" ]
 	then
 		echo " !!! ERROR: No measurement criteria for -$c parameter selected !!!" >&2
 		exit 2
@@ -85,7 +85,7 @@ my_exit(){
 	# Delete all temporary resources:
 	rm -rf "$tmp_dir"
 	# Return captured exit status (i.e., if the original script execution succeeded or not):	
-	exit $exit_status
+	exit "$exit_status"
 }
 trap 'my_exit' 0 1 2 3 15
 

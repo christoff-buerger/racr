@@ -55,4 +55,4 @@ set -e
 set -o pipefail
 exec 3>&- 4>&-
 echo "$execution_time"
-exit $exit_status
+exit "$exit_status"

@@ -24,7 +24,7 @@ while getopts c:h opt
 do
 	case $opt in
 		c)
-			if [ -z ${profiling_configuration+x} ]
+			if [ "${profiling_configuration+x}" = "" ]
 			then
 				profiling_configuration="$OPTARG"
 			else

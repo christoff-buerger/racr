@@ -24,7 +24,7 @@ set -o pipefail
 shopt -s inherit_errexit
 #configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ -z ${profiling_configuration+x} ] || [ ! -f "$profiling_configuration" ]
+if [ "${profiling_configuration+x}" = "" ] || [ ! -f "$profiling_configuration" ]
 then
 	echo " !!! ERROR: Non-existing or no profiling configuration to parse set !!!" >&2
 	exit 2
