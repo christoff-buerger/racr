@@ -41,28 +41,45 @@ do
 	set +e
 	set +o pipefail
 	(
+	# Disable SC2317 warnings (command appears to be unreachable): Does not work for traps, which are used extensively for
+	#	safe cleanup routines, rendering SC2317 pretty useless.
 	cd "$(dirname "$s")" && shellcheck \
 		--shell=bash \
+		--format=tty \
+		--wiki-link-count=30 \
 		--source-path=SCRIPTDIR \
 		--external-sources \
-		--check-sourced \
 		--severity=style \
-		--wiki-link-count=30 \
-		--format=tty \
+		--check-sourced \
+		--exclude=SC2317 \
 		"$( basename "$s")"
 	)
-	check_error=$?
+	shellcheck_errors=$?
+	(
+	cd "$(dirname "$s")" && shellharden \
+		--check \
+		"$( basename "$s")"
+	)
+	shellharden_errors=$?
 	set -e
 	set -o pipefail
-	if (( check_error > 0 ))
+	if (( shellcheck_errors > 0 || shellharden_errors > 0 ))
 	then
+		if (( shellharden_errors > 0 ))
+		then
+			echo "" >&2
+			echo "Script violates Shellharden. Check recommendations with:" >&2
+			echo "	shellharden --syntax-suggest \"$s\"" >&2
+			echo "" >&2
+		fi
 		bash_scripts_failed=$(( bash_scripts_failed + 1 ))
 	else
 		bash_scripts_passed=$(( bash_scripts_passed + 1 ))
 	fi
 done
 
-status_message="╔=====C=H=E=C=K===S=U=M=M=A=R=Y===B=A=S=H===S=C=R=I=P=T=S=====╗
+status_message="\
+╔=====C=H=E=C=K===S=U=M=M=A=R=Y===B=A=S=H===S=C=R=I=P=T=S=====╗
 ║ Number of tests: $( printf "%42s" "$bash_scripts_checked" ) ║
 ║ Tests passed:    $( printf "%42s" "$bash_scripts_passed" ) ║
 ║ Tests failed:    $( printf "%42s" "$bash_scripts_failed" ) ║
@@ -80,8 +97,4 @@ else
 fi
 
 ######################################################################################### Exit considering ALL checked artefacts:
-if (( bash_scripts_failed > 0 ))
-then
-	exit 1
-fi
-exit 0
+exit $(( bash_scripts_failed > 0 ))

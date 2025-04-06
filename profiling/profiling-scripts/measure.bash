@@ -379,18 +379,18 @@ do
 		(( current_parameter_iterations[current_parameter] < parameter_iterations[current_parameter] ))
 	then # redo with adjusted parameters
 		undo=false
-		current_parameter_values[$current_parameter]=$((
+		current_parameter_values[current_parameter]=$((
 			current_parameter_values[current_parameter] + parameter_adjustments[current_parameter] ))
-		current_parameter_iterations[$current_parameter]=$(( current_parameter_iterations[current_parameter] + 1 ))
+		current_parameter_iterations[current_parameter]=$(( current_parameter_iterations[current_parameter] + 1 ))
 		current_parameter=$(( current_parameter + 1 ))
 	elif [ "$undo" = true ]
 	then # reinitialise and further backtrack
-		current_parameter_values[$current_parameter]=${parameter_values[$current_parameter]}
-		current_parameter_iterations[$current_parameter]=1
+		current_parameter_values[current_parameter]=${parameter_values[$current_parameter]}
+		current_parameter_iterations[current_parameter]=1
 		current_parameter=$(( current_parameter - 1 ))
 	else # initialise
-		current_parameter_values[$current_parameter]=${parameter_values[$current_parameter]}
-		current_parameter_iterations[$current_parameter]=1
+		current_parameter_values[current_parameter]=${parameter_values[$current_parameter]}
+		current_parameter_iterations[current_parameter]=1
 		current_parameter=$(( current_parameter + 1 ))
 	fi
 done
