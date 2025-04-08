@@ -33,7 +33,7 @@ do
 			selected_systems+=( "$OPTARG" )
 			;;
 		e)
-			if [ -z ${program+x} ]
+			if [ "${program+x}" = "" ]
 			then
 				program="$OPTARG"
 			else
@@ -64,7 +64,7 @@ then
 	exit 2
 fi
 
-if [ -z ${execute_incorrect+x} ]
+if [ "${execute_incorrect+x}" = "" ]
 then
 	execute_incorrect=":false:"
 fi
@@ -75,7 +75,7 @@ then
 	selected_systems+=( "guile" )
 fi
 
-if [ -z ${program+x} ]
+if [ "${program+x}" = "" ]
 then
 	echo " !!! ERROR: No SiPLE program to interpret given via -e parameter !!!" >&2
 	exit 2

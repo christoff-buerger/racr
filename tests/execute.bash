@@ -45,8 +45,8 @@ fi
 
 if [[ ! -v "selected_systems[@]" ]]
 then
-	mapfile -t selected_systems < \
-		<( "$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
+	mapfile -t selected_systems < <(
+		"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
 fi
 
 if [[ ! -v "abort_on_failed_test" ]]

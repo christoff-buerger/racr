@@ -51,7 +51,8 @@ do
 			;;
 		s)
 			found=""
-			for s in $( "$script_dir/list-scheme-systems.bash" -i )
+			mapfile -t installed_systems < <( "$script_dir/list-scheme-systems.bash" -i || kill -13 $$ )
+			for s in "${installed_systems[@]}"
 			do
 				if [ "$OPTARG" == "$s"  ]
 				then

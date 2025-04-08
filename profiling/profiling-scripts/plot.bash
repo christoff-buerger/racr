@@ -150,7 +150,7 @@ do
 		do
 			start=$(( criteria_index["$c"] * 22 + criteria_index["$c"] + 1 ))
 			end=$(( ( criteria_index["$c"] + 1 ) * 22 + criteria_index["$c"] ))
-			cell_value="$( printf "%s" "$line" | cut -c $start-$end )"
+			cell_value="$( printf "%s" "$line" | cut -c "$start-$end" )"
 			if [ ! "$c" == "l" ]
 			then
 				cell_value="$( check_number "$cell_value" )"
