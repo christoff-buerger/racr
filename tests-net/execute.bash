@@ -10,6 +10,13 @@ set -o pipefail
 shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+################################################################################################################ Parse arguments:
+if (( $# != 0 ))
+then
+	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
+	exit 64
+fi
+
 ############################################################################################################ Configure resources:
 mutex=""
 
@@ -17,7 +24,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release lock:
-	if [ -f "$mutex" ]
+	if [[ -f "$mutex" ]]
 	then
 		"$mutex"
 	fi
@@ -30,7 +37,7 @@ mutex="$( "$script_dir/../deploying/deployment-scripts/lock-files.bash" \
 	-x " !!! ERROR: RACR-NET tests already in execution !!!" \
 	-- "$script_dir/execute.bash" )"
 
-if [ ! -e "$script_dir/nunit" ]
+if [[ ! -e "$script_dir/nunit" ]]
 then
 	mkdir -p "$script_dir/nunit"
 	(

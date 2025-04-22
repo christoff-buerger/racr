@@ -11,10 +11,10 @@ shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ######################################################################################################### Execute questionnaires:
-if [ $# -ge 1 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
-	exit 2
+	exit 64
 fi
 
 "$script_dir/../../deploying/deployment-scripts/execute.bash" -s racket -e "$script_dir/execute.scm"
