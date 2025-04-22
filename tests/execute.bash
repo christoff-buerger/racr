@@ -24,7 +24,7 @@ do
 		x)
 			abort_on_failed_test="false"
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -s Scheme system (optional multi-parameter). Permitted values:" >&2
 			"$script_dir/../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
 				sed 's/^/             /' >&2
@@ -37,7 +37,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64
@@ -85,7 +85,7 @@ tests_skipped=0
 run(){
 	measurements_dir="$script_dir/measurements/$measurements_dir"
 	program="$1"
-	if [ "$2" != "" ]
+	if [[ "$2" != "" ]]
 	then
 		library=( -l "$2" )
 	else
@@ -111,7 +111,7 @@ run(){
 	printf "\033[0m"
 	for s in "${selected_systems[@]}"
 	do
-		if [ "${excluded_systems["$s"]+x}" != "" ]
+		if [[ -v "excluded_systems[$s]" ]]
 		then
 			error_message=""
 			error_status=64
@@ -138,7 +138,7 @@ run(){
 			0) # all correct => test passed
 				tests_passed=$(( tests_passed + 1 ))
 				printf " \033[0;32m%s\033[0m" "$s"
-				if [ "$error_message" != "" ]
+				if [[ "$error_message" != "" ]]
 				then
 					printf "\n\n%s\n" "$error_message" >&2
 					unset echo_trailing_newline
@@ -147,7 +147,7 @@ run(){
 			64) # configuration error for Scheme system => test skipped
 				tests_skipped=$(( tests_skipped + 1 ))
 				printf " \033[1;33m-%s-\033[0m" "$s"
-				if [ "$error_message" != "" ]
+				if [[ "$error_message" != "" ]]
 				then
 					printf "\n\n%s\n" "$error_message" >&2
 					unset echo_trailing_newline
@@ -156,12 +156,12 @@ run(){
 			*) # execution error => test failed
 				tests_failed=$(( tests_failed + 1 ))
 				printf " \033[0;31m!%s!\033[0m" "$s"
-				if [ "$error_message" != "" ]
+				if [[ "$error_message" != "" ]]
 				then
 					printf "\n\n%s\n" "$error_message" >&2
 					unset echo_trailing_newline
 				fi
-				if [ "$abort_on_failed_test" == "true" ] # abort testing if requested
+				if [[ "$abort_on_failed_test" == "true" ]] # abort testing if requested
 				then
 					echo " !!! ERROR: Testing aborted because of failed test !!!" >&2
 					exit "$error_status"
@@ -187,7 +187,7 @@ do
 	excluded_systems=()
 	for e in "$f.exclude."*
 	do
-		if [ -f "$e" ]
+		if [[ -f "$e" ]]
 		then
 			e="$( basename "$e" )"
 			e="${e##*.}"
@@ -227,7 +227,7 @@ excluded_systems=()
 for f in "$script_dir"/../examples/ttc-2015-fuml-activity-diagrams/examples/contest-tests/*.ad
 do
 	input="${f%.ad}.adinput"
-	if [ ! -f "$input" ]
+	if [[ ! -f "$input" ]]
 	then
 		input=":false:"
 	fi
