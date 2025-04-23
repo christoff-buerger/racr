@@ -17,7 +17,7 @@ set -o pipefail
 shopt -s inherit_errexit
 configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [[ ! -v "configuration_to_parse" ]] || [ ! -f "$configuration_to_parse" ]
+if [[ ! -v "configuration_to_parse" ]] || [[ ! -f "$configuration_to_parse" ]]
 then
 	echo " !!! ERROR: Non-existent or no configuration to parse set !!!" >&2
 	exit 64
@@ -33,18 +33,18 @@ while IFS='' read -r line
 do
 	case $parsing_mode in
 	initial)
-		if [ "$line" = "@systems:" ]
+		if [[ "$line" == "@systems:" ]]
 		then
 			parsing_mode=systems
 			continue
 		fi
 		mapfile -t supported_systems_array < <( "$configure_bash_dir/list-scheme-systems.bash" -k || kill -13 $$ )
-		if [ "$line" = "@libraries:" ]
+		if [[ "$line" == "@libraries:" ]]
 		then
 			parsing_mode=libraries
 			continue
 		fi
-		if [ "$line" = "@sources:" ]
+		if [[ "$line" == "@sources:" ]]
 		then
 			parsing_mode=sources
 			continue
@@ -53,12 +53,12 @@ do
 		required_sources+=( "$configuration_directory/$line" )
 		;;
 	systems)
-		if [ "$line" = "@libraries:" ]
+		if [[ "$line" == "@libraries:" ]]
 		then
 			parsing_mode=libraries
 			continue
 		fi
-		if [ "$line" = "@sources:" ]
+		if [[ "$line" == "@sources:" ]]
 		then
 			parsing_mode=sources
 			continue
@@ -67,7 +67,7 @@ do
 		continue
 		;;
 	libraries)
-		if [ "$line" = "@sources:" ]
+		if [[ "$line" == "@sources:" ]]
 		then
 			parsing_mode=sources
 			continue
@@ -76,6 +76,10 @@ do
 		;;
 	sources)
 		required_sources+=( "$configuration_directory/$line" )
+		;;
+	*)
+		echo " !!! ERROR: Failed to process RACR library configuration file [$configuration_to_parse] !!!" >&2
+		exit 2
 		;;
 	esac
 done < "$configuration_to_parse"

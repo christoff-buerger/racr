@@ -20,7 +20,7 @@ do
 			"$script_dir/list-scheme-systems.bash" -s "$OPTARG"
 			selected_systems_array+=( "$OPTARG" )
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -s Scheme system (optional multi-parameter)." >&2
 			echo "          Permitted values:" >&2
 			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
@@ -34,7 +34,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64
@@ -62,7 +62,7 @@ my_exit(){
 	# Release locks:
 	for mutex in "${locks[@]}"
 	do
-		if [ -f "$mutex" ]
+		if [[ -f "$mutex" ]]
 		then
 			"$mutex"
 		fi
@@ -77,7 +77,7 @@ for library in "${selected_libraries[@]}"
 do
 	for system in "${selected_systems[@]}"
 	do
-		if [ -d "$library/binaries/$system" ]
+		if [[ -d "$library/binaries/$system" ]]
 		then
 			binaries_to_clean+=( "$library/binaries/$system" )
 		fi
