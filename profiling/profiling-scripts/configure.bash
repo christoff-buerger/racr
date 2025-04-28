@@ -24,7 +24,7 @@ set -o pipefail
 shopt -s inherit_errexit
 #configure_bash_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ "${profiling_configuration+x}" = "" ] || [ ! -f "$profiling_configuration" ]
+if [[ ! -v "profiling_configuration" ]] || [[ ! -f "$profiling_configuration" ]]
 then
 	echo " !!! ERROR: Non-existing or no profiling configuration to parse set !!!" >&2
 	exit 2
@@ -40,13 +40,13 @@ while IFS='' read -r line
 do
 	case $parsing_mode in
 	parameters)
-		if [ "$line" == ">" ]
+		if [[ "$line" == ">" ]]
 		then
 			parsing_mode=results
 			continue;
 		fi
 		IFS='|' read -r -a config_line <<< "$line"
-		if [ ${#config_line[@]} -ne 2 ]
+		if (( ${#config_line[@]} != 2 ))
 		then
 			echo " !!! ERROR: Malformed profiling configuration (measurement parameter syntax error) !!!" >&2
 			exit 2
@@ -56,13 +56,17 @@ do
 		;;
 	results)
 		IFS='|' read -r -a config_line <<< "$line"
-		if [ ${#config_line[@]} -ne 2 ]
+		if (( ${#config_line[@]} != 2 ))
 		then
 			echo " !!! ERROR: Malformed profiling configuration (measurement result syntax error) !!!" >&2
 			exit 2
 		fi
 		result_names+=( "${config_line[0]}" )
 		result_descriptions+=( "${config_line[1]}" )
+		;;
+	*)
+		echo " !!! ERROR: Failed to process profiling configuration [$profiling_configuration] !!!" >&2
+		exit 2
 		;;
 	esac
 done < "$profiling_configuration"

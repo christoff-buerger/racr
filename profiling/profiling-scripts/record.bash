@@ -11,7 +11,7 @@ shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ################################################################################################################ Parse arguments:
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/record.bash" -h
 	exit $?
@@ -21,7 +21,7 @@ while getopts c:p:t:xh opt
 do
 	case $opt in
 		c)
-			if [ "${profiling_configuration+x}" = "" ]
+			if [[ ! -v "profiling_configuration" ]]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -30,7 +30,7 @@ do
 			fi
 			;;
 		p)
-			if [ "${measurements_pipe+x}" = "" ]
+			if [[ ! -v "measurements_pipe" ]]
 			then
 				measurements_pipe="$OPTARG"
 			else
@@ -39,7 +39,7 @@ do
 			fi
 			;;
 		t)
-			if [ "${measurements_table+x}" = "" ]
+			if [[ ! -v "measurements_table" ]]
 			then
 				measurements_table="$OPTARG"
 			else
@@ -50,7 +50,7 @@ do
 		x)
 			test_run=true
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -p Input pipe providing measurement results to record (mandatory parameter if no -x)." >&2
 			echo "          If the -x flag is not set, the measurement results provided via the pipe are" >&2
@@ -69,28 +69,28 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
-if [ "${profiling_configuration+x}" = "" ] || [ ! -f "$profiling_configuration" ]
+if [[ ! -v "profiling_configuration" ]] || [[ ! -f "$profiling_configuration" ]]
 then
 	echo " !!! ERROR: Non-existing or no profiling configuration specified via -c parameter !!!" >&2
 	exit 2
 fi
 
-if [ "$test_run" != "" ] && [ "${measurements_pipe+x}" = "" ]
+if [[ "$test_run" != "" ]] && [[ ! -v "measurements_pipe" ]]
 then
 	:
-elif [ "${measurements_pipe+x}" = "" ] || [ ! -p "$measurements_pipe" ]
+elif [[ ! -v "measurements_pipe" ]] || [[ ! -p "$measurements_pipe" ]]
 then
 	echo " !!! ERROR: Non-existing or no input pipe specified via -p parameter !!!" >&2
 	exit 2
 fi
 
-if [ "$measurements_table" = "" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
+if [[ "$measurements_table" == "" ]] || { [[ -e "$measurements_table" ]] && [[ ! -f "$measurements_table" ]]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
@@ -103,7 +103,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release lock on measurements table:
-	if [ -f "$measurements_table_lock" ]
+	if [[ -f "$measurements_table_lock" ]]
 	then
 		"$measurements_table_lock"
 	fi
@@ -114,7 +114,7 @@ trap 'my_exit' 0 1 2 3 15
 
 mkdir -p "$( dirname "$measurements_table" )" # Parent directory required for locking => always create.
 
-if [ "$test_run" != "" ]
+if [[ "$test_run" != "" ]]
 then
 	measurements_table_lock="$( \
 		"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
@@ -144,14 +144,14 @@ done
 header[1]+="$( printf "%s" "----------------------" )"
 
 ############################################################################################## Check existing measurements table:
-if [ -e "$measurements_table" ]
+if [[ -e "$measurements_table" ]]
 then
 	i=0
 	for h in "${header[@]}"
 	do
 		if IFS='' read -r line
 		then
-			if [ "$line" != "$h" ]
+			if [[ "$line" != "$h" ]]
 			then
 				break
 			fi
@@ -160,7 +160,7 @@ then
 		fi
 		i=$(( i + 1 ))
 	done < "$measurements_table"
-	if [ "$i" -ne ${#header[@]} ]
+	if (( "$i" != ${#header[@]} ))
 	then
 		echo " !!! ERROR: Measurements table [$measurements_table] has malformed header !!!" >&2
 		exit 2 # triggers 'my_exit'
@@ -173,13 +173,13 @@ then
 		IFS='|' read -r -a cells <<< "$line"
 		for cell in "${cells[@]}"
 		do
-			if [ ${#cell} -ne 22 ] || [[ "$cell" =~ "\t" ]]
+			if (( ${#cell} != 22 )) || [[ "$cell" =~ "\t" ]]
 			then
 				break
 			fi
 			cell_number=$(( cell_number + 1 ))
 		done
-		if [ "$cell_number" -ne "$number_of_criteria" ]
+		if (( "$cell_number" != "$number_of_criteria" ))
 		then
 			printf " !!! ERROR: Measurements table [%s] has malformed content " "$measurements_table" >&2
 			echo   "(line $line_number, cell $(( cell_number + 1 ))) !!!" >&2
@@ -189,13 +189,13 @@ then
 	done < <( tail -n +3 "$measurements_table" )
 fi
 
-if [ "$test_run" != "" ]
+if [[ "$test_run" != "" ]]
 then
 	exit 0 # triggers 'my_exit'
 fi
 
 ############################################################################################################# Print table header:
-if [ ! -e "$measurements_table" ]
+if [[ ! -e "$measurements_table" ]]
 then
 	for h in "${header[@]}"
 	do
@@ -219,10 +219,10 @@ record(){
 				cell_separator=$'\n'
 				column_count=1
 			fi
-			if [ ${#cell} -eq 22 ] && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
+			if (( ${#cell} == 22 )) && [[ "$cell" =~ ^"<".*">"$|^" ".*" "$ ]] && [[ ! "$cell" =~ "\t"|"|" ]]
 			then
 				printf "%s%s" "$cell" "$cell_separator" >> "$measurements_table"
-			elif [ ${#cell} -gt 20 ] || [[ "$cell" =~ "\t"|"|" ]]
+			elif (( ${#cell} > 20 )) || [[ "$cell" =~ "\t"|"|" ]]
 			then
 				printf "<-------------------->%s" "$cell_separator" >> "$measurements_table"
 			else

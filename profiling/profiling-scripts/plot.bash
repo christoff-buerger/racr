@@ -14,7 +14,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 arguments="$* --"
 arguments="${arguments#*--}"
 
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/plot.bash" -h
 	exit $?
@@ -27,7 +27,7 @@ while getopts c:l:x:y:z:h opt
 do
 	case $opt in
 		c)
-			if [ "${profiling_configuration+x}" = "" ]
+			if [[ ! -v "profiling_configuration" ]]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -36,7 +36,7 @@ do
 			fi
 			;;
 		l|x|y|z)
-			if [ "${criteria["$opt"]+x}" = "" ]
+			if [[ ! -v "criteria[$opt]" ]]
 			then
 				criteria["$opt"]="$OPTARG"
 			else
@@ -44,7 +44,7 @@ do
 				exit 2
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -l Measurement criteria used for plot labels (mandatory parameter)." >&2
 			echo "       -x Measurement criteria used for x-axis coordinates (mandatory parameter)." >&2
@@ -58,7 +58,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+if (( $# != 0 )) && [[ " $* --" != "$arguments" ]]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
@@ -66,7 +66,7 @@ fi
 
 for c in l x y
 do
-	if [ "${criteria["$c"]}" = "" ]
+	if [[ "${criteria["$c"]}" == "" ]]
 	then
 		echo " !!! ERROR: No measurement criteria for -$c parameter selected !!!" >&2
 		exit 2
@@ -105,7 +105,7 @@ do
 	i=0
 	for n in "${criteria_names[@]}"
 	do
-		if [ "$n" == "${criteria["$c"]}" ]
+		if [[ "$n" == "${criteria["$c"]}" ]]
 		then
 			break
 		fi
@@ -151,11 +151,11 @@ do
 			start=$(( criteria_index["$c"] * 22 + criteria_index["$c"] + 1 ))
 			end=$(( ( criteria_index["$c"] + 1 ) * 22 + criteria_index["$c"] ))
 			cell_value="$( printf "%s" "$line" | cut -c "$start-$end" )"
-			if [ ! "$c" == "l" ]
+			if [[ "$c" != "l" ]]
 			then
 				cell_value="$( check_number "$cell_value" )"
 			fi
-			if [ ! "$c" == "$value_axis" ]
+			if [[ "$c" != "$value_axis" ]]
 			then
 				coordinate="$coordinate | $c: $cell_value"
 			fi

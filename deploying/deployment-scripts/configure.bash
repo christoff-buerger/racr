@@ -78,7 +78,7 @@ do
 		required_sources+=( "$configuration_directory/$line" )
 		;;
 	*)
-		echo " !!! ERROR: Failed to process RACR library configuration file [$configuration_to_parse] !!!" >&2
+		echo " !!! ERROR: Failed to process RACR library configuration [$configuration_to_parse] !!!" >&2
 		exit 2
 		;;
 	esac
