@@ -14,7 +14,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 arguments="$* --"
 arguments="${arguments#*--}"
 
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/check-tables.bash" -h
 	exit $?
@@ -24,7 +24,7 @@ while getopts c:h opt
 do
 	case $opt in
 		c)
-			if [ "${profiling_configuration+x}" = "" ]
+			if [[ ! -v "profiling_configuration" ]]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -32,7 +32,7 @@ do
 				exit 2
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -- List of measurements tables to check (mandatory parameter)." >&2
 			echo "          Must be non-empty." >&2
@@ -42,7 +42,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+if (( $# != 0 )) && [[ " $* --" != "$arguments" ]]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
@@ -52,7 +52,7 @@ measurements_tables=( "$@" )
 shift ${#measurements_tables[@]}
 for t in "${measurements_tables[@]}"
 do
-	if [ ! -f "$t" ]
+	if [[ ! -f "$t" ]]
 	then
 		echo " !!! ERROR: Non-existing measurements table [$t] specified via '--' argument list !!!" >&2
 		exit 2
