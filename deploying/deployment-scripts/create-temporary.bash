@@ -13,7 +13,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tmp_dir="$script_dir/temporary-files"
 
 ################################################################################################################ Parse arguments:
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/create-temporary.bash" -h
 	exit $?
@@ -49,7 +49,7 @@ do
 				exit 2
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -t Type of temporary to create (mandatory parameter)." >&2
 			echo "          Must be one of the following: f (file), d (directory), p (pipe)." >&2
 			echo "       -n Name of temporary to create (optional parameter)." >&2
@@ -65,7 +65,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
@@ -85,7 +85,7 @@ case "$temporary_type" in
 		temporary_type=""
 		;;
 esac
-if [ "$temporary_type" = "" ]
+if [[ "$temporary_type" == "" ]]
 then
 	echo " !!! ERROR: No or unknown temporary-type selected via -t parameter !!!" >&2
 	exit 2
@@ -93,13 +93,13 @@ fi
 
 if [[ -v "use_existing" ]]
 then
-	if [ ! -d "$use_existing" ]
+	if [[ ! -d "$use_existing" ]]
 	then
 		echo " !!! ERROR: Non-existent directory selected via -u parameter !!!" >&2
 		exit 2
 	fi
 	use_existing="$( cd "$use_existing" && pwd )"
-	if [ "${use_existing##"$tmp_dir"}" == "$use_existing" ]
+	if [[ "${use_existing##"$tmp_dir"}" == "$use_existing" ]]
 	then
 		echo " !!! ERROR: No temporary directory selected via -u parameter !!!" >&2
 		exit 2
@@ -114,7 +114,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release lock:
-	if [ -f "$mutex" ]
+	if [[ -f "$mutex" ]]
 	then
 		"$mutex"
 	fi
@@ -128,7 +128,7 @@ mutex="$( "$script_dir/lock-files.bash" -- "$script_dir/create-temporary.bash" )
 ############################################################################################################### Create temporary:
 mkdir -p "$tmp_dir"
 tmp_name="$name"
-while [ -e "$tmp_dir/$tmp_name" ]
+while [[ -e "$tmp_dir/$tmp_name" ]]
 do
 	current_date="$( date -u "+%Y-%m-%dT%H:%M:%SZ" )" # Date in xs:dateTime format.
 	tmp_name="$current_date-$(( RANDOM % 10 ))$(( RANDOM % 10 ))$(( RANDOM % 10 ))$(( RANDOM % 10 ))"
@@ -150,11 +150,15 @@ case $temporary_type in
 	pipe)
 		mkfifo "$tmp_dir/$tmp_name" 2>/dev/null
 		;;
+	*)
+		echo " !!! INTERNAL SCRIPT ERROR: Unexpected [$temporary_type] value for \$temporary_type !!!" >&2
+		exit 2
+		;;
 esac
 invalid_name=$?
 set -e
 set -o pipefail
-if [ "$invalid_name" -ne 0 ]
+if (( invalid_name != 0 ))
 then
 	echo " !!! ERROR: [$name] is an invalid $temporary_type name !!!" >&2
 	exit 2
