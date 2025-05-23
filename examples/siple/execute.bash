@@ -14,7 +14,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 arguments="$* --"
 arguments="${arguments#*--}"
 
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/execute.bash" -h
 	exit $?
@@ -33,7 +33,7 @@ do
 			selected_systems+=( "$OPTARG" )
 			;;
 		e)
-			if [ "${program+x}" = "" ]
+			if [[ ! -v "program" ]]
 			then
 				program="$OPTARG"
 			else
@@ -41,7 +41,7 @@ do
 				exit 2
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
 			"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -k | \
 				sed 's/^/             /' >&2
@@ -58,13 +58,13 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+if (( $# != 0 )) && [[ " $* --" != "$arguments" ]]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
-if [ "${execute_incorrect+x}" = "" ]
+if [[ ! -v "execute_incorrect" ]]
 then
 	execute_incorrect=":false:"
 fi
@@ -75,7 +75,7 @@ then
 	selected_systems+=( "guile" )
 fi
 
-if [ "${program+x}" = "" ]
+if [[ ! -v "program" ]]
 then
 	echo " !!! ERROR: No SiPLE program to interpret given via -e parameter !!!" >&2
 	exit 2
