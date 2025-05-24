@@ -16,7 +16,7 @@ call_dir="$( pwd )"
 arguments="$* --"
 arguments="${arguments#*--}"
 
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/extract.bash" -h
 	exit $?
@@ -26,7 +26,7 @@ while getopts c:t:s:iaxh opt
 do
 	case $opt in
 		c)
-			if [ "${profiling_configuration+x}" = "" ]
+			if [[ ! -v "profiling_configuration" ]]
 			then
 				profiling_configuration="$OPTARG"
 			else
@@ -35,7 +35,7 @@ do
 			fi
 			;;
 		t)
-			if [ "${measurements_table+x}" = "" ]
+			if [[ ! -v "measurements_table" ]]
 			then
 				measurements_table="$OPTARG"
 			else
@@ -44,7 +44,7 @@ do
 			fi
 			;;
 		s)
-			if [ "${rerun_script+x}" = "" ]
+			if [[ ! -v "rerun_script" ]]
 			then
 				rerun_script="$OPTARG"
 			else
@@ -53,7 +53,7 @@ do
 			fi
 			;;
 		i|a|x)
-			if [ "${recording_mode+x}" = "" ]
+			if [[ ! -v "recording_mode" ]]
 			then
 				recording_mode="-$opt"
 			else
@@ -61,7 +61,7 @@ do
 				exit 2
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -c Profiling configuration (mandatory parameter)." >&2
 			echo "       -t Measurements table used to record extracted measurements (mandatory parameter)." >&2
 			echo "          Created if not existent." >&2
@@ -101,7 +101,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+if (( $# != 0 )) && [[ " $* --" != "$arguments" ]]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
@@ -111,7 +111,7 @@ source_tables=( "$@" )
 shift ${#source_tables[@]}
 for t in "${source_tables[@]}"
 do
-	if [ ! -f "$t" ]
+	if [[ ! -f "$t" ]]
 	then
 		echo " !!! ERROR: Non-existing source table [$t] specified via '--' argument list !!!" >&2
 		exit 2
@@ -123,22 +123,22 @@ then
 	exit 2
 fi
 
-if [ "$measurements_table" = "" ] || { [ -e "$measurements_table" ] && [ ! -f "$measurements_table" ]; }
+if [[ "$measurements_table" == "" ]] || { [[ -e "$measurements_table" ]] && [[ ! -f "$measurements_table" ]]; }
 then
 	echo " !!! ERROR: Invalid or no measurements table specified via -t parameter !!!" >&2
 	exit 2
 fi
 
-if [ "${rerun_script+x}" = "" ]
+if [[ ! -v "rerun_script" ]]
 then
 	rerun_script="/dev/null"
-elif [ "$rerun_script" = "" ] || { [ ! "$rerun_script" -ef "/dev/null" ] && [ -e "$rerun_script" ]; }
+elif [[ "$rerun_script" == "" ]] || { [[ ! "$rerun_script" -ef "/dev/null" ]] && [[ -e "$rerun_script" ]]; }
 then
 	echo " !!! ERROR: Invalid rerun script specified via -s parameter !!!" >&2
 	exit 2
 fi
 
-if [ "${recording_mode+x}" = "" ]
+if [[ ! -v "recording_mode" ]]
 then
 	recording_mode="-i"
 fi
@@ -155,10 +155,10 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Close the recording pipe and wait until all extracted measurements are recorded:
-	if [ "$recording_pid" != "" ]
+	if [[ "$recording_pid" != "" ]]
 	then
 		exec 3>&-
-		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" && "$s" != 'Z' ]] 
+		while s=$( ps -p "$recording_pid" -o state= ) && [[ "$s" != "" && "$s" != 'Z' ]] 
 		do
 			sleep 1
 		done
@@ -166,18 +166,18 @@ my_exit(){
 	# Release read locks on source tables:
 	for mutex in "${source_tables_locks[@]}"
 	do
-		if [ -f "$mutex" ]
+		if [[ -f "$mutex" ]]
 		then
 			"$mutex"
 		fi
 	done
 	# Release read lock on measurements table:
-	if [ -f "$measurements_table_lock" ]
+	if [[ -f "$measurements_table_lock" ]]
 	then
 		"$measurements_table_lock"
 	fi
 	# Update the final measurements table if, and only if, everything was fine:
-	if [ "$extraction_successful" -eq 1 ]
+	if (( extraction_successful == 1 ))
 	then
 		measurements_table_lock="$( \
 			"$script_dir/../../deploying/deployment-scripts/lock-files.bash" \
@@ -187,7 +187,7 @@ my_exit(){
 		"$measurements_table_lock"
 	fi
 	# Delete the rerun script in case a user interactively specified invalid extraction-parameters while generating it:
-	if [ -t 0 ] && [ "$exit_status" -gt 0 ] && [ "$valid_parameters" -eq 0 ] && [ ! "$rerun_script" -ef "/dev/null" ]
+	if [[ -t 0 ]] && (( exit_status != 0 )) && (( valid_parameters == 0 )) && [[ ! "$rerun_script" -ef "/dev/null" ]]
 	then
 		rm -f "$rerun_script"
 	fi
@@ -217,12 +217,12 @@ extraction_pipe="$tmp_dir/extraction-pipe.fifo"
 extraction_table="$tmp_dir/extraction-table.txt"
 extraction_script="$tmp_dir/extraction-script.scm"
 
-if [ -f "$measurements_table" ]
+if [[ -f "$measurements_table" ]]
 then
-	if [ "$recording_mode" == "-a" ]
+	if [[ "$recording_mode" == "-a" ]]
 	then
 		cp -p "$measurements_table" "$extraction_table"
-	elif [ "$recording_mode" == "-i" ]
+	elif [[ "$recording_mode" == "-i" ]]
 	then
 		source_tables+=( "$measurements_table" )
 	else
@@ -239,7 +239,7 @@ installed_systems=()
 mapfile -t installed_systems < <( "$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i || kill -13 $$ )
 selected_system="${installed_systems[0]}"
 
-if [ ! "$rerun_script" -ef "/dev/null" ]
+if [[ ! "$rerun_script" -ef "/dev/null" ]]
 then
 	mkdir -p "$( dirname "$rerun_script" )"
 	touch "$rerun_script"
@@ -255,7 +255,7 @@ echo "#!/usr/bin/env bash"
 echo "set -e"
 echo "set -o pipefail"
 echo "shopt -s inherit_errexit"
-echo "if [ ! \$# -eq 0 ]"
+echo "if (( \$# != 0 ))"
 echo "then"
 echo "	echo \" !!! ERROR: Unknown [\$*] command line arguments !!!\" >&2"
 echo "	exit 2"
@@ -284,7 +284,7 @@ do
 		extractors="$extractors"$'\n'"  (list"
 	fi
 	IFS='' read -r -p "        Extraction operator: " choice
-	if [ ! -t 0 ]
+	if [[ ! -t 0 ]]
 	then
 		echo "        Extraction operator: $choice"
 	fi
@@ -295,12 +295,12 @@ do
 			extractors="$extractors ps:$choice"
 			echo -en "\033[1A\033[$((30 + ${#choice}))C"
 			IFS='' read -r choice2
-			if [ ! -t 0 ]
+			if [[ ! -t 0 ]]
 			then
 				echo "$choice2"
 			fi
 			printf "%s\n" "$choice2" >> "$rerun_script" # Save as read!
-			if [ "$choice2" = "" ] || [ ${#choice2[@]} -ne 1 ]
+			if [[ "$choice2" == "" ]] || (( ${#choice2[@]} != 1 ))
 			then
 				echo " !!! ERROR: Invalid choice !!!" >&2
 				exit 2 # triggers 'my_exit'

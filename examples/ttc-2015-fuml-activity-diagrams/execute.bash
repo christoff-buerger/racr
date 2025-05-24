@@ -11,7 +11,7 @@ shopt -s inherit_errexit
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ################################################################################################################ Parse arguments:
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/execute.bash" -h
 	exit $?
@@ -33,7 +33,7 @@ do
 			selected_systems+=( "$OPTARG" )
 			;;
 		d)
-			if [ "${diagram+x}" = "" ]
+			if [[ ! -v "diagram" ]]
 			then
 				diagram="$OPTARG"
 			else
@@ -42,7 +42,7 @@ do
 			fi
 			;;
 		i)
-			if [ "${input+x}" = "" ]
+			if [[ ! -v "input" ]]
 			then
 				input="$OPTARG"
 			else
@@ -51,7 +51,7 @@ do
 			fi
 			;;
 		m)
-			if [ "${mode+x}" = "" ]
+			if [[ ! -v "mode" ]]
 			then
 				mode="$OPTARG"
 			else
@@ -59,7 +59,7 @@ do
 				exit 2
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -s Scheme system (optional parameter). Permitted values:" >&2
 			"$script_dir/../../deploying/deployment-scripts/list-scheme-systems.bash" -i | \
 				sed 's/^/             /' >&2
@@ -85,40 +85,40 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 2
 fi
 
-if [ "${cache_enabled_analysis+x}" = "" ]
+if [[ ! -v "cache_enabled_analysis" ]]
 then
 	cache_enabled_analysis=":true:"
 fi
 
-if [ "${print_trace+x}" = "" ]
+if [[ ! -v "print_trace" ]]
 then
 	print_trace=":true:"
 fi
 
-if [[ ! -v selected_systems[@] ]]
+if (( ${#selected_systems[@]} == 0 ))
 then
 	selected_systems+=( -s )
 	selected_systems+=( "chez" )
 fi
 
-if [ "${diagram+x}" = "" ]
+if [[ ! -v "diagram" ]]
 then
 	echo " !!! ERROR: No activity diagram to execute given via -d parameter !!!" >&2
 	exit 2
 fi
 
-if [ "${input+x}" = "" ]
+if [[ ! -v "input" ]]
 then
 	input=":false:"
 fi
 
-if [ "${mode+x}" = "" ]
+if [[ ! -v "mode" ]]
 then
 	mode=6
 elif (( "$mode" < 1 || "$mode" > 7 ))
