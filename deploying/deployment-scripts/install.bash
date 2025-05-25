@@ -44,7 +44,7 @@ do
 		x)
 			skip_tests="true"
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -s Scheme system (optional multi-parameter)." >&2
 			echo "          Permitted values:" >&2
 			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
@@ -68,7 +68,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64
@@ -201,7 +201,7 @@ install_ironscheme(){
 		compile_script="$compile_script ($library_basename $s_basename)"
 	done
 	echo "$compile_script)" > "$binaries/compile-script.sls"
-	if [ "$library_basename" == "racr" ] # Adapt (racr core) and copy IronScheme.dll.
+	if [[ "$library_basename" == "racr" ]] # Adapt (racr core) and copy IronScheme.dll.
 	then
 		mv "$installation_directory/core.sls" "$installation_directory/core.scm"
 		"$script_dir/../../racr-net/transcribe-racr-core.bash" "$installation_directory"
@@ -306,7 +306,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 		# Capture exit status (i.e., script success or failure):
 		exit_status=$?
 		# Release lock:
-		if [ -f "$mutex" ]
+		if [[ -f "$mutex" ]]
 		then
 			"$mutex"
 		fi
@@ -334,7 +334,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	fi
 	
 	# Avoid reinstallation if existing installation is up-to-date (requires LOCKED reading of hash):
-	if [ -f "$binaries/installation-hash.txt" ]
+	if [[ -f "$binaries/installation-hash.txt" ]]
 	then
 		read -r installation_hash_old < "$binaries/installation-hash.txt"
 	else
@@ -342,7 +342,7 @@ install_system()( # Encapsulated common procedure for Scheme system installation
 	fi
 	if [[ "$installation_hash_old" == "$installation_hash" ]]
 	then
-		if [ -f "$binaries/installation-failed" ]
+		if [[ -f "$binaries/installation-failed" ]]
 		then
 			log="$( < "$binaries/install-log.txt" )"
 			# Atomic stdout:

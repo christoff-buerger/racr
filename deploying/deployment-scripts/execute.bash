@@ -16,7 +16,7 @@ configurations_array=()
 arguments="$* --"
 arguments="${arguments#*--}"
 
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/execute.bash" -h
 	exit $?
@@ -40,7 +40,7 @@ do
 			then
 				to_execute="$OPTARG"
 				to_execute_dir="$( dirname "$to_execute" )"
-				if [ "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" != "" ]
+				if [[ "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" 2> /dev/null )" != "" ]]
 				then
 					configurations_array+=( "$( "$script_dir/list-libraries.bash" -c "$to_execute_dir" )" )
 				fi
@@ -52,7 +52,7 @@ do
 		l)
 			configurations_array+=( "$( "$script_dir/list-libraries.bash" -c "$OPTARG" )" )
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -s Scheme system (mandatory parameter). Permitted values:" >&2
 			"$script_dir/list-scheme-systems.bash" -i | sed 's/^/             /' >&2
 			echo "       -e Scheme program to execute (mandatory parameter)." >&2
@@ -69,19 +69,19 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+if (( $# != 0 )) && [[ " $* --" != "$arguments" ]]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64
 fi
 
-if [ "$to_execute" = "" ] || [ ! -f "$to_execute" ]
+if [[ "$to_execute" == "" ]] || [[ ! -f "$to_execute" ]]
 then
 	echo " !!! ERROR: Non-existent or no Scheme program to execute specified via -e parameter !!!" >&2
 	exit 64
 fi
 
-if [ "$selected_system" = "" ]
+if [[ "$selected_system" == "" ]]
 then
 	echo " !!! ERROR: No Scheme system for execution selected via -s parameter !!!" >&2
 	exit 64
@@ -117,7 +117,7 @@ my_exit(){
 	# Release locks:
 	for mutex in "${locks[@]}"
 	do
-		if [ -f "$mutex" ]
+		if [[ -f "$mutex" ]]
 		then
 			"$mutex"
 		fi
@@ -166,7 +166,7 @@ case $selected_system in
 		do
 			libs_string+=":$l/binaries/larceny"
 		done
-		if [ "$libs_string" != "" ]
+		if [[ "$libs_string" != "" ]]
 		then
 			libs+=( --path "${libs_string:1}" )
 		fi
@@ -179,7 +179,7 @@ case $selected_system in
 		do
 			libs_string+=":$l/binaries/chez"
 		done
-		if [ "$libs_string" != "" ]
+		if [[ "$libs_string" != "" ]]
 		then
 			libs+=( --libdirs "${libs_string:1}" )
 		fi
@@ -216,6 +216,10 @@ case $selected_system in
 			libs+=( -I "$l/binaries/ironscheme" )
 		done
 		mono "$( command -v IronScheme.Console-v4.exe )" -nologo "${libs[@]}" "$to_execute" "$@"
+		;;
+	*)
+		echo " !!! INTERNAL SCRIPT ERROR: Unexpected [$selected_system] value for \$selected_system !!!" >&2
+		exit 2
 		;;
 esac
 
