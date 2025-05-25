@@ -7,7 +7,7 @@ _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work wit
   * [_GNU Guile_ 3.0.10](http://www.gnu.org/software/guile/)
   * [_Larceny_ 1.3](http://www.larcenists.org) ([_GitHub_ repository](https://github.com/larcenists/larceny))
   * [_Chez Scheme_ 10.1.0](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
-  * [_Racket_ 8.15](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
+  * [_Racket_ 8.17](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
   * [_Sagittarius Scheme_ 0.9.12](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository](https://github.com/ktakashi/sagittarius-scheme))
   * [_Ypsilon_ 2.0.8 (core)](http://www.littlewingpinball.net/mediawiki/index.php/Ypsilon) ([_GitHub_ repository](https://github.com/christoff-buerger/ypsilon))
   * [_IronScheme_ 1.0.348-fea3cf7](https://archive.codeplex.com/?p=ironscheme) ([_GitHub_ repository](https://github.com/leppie/IronScheme))
