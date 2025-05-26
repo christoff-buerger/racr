@@ -26,7 +26,7 @@ done
 results=() # Collect results and only print them if ALL arguments are valid.
 
 ############################################################################################################## Process arguments:
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/list-libraries.bash" -h
 	exit $?
@@ -52,13 +52,13 @@ do
 			found=""
 			for l in "${libraries[@]}"
 			do
-				if [ "$OPTARG" == "$( basename "$l" )" ]
+				if [[ "$OPTARG" == "$( basename "$l" )" ]]
 				then
 					found="true"
 					results+=( "$l" )
 				fi
 			done
-			if [ "$found" = "" ]
+			if [[ "$found" == "" ]]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library !!!" >&2
 				exit 64
@@ -69,12 +69,12 @@ do
 			;;
 		c)
 			found=""
-			if [ -d "$OPTARG" ]
+			if [[ -d "$OPTARG" ]]
 			then
 				absolute_path="$( cd "$OPTARG" && pwd )"
 				for l in "${libraries[@]}"
 				do
-					if [ "$absolute_path" == "$l" ]
+					if [[ "$absolute_path" == "$l" ]]
 					then
 						found="true"
 						results+=( "$l/racr-library-configuration" )
@@ -82,13 +82,13 @@ do
 					fi
 				done
 			fi
-			if [ "$found" = "" ]
+			if [[ "$found" == "" ]]
 			then
 				echo " !!! ERROR: Unknown [$OPTARG] RACR library directory !!!" >&2
 				exit 64
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -k List all known RACR libraries (optional multi-flag)." >&2
 			echo "       -l List all directories of a RACR library (optional multi-parameter)." >&2
 			echo "          The listed paths are absolute." >&2
@@ -104,7 +104,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64

@@ -14,7 +14,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 arguments="$* --"
 arguments="${arguments#*--}"
 
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/lock-files.bash" -h
 	exit $?
@@ -41,7 +41,7 @@ do
 				exit 64
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -x Error message if locks can not be acquired on first attempt (optional parameter)." >&2
 			echo "          Can be used to avoid spinning." >&2
 			echo "       -k Re-entrance key for key-protected files (optional parameter)." >&2
@@ -81,14 +81,14 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ $# -ge 1 ] && [ " $* --" != "$arguments" ]
+if (( $# != 0 )) && [[ " $* --" != "$arguments" ]]
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64
 fi
 
 #################################################################### Handle special case of no files (just exit => optimization):
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	exit 0
 fi
@@ -100,13 +100,13 @@ file_set=() # We need to ensure the given files are a set, not a multi-set; but 
 files=() # ...need to preserve order to return the paths of their release-scripts in order.
 for f in "$@"
 do
-	if [ -d "$f" ]
+	if [[ -d "$f" ]]
 	then
 		echo " !!! ERROR: Invalid file [$f]; locking directories is not supported !!!" >&2
 		exit 64
 	fi
 	f_dirname="$( dirname "$f" )"
-	if [ ! -d "$f_dirname" ]
+	if [[ ! -d "$f_dirname" ]]
 	then
 		echo " !!! ERROR: Invalid file [$f]; the parent directory of the file does not exist !!!" >&2
 		exit 64
@@ -127,7 +127,7 @@ do
 done
 
 ########################### Handle special case of single, no re-entrance file lock (no lock on script required => optimization):
-if [ $# -eq 1 ] && [[ ! -v "reentrance_key" ]]
+if (( $# == 1 )) && [[ ! -v "reentrance_key" ]]
 then
 	f="${files[*]}"
 	atomic_lock="$script_dir/file-locks/atomic-locks$f"
@@ -163,7 +163,7 @@ my_exit(){
 	# Capture exit status (i.e., script success or failure):
 	exit_status=$?
 	# Release locks:
-	if (( not_suspended == 1 )) && [ -f "$mutex" ]
+	if (( not_suspended == 1 )) && [[ -f "$mutex" ]]
 	then
 		"$mutex"
 	fi
@@ -187,7 +187,7 @@ do
 		then
 			succeeded=$(( succeeded + 1 ))
 			new_atomic_locks+=( "$atomic_lock" )
-		elif [[ -v "reentrance_key" ]] && [ -f "$key" ] && [ "$reentrance_key" == "$( cat "$key" )" ]
+		elif [[ -v "reentrance_key" ]] && [[ -f "$key" ]] && [[ "$reentrance_key" == "$( cat "$key" )" ]]
 		then
 			succeeded=$(( succeeded + 1 ))
 		else
@@ -223,7 +223,7 @@ do
 	then
 		release_script_dir="$script_dir/file-locks/release-scripts$f"
 		release_script="$release_script_dir/release-$$-$((RANDOM))-$((RANDOM)).bash"
-		while [ -e "$release_script" ]
+		while [[ -e "$release_script" ]]
 		do
 			release_script="$release_script_dir/release-$$-$((RANDOM))-$((RANDOM)).bash"
 		done
@@ -233,7 +233,7 @@ do
 		# Mutex is shared with 'lock-files.bash' to avoid race conditions with parallel locking:
 		printf "mutex=\"\"\n"
 		printf "my_exit(){\n"
-		printf "	if [ -f \"\$mutex\" ]\n"
+		printf "	if [[ -f \"\$mutex\" ]]\n"
 		printf "	then\n"
 		printf "		\"\$mutex\"\n"
 		printf "	fi\n"

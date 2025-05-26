@@ -13,7 +13,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 results=() # Collect results and only print them if ALL arguments are valid.
 
 ############################################################################################################## Process arguments:
-if [ $# -eq 0 ]
+if (( $# == 0 ))
 then
 	"$script_dir/list-scheme-systems.bash" -h
 	exit $?
@@ -43,7 +43,7 @@ do
 				results+=( "ironscheme" )
 				found="true"
 			fi
-			if [ "$found" = "" ]
+			if [[ "$found" == "" ]]
 			then
 				echo " !!! ERROR: No supported Scheme system found !!!" >&2
 				exit 64
@@ -54,19 +54,19 @@ do
 			mapfile -t installed_systems < <( "$script_dir/list-scheme-systems.bash" -i || kill -13 $$ )
 			for s in "${installed_systems[@]}"
 			do
-				if [ "$OPTARG" == "$s"  ]
+				if [[ "$OPTARG" == "$s" ]]
 				then
 					found="true"
 					break
 				fi
 			done
-			if [ "$found" = "" ]
+			if [[ "$found" == "" ]]
 			then
 				echo " !!! ERROR: [$OPTARG] Scheme system selected via -s parameter unavailable !!!" >&2
 				exit 64
 			fi
 			;;
-		h|?)
+		h|*)
 			echo "Usage: -k List all Scheme systems officially supported by RACR (multi-flag)." >&2
 			echo "       -i List all installed and officially supported Scheme systems (multi-flag)." >&2
 			echo "          Abort with an error if no supported system is installed." >&2
@@ -78,7 +78,7 @@ do
 done
 shift $(( OPTIND - 1 ))
 
-if [ ! $# -eq 0 ]
+if (( $# != 0 ))
 then
 	echo " !!! ERROR: Unknown [$*] command line arguments !!!" >&2
 	exit 64
