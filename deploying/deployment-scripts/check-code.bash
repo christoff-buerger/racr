@@ -92,11 +92,11 @@ do
 done
 
 status_message="\
-╔=====C=H=E=C=K===S=U=M=M=A=R=Y===B=A=S=H===S=C=R=I=P=T=S=====╗
-║ Number of tests: $( printf "%42s" "$bash_scripts_checked" ) ║
-║ Tests passed:    $( printf "%42s" "$bash_scripts_passed" ) ║
-║ Tests failed:    $( printf "%42s" "$bash_scripts_failed" ) ║
-╚=============================================================╝"
+╔===================================== C H E C K   S U M M A R Y   B A S H   S C R I P T S =====================================╗
+║ Number of tests: $( printf "%108s" "$bash_scripts_checked" ) ║
+║ Tests passed:    $( printf "%108s" "$bash_scripts_passed" ) ║
+║ Tests failed:    $( printf "%108s" "$bash_scripts_failed" ) ║
+╚===============================================================================================================================╝"
 
 if ((  bash_scripts_failed > 0 ))
 then
