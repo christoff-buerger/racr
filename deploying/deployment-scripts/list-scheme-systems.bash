@@ -30,7 +30,12 @@ do
 			;;
 		i)
 			found=""
-			for s in chez guile racket larceny sagittarius ypsilon
+			if command -v chez > /dev/null || command -v chez-scheme > /dev/null || command -v scheme > /dev/null
+			then
+				results+=( "chez" )
+				found="true"
+			fi
+			for s in guile racket larceny sagittarius ypsilon
 			do
 				if command -v "$s" > /dev/null
 				then

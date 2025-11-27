@@ -119,9 +119,10 @@ install_chez(){
 	for s in "${required_sources[@]}"
 	do
 		s_basename="$( basename "$s" )"
-		chez --libdirs "$library_paths_string" -q --optimize-level 3 << \
+		$( command -v chez || command -v chez-scheme || command -v scheme ) \
+			--libdirs "$library_paths_string" -q --optimize-level 3 << \
 EOF
-		(compile-library "$s.scm" "$installation_directory/$s_basename.so")
+			(compile-library "$s.scm" "$installation_directory/$s_basename.so")
 EOF
 	done
 }
