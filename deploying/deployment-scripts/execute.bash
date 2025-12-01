@@ -183,7 +183,7 @@ case $selected_system in
 		then
 			libs+=( --libdirs "${libs_string:1}" )
 		fi
-		$( command -v chez || command -v chez-scheme || command -v scheme ) \
+		"$( command -v chez || command -v chez-scheme || command -v scheme )" \
 			"${libs[@]}" --program "$to_execute" "$@"
 		;;
 	sagittarius)
