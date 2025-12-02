@@ -55,7 +55,7 @@ do
 	#	however discouraged by Shellharden, which considers "${v}" bad style. Both checkers contradict, but only
 	#	ShellCheck can be disabled. To enforce braces in every case is also bloat; it is much better to only use braces
 	#	if something of interest/special is going on like array operations etc.
-	cd "$(dirname "$s")" && shellcheck \
+	cd "$( dirname "$s" )" && shellcheck \
 		--shell=bash \
 		--format=tty \
 		--wiki-link-count=30 \
@@ -65,13 +65,13 @@ do
 		--enable=all \
 		--check-sourced \
 		--exclude=SC2317,SC2312,SC2250 \
-		"$( basename "$s")"
+		"$( basename "$s" )"
 	)
 	shellcheck_errors=$?
 	(
-	cd "$(dirname "$s")" && shellharden \
+	cd "$( dirname "$s" )" && shellharden \
 		--check \
-		"$( basename "$s")"
+		"$( basename "$s" )"
 	)
 	shellharden_errors=$?
 	set -e
@@ -98,7 +98,7 @@ status_message="\
 ║ Tests failed:    $( printf "%108s" "$bash_scripts_failed" ) ║
 ╚===============================================================================================================================╝"
 
-if ((  bash_scripts_failed > 0 ))
+if (( bash_scripts_failed > 0 ))
 then
 	echo "" >&2
 	echo "$status_message" >&2

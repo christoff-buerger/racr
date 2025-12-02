@@ -6,7 +6,7 @@ ___
 _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work with any _R6RS_ conformant _Scheme_ system. No additional _SRFI_ or _Scheme_ libraries are required. _RACR_ has been tested with the following _Scheme_ systems:
   * [_GNU Guile_ 3.0.10](http://www.gnu.org/software/guile/)
   * [_Larceny_ 1.3](http://www.larcenists.org) ([_GitHub_ repository](https://github.com/larcenists/larceny))
-  * [_Chez Scheme_ 10.2.0](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
+  * [_Chez Scheme_ 10.3.0](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
   * [_Racket_ 8.18](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
   * [_Sagittarius Scheme_ 0.9.13](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository](https://github.com/ktakashi/sagittarius-scheme))
   * [_Ypsilon_ 2.0.8 (core)](http://www.littlewingpinball.net/mediawiki/index.php/Ypsilon) ([_GitHub_ repository](https://github.com/christoff-buerger/ypsilon))
@@ -14,19 +14,19 @@ _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work wit
 
 _RACR_ and some of its examples are provided as _Scheme_ libraries. The instantiation of libraries differs between different _Scheme_ systems. Consult the documentation of your _Scheme_ system in case of any instantiation issues. Besides proper instantiation as _Scheme_ library, no further configurations are required to use _RACR_.
 
-# Deployment _Bash_ Shell Scripts
+# Deployment _Bash_ shell scripts
 
-To ease the deployment of _RACR_ and libraries developed using it, _Bash_ shell scripts are provided in the `deploying/deployment-scripts` directory.
+To ease the deployment of _RACR_ and libraries developed using it, _Bash_ shell scripts are provided in the `deploying/deployment-scripts` directory. The scripts have been tested with _Bash_ 5.3.3(1) and require _VIM_ 9.1 (for _xxd_ 2025-08-24), _OpenSSL_ 3.5.4, _GNU sed_ 4.9, _GNU grep_ 3.12, _GNU findutils_ 4.10.0, and the _GNU coreutils_ 9.5. The following deployment scripts are provided:
 
-**Installation** The `install.bash` script can be used to compile and install _RACR_ and _Scheme_ libraries using _RACR_ for different _Scheme_ systems. The script performs all necessary compilation and configuration actions. It does not change anything outside of _RACR's_ source code distribution. If called without any arguments, all libraries distributed with _RACR_, including its [examples](../../examples/examples-overview.md) are installed for all _Scheme_ systems found. The script can also be used to install only selected libraries and installation can be restricted to a certain _Scheme_ system. For an explanation how to do so, just call `./install.bash -h`.
+**Installation:** The `install.bash` script can be used to compile and install _RACR_ and _Scheme_ libraries using _RACR_ for different _Scheme_ systems. The script performs all necessary compilation and configuration actions. It does not change anything outside of _RACR's_ source code distribution. If called without any arguments, all libraries distributed with _RACR_, including its [examples](../../examples/examples-overview.md) are installed for all _Scheme_ systems found. The script can also be used to install only selected libraries and installation can be restricted to a certain _Scheme_ system. For an explanation how to do so, just call `./install.bash -h`.
 
-**Tests** To validate the installation, the `tests/execute.bash` script can be used. Similarly to the installation script, the tests can be executed using only a certain _Scheme_ system (for details call `tests/execute.bash -h`). If no system is specified, all available systems are tested.
+**Tests:** To validate the installation, the `tests/execute.bash` script can be used. Similarly to the installation script, the tests can be executed using only a certain _Scheme_ system (for details call `tests/execute.bash -h`). If no system is specified, all available systems are tested.
 
-**Execution** The `execute.bash` scrip can be used to execute _RACR_-based programs with any of the officially supported _Scheme_ systems. It provides flags to select the _Scheme_ program to execute, the _Scheme_ system to use for execution and the library to load for execution (for details call `execute.bash -h`). Surplus arguments separated by `--` are passed to the executed program. The script uses _RACR_-library configuration files to set up the execution environment.
+**Environment:** For an overview of installed and officially supported _Scheme_ systems and _RACR_-libraries the `list-scheme-systems.bash` and `list-libraries.bash` scripts can be used.
 
-Some of the [provided examples](../../examples/examples-overview.md) require a proper setup by the caller like input file arguments. These examples ship with a `execute.bash` script that parses command line arguments, tests their validity, provides proper error messages, properly configures the environment and, if everything is fine, finally executes the example. Such execution scripts are found in the directory containing the source code of the respective example (for example `examples/questionnaires/execute.bash`).
+**Execution:** The `execute.bash` scrip can be used to execute _RACR_-based programs with any of the officially supported _Scheme_ systems. It provides flags to select the _Scheme_ program to execute, the _Scheme_ system to use for execution and the library to load for execution (for details call `execute.bash -h`). Surplus arguments separated by `--` are passed to the executed program. The script uses _RACR_-library configuration files to set up the execution environment.
 
-**Installation overview** For an overview of installed and officially supported _Scheme_ systems and _RACR_-libraries the `list-scheme-systems.bash` and `list-libraries.bash` scripts can be used.
+**Examples:** Some of the [provided examples](../../examples/examples-overview.md) require a proper setup by the caller like input file arguments. These examples ship with a `execute.bash` script that parses command line arguments, tests their validity, provides proper error messages, properly configures the environment and, if everything is fine, finally executes the example. Such execution scripts are found in the directory containing the source code of the respective example (for example `examples/questionnaires/execute.bash`).
 
 # _.NET_ Installation and Usage
 
