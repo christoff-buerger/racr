@@ -30,7 +30,10 @@ do
 			;;
 		i)
 			found=""
-			if command -v chez > /dev/null || command -v chez-scheme > /dev/null || command -v scheme > /dev/null
+			if command -v chez > /dev/null \
+				|| command -v chezscheme > /dev/null \
+				|| command -v chez-scheme > /dev/null \
+				|| command -v scheme > /dev/null
 			then
 				results+=( "chez" )
 				found="true"
