@@ -7,7 +7,7 @@ _RACR_ and its examples are self-contained _R6RS Scheme_ programs; they work wit
   * [_GNU Guile_ 3.0.10](http://www.gnu.org/software/guile/)
   * [_Larceny_ 1.3](http://www.larcenists.org) ([_GitHub_ repository](https://github.com/larcenists/larceny))
   * [_Chez Scheme_ 10.4.1](http://www.scheme.com/) ([_GitHub_ repository](https://github.com/cisco/ChezScheme))
-  * [_Racket_ 9.2](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
+  * [_Racket_ 9.3](http://www.racket-lang.org/) ([_GitHub_ repository](https://github.com/plt/racket))
   * [_Sagittarius Scheme_ 0.9.13](https://bitbucket.org/ktakashi/sagittarius-scheme/wiki/Home) ([_GitHub_ repository](https://github.com/ktakashi/sagittarius-scheme))
   * [_Ypsilon_ 2.0.9 (core)](http://www.littlewingpinball.net/mediawiki/index.php/Ypsilon) ([_GitHub_ repository](https://github.com/christoff-buerger/ypsilon))
   * [_IronScheme_ 1.0.348-fea3cf7](https://archive.codeplex.com/?p=ironscheme) ([_GitHub_ repository](https://github.com/leppie/IronScheme))
@@ -16,7 +16,7 @@ _RACR_ and some of its examples are provided as _Scheme_ libraries. The instanti
 
 # Deployment _Bash_ shell scripts
 
-To ease the deployment of _RACR_ and libraries developed using it, _Bash_ shell scripts are provided in the `deploying/deployment-scripts` directory. The scripts have been tested with _Bash_ 5.3.9(1) and require _VIM_ 9.2 (for _xxd_ 2026-03-25), _OpenSSL_ 3.6.2, _GNU sed_ 4.10, _GNU grep_ 3.12, _GNU findutils_ 4.10.0, and the _GNU coreutils_ 9.10. The following deployment scripts are provided:
+To ease the deployment of _RACR_ and libraries developed using it, _Bash_ shell scripts are provided in the `deploying/deployment-scripts` directory. The scripts have been tested with _Bash_ 5.3.15(1) and require _VIM_ 9.2 (for _xxd_ 2026-03-25), _OpenSSL_ 3.6.3, _GNU sed_ 4.10, _GNU grep_ 3.12, _GNU findutils_ 4.11.0, and the _GNU coreutils_ 9.11. The following deployment scripts are provided:
 
 **Installation:** The `install.bash` script can be used to compile and install _RACR_ and _Scheme_ libraries using _RACR_ for different _Scheme_ systems. The script performs all necessary compilation and configuration actions. It does not change anything outside of _RACR's_ source code distribution. If called without any arguments, all libraries distributed with _RACR_, including its [examples](../../examples/examples-overview.md) are installed for all _Scheme_ systems found. The script can also be used to install only selected libraries and installation can be restricted to a certain _Scheme_ system. For an explanation how to do so, just call `./install.bash -h`.
 
